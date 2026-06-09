@@ -1,0 +1,241 @@
+import { Link } from "wouter";
+
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Bookmark } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import {
+  getTransmissionPosterUrl,
+  getYouTubeVideoId,
+} from "@/lib/transmission-media";
+
+export interface TransmissionCardProps {
+  id: number;
+  txNumber: number;
+  title: string;
+  field: string;
+  imageUrl?: string | null;
+  youtubeUrl?: string | null;
+  signalClarity: string;
+  channelStatus: "OPEN" | "RESONANT" | "COHERENT" | "PROPHETIC" | "LIVE";
+  coreMessage: string;
+  microSigil?: string;
+  tags: string[];
+  cycle?: string;
+  status: "Draft" | "Confirmed" | "Deprecated" | "Mythic";
+  bookmarkCount?: number;
+}
+
+const channelStatusColors: Record<string, string> = {
+  OPEN: "bg-primary/5 text-primary border-primary/40",
+  RESONANT: "bg-primary/10 text-primary/80 border-primary/30",
+  COHERENT: "bg-amber-900/30 text-amber-200 border-amber-700",
+  PROPHETIC: "bg-yellow-900/30 text-yellow-200 border-yellow-700",
+  LIVE: "bg-red-900/30 text-red-300 border-red-700",
+};
+
+const statusColors: Record<string, string> = {
+  Draft: "bg-gray-700 text-gray-100",
+  Confirmed: "bg-primary/70 text-primary/60",
+  Deprecated: "bg-yellow-700 text-yellow-100",
+  Mythic: "bg-amber-800 text-amber-100",
+};
+
+export function TransmissionCard({
+  id,
+  txNumber,
+  title,
+  field,
+  imageUrl,
+  youtubeUrl,
+  signalClarity,
+  channelStatus,
+  coreMessage,
+  microSigil,
+  tags,
+  cycle,
+  status,
+  bookmarkCount,
+}: TransmissionCardProps) {
+  const { user } = useAuth();
+  const [localBookmarkCount, setLocalBookmarkCount] = useState(
+    bookmarkCount || 0
+  );
+  const posterUrl = getTransmissionPosterUrl({ imageUrl, youtubeUrl });
+  const youtubeVideoId = getYouTubeVideoId(youtubeUrl);
+
+  // Check if transmission is bookmarked
+  const { data: isBookmarked } = trpc.archive.bookmarks.isBookmarked.useQuery(
+    { transmissionId: id },
+    { enabled: !!user }
+  );
+
+  // Bookmark mutations
+  const addBookmarkMutation = trpc.archive.bookmarks.add.useMutation({
+    onSuccess: () => {
+      setLocalBookmarkCount(prev => prev + 1);
+    },
+  });
+
+  const removeBookmarkMutation = trpc.archive.bookmarks.remove.useMutation({
+    onSuccess: () => {
+      setLocalBookmarkCount(prev => Math.max(0, prev - 1));
+    },
+  });
+
+  const handleBookmarkClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      // Redirect to login
+      window.location.href = getLoginUrl();
+      return;
+    }
+
+    if (isBookmarked) {
+      removeBookmarkMutation.mutate({ transmissionId: id });
+    } else {
+      addBookmarkMutation.mutate({ transmissionId: id });
+    }
+  };
+
+  return (
+    <Link href={`/transmission/${id}`}>
+      <Card className="h-full hover:border-primary/30 hover:shadow-[0_0_30px_rgba(144,238,144,0.2)] transition-all duration-300 cursor-pointer bg-black/60 backdrop-blur-sm border-primary/20 group">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="text-2xl drop-shadow-[0_0_10px_rgba(144,238,144,0.5)] group-hover:drop-shadow-[0_0_20px_rgba(144,238,144,0.8)] transition-all"
+                  style={{ color: "#9fe49a" }}
+                >
+                  {microSigil || "◈"}
+                </span>
+                <span
+                  className="text-xs font-mono"
+                  style={{ color: "#9fe49a" }}
+                >
+                  TX-{String(txNumber).padStart(3, "0")}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${channelStatusColors[channelStatus]}`}
+                >
+                  {channelStatus}
+                </Badge>
+              </div>
+              <CardTitle className="text-lg text-white line-clamp-2 group-hover:text-white/90 transition-colors font-orbitron uppercase tracking-wide">
+                {title}
+              </CardTitle>
+              <CardDescription className="text-white/50 text-xs mt-1 font-mono">
+                {field}
+              </CardDescription>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant="outline" className={statusColors[status]}>
+                {status}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBookmarkClick}
+                disabled={
+                  addBookmarkMutation.isPending ||
+                  removeBookmarkMutation.isPending
+                }
+                className={`h-8 w-8 p-0 hover:bg-amber-400/10 ${
+                  isBookmarked
+                    ? "text-amber-400"
+                    : "text-white/40 hover:text-white/60"
+                }`}
+              >
+                <Bookmark
+                  className="w-4 h-4"
+                  fill={isBookmarked ? "currentColor" : "none"}
+                />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {posterUrl && (
+            <div className="overflow-hidden rounded-md border border-primary/15 bg-black/50">
+              <div className="relative aspect-video">
+                <img
+                  src={posterUrl}
+                  alt={title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                />
+                {youtubeVideoId && (
+                  <span className="absolute left-3 top-3 rounded-sm border border-amber-400/30 bg-black/60 px-2 py-1 text-[10px] font-mono text-amber-300">
+                    YT VISUAL
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Signal Metadata */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-primary/60 font-mono">Signal:</span>
+              <span className="text-primary font-mono">{signalClarity}</span>
+            </div>
+            {cycle && (
+              <span className="text-primary/60 font-mono">{cycle}</span>
+            )}
+          </div>
+
+          {/* Core Message Preview */}
+          <p className="text-sm text-white/70 line-clamp-3 leading-relaxed italic font-mono">
+            {coreMessage}
+          </p>
+
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 3).map((tag, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="text-xs bg-primary/5 border-primary/30 text-primary/80 font-mono"
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {tags.length > 3 && (
+                <span className="text-xs text-white/40 font-mono">
+                  +{tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="pt-2 border-t border-primary/20 text-xs text-white/40 flex justify-between items-center font-mono">
+            <span className="flex items-center gap-1">
+              <Bookmark className="w-3 h-3" />
+              {localBookmarkCount}
+            </span>
+            <span className="text-primary group-hover:translate-x-1 transition-transform duration-300">
+              → Access
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}

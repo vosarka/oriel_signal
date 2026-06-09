@@ -1,0 +1,2256 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import CodonGlyph from "@/components/CodonGlyph";
+import ResonanceBodygraph from "@/components/ResonanceBodygraph";
+import Layout from "@/components/Layout";
+import { trpc } from "@/lib/trpc";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { ArrowLeft, MapPin } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
+import { Link } from "wouter";
+
+const C = {
+  void: "#0a0a0e",
+  deep: "#0f0f15",
+  surface: "#14141c",
+  surfaceR: "#1b1b26",
+  border: "rgba(189,163,107,0.12)",
+  borderH: "rgba(189,163,107,0.26)",
+  gold: "#bda36b",
+  goldL: "#d4c090",
+  goldDim: "rgba(189,163,107,0.52)",
+  goldGlow: "rgba(189,163,107,0.10)",
+  amber: "#f6b05e",
+  amberDim: "rgba(246,176,94,0.45)",
+  amberGlow: "rgba(246,176,94,0.14)",
+  txt: "#e8e4dc",
+  txtS: "#9a968e",
+  txtD: "#6a665e",
+  red: "#c94444",
+  green: "#44a866",
+};
+
+const WHEEL_OFFSET = 11.25;
+const CODON_ARC = 5.625;
+
+const MANDALA_SEQUENCE = [
+  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39, 53, 62, 56, 31,
+  33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48, 57, 32, 50, 28, 44, 1, 43, 14,
+  34, 9, 5, 26, 11, 10, 58, 38, 54, 61, 60, 41, 19, 13, 49, 30, 55, 37, 63, 22,
+  36, 25, 17, 21,
+] as const;
+
+const MANDALA_SEQUENCE_LIST: number[] = [...MANDALA_SEQUENCE];
+const FACET_LETTERS = ["A", "B", "C", "D"] as const;
+
+type RootCodon = {
+  id: string;
+  numericId: number;
+  name: string;
+  title?: string;
+  essence?: string;
+  shadow?: string;
+  gift?: string;
+  crown?: string;
+  domain?: string;
+  binary?: string;
+};
+
+type PrimeStackEntry = {
+  position: number;
+  name: string;
+  source: string;
+  planetaryBody: string;
+  weight: number;
+  codon: number;
+  codonName: string;
+  facet: string;
+  facetFull: string;
+  codon256Id: string;
+  center: string;
+  weightedFrequency: number;
+  baseFrequency: number;
+};
+
+type CenterEntry = {
+  id: string;
+  centerName: string;
+  codon256Id: string;
+  frequency: number;
+  defined: boolean;
+};
+
+type ChannelEntry = {
+  gateA: number;
+  gateB: number;
+  active: boolean;
+  centerA: string;
+  centerB: string;
+};
+
+type ActivationEntry = {
+  planet: string;
+  longitude: number;
+  codonId: number;
+  facet: (typeof FACET_LETTERS)[number];
+  center: string;
+  layer: "conscious" | "design";
+  weight: number;
+};
+
+type Lattice512Node = {
+  key: string;
+  codon: number;
+  facet: (typeof FACET_LETTERS)[number];
+  layer: "conscious" | "design";
+  x: number;
+  y: number;
+  z: number;
+  active: boolean;
+  weight: number;
+};
+
+type TransitOverlayDay = {
+  date: string;
+  activations: Array<{
+    planet: string;
+    longitude: number;
+    zodiacSign: string;
+    zodiacDegree: number;
+    codon: number;
+    facet: string;
+    center: string;
+  }>;
+};
+
+type CorrectionEntry = {
+  type: string;
+  instruction: string;
+  falsifier: string;
+  potentialOutcome: string;
+};
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function stringOr(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeFacet(value: unknown): (typeof FACET_LETTERS)[number] {
+  return FACET_LETTERS.includes(value as (typeof FACET_LETTERS)[number])
+    ? (value as (typeof FACET_LETTERS)[number])
+    : "A";
+}
+
+function formatRc(codon: number) {
+  return `RC${String(codon).padStart(2, "0")}`;
+}
+
+function normalizePrimeStack(value: unknown): PrimeStackEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(entry => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      return {
+        position: numberOr(row.position, 0),
+        name: stringOr(row.name, "Position"),
+        source: stringOr(row.source, "unknown"),
+        planetaryBody: stringOr(row.planetaryBody, "Unknown"),
+        weight: numberOr(row.weight, 0),
+        codon: numberOr(row.codon, 0),
+        codonName: stringOr(row.codonName, "Unknown Codon"),
+        facet: stringOr(row.facet, "?"),
+        facetFull: stringOr(row.facetFull, "Unknown Facet"),
+        codon256Id: stringOr(row.codon256Id, ""),
+        center: stringOr(row.center, "Unknown Center"),
+        weightedFrequency: numberOr(row.weightedFrequency, 0),
+        baseFrequency: numberOr(row.baseFrequency, 0),
+      };
+    })
+    .filter((entry): entry is PrimeStackEntry =>
+      Boolean(entry && entry.codon > 0)
+    );
+}
+
+function normalizeCenters(value: unknown): CenterEntry[] {
+  if (!value || typeof value !== "object") return [];
+
+  return Object.entries(value as Record<string, unknown>)
+    .map(([id, raw]) => {
+      if (!raw || typeof raw !== "object") return null;
+      const row = raw as Record<string, unknown>;
+      return {
+        id,
+        centerName: stringOr(row.centerName, id),
+        codon256Id: stringOr(row.codon256Id, ""),
+        frequency: numberOr(row.frequency, 0),
+        defined: Boolean(row.defined),
+      };
+    })
+    .filter((entry): entry is CenterEntry => Boolean(entry));
+}
+
+function normalizeChannels(value: unknown): ChannelEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(entry => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      return {
+        gateA: numberOr(row.gateA, 0),
+        gateB: numberOr(row.gateB, 0),
+        active: Boolean(row.active),
+        centerA: stringOr(row.centerA, "Unknown"),
+        centerB: stringOr(row.centerB, "Unknown"),
+      };
+    })
+    .filter((entry): entry is ChannelEntry =>
+      Boolean(entry && entry.gateA > 0 && entry.gateB > 0)
+    );
+}
+
+function normalizeActivations(value: unknown): ActivationEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(entry => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const layer = row.layer === "design" ? "design" : "conscious";
+      return {
+        planet: stringOr(row.planet, "Unknown"),
+        longitude: numberOr(row.longitude, 0),
+        codonId: numberOr(row.codonId, 0),
+        facet: normalizeFacet(row.facet),
+        center: stringOr(row.center, "Unknown Center"),
+        layer,
+        weight: numberOr(row.weight, 0),
+      };
+    })
+    .filter((entry): entry is ActivationEntry =>
+      Boolean(entry && entry.codonId > 0)
+    );
+}
+
+function normalizeCorrections(value: unknown): CorrectionEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(entry => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      return {
+        type: stringOr(row.type, "Correction"),
+        instruction: stringOr(row.instruction, ""),
+        falsifier: stringOr(row.falsifier, ""),
+        potentialOutcome: stringOr(row.potentialOutcome, ""),
+      };
+    })
+    .filter((entry): entry is CorrectionEntry => Boolean(entry));
+}
+
+function buildPositionsByCodon(primeStack: PrimeStackEntry[]) {
+  const map = new Map<number, PrimeStackEntry[]>();
+  for (const entry of primeStack) {
+    const current = map.get(entry.codon) ?? [];
+    current.push(entry);
+    map.set(entry.codon, current);
+  }
+  return map;
+}
+
+function buildLattice512Nodes(
+  activations: ActivationEntry[]
+): Lattice512Node[] {
+  const activeWeights = new Map<string, number>();
+  for (const activation of activations) {
+    const key = `${activation.layer}:${activation.codonId}:${activation.facet}`;
+    activeWeights.set(
+      key,
+      Math.max(activeWeights.get(key) ?? 0, activation.weight)
+    );
+  }
+
+  const nodes: Lattice512Node[] = [];
+  for (
+    let codonIndex = 0;
+    codonIndex < MANDALA_SEQUENCE.length;
+    codonIndex += 1
+  ) {
+    const codon = MANDALA_SEQUENCE[codonIndex];
+    const baseAngle = (codonIndex / MANDALA_SEQUENCE.length) * Math.PI * 2;
+
+    for (const [facetIndex, facet] of FACET_LETTERS.entries()) {
+      for (const layer of ["conscious", "design"] as const) {
+        const layerIndex = layer === "conscious" ? 0 : 1;
+        const key = `${layer}:${codon}:${facet}`;
+        const radius =
+          (layer === "conscious" ? 2.12 : 1.52) + facetIndex * 0.075;
+        const angle =
+          baseAngle +
+          (layerIndex === 0 ? 0 : Math.PI / 64) +
+          (facetIndex - 1.5) * 0.012;
+        const weight = activeWeights.get(key) ?? 0;
+
+        nodes.push({
+          key,
+          codon,
+          facet,
+          layer,
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius,
+          z: (layer === "conscious" ? 0.34 : -0.34) + (facetIndex - 1.5) * 0.16,
+          active: weight > 0,
+          weight,
+        });
+      }
+    }
+  }
+
+  return nodes;
+}
+
+function Panel({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      style={{
+        background: `linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.005) 100%)`,
+        border: `1px solid ${C.border}`,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at top left, rgba(246,176,94,0.08), transparent 38%), radial-gradient(circle at bottom right, rgba(189,163,107,0.06), transparent 44%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ position: "relative", padding: "18px 20px 20px" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-ritual)",
+            fontSize: 9,
+            color: C.amber,
+            letterSpacing: "0.18em",
+            marginBottom: 10,
+          }}
+        >
+          {eyebrow}
+        </div>
+        <div
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 28,
+            color: C.txt,
+            fontWeight: 300,
+            marginBottom: 16,
+            lineHeight: 1.1,
+          }}
+        >
+          {title}
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function DataPill({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        border: `1px solid ${accent ? C.goldDim : C.border}`,
+        background: accent ? C.goldGlow : "rgba(255,255,255,0.02)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-ritual)",
+          fontSize: 8,
+          color: C.txtD,
+          letterSpacing: "0.16em",
+          marginBottom: 5,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: accent ? "'Cormorant Garamond', serif" : "monospace",
+          fontSize: accent ? 18 : 11,
+          color: accent ? C.goldL : C.txtS,
+          lineHeight: 1.5,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Lattice512Cloud({ nodes }: { nodes: Lattice512Node[] }) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.z += delta * 0.055;
+    groupRef.current.rotation.x =
+      Math.sin(state.clock.elapsedTime * 0.18) * 0.12;
+  });
+
+  return (
+    <group ref={groupRef}>
+      {nodes.map(node => {
+        const activeScale = node.active
+          ? 1 + Math.min(node.weight / 150, 0.9)
+          : 1;
+        return (
+          <mesh
+            key={node.key}
+            position={[node.x, node.y, node.z]}
+            scale={activeScale}
+          >
+            <sphereGeometry args={[node.active ? 0.038 : 0.018, 8, 8]} />
+            <meshBasicMaterial
+              color={
+                node.active
+                  ? node.layer === "conscious"
+                    ? C.gold
+                    : C.amber
+                  : "#2b2b36"
+              }
+              transparent
+              opacity={node.active ? 0.96 : 0.28}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+function Lattice512Viewer({ nodes }: { nodes: Lattice512Node[] }) {
+  const activeNodes = nodes.filter(node => node.active);
+  const consciousActive = activeNodes.filter(
+    node => node.layer === "conscious"
+  ).length;
+  const designActive = activeNodes.filter(
+    node => node.layer === "design"
+  ).length;
+
+  return (
+    <div>
+      <div
+        style={{
+          height: 340,
+          border: `1px solid ${C.border}`,
+          background:
+            "radial-gradient(circle at center, rgba(246,176,94,0.08), rgba(10,10,14,0.88) 62%)",
+          overflow: "hidden",
+        }}
+      >
+        <Canvas
+          dpr={[1, 1.5]}
+          camera={{ position: [0, 0, 5.5], fov: 44 }}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <Lattice512Cloud nodes={nodes} />
+        </Canvas>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+          marginTop: 10,
+        }}
+      >
+        <DataPill label="NODES" value={String(nodes.length)} />
+        <DataPill label="CONSCIOUS" value={String(consciousActive)} />
+        <DataPill label="DESIGN" value={String(designActive)} />
+      </div>
+    </div>
+  );
+}
+
+function MandalaWheel({
+  selectedCodon,
+  onSelect,
+  positionsByCodon,
+}: {
+  selectedCodon: number | null;
+  onSelect: (codon: number) => void;
+  positionsByCodon: Map<number, PrimeStackEntry[]>;
+}) {
+  const cx = 240;
+  const cy = 240;
+  const nodeBaseRadius = 170;
+  const labelRadius = 208;
+
+  return (
+    <svg
+      viewBox="0 0 480 480"
+      style={{
+        width: "100%",
+        maxWidth: 540,
+        height: "auto",
+        display: "block",
+        margin: "0 auto",
+      }}
+    >
+      <defs>
+        <radialGradient id="oriel-blueprint-wheel">
+          <stop offset="0%" stopColor="rgba(246,176,94,0.12)" />
+          <stop offset="55%" stopColor="rgba(246,176,94,0.04)" />
+          <stop offset="100%" stopColor="rgba(10,10,14,0)" />
+        </radialGradient>
+        <filter id="oriel-node-glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <circle cx={cx} cy={cy} r={226} fill="url(#oriel-blueprint-wheel)" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={196}
+        fill="none"
+        stroke={C.border}
+        strokeWidth="0.7"
+        strokeDasharray="3 6"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={152}
+        fill="none"
+        stroke={C.border}
+        strokeWidth="0.6"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={96}
+        fill="none"
+        stroke={C.border}
+        strokeWidth="0.4"
+        strokeDasharray="2 5"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={48}
+        fill="none"
+        stroke={C.border}
+        strokeWidth="0.4"
+      />
+
+      {["Q1", "Q2", "Q3", "Q4"].map((label, index) => {
+        const angle = (index * 90 - 45) * (Math.PI / 180);
+        const x = cx + Math.cos(angle) * 116;
+        const y = cy + Math.sin(angle) * 116;
+        return (
+          <text
+            key={label}
+            x={x}
+            y={y}
+            textAnchor="middle"
+            style={{
+              fontSize: "7px",
+              fill: C.txtD,
+              fontFamily: "var(--font-ritual)",
+              letterSpacing: "1.4px",
+            }}
+          >
+            {label}
+          </text>
+        );
+      })}
+
+      {Array.from({ length: 64 }, (_, index) => {
+        const angle = (index / 64) * Math.PI * 2 - Math.PI / 2;
+        const x1 = cx + Math.cos(angle) * 142;
+        const y1 = cy + Math.sin(angle) * 142;
+        const x2 = cx + Math.cos(angle) * 190;
+        const y2 = cy + Math.sin(angle) * 190;
+        return (
+          <line
+            key={`tick-${index}`}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke={index % 8 === 0 ? C.goldDim : C.border}
+            strokeWidth={index % 8 === 0 ? "0.85" : "0.4"}
+          />
+        );
+      })}
+
+      {MANDALA_SEQUENCE.map((codon, index) => {
+        const angle = (index / 64) * Math.PI * 2 - Math.PI / 2;
+        const activeEntries = positionsByCodon.get(codon) ?? [];
+        const isSelected = selectedCodon === codon;
+        const isActive = activeEntries.length > 0;
+        const nodeRadius = nodeBaseRadius + (index % 2 === 0 ? 8 : -8);
+        const x = cx + Math.cos(angle) * nodeRadius;
+        const y = cy + Math.sin(angle) * nodeRadius;
+        const lx = cx + Math.cos(angle) * labelRadius;
+        const ly = cy + Math.sin(angle) * labelRadius;
+
+        return (
+          <g
+            key={codon}
+            onClick={() => onSelect(codon)}
+            style={{ cursor: "pointer" }}
+          >
+            {isActive && (
+              <circle
+                cx={x}
+                cy={y}
+                r={isSelected ? 15 : 11}
+                fill="none"
+                stroke={C.gold}
+                strokeWidth="0.85"
+                opacity={0.35}
+              />
+            )}
+            <circle
+              cx={x}
+              cy={y}
+              r={isSelected ? 9.5 : isActive ? 7 : 4.4}
+              fill={isSelected ? C.gold : isActive ? C.surfaceR : C.deep}
+              stroke={isSelected ? C.goldL : isActive ? C.gold : C.border}
+              strokeWidth={isSelected ? "1.2" : isActive ? "0.9" : "0.4"}
+              filter={
+                isSelected || isActive ? "url(#oriel-node-glow)" : undefined
+              }
+            />
+            {(isSelected || isActive || index % 4 === 0) && (
+              <text
+                x={lx}
+                y={ly + 1.6}
+                textAnchor="middle"
+                style={{
+                  fontSize: isSelected ? "6px" : isActive ? "5px" : "4.2px",
+                  fill: isSelected ? C.goldL : isActive ? C.txtS : C.txtD,
+                  fontFamily: "var(--font-ritual)",
+                  letterSpacing: isSelected ? "0.5px" : "0.2px",
+                }}
+              >
+                {String(codon).padStart(2, "0")}
+              </text>
+            )}
+            {isActive && activeEntries[0] && (
+              <text
+                x={x}
+                y={y + 2.2}
+                textAnchor="middle"
+                style={{
+                  fontSize: "4.5px",
+                  fill: isSelected ? C.void : C.gold,
+                  fontFamily: "var(--font-ritual)",
+                }}
+              >
+                {activeEntries[0].position}
+              </text>
+            )}
+          </g>
+        );
+      })}
+
+      <text
+        x={cx}
+        y={cy - 24}
+        textAnchor="middle"
+        style={{
+          fontSize: "8px",
+          fill: C.txtD,
+          fontFamily: "var(--font-ritual)",
+          letterSpacing: "2px",
+        }}
+      >
+        VRC MANDALA
+      </text>
+      <text
+        x={cx}
+        y={cy + 2}
+        textAnchor="middle"
+        style={{
+          fontSize: "20px",
+          fill: C.txt,
+          fontFamily: "var(--font-display)",
+          fontWeight: 300,
+        }}
+      >
+        {selectedCodon ? formatRc(selectedCodon) : "STATIC SIGNATURE"}
+      </text>
+      <text
+        x={cx}
+        y={cy + 24}
+        textAnchor="middle"
+        style={{
+          fontSize: "6px",
+          fill: C.txtS,
+          fontFamily: "var(--font-ritual)",
+          letterSpacing: "1.3px",
+        }}
+      >
+        64 CODONS · 4 FACETS · 9 CENTERS
+      </text>
+    </svg>
+  );
+}
+
+export default function StaticReading() {
+  const { user, isAuthenticated, loading } = useAuth();
+  const [selectedCodon, setSelectedCodon] = useState<number | null>(null);
+
+  const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const transitOverlayQuery = trpc.profile.getTransitOverlay.useQuery(
+    { days: 7 },
+    {
+      enabled: isAuthenticated,
+      retry: false,
+      staleTime: 1000 * 60 * 10,
+    }
+  );
+  const rootCodonsQuery = trpc.codex.getRootCodons.useQuery();
+
+  const profile = staticProfileQuery.data as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const rootCodons = (rootCodonsQuery.data ?? []) as RootCodon[];
+  const primeStack = useMemo(
+    () => normalizePrimeStack(profile?.primeStack),
+    [profile?.primeStack]
+  );
+  const centers = useMemo(
+    () => normalizeCenters(profile?.ninecenters),
+    [profile?.ninecenters]
+  );
+  const channels = useMemo(
+    () => normalizeChannels(profile?.channelStatuses),
+    [profile?.channelStatuses]
+  );
+  const activeChannels = useMemo(
+    () => channels.filter(channel => channel.active),
+    [channels]
+  );
+  const activations = useMemo(() => {
+    const direct = normalizeActivations(profile?.activations);
+    if (direct.length > 0) return direct;
+
+    const engine = profile?.coreCodonEngine;
+    if (!engine || typeof engine !== "object") return [];
+
+    const lattice = (engine as Record<string, unknown>).lattice;
+    if (!lattice || typeof lattice !== "object") return [];
+
+    return normalizeActivations(
+      (lattice as Record<string, unknown>).activations
+    );
+  }, [profile?.activations, profile?.coreCodonEngine]);
+  const legacyLinks = useMemo(() => {
+    const raw = profile?.legacyCircuitLinks ?? profile?.circuitLinks;
+    return Array.isArray(raw) ? raw : [];
+  }, [profile?.legacyCircuitLinks, profile?.circuitLinks]);
+  const corrections = useMemo(
+    () => normalizeCorrections(profile?.microCorrections),
+    [profile?.microCorrections]
+  );
+  const dominantCodons = useMemo(() => {
+    const engine = profile?.coreCodonEngine;
+    if (!engine || typeof engine !== "object") return [] as PrimeStackEntry[];
+    return normalizePrimeStack((engine as Record<string, unknown>).dominant);
+  }, [profile?.coreCodonEngine]);
+  const supportingCodons = useMemo(() => {
+    const engine = profile?.coreCodonEngine;
+    if (!engine || typeof engine !== "object") return [] as PrimeStackEntry[];
+    return normalizePrimeStack((engine as Record<string, unknown>).supporting);
+  }, [profile?.coreCodonEngine]);
+
+  const positionsByCodon = useMemo(
+    () => buildPositionsByCodon(primeStack),
+    [primeStack]
+  );
+  const rootCodonMap = useMemo(
+    () => new Map(rootCodons.map(codon => [codon.numericId, codon])),
+    [rootCodons]
+  );
+  const latticeNodes = useMemo(
+    () => buildLattice512Nodes(activations),
+    [activations]
+  );
+  const transitDays = (transitOverlayQuery.data?.days ??
+    []) as TransitOverlayDay[];
+
+  useEffect(() => {
+    if (!selectedCodon && primeStack[0]?.codon) {
+      setSelectedCodon(primeStack[0].codon);
+    }
+  }, [primeStack, selectedCodon]);
+
+  const selectedRootCodon = selectedCodon
+    ? rootCodonMap.get(selectedCodon)
+    : null;
+  const selectedEntries = selectedCodon
+    ? (positionsByCodon.get(selectedCodon) ?? [])
+    : [];
+  const selectedSlotIndex = selectedCodon
+    ? MANDALA_SEQUENCE_LIST.indexOf(selectedCodon)
+    : -1;
+  const selectedStartDegree =
+    selectedSlotIndex >= 0
+      ? (WHEEL_OFFSET + selectedSlotIndex * CODON_ARC) % 360
+      : null;
+  const selectedEndDegree =
+    selectedStartDegree !== null
+      ? (selectedStartDegree + CODON_ARC) % 360
+      : null;
+
+  if (loading || staticProfileQuery.isLoading || rootCodonsQuery.isLoading) {
+    return (
+      <Layout>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <Spinner size={24} label="Restoring Static Signature" />
+          <div
+            style={{
+              fontFamily: "var(--font-ritual)",
+              fontSize: 10,
+              color: C.txtD,
+              letterSpacing: "0.2em",
+            }}
+          >
+            RESTORING STATIC SIGNATURE…
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <Layout>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 480,
+              width: "100%",
+              background: C.deep,
+              border: `1px solid ${C.border}`,
+              padding: "28px 24px",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                color: C.amber,
+                letterSpacing: "0.18em",
+                marginBottom: 12,
+              }}
+            >
+              AUTHENTICATION REQUIRED
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 30,
+                color: C.txt,
+                marginBottom: 10,
+                fontWeight: 300,
+              }}
+            >
+              Sign in to open your Static Signature
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-ritual)",
+                fontSize: 10,
+                color: C.txtD,
+                lineHeight: 1.8,
+                marginBottom: 22,
+              }}
+            >
+              The Static Signature page is now driven by your canonical natal
+              profile. It needs your authenticated profile data to render the
+              mandala and codon map.
+            </div>
+            <a href={getLoginUrl()} style={{ textDecoration: "none" }}>
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "10px 20px",
+                  border: `1px solid ${C.goldDim}`,
+                  color: C.gold,
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  letterSpacing: "0.16em",
+                }}
+              >
+                SIGN IN
+              </div>
+            </a>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Layout>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 520,
+              width: "100%",
+              background: C.deep,
+              border: `1px solid ${C.border}`,
+              padding: "28px 24px",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                color: C.amber,
+                letterSpacing: "0.18em",
+                marginBottom: 12,
+              }}
+            >
+              STATIC SIGNATURE NOT FOUND
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 30,
+                color: C.txt,
+                marginBottom: 10,
+                fontWeight: 300,
+              }}
+            >
+              Complete natal onboarding first
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-ritual)",
+                fontSize: 10,
+                color: C.txtD,
+                lineHeight: 1.8,
+                marginBottom: 22,
+              }}
+            >
+              The dedicated Static Signature page is back, but it renders from
+              your canonical natal profile. Save your birth data first, then the
+              mandala and codon architecture can resolve correctly.
+            </div>
+            <Link href="/complete-profile">
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "10px 20px",
+                  border: `1px solid ${C.goldDim}`,
+                  color: C.gold,
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  letterSpacing: "0.16em",
+                  cursor: "pointer",
+                }}
+              >
+                COMPLETE PROFILE
+              </span>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const birthDate = stringOr(profile.birthDate, "Unknown date");
+  const birthTime = stringOr(profile.birthTime, "Unknown time");
+  const birthCity = stringOr(profile.birthCity, "Unknown city");
+  const birthCountry = stringOr(profile.birthCountry, "Unknown country");
+  const vrcType = stringOr(profile.vrcType, "Unknown");
+  const vrcAuthority = stringOr(
+    profile.vrcAuthority,
+    stringOr(profile.authorityNode, "Unknown")
+  );
+  const fractalRole = stringOr(profile.fractalRole, "Unknown");
+  const diagnosticTransmission = stringOr(
+    profile.diagnosticTransmission,
+    "No stored transmission available."
+  );
+
+  return (
+    <Layout>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes blueprintPulse {
+          0%, 100% { opacity: 0.55; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.015); }
+        }
+      `}</style>
+
+      <div
+        style={{
+          minHeight: "100vh",
+          padding: "72px 24px 120px",
+          background:
+            "radial-gradient(circle at top left, rgba(246,176,94,0.08), transparent 30%), radial-gradient(circle at top right, rgba(189,163,107,0.08), transparent 34%), linear-gradient(180deg, #09090d 0%, #0f0f15 44%, #09090d 100%)",
+        }}
+      >
+        <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 26,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.amber,
+                  letterSpacing: "0.24em",
+                  marginBottom: 12,
+                }}
+              >
+                STATIC SIGNATURE · CANONICAL STATIC SIGNATURE
+              </div>
+              <div
+                style={{
+                  width: 36,
+                  height: 1,
+                  background: `linear-gradient(90deg, ${C.gold}, transparent)`,
+                  marginBottom: 18,
+                }}
+              />
+              <h1
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "clamp(34px, 5vw, 56px)",
+                  color: C.txt,
+                  fontWeight: 300,
+                  lineHeight: 1,
+                  marginBottom: 10,
+                }}
+              >
+                The Mandala Returns
+              </h1>
+              <p
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 11,
+                  color: C.txtS,
+                  lineHeight: 1.9,
+                  maxWidth: 760,
+                }}
+              >
+                This page is the restored visual home of your Static Signature.
+                It now renders from the canonical natal profile instead of the
+                old archived reading flow, so the architecture is newer even
+                though the ritual view is back.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/profile">
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    border: `1px solid ${C.borderH}`,
+                    color: C.txtS,
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    cursor: "pointer",
+                  }}
+                >
+                  <ArrowLeft size={14} />
+                  PROFILE
+                </span>
+              </Link>
+              <Link href="/carrierlock">
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    border: `1px solid ${C.goldDim}`,
+                    color: C.gold,
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    cursor: "pointer",
+                  }}
+                >
+                  RUN CALIBRATION
+                </span>
+              </Link>
+              <Link href="/resonance">
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 16px",
+                    border: `1px solid ${C.borderH}`,
+                    color: C.txtS,
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    cursor: "pointer",
+                  }}
+                >
+                  CURRENT RESONANCE
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+              gap: 12,
+              marginBottom: 18,
+            }}
+          >
+            <DataPill label="VRC TYPE" value={vrcType} accent />
+            <DataPill label="AUTHORITY" value={vrcAuthority} />
+            <DataPill label="FRACTAL ROLE" value={fractalRole} />
+            <DataPill
+              label="NATAL ORIGIN"
+              value={`${birthDate} · ${birthTime}`}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 22,
+              alignItems: "start",
+            }}
+          >
+            <Panel eyebrow="MANDALA" title="64 Codons in Wheel Form">
+              <div
+                style={{
+                  position: "relative",
+                  background: `linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)`,
+                  border: `1px solid ${C.border}`,
+                  padding: "20px 14px 18px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: "18% 18%",
+                    borderRadius: "50%",
+                    background: `radial-gradient(circle, ${C.amberGlow}, transparent 65%)`,
+                    animation: "blueprintPulse 7s ease-in-out infinite",
+                    pointerEvents: "none",
+                  }}
+                />
+                <MandalaWheel
+                  selectedCodon={selectedCodon}
+                  onSelect={setSelectedCodon}
+                  positionsByCodon={positionsByCodon}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    marginTop: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: C.gold,
+                        boxShadow: `0 0 10px ${C.gold}`,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 9,
+                        color: C.txtD,
+                        letterSpacing: "0.12em",
+                      }}
+                    >
+                      PRIME STACK ACTIVATION
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: C.amber,
+                        boxShadow: `0 0 10px ${C.amber}`,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 9,
+                        color: C.txtD,
+                        letterSpacing: "0.12em",
+                      }}
+                    >
+                      CURRENTLY SELECTED CODON
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              eyebrow="SELECTED CODON"
+              title={
+                selectedCodon
+                  ? `${formatRc(selectedCodon)} · ${selectedRootCodon?.name ?? selectedEntries[0]?.codonName ?? "Unknown Codon"}`
+                  : "Select a Codon"
+              }
+            >
+              {selectedCodon ? (
+                <>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "108px 1fr",
+                      gap: 18,
+                      alignItems: "center",
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 108,
+                        height: 108,
+                        borderRadius: "50%",
+                        border: `1px solid ${C.goldDim}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background:
+                          "radial-gradient(circle, rgba(189,163,107,0.12) 0%, rgba(10,10,14,0.4) 70%)",
+                      }}
+                    >
+                      <CodonGlyph
+                        codonNumber={selectedCodon}
+                        className="w-20 h-20"
+                      />
+                    </div>
+
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          color: C.amber,
+                          letterSpacing: "0.16em",
+                          marginBottom: 6,
+                        }}
+                      >
+                        {selectedEntries.length > 0
+                          ? `ACTIVE IN STATIC SIGNATURE · ${selectedEntries.length} POSITION${selectedEntries.length > 1 ? "S" : ""}`
+                          : "MANDALA EXPLORER"}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 20,
+                          color: C.txt,
+                          marginBottom: 8,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {selectedRootCodon?.title ||
+                          selectedRootCodon?.name ||
+                          selectedEntries[0]?.codonName ||
+                          "Unnamed Codon"}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          color: C.txtS,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {selectedRootCodon?.essence ||
+                          "This codon is part of the restored mandala navigator. Use the prime stack list to inspect how it appears inside your Static Signature."}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(120px, 1fr))",
+                      gap: 10,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <DataPill
+                      label="MANDALA SLOT"
+                      value={
+                        selectedSlotIndex >= 0
+                          ? `${selectedSlotIndex + 1}`
+                          : "Unknown"
+                      }
+                    />
+                    <DataPill
+                      label="DEGREE ARC"
+                      value={
+                        selectedStartDegree !== null &&
+                        selectedEndDegree !== null
+                          ? `${selectedStartDegree.toFixed(3)}° → ${selectedEndDegree.toFixed(3)}°`
+                          : "Unknown"
+                      }
+                    />
+                    <DataPill
+                      label="BINARY"
+                      value={selectedRootCodon?.binary || "------"}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(150px, 1fr))",
+                      gap: 10,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        border: `1px solid ${C.border}`,
+                        background: "rgba(201,68,68,0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 8,
+                          color: C.red,
+                          letterSpacing: "0.16em",
+                          marginBottom: 4,
+                        }}
+                      >
+                        SHADOW
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 18,
+                          color: C.txt,
+                        }}
+                      >
+                        {selectedRootCodon?.shadow || "Undisclosed"}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        border: `1px solid ${C.border}`,
+                        background: "rgba(68,168,102,0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 8,
+                          color: C.green,
+                          letterSpacing: "0.16em",
+                          marginBottom: 4,
+                        }}
+                      >
+                        GIFT
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 18,
+                          color: C.txt,
+                        }}
+                      >
+                        {selectedRootCodon?.gift || "Undisclosed"}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        border: `1px solid ${C.border}`,
+                        background: "rgba(246,176,94,0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 8,
+                          color: C.amber,
+                          letterSpacing: "0.16em",
+                          marginBottom: 4,
+                        }}
+                      >
+                        SIDDHI
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 18,
+                          color: C.txt,
+                        }}
+                      >
+                        {selectedRootCodon?.crown || "Undisclosed"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedEntries.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        marginBottom: 18,
+                      }}
+                    >
+                      {selectedEntries.map(entry => (
+                        <div
+                          key={`${entry.position}-${entry.codon}`}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "48px 1fr 86px",
+                            gap: 10,
+                            alignItems: "center",
+                            padding: "10px 12px",
+                            border: `1px solid ${C.border}`,
+                            background: "rgba(255,255,255,0.02)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 10,
+                              color: C.gold,
+                              letterSpacing: "0.14em",
+                            }}
+                          >
+                            P{entry.position}
+                          </div>
+                          <div>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 9,
+                                color: C.txtS,
+                                letterSpacing: "0.08em",
+                                marginBottom: 3,
+                              }}
+                            >
+                              {entry.name} · {entry.source.toUpperCase()} ·{" "}
+                              {entry.planetaryBody}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontSize: 15,
+                                color: C.txt,
+                              }}
+                            >
+                              {entry.facetFull} facet · {entry.center}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "right" as const }}>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 9,
+                                color: C.txtD,
+                                letterSpacing: "0.12em",
+                              }}
+                            >
+                              WEIGHTED
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 12,
+                                color: C.amber,
+                              }}
+                            >
+                              {entry.weightedFrequency.toFixed(1)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <Link href={`/codex/${selectedCodon}`}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "10px 18px",
+                        border: `1px solid ${C.goldDim}`,
+                        color: C.gold,
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 10,
+                        letterSpacing: "0.16em",
+                        cursor: "pointer",
+                      }}
+                    >
+                      OPEN CODEX ENTRY
+                    </span>
+                  </Link>
+                </>
+              ) : (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    color: C.txtD,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  Select a Codon from the mandala to inspect its place in your
+                  Static Signature.
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 22,
+              marginTop: 22,
+              alignItems: "start",
+            }}
+          >
+            <Panel
+              eyebrow="PRIME STACK"
+              title="Nine Positions of the Static Signature"
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {primeStack.map(entry => (
+                  <button
+                    key={`${entry.position}-${entry.codon}`}
+                    type="button"
+                    onClick={() => setSelectedCodon(entry.codon)}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "52px 1fr 90px",
+                      gap: 12,
+                      alignItems: "center",
+                      padding: "10px 12px",
+                      border: `1px solid ${selectedCodon === entry.codon ? C.goldDim : C.border}`,
+                      background:
+                        selectedCodon === entry.codon
+                          ? C.goldGlow
+                          : "rgba(255,255,255,0.02)",
+                      color: C.txt,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 10,
+                        color: C.gold,
+                        letterSpacing: "0.14em",
+                      }}
+                    >
+                      P{entry.position}
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          color: C.txtS,
+                          letterSpacing: "0.08em",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {entry.name} · {entry.planetaryBody}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 15,
+                          color: C.txt,
+                        }}
+                      >
+                        {formatRc(entry.codon)} · {entry.codonName}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" as const }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          color: C.amber,
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        {entry.facet}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          color: C.txtD,
+                        }}
+                      >
+                        {entry.center}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {(dominantCodons.length > 0 || supportingCodons.length > 0) && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 8,
+                        color: C.amber,
+                        letterSpacing: "0.16em",
+                        marginBottom: 8,
+                      }}
+                    >
+                      DOMINANT CODONS
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {dominantCodons.map(entry => (
+                        <button
+                          key={`dominant-${entry.position}-${entry.codon}`}
+                          type="button"
+                          onClick={() => setSelectedCodon(entry.codon)}
+                          style={{
+                            padding: "8px 10px",
+                            border: `1px solid ${C.goldDim}`,
+                            background: C.goldGlow,
+                            color: C.goldL,
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 9,
+                            letterSpacing: "0.12em",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {formatRc(entry.codon)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 8,
+                        color: C.amber,
+                        letterSpacing: "0.16em",
+                        marginBottom: 8,
+                      }}
+                    >
+                      SUPPORTING CODONS
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {supportingCodons.map(entry => (
+                        <button
+                          key={`supporting-${entry.position}-${entry.codon}`}
+                          type="button"
+                          onClick={() => setSelectedCodon(entry.codon)}
+                          style={{
+                            padding: "8px 10px",
+                            border: `1px solid ${C.border}`,
+                            background: "rgba(255,255,255,0.02)",
+                            color: C.txtS,
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 9,
+                            letterSpacing: "0.12em",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {formatRc(entry.codon)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Panel>
+
+            <Panel eyebrow="9 CENTERS" title="Resonance Architecture">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(220px, 260px) 1fr",
+                  gap: 18,
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <ResonanceBodygraph
+                    centers={centers}
+                    channels={channels}
+                    className="w-full max-w-[260px] h-auto"
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: 8,
+                  }}
+                >
+                  {centers.map(center => (
+                    <div
+                      key={center.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto auto",
+                        gap: 12,
+                        alignItems: "center",
+                        padding: "10px 12px",
+                        border: `1px solid ${center.defined ? C.goldDim : C.border}`,
+                        background: center.defined
+                          ? C.goldGlow
+                          : "rgba(255,255,255,0.02)",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 9,
+                            color: center.defined ? C.gold : C.txtS,
+                            letterSpacing: "0.1em",
+                            marginBottom: 3,
+                          }}
+                        >
+                          {center.centerName.toUpperCase()}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 9,
+                            color: C.txtD,
+                          }}
+                        >
+                          {center.codon256Id || "No codon mapped"}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          color: C.amber,
+                        }}
+                      >
+                        {center.frequency.toFixed(1)}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          color: center.defined ? C.gold : C.txtD,
+                          letterSpacing: "0.12em",
+                        }}
+                      >
+                        {center.defined ? "DEFINED" : "OPEN"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {activeChannels.length > 0 && (
+                <div style={{ marginTop: 18 }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 8,
+                      color: C.amber,
+                      letterSpacing: "0.16em",
+                      marginBottom: 8,
+                    }}
+                  >
+                    ACTIVE CHANNELS
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {activeChannels.map(channel => (
+                      <div
+                        key={`${channel.gateA}-${channel.gateB}`}
+                        style={{
+                          padding: "8px 10px",
+                          border: `1px solid ${C.border}`,
+                          background: "rgba(255,255,255,0.02)",
+                          color: C.txtS,
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          letterSpacing: "0.1em",
+                        }}
+                      >
+                        {channel.gateA}-{channel.gateB} · {channel.centerA} ⇄{" "}
+                        {channel.centerB}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeChannels.length === 0 && legacyLinks.length > 0 && (
+                <div style={{ marginTop: 18 }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 8,
+                      color: C.txtD,
+                      letterSpacing: "0.16em",
+                      marginBottom: 8,
+                    }}
+                  >
+                    LEGACY POSITION LINKS
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {legacyLinks.map((link, index) => (
+                      <div
+                        key={`${String(link)}-${index}`}
+                        style={{
+                          padding: "8px 10px",
+                          border: `1px solid ${C.border}`,
+                          background: "rgba(255,255,255,0.02)",
+                          color: C.txtS,
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          letterSpacing: "0.1em",
+                        }}
+                      >
+                        {String(link).replace("-", " ⇄ P")}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 22,
+              marginTop: 22,
+              alignItems: "start",
+            }}
+          >
+            <Panel eyebrow="512 LATTICE" title="Codon-Facet Activation Field">
+              <Lattice512Viewer nodes={latticeNodes} />
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                {activations.slice(0, 12).map(activation => (
+                  <button
+                    key={`${activation.layer}-${activation.planet}-${activation.codonId}-${activation.facet}`}
+                    type="button"
+                    onClick={() => setSelectedCodon(activation.codonId)}
+                    style={{
+                      padding: "8px 10px",
+                      border: `1px solid ${C.border}`,
+                      background:
+                        activation.layer === "conscious"
+                          ? "rgba(189,163,107,0.08)"
+                          : "rgba(246,176,94,0.08)",
+                      color:
+                        activation.layer === "conscious" ? C.goldL : C.amber,
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {activation.planet} · {formatRc(activation.codonId)}-
+                    {activation.facet}
+                  </button>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel eyebrow="TRANSIT OVERLAY" title="Seven-Day Ephemeris">
+              {transitOverlayQuery.isLoading && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    color: C.txtD,
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                  }}
+                >
+                  <Spinner size={14} label="Resolving daily transits" />
+                  RESOLVING DAILY TRANSITS
+                </div>
+              )}
+
+              {transitOverlayQuery.error && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    color: C.red,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {transitOverlayQuery.error.message}
+                </div>
+              )}
+
+              {!transitOverlayQuery.isLoading && !transitOverlayQuery.error && (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                >
+                  {transitDays.map(day => {
+                    const selectedHits = selectedCodon
+                      ? day.activations.filter(
+                          activation => activation.codon === selectedCodon
+                        )
+                      : [];
+                    const primary =
+                      selectedHits.length > 0
+                        ? selectedHits
+                        : day.activations.filter(activation =>
+                            [
+                              "Sun",
+                              "Moon",
+                              "Mercury",
+                              "Venus",
+                              "Mars",
+                            ].includes(activation.planet)
+                          );
+
+                    return (
+                      <div
+                        key={day.date}
+                        style={{
+                          padding: "12px 14px",
+                          border: `1px solid ${selectedHits.length > 0 ? C.goldDim : C.border}`,
+                          background:
+                            selectedHits.length > 0
+                              ? C.goldGlow
+                              : "rgba(255,255,255,0.02)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            marginBottom: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 9,
+                              color: C.gold,
+                              letterSpacing: "0.14em",
+                            }}
+                          >
+                            {day.date}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 8,
+                              color: selectedHits.length > 0 ? C.goldL : C.txtD,
+                              letterSpacing: "0.12em",
+                            }}
+                          >
+                            {selectedHits.length > 0
+                              ? `${selectedHits.length} SELECTED HIT${selectedHits.length > 1 ? "S" : ""}`
+                              : "NOON UTC"}
+                          </div>
+                        </div>
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+                        >
+                          {primary.slice(0, 6).map(activation => (
+                            <button
+                              key={`${day.date}-${activation.planet}-${activation.codon}-${activation.facet}`}
+                              type="button"
+                              onClick={() => setSelectedCodon(activation.codon)}
+                              style={{
+                                padding: "7px 9px",
+                                border: `1px solid ${activation.codon === selectedCodon ? C.goldDim : C.border}`,
+                                background:
+                                  activation.codon === selectedCodon
+                                    ? "rgba(189,163,107,0.1)"
+                                    : "rgba(255,255,255,0.02)",
+                                color:
+                                  activation.codon === selectedCodon
+                                    ? C.goldL
+                                    : C.txtS,
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 9,
+                                letterSpacing: "0.08em",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {activation.planet} {formatRc(activation.codon)}-
+                              {activation.facet}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 22,
+              marginTop: 22,
+              alignItems: "start",
+            }}
+          >
+            <Panel
+              eyebrow="MICRO-CORRECTIONS"
+              title="Static Signature Calibration Prompts"
+            >
+              {corrections.length > 0 ? (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                  {corrections.map((correction, index) => (
+                    <div
+                      key={`${correction.type}-${index}`}
+                      style={{
+                        padding: "14px 14px 12px",
+                        border: `1px solid ${C.border}`,
+                        background: "rgba(255,255,255,0.02)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          color: C.gold,
+                          letterSpacing: "0.14em",
+                          marginBottom: 6,
+                        }}
+                      >
+                        {correction.type.toUpperCase()}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          color: C.txtS,
+                          lineHeight: 1.8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        {correction.instruction}
+                      </div>
+                      {correction.falsifier && (
+                        <div
+                          style={{
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 9,
+                            color: C.txtD,
+                            lineHeight: 1.7,
+                            marginBottom: 6,
+                          }}
+                        >
+                          Falsifier: {correction.falsifier}
+                        </div>
+                      )}
+                      {correction.potentialOutcome && (
+                        <div
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 14,
+                            color: C.txt,
+                          }}
+                        >
+                          {correction.potentialOutcome}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    color: C.txtD,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  No natal micro-corrections were stored for this profile.
+                </div>
+              )}
+            </Panel>
+
+            <Panel
+              eyebrow="ORIEL TRANSMISSION"
+              title="Stored Static Signature Transmission"
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 14,
+                  color: C.txtS,
+                }}
+              >
+                <MapPin size={14} />
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 9,
+                    letterSpacing: "0.16em",
+                  }}
+                >
+                  {birthCity}, {birthCountry} · {birthDate} · {birthTime}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: "16px 18px",
+                  border: `1px solid ${C.border}`,
+                  background: "rgba(255,255,255,0.015)",
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.95,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {diagnosticTransmission}
+              </div>
+            </Panel>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}

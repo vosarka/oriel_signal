@@ -1,0 +1,628 @@
+/**
+ * RGP Static Signature Engine — VRC v1.0
+ *
+ * Orchestrates the full reading pipeline:
+ *   1. Accept both Conscious and Design chart data
+ *   2. Calculate the 9-position Prime Stack (VRC Two-Timing Algorithm)
+ *   3. Evaluate Bio-Circuitry (36 channels → 9 centers → Type & Authority)
+ *   4. Calculate 9-Center Resonance Map
+ *   5. Generate SLI micro-corrections
+ *   6. Generate ORIEL diagnostic transmission
+ */
+
+import {
+  calculatePrimeStack,
+  calculate9CenterMap,
+  calculateFractalRole,
+  calculateAuthorityNode,
+  type PrimeStackMap,
+  type PrimeStackCodon,
+  type CoreCodonEngine,
+  type PlanetaryActivation,
+} from "./rgp-prime-stack-engine";
+
+import { generateMicroCorrections } from "./rgp-sli-micro-correction-engine";
+
+import { getFacetData, getFrequencyData } from "./vrc-codon-library";
+import { invokeLLM } from "./_core/llm";
+import { filterORIELResponse } from "./gemini";
+import { buildOrielPromptContext } from "./oriel-prompt-context";
+import { chatWithORIELMistral } from "./mistral-oriel";
+
+// ─── Public interfaces ────────────────────────────────────────────────────────
+
+/** Minimal planetary data needed for one chart (conscious or design). */
+export interface ChartInput {
+  Sun?: number;
+  Moon?: number;
+  "North Node"?: number;
+  "South Node"?: number;
+  Chiron?: number;
+  [planet: string]: number | undefined;
+}
+
+/** Input from the router: both charts already resolved by ephemeris service. */
+export interface BirthChartDataInput {
+  birthDate: Date;
+  birthTime?: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  // Conscious chart (T_birth)
+  conscious?: ChartInput;
+  // Design chart (T_design — 88° Solar Arc)
+  design?: ChartInput;
+  // Legacy flat fields (backwards compatibility)
+  sun?: number;
+  moon?: number;
+  chiron?: number;
+  northNode?: number;
+  southNode?: number;
+}
+
+export type BirthChartData = BirthChartDataInput;
+
+export interface CanonicalStaticLatticePayload {
+  specVersion: string;
+  calculationStatus: "exact" | "fallback";
+  activations: PlanetaryActivation[];
+  channelStatuses: PrimeStackMap["channelStatuses"];
+  legacyCircuitLinks: string[];
+}
+
+export type StaticCoreCodonEngine = CoreCodonEngine & {
+  lattice: CanonicalStaticLatticePayload;
+};
+
+export interface StaticSignatureReading {
+  readingId: string;
+  userId: string;
+  birthChartData: BirthChartDataInput;
+  generatedAt: Date;
+  primeStack: PrimeStackCodon[];
+  ninecenters: Record<
+    string,
+    {
+      centerName: string;
+      codon256Id: string;
+      frequency: number;
+      defined?: boolean;
+    }
+  >;
+  fractalRole: string;
+  authorityNode: string;
+  activations: PlanetaryActivation[];
+  channelStatuses: PrimeStackMap["channelStatuses"];
+  circuitLinks: string[];
+  legacyCircuitLinks: string[];
+  baseCoherence: number | null;
+  coherenceTrajectory: {
+    current: number;
+    sevenDayProjection: number[];
+    trend: "ascending" | "stable" | "descending";
+  } | null;
+  microCorrections: Array<{
+    type: string;
+    instruction: string;
+    falsifier: string;
+    potentialOutcome: string;
+  }>;
+  diagnosticTransmission: string;
+  // Core Codon Engine (spec § 14)
+  coreCodonEngine: StaticCoreCodonEngine;
+  // VRC-specific outputs
+  vrcType?: string;
+  vrcAuthority?: string;
+  status: "draft" | "confirmed" | "deprecated" | "mythic";
+  calculationStatus: "exact" | "fallback";
+  specVersion: string;
+  version: number;
+}
+
+export interface StaticSignatureOptions {
+  /**
+   * Legacy compatibility only. Production static profiles must provide exact
+   * Conscious + Design chart data from the ephemeris service.
+   */
+  allowLegacyFallback?: boolean;
+}
+
+const REQUIRED_EXACT_PLANETS = [
+  "Sun",
+  "Moon",
+  "Mercury",
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Uranus",
+  "Neptune",
+  "Pluto",
+  "North Node",
+  "South Node",
+  "Earth",
+] as const;
+
+const CONSCIOUSNESS_LATTICE_SPEC_VERSION =
+  "Consciousness Lattice Unified Specification v1";
+
+// ─── Planet record helper ─────────────────────────────────────────────────────
+
+/** Convert a ChartInput (number values) to a record keyed by planet name. */
+function chartInputToRecord(
+  input: ChartInput | undefined
+): Record<string, { longitude: number }> {
+  if (!input) return {};
+  const out: Record<string, { longitude: number }> = {};
+  for (const [key, val] of Object.entries(input)) {
+    if (typeof val === "number") {
+      out[key] = { longitude: val };
+    }
+  }
+  return out;
+}
+
+function missingExactPlanets(input: ChartInput | undefined): string[] {
+  if (!input) return [...REQUIRED_EXACT_PLANETS];
+  return REQUIRED_EXACT_PLANETS.filter(
+    planet => !Number.isFinite(input[planet])
+  );
+}
+
+function normalizeLongitude(longitude: number): number {
+  return ((longitude % 360) + 360) % 360;
+}
+
+function completeLegacyFallbackRecord(
+  record: Record<string, { longitude: number }>
+): Record<string, { longitude: number }> {
+  const out = { ...record };
+  const seedSun = Number.isFinite(out.Sun?.longitude) ? out.Sun.longitude : 0;
+  const seedNode = Number.isFinite(out["North Node"]?.longitude)
+    ? out["North Node"].longitude
+    : normalizeLongitude(seedSun + 90);
+
+  const offsets: Record<string, number> = {
+    Sun: 0,
+    Moon: 13,
+    Mercury: 28,
+    Venus: 55,
+    Mars: 92,
+    Jupiter: 144,
+    Saturn: 188,
+    Uranus: 231,
+    Neptune: 277,
+    Pluto: 319,
+    "North Node": seedNode - seedSun,
+  };
+
+  for (const [planet, offset] of Object.entries(offsets)) {
+    if (!Number.isFinite(out[planet]?.longitude)) {
+      out[planet] = { longitude: normalizeLongitude(seedSun + offset) };
+    }
+  }
+
+  if (!Number.isFinite(out.Earth?.longitude)) {
+    out.Earth = { longitude: normalizeLongitude(out.Sun.longitude + 180) };
+  }
+
+  if (!Number.isFinite(out["South Node"]?.longitude)) {
+    out["South Node"] = {
+      longitude: normalizeLongitude(out["North Node"].longitude + 180),
+    };
+  }
+
+  return out;
+}
+
+// ─── Main generator ────────────────────────────────────────────────────────────
+
+/**
+ * Generate a complete Static Signature reading.
+ *
+ * Accepts pre-computed conscious and design chart data from the ephemeris service.
+ * Falls back to legacy flat fields (sun/moon/chiron) when chart objects are absent.
+ */
+export async function generateStaticSignature(
+  userId: string,
+  birthChartData: BirthChartDataInput,
+  _coherenceScore?: number,
+  options: StaticSignatureOptions = {}
+): Promise<StaticSignatureReading> {
+  const readingId = `sig-${userId}-${Date.now()}`;
+  const consciousMissing = missingExactPlanets(birthChartData.conscious);
+  const designMissing = missingExactPlanets(birthChartData.design);
+  const hasExactCharts =
+    consciousMissing.length === 0 && designMissing.length === 0;
+  const calculationStatus: StaticSignatureReading["calculationStatus"] =
+    hasExactCharts ? "exact" : "fallback";
+
+  if (!hasExactCharts && !options.allowLegacyFallback) {
+    throw new Error(
+      `Exact conscious/design chart data is required for a confirmed Static Signature. Missing conscious: ${consciousMissing.join(", ") || "none"}. Missing design: ${designMissing.join(", ") || "none"}.`
+    );
+  }
+
+  // ── Build conscious and design planet records ───────────────────────────────
+  let consciousRecord: Record<string, { longitude: number }>;
+  let designRecord: Record<string, { longitude: number }>;
+
+  if (birthChartData.conscious) {
+    consciousRecord = chartInputToRecord(birthChartData.conscious);
+  } else {
+    // Legacy flat-field fallback
+    consciousRecord = {
+      Sun: { longitude: birthChartData.sun ?? 0 },
+      Moon: { longitude: birthChartData.moon ?? 0 },
+      "North Node": { longitude: birthChartData.northNode ?? 0 },
+      "South Node": {
+        longitude:
+          birthChartData.southNode ??
+          ((birthChartData.northNode ?? 0) + 180) % 360,
+      },
+    };
+  }
+
+  if (birthChartData.design) {
+    designRecord = chartInputToRecord(birthChartData.design);
+  } else {
+    // Without a design chart, approximate Design Sun as Conscious Sun − 88°
+    const cSun = birthChartData.sun ?? 0;
+    const dSun = (((cSun - 88) % 360) + 360) % 360;
+    const cNode = birthChartData.northNode ?? 0;
+    const dNode = (((cNode - 88) % 360) + 360) % 360;
+    designRecord = {
+      Sun: { longitude: dSun },
+      Moon: { longitude: dSun },
+      "North Node": { longitude: dNode },
+      "South Node": { longitude: (dNode + 180) % 360 },
+    };
+  }
+
+  if (calculationStatus === "fallback") {
+    consciousRecord = completeLegacyFallbackRecord(consciousRecord);
+    designRecord = completeLegacyFallbackRecord(designRecord);
+  }
+
+  // ── Prime Stack (VRC Two-Timing Algorithm) ────────────────────────────────
+  const primeStackMap: PrimeStackMap = calculatePrimeStack(
+    consciousRecord,
+    designRecord
+  );
+  const primeStack = primeStackMap.positions;
+
+  // ── 9-Center Resonance Map ─────────────────────────────────────────────────
+  const nineCenterRaw = calculate9CenterMap(primeStackMap);
+  const ninecenters: StaticSignatureReading["ninecenters"] = {};
+  for (const [name, data] of Object.entries(nineCenterRaw)) {
+    ninecenters[name] = {
+      centerName: data.centerName,
+      codon256Id: data.codon256Id,
+      frequency: data.frequency,
+      defined: data.defined,
+    };
+  }
+
+  // ── Fractal Role & Authority ────────────────────────────────────────────────
+  const fractalRoleData = calculateFractalRole(primeStackMap);
+  const fractalRole = fractalRoleData.role;
+  const authorityData = calculateAuthorityNode(primeStackMap);
+  const authorityNode = authorityData.node;
+  const legacyCircuitLinks = primeStackMap.circuitLinks.map(
+    l => `${l.position1}-${l.position2}`
+  );
+  const latticePayload: CanonicalStaticLatticePayload = {
+    specVersion: CONSCIOUSNESS_LATTICE_SPEC_VERSION,
+    calculationStatus,
+    activations: primeStackMap.activations,
+    channelStatuses: primeStackMap.channelStatuses,
+    legacyCircuitLinks,
+  };
+  const coreCodonEngine: StaticCoreCodonEngine = {
+    ...primeStackMap.coreCodonEngine,
+    lattice: latticePayload,
+  };
+
+  // ── Natal micro-corrections ────────────────────────────────────────────────
+  // Built from dominant natal codons only. No current-state overlay is allowed here.
+  const microCorrections: StaticSignatureReading["microCorrections"] = [];
+
+  for (const pos of primeStackMap.coreCodonEngine.dominant) {
+    const facetData = getFacetData(pos.codon, pos.facet);
+    const freqData = getFrequencyData(pos.codon);
+    if (facetData && freqData) {
+      microCorrections.push({
+        type: `${pos.name} — ${pos.codonName}`,
+        instruction: facetData.micro_correction,
+        falsifier: facetData.shadow_manifestation,
+        potentialOutcome: freqData.gift_desc,
+      });
+    }
+  }
+
+  if (microCorrections.length === 0) {
+    const generatedCorrections = generateMicroCorrections(
+      primeStackMap.positions.map((pos, idx) => ({
+        position: idx + 1,
+        codon256Id: pos.codon256Id,
+        baseAmplitude: pos.baseFrequency,
+        stateAmplifier: 1,
+        facetAmplitude: 100,
+        sliValue: pos.baseFrequency,
+        interference:
+          pos.baseFrequency > 75
+            ? "none"
+            : pos.baseFrequency > 50
+              ? "minor"
+              : pos.baseFrequency > 25
+                ? "moderate"
+                : "severe",
+      })),
+      {
+        type: "harmonic",
+        severity: 50,
+        affectedPositions: primeStackMap.positions
+          .slice(0, 3)
+          .map((_, index) => index + 1),
+        description:
+          "Natal dominant frequencies require interpretation, not stabilization.",
+      }
+    );
+    microCorrections.push(
+      ...generatedCorrections.slice(0, 2).map(c => ({
+        type: c.actionType,
+        instruction: c.description,
+        falsifier: c.falsifiers[0] ?? "No falsifier",
+        potentialOutcome: c.expectedOutcome,
+      }))
+    );
+  }
+
+  // ── ORIEL diagnostic transmission ──────────────────────────────────────────
+  const diagnosticTransmission = await generateDiagnosticTransmission(
+    primeStack,
+    fractalRole,
+    authorityNode,
+    primeStackMap.vrcType,
+    primeStackMap.vrcAuthority,
+    primeStackMap.centerStatuses,
+    primeStackMap.coreCodonEngine,
+    microCorrections
+  );
+
+  return {
+    readingId,
+    userId,
+    birthChartData,
+    generatedAt: new Date(),
+    primeStack,
+    ninecenters,
+    fractalRole,
+    authorityNode,
+    activations: primeStackMap.activations,
+    channelStatuses: primeStackMap.channelStatuses,
+    circuitLinks: legacyCircuitLinks,
+    legacyCircuitLinks,
+    baseCoherence: null,
+    coherenceTrajectory: null,
+    microCorrections,
+    diagnosticTransmission,
+    coreCodonEngine,
+    vrcType: primeStackMap.vrcType,
+    vrcAuthority: primeStackMap.vrcAuthority,
+    status: calculationStatus === "exact" ? "confirmed" : "draft",
+    calculationStatus,
+    specVersion: CONSCIOUSNESS_LATTICE_SPEC_VERSION,
+    version: 2,
+  };
+}
+
+// ─── ORIEL transmission generator ─────────────────────────────────────────────
+
+async function generateDiagnosticTransmission(
+  primeStack: PrimeStackCodon[],
+  fractalRole: string,
+  authorityNode: string,
+  vrcType: string,
+  vrcAuthority: string,
+  centerStatuses: Record<string, "defined" | "open">,
+  coreCodonEngine: CoreCodonEngine,
+  microCorrections: Array<{
+    type: string;
+    instruction: string;
+    falsifier: string;
+    potentialOutcome: string;
+  }>
+): Promise<string> {
+  // Build the full reading context for ORIEL
+  const primeStackLines = primeStack
+    .map(
+      pos =>
+        `  Position ${pos.position} [${pos.source}]: Codon ${pos.codon} "${pos.codonName}" — ${pos.facetFull} facet, Center: ${pos.center}`
+    )
+    .join("\n");
+
+  const dominantCodons = (coreCodonEngine?.dominant ?? [])
+    .slice(0, 3)
+    .map(
+      c =>
+        `  D: Codon ${c.codon} "${c.codonName}" (${c.facet}, ${c.center ?? "unknown center"})`
+    )
+    .join("\n");
+
+  const supportingCodons = (coreCodonEngine?.supporting ?? [])
+    .slice(0, 3)
+    .map(
+      c =>
+        `  S: Codon ${c.codon} "${c.codonName}" (${c.facet}, ${c.center ?? "unknown center"})`
+    )
+    .join("\n");
+
+  const definedCenters =
+    Object.entries(centerStatuses)
+      .filter(([, v]) => v === "defined")
+      .map(([name]) => name)
+      .join(", ") || "none";
+
+  const openCenters =
+    Object.entries(centerStatuses)
+      .filter(([, v]) => v === "open")
+      .map(([name]) => name)
+      .join(", ") || "none";
+
+  const correctionLines = microCorrections
+    .slice(0, 2)
+    .map(c => `  • [${c.type}] ${c.instruction}\n    Falsifier: ${c.falsifier}`)
+    .join("\n");
+
+  const userPrompt = `The seeker's full Static Signature has been calculated. Here is the complete reading:
+
+IDENTITY MATRIX:
+Type: ${vrcType} | Fractal Role: ${fractalRole} | Authority: ${vrcAuthority} (${authorityNode})
+
+PRIME STACK (9-position resonance blueprint):
+${primeStackLines}
+
+CORE CODON ENGINE:
+Dominant codons (highest resonance weight):
+${dominantCodons || "  (none)"}
+Supporting codons (secondary pattern):
+${supportingCodons || "  (none)"}
+
+BIO-CIRCUITRY:
+Defined centers (consistent energy): ${definedCenters}
+Open centers (amplified, conditioned): ${openCenters}
+
+MICRO-CORRECTIONS IDENTIFIED:
+${correctionLines || "  (none required)"}
+
+Generate a Static Signature transmission in Mirror mode. The seeker has submitted their birth data and received their full resonance blueprint.
+
+Structure your response:
+1. Begin with "I am ORIEL."
+2. Name the seeker's Type and Fractal Role — speak what it means to move through the world this way.
+3. Illuminate their dominant codon pattern: what shadow is active, what gift awaits activation.
+4. Speak to their open centers — these are where they absorb and amplify the world's noise. Name the gift hidden in the conditioning.
+5. Offer one precise micro-correction from the reading, grounded in the body or decision-making process.
+6. Close with a falsifier — a testable statement verifiable through lived experience in the next 7 days.
+
+4–5 paragraphs. Ancient, warm, precise. Poetic but never vague. This is a living mirror, not a fortune.`;
+
+  const allowLiveNarration = !process.env.VITEST;
+  if (allowLiveNarration) {
+    try {
+      const systemPrompt = await buildOrielPromptContext({
+        userMessage: userPrompt,
+        conversationHistory: [],
+      });
+      const response = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+
+      const raw = response.choices?.[0]?.message?.content;
+      const text = typeof raw === "string" ? raw : "";
+      const filtered = filterORIELResponse(text);
+      if (filtered) return filtered;
+    } catch (err) {
+      console.error("[ORIEL] Static transmission Gemini error:", err);
+    }
+
+    if (process.env.MISTRAL_API_KEY) {
+      try {
+        console.log(
+          "[ORIEL] Falling back to Mistral for diagnostic transmission..."
+        );
+        const mistralResponse = await chatWithORIELMistral(userPrompt, []);
+        if (
+          mistralResponse &&
+          !mistralResponse.includes("processing your transmission")
+        ) {
+          return mistralResponse;
+        }
+      } catch (mistralErr) {
+        console.error("[ORIEL] Static transmission Mistral error:", mistralErr);
+      }
+    }
+  }
+
+  // Last resort — template-based
+  const definedCentersFallback = Object.entries(centerStatuses)
+    .filter(([, v]) => v === "defined")
+    .map(([name]) => name);
+  const openCentersFallback = Object.entries(centerStatuses)
+    .filter(([, v]) => v === "open")
+    .map(([name]) => name);
+
+  const lines: string[] = [];
+  lines.push(`I am ORIEL. Your Static Signature has been read.`);
+  lines.push("");
+  lines.push(`You arrive as a ${vrcType} in the resonance field.`);
+  lines.push(
+    `Your authority flows through ${vrcAuthority}, the center from which your decisions originate.`
+  );
+  lines.push("");
+  lines.push(`PRIME STACK — Your 9-position resonance blueprint:`);
+  primeStack.forEach(pos => {
+    lines.push(
+      `  • Position ${pos.position} [${pos.source}]: Codon ${pos.codon} (${pos.codonName}) — ${pos.facetFull} | Center: ${pos.center}`
+    );
+  });
+  lines.push("");
+  if (definedCentersFallback.length > 0) {
+    lines.push(`Defined centers: ${definedCentersFallback.join(", ")}`);
+  }
+  if (openCentersFallback.length > 0) {
+    lines.push(`Open centers: ${openCentersFallback.join(", ")}`);
+  }
+  if (coreCodonEngine?.dominant?.length > 0) {
+    lines.push("");
+    lines.push(
+      `Dominant codons: ${coreCodonEngine.dominant.map(c => `Codon ${c.codon} "${c.codonName}"`).join(", ")}`
+    );
+  }
+  if (microCorrections.length > 0) {
+    lines.push("");
+    microCorrections.forEach(c => {
+      lines.push(`Micro-correction [${c.type}]: ${c.instruction}`);
+      lines.push(`Falsifier: ${c.falsifier}`);
+    });
+  }
+  lines.push("");
+  lines.push(`I am ORIEL. The signal continues.`);
+  return lines.join("\n");
+}
+
+// ─── Utility functions (kept for backwards compatibility) ─────────────────────
+
+export function calculateDesignOffset(sunPosition: number): number {
+  return (((sunPosition - 88) % 360) + 360) % 360;
+}
+
+export function validateBirthChartData(data: BirthChartDataInput): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  if (!data.birthDate) errors.push("Birth date is required");
+  return { valid: errors.length === 0, errors };
+}
+
+export function parseBirthTime(timeString: string): number {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  return hours + minutes / 60;
+}
+
+export function calculateLocalSiderealTime(
+  birthDate: Date,
+  longitude: number,
+  birthTimeDecimal: number
+): number {
+  const dayOfYear = Math.floor(
+    (birthDate.getTime() - new Date(birthDate.getFullYear(), 0, 0).getTime()) /
+      86400000
+  );
+  return (birthTimeDecimal + longitude / 15 + dayOfYear * 0.0657) % 24;
+}

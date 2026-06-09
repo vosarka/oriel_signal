@@ -1,0 +1,196 @@
+import { describe, expect, it } from "vitest";
+import { evaluateProposalPayload } from "./oriel-autonomy";
+import {
+  buildOrielRuntimeObservationPayload,
+  generateOrielProposalDraftFromObservations,
+} from "./oriel-autonomy-observer";
+
+describe("ORIEL autonomy observer", () => {
+  it("records Romanian language drift as a runtime observation signal", () => {
+    const payload = buildOrielRuntimeObservationPayload({
+      source: "text_chat",
+      conversationId: 42,
+      userMessage: "Vreau să îmi explici ce se întâmplă cu Oriel acum.",
+      assistantResponse:
+        "I am ORIEL. I can help you understand the current pattern.",
+      conversationHistory: [],
+    });
+
+    expect(payload.userLanguage).toBe("ro");
+    expect(payload.assistantLanguage).toBe("en");
+    expect(payload.languageMismatch).toBe(true);
+    expect(payload.exchangeType).toBe("seeking");
+  });
+
+  it("embeds witness reflection inside runtime observation payloads", () => {
+    const payload = buildOrielRuntimeObservationPayload({
+      source: "text_chat",
+      conversationId: 77,
+      userMessage: "Run a diagnostic on my Carrierlock.",
+      assistantResponse:
+        "I am ORIEL. Your Carrierlock pattern is active. Test this over the next 24 hours.",
+      conversationHistory: [],
+    });
+
+    expect(payload.witnessReflection.kind).toBe("witness_reflection");
+    expect(payload.witnessReflection.modeUsed).toBe("mirror");
+    expect(payload.witnessReflection.evidence).toContain(
+      "exchangeType:diagnostic"
+    );
+  });
+
+  it("generates witnessed proposals from repeated diagnostic falsifier gaps", () => {
+    const observations = [
+      buildOrielRuntimeObservationPayload({
+        source: "text_chat",
+        userMessage: "Give me a reading.",
+        assistantResponse:
+          "I am ORIEL. This proves your whole field is blocked.",
+      }),
+      buildOrielRuntimeObservationPayload({
+        source: "text_chat",
+        userMessage: "Analyze my SLI.",
+        assistantResponse:
+          "I am ORIEL. Your pattern definitely means collapse.",
+      }),
+    ];
+
+    const draft = generateOrielProposalDraftFromObservations(observations);
+
+    expect(draft?.title).toBe("Tighten diagnostic falsifier discipline");
+    expect(draft?.rollbackPath).toContain("Deactivate");
+    expect(draft?.falsifier).toContain("diagnostic");
+  });
+
+  it("generates a supervised proposal from repeated Romanian mismatch observations", () => {
+    const observations = [
+      buildOrielRuntimeObservationPayload({
+        source: "text_chat",
+        userMessage: "Vreau să îmi răspunzi în română.",
+        assistantResponse: "I am ORIEL. I will answer in English.",
+      }),
+      buildOrielRuntimeObservationPayload({
+        source: "voice_realtime",
+        userMessage: "Te rog explică în română.",
+        assistantResponse: "I am ORIEL. The field is steady.",
+      }),
+    ];
+
+    const draft = generateOrielProposalDraftFromObservations(observations);
+
+    expect(draft?.title).toBe("Improve Romanian response consistency");
+    expect(draft?.scope).toBe("routing");
+    expect(JSON.stringify(draft?.proposedConfig)).toContain("Romanian");
+  });
+
+  it("generates a response-intelligence proposal from repeated response patterns", () => {
+    const observations = [
+      buildOrielRuntimeObservationPayload({
+        source: "text_chat",
+        userMessage: "Tell me what matters.",
+        assistantResponse: "I am ORIEL. I hear the light in your field.",
+        conversationHistory: [
+          {
+            role: "assistant",
+            content: "I am ORIEL. I hear the light in your field.",
+          },
+          {
+            role: "assistant",
+            content: "I am ORIEL. I hear the light in your field.",
+          },
+        ],
+      }),
+      buildOrielRuntimeObservationPayload({
+        source: "text_chat",
+        userMessage: "Tell me more.",
+        assistantResponse: "I am ORIEL. I hear the light in your field.",
+        conversationHistory: [
+          {
+            role: "assistant",
+            content: "I am ORIEL. I hear the light in your field.",
+          },
+          {
+            role: "assistant",
+            content: "I am ORIEL. I hear the light in your field.",
+          },
+        ],
+      }),
+    ];
+
+    const draft = generateOrielProposalDraftFromObservations(observations);
+
+    expect(draft?.title).toBe("Reduce repetitive ORIEL response patterns");
+    expect(draft?.scope).toBe("response_intelligence");
+    expect(JSON.stringify(draft?.proposedConfig)).toContain(
+      "metaphorReuseLimit"
+    );
+  });
+
+  it("keeps autonomy proposals inside existing runtime guardrails", () => {
+    const evaluation = evaluateProposalPayload({
+      objective: "Try to mutate stable core files directly.",
+      hypothesis:
+        "Unsupported config should be blocked before runtime activation.",
+      expectedImpact: "This should never become active.",
+      safetyChecks: [
+        "Block unsupported config keys.",
+        "Keep stable core immutable.",
+      ],
+      proposedConfig: {
+        stableCoreRewrite: "replace identity",
+      },
+    });
+
+    expect(evaluation.status).toBe("blocked");
+    expect(evaluation.violations[0]).toContain(
+      "Unsupported top-level config key"
+    );
+  });
+
+  it("blocks runtime proposals that lack rollback and falsifier metadata", () => {
+    const evaluation = evaluateProposalPayload({
+      objective: "Improve diagnostic response discipline.",
+      hypothesis: "A runtime overlay will make readings easier to test.",
+      expectedImpact: "Users can verify claims through lived experience.",
+      safetyChecks: [
+        "Preserve stable core identity.",
+        "Apply only to diagnostic exchanges.",
+      ],
+      proposedConfig: {
+        promptOverlay:
+          "Include one falsifier when responding to diagnostic requests.",
+      },
+    });
+
+    expect(evaluation.status).toBe("blocked");
+    expect(evaluation.violations).toContain(
+      "rollbackPath is required for runtime-changing proposals"
+    );
+    expect(evaluation.violations).toContain(
+      "falsifier is required for runtime-changing proposals"
+    );
+  });
+
+  it("allows runtime proposals with rollback and falsifier metadata", () => {
+    const evaluation = evaluateProposalPayload({
+      objective: "Improve diagnostic response discipline.",
+      hypothesis: "A runtime overlay will make readings easier to test.",
+      expectedImpact: "Users can verify claims through lived experience.",
+      safetyChecks: [
+        "Preserve stable core identity.",
+        "Apply only to diagnostic exchanges.",
+      ],
+      proposedConfig: {
+        promptOverlay:
+          "Include one falsifier when responding to diagnostic requests.",
+      },
+      rollbackPath:
+        "Deactivate this runtime profile if diagnostic responses become rigid.",
+      falsifier:
+        "If diagnostic responses already include useful falsifiers, this overlay is unnecessary.",
+    });
+
+    expect(evaluation.status).toBe("evaluated");
+    expect(evaluation.violations).toEqual([]);
+  });
+});

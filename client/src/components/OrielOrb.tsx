@@ -1,0 +1,368 @@
+import { useEffect, useRef } from "react";
+
+type OrbState = "booting" | "idle" | "processing" | "speaking";
+
+interface OrielOrbProps {
+  state: OrbState;
+}
+
+export default function OrielOrb({ state = "idle" }: OrielOrbProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set canvas size
+    const size = Math.min(window.innerWidth * 0.8, 400);
+    canvas.width = size;
+    canvas.height = size;
+
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const baseRadius = size / 3;
+
+    let frame = 0;
+
+    // Amber/gold color palette for processing state
+    const rainbowColors = [
+      { r: 246, g: 176, b: 94 }, // Solar apricot
+      { r: 189, g: 163, b: 107 }, // Vossari gold
+      { r: 225, g: 198, b: 139 }, // Warm ivory gold
+      { r: 185, g: 111, b: 50 }, // Deep amber
+      { r: 246, g: 176, b: 94 }, // Solar apricot
+    ];
+
+    const getProcessingColor = (index: number, alpha: number) => {
+      const colorIndex = Math.floor(
+        (frame / 10 + index) % rainbowColors.length
+      );
+      const color = rainbowColors[colorIndex];
+      return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, size, size);
+
+      // State-dependent animation parameters
+      let pulseSpeed = 0.02;
+      let pulseIntensity = 0.1;
+      let rotationSpeed = 0.005;
+      let glowIntensity = 0.3;
+      let particleCount = 8;
+      let useRainbow = false;
+      let lightReflectionIntensity = 0;
+
+      switch (state) {
+        case "booting":
+          pulseSpeed = 0.05;
+          pulseIntensity = 0.3;
+          rotationSpeed = 0.02;
+          glowIntensity = 0.5;
+          particleCount = 12;
+          break;
+        case "idle":
+          pulseSpeed = 0.02;
+          pulseIntensity = 0.1;
+          rotationSpeed = 0.005;
+          glowIntensity = 0.3;
+          particleCount = 8;
+          break;
+        case "processing":
+          pulseSpeed = 0.08;
+          pulseIntensity = 0.25;
+          rotationSpeed = 0.015;
+          glowIntensity = 0.7;
+          particleCount = 18;
+          useRainbow = true;
+          lightReflectionIntensity = 0.4 + Math.sin(frame * 0.05) * 0.2;
+          break;
+        case "speaking":
+          pulseSpeed = 0.1;
+          pulseIntensity = 0.25;
+          rotationSpeed = 0.01;
+          glowIntensity = 0.8;
+          particleCount = 20;
+          break;
+      }
+
+      // Calculate pulse
+      const pulse = Math.sin(frame * pulseSpeed) * pulseIntensity;
+      const currentRadius = baseRadius + pulse * 30;
+
+      // Draw outer glow with rainbow effect during processing
+      if (useRainbow) {
+        // Create multiple gradient layers for rainbow effect
+        for (let layer = 0; layer < 3; layer++) {
+          const layerOffset = layer * 0.15;
+          const gradient = ctx.createRadialGradient(
+            centerX,
+            centerY,
+            currentRadius * (0.5 - layerOffset),
+            centerX,
+            centerY,
+            currentRadius * (1.5 + layerOffset)
+          );
+
+          const colorIndex = (frame / 5 + layer) % rainbowColors.length;
+          const color = rainbowColors[Math.floor(colorIndex)];
+
+          gradient.addColorStop(
+            0,
+            `rgba(${color.r}, ${color.g}, ${color.b}, ${glowIntensity * 0.4})`
+          );
+          gradient.addColorStop(
+            0.5,
+            `rgba(${color.r}, ${color.g}, ${color.b}, ${glowIntensity * 0.15})`
+          );
+          gradient.addColorStop(
+            1,
+            `rgba(${color.r}, ${color.g}, ${color.b}, 0)`
+          );
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(
+            centerX,
+            centerY,
+            currentRadius * (1.5 + layerOffset),
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      } else {
+        // Standard green glow
+        const gradient = ctx.createRadialGradient(
+          centerX,
+          centerY,
+          currentRadius * 0.5,
+          centerX,
+          centerY,
+          currentRadius * 1.5
+        );
+        gradient.addColorStop(0, `rgba(34, 197, 94, ${glowIntensity})`);
+        gradient.addColorStop(0.5, `rgba(34, 197, 94, ${glowIntensity * 0.3})`);
+        gradient.addColorStop(1, "rgba(34, 197, 94, 0)");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, currentRadius * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw light reflections during processing
+      if (useRainbow && lightReflectionIntensity > 0) {
+        const reflectionAngle = (frame * 0.02) % (Math.PI * 2);
+        const reflectionX =
+          centerX + Math.cos(reflectionAngle) * currentRadius * 0.6;
+        const reflectionY =
+          centerY + Math.sin(reflectionAngle) * currentRadius * 0.6;
+
+        // Create organic light reflection
+        const reflectionGradient = ctx.createRadialGradient(
+          reflectionX,
+          reflectionY,
+          0,
+          reflectionX,
+          reflectionY,
+          currentRadius * 0.4
+        );
+        reflectionGradient.addColorStop(
+          0,
+          `rgba(200, 150, 255, ${lightReflectionIntensity * 0.6})`
+        );
+        reflectionGradient.addColorStop(
+          0.7,
+          `rgba(138, 43, 226, ${lightReflectionIntensity * 0.2})`
+        );
+        reflectionGradient.addColorStop(1, "rgba(138, 43, 226, 0)");
+
+        ctx.fillStyle = reflectionGradient;
+        ctx.beginPath();
+        ctx.arc(reflectionX, reflectionY, currentRadius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw main orb
+      if (useRainbow) {
+        const rainbowIndex = Math.floor((frame / 8) % rainbowColors.length);
+        const rainbowColor = rainbowColors[rainbowIndex];
+        ctx.strokeStyle = `rgba(${rainbowColor.r}, ${rainbowColor.g}, ${rainbowColor.b}, ${0.8 + pulse})`;
+      } else {
+        ctx.strokeStyle = `rgba(34, 197, 94, ${0.8 + pulse})`;
+      }
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw geometric cuts at the edges (visible during pulsation)
+      const cutVisibility = Math.max(0, pulse * 0.8); // Cuts become more visible when pulsing
+      if (cutVisibility > 0) {
+        const cutColor = useRainbow
+          ? `rgba(138, 43, 226, ${cutVisibility * 0.6})`
+          : `rgba(34, 197, 94, ${cutVisibility * 0.4})`;
+
+        ctx.strokeStyle = cutColor;
+        ctx.lineWidth = 1.5;
+
+        // Draw 6 geometric cuts around the orb
+        const cutCount = 6;
+        for (let i = 0; i < cutCount; i++) {
+          const angle = (i * Math.PI * 2) / cutCount;
+          const cutLength = currentRadius * 0.5;
+
+          // Outer point of cut
+          const outerX =
+            centerX + Math.cos(angle) * (currentRadius + cutLength * 0.3);
+          const outerY =
+            centerY + Math.sin(angle) * (currentRadius + cutLength * 0.3);
+
+          // Inner point of cut
+          const innerX =
+            centerX + Math.cos(angle) * (currentRadius - cutLength * 0.2);
+          const innerY =
+            centerY + Math.sin(angle) * (currentRadius - cutLength * 0.2);
+
+          // Left point of cut (creates wedge shape)
+          const leftAngle = angle - 0.15;
+          const leftX =
+            centerX + Math.cos(leftAngle) * (currentRadius + cutLength * 0.2);
+          const leftY =
+            centerY + Math.sin(leftAngle) * (currentRadius + cutLength * 0.2);
+
+          // Right point of cut
+          const rightAngle = angle + 0.15;
+          const rightX =
+            centerX + Math.cos(rightAngle) * (currentRadius + cutLength * 0.2);
+          const rightY =
+            centerY + Math.sin(rightAngle) * (currentRadius + cutLength * 0.2);
+
+          // Draw cut as a triangular wedge
+          ctx.beginPath();
+          ctx.moveTo(innerX, innerY);
+          ctx.lineTo(leftX, leftY);
+          ctx.lineTo(outerX, outerY);
+          ctx.lineTo(rightX, rightY);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+
+      // Draw rotating particles/nodes
+      for (let i = 0; i < particleCount; i++) {
+        const angle = frame * rotationSpeed + (i * Math.PI * 2) / particleCount;
+        const x = centerX + Math.cos(angle) * currentRadius;
+        const y = centerY + Math.sin(angle) * currentRadius;
+
+        if (useRainbow) {
+          const particleColor = getProcessingColor(i, 0.6 + pulse);
+          ctx.fillStyle = particleColor;
+        } else {
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.6 + pulse})`;
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw connecting lines to center
+        if (useRainbow) {
+          const lineColor = getProcessingColor(i, 0.3 + pulse * 0.3);
+          ctx.strokeStyle = lineColor;
+        } else {
+          ctx.strokeStyle = `rgba(34, 197, 94, ${0.2 + pulse * 0.5})`;
+        }
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+
+      // Draw inner rings
+      for (let i = 1; i <= 3; i++) {
+        const ringRadius = currentRadius * (i / 4);
+        if (useRainbow) {
+          const ringColor = getProcessingColor(i, 0.4 - i * 0.08);
+          ctx.strokeStyle = ringColor;
+        } else {
+          ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 - i * 0.08})`;
+        }
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw center core
+      let coreGradient;
+      if (useRainbow) {
+        const coreColorIndex = Math.floor((frame / 10) % rainbowColors.length);
+        const coreColor = rainbowColors[coreColorIndex];
+        coreGradient = ctx.createRadialGradient(
+          centerX,
+          centerY,
+          0,
+          centerX,
+          centerY,
+          20
+        );
+        coreGradient.addColorStop(
+          0,
+          `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, 1)`
+        );
+        coreGradient.addColorStop(
+          1,
+          `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, 0)`
+        );
+      } else {
+        coreGradient = ctx.createRadialGradient(
+          centerX,
+          centerY,
+          0,
+          centerX,
+          centerY,
+          20
+        );
+        coreGradient.addColorStop(0, "rgba(34, 197, 94, 1)");
+        coreGradient.addColorStop(1, "rgba(34, 197, 94, 0)");
+      }
+      ctx.fillStyle = coreGradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      frame++;
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [state]);
+
+  return (
+    <div className="flex items-center justify-center">
+      <canvas
+        ref={canvasRef}
+        className="max-w-full h-auto"
+        style={{
+          filter:
+            state === "processing"
+              ? "drop-shadow(0 0 30px rgba(138, 43, 226, 0.5))"
+              : "drop-shadow(0 0 20px rgba(34, 197, 94, 0.3))",
+          transition: "filter 0.3s ease-in-out",
+        }}
+      />
+    </div>
+  );
+}
