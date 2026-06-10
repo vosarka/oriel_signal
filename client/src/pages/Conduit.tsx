@@ -382,15 +382,22 @@ function TransmissionModeCard({
           className="font-mono text-[9px] tracking-[0.28em] uppercase"
           style={{ color: accent }}
         >
-          Transmission Mode
+          FIELD RETURN
         </span>
         <span
           className="font-mono text-[9px] tracking-[0.18em] uppercase"
           style={{ color: "rgba(232,228,220,0.55)" }}
         >
           {event.eventType.toUpperCase()} // {event.rarity.toUpperCase()} //
-          Meaning {event.meaningLevel}/5
+          THRESHOLD {event.meaningLevel}
         </span>
+      </div>
+
+      <div
+        className="font-mono text-[9px] tracking-[0.22em] mb-2"
+        style={{ color: "rgba(232,228,220,0.72)" }}
+      >
+        The field and receiver aligned. The conversation became the transmission.
       </div>
 
       <p
@@ -1482,7 +1489,7 @@ export default function Conduit() {
       if (resolvedGatePlan.lockBeforeReveal) {
         await transmissionGate.lock();
       } else if (resolvedGatePlan.cancelAfterResult) {
-        transmissionGate.cancel();
+        transmissionGate.fail();
       }
 
       const newAssistantMessage: ChatMessage = {
@@ -1523,7 +1530,7 @@ export default function Conduit() {
     } catch (error) {
       console.error("Chat error:", error);
       if (forceTransmissionMode) {
-        transmissionGate.cancel();
+        transmissionGate.fail();
       }
     }
   };
