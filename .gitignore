@@ -108,3 +108,8 @@ temp/
 
 *storybook.log
 storybook-static
+
+.manus/
+.claude/settings.local.json
+*.hermes-tmp*
+_tmp_*
