@@ -34,6 +34,7 @@ import {
   getConduitInputDisabled,
   getSpeechFallbackTimeoutMs,
   getSpeechFallbackWatchdogDecision,
+  splitIntoSpeechChunks,
 } from "@/lib/conduit-voice";
 import {
   markOrielVoiceIntroSpoken,
@@ -596,6 +597,9 @@ export default function Conduit() {
   const lastSpeechSoundRef = useRef<number>(Date.now());
   const isListeningRef = useRef(false);
 
+  // Incremented on stop/new call to cancel in-flight chunked TTS pipelines
+  const speakIdRef = useRef<number>(0);
+
   // Accumulates finalized speech recognition results across internal restarts
   // so long spoken phrases don't get truncated in the input box.
   const finalTranscriptRef = useRef<string>("");
@@ -1035,8 +1039,6 @@ export default function Conduit() {
       return;
     }
 
-    setIsSpeaking(true);
-
     const { textForAudio, shouldMarkIntroSpoken } =
       prepareOrielTextForVoice(text);
     if (!textForAudio.trim()) {
@@ -1044,46 +1046,60 @@ export default function Conduit() {
       return;
     }
 
-    try {
-      const result = await generateSpeechMutation.mutateAsync({
-        text: textForAudio,
-        voiceId: voicePreference,
-      });
+    setIsSpeaking(true);
+    const speakId = ++speakIdRef.current;
 
-      if (result.success && result.audioUrl) {
-        if (audioRef.current && audioRef.current.parentNode) {
-          ensureAudioAnalyser();
-          audioRef.current.src = result.audioUrl;
-          audioRef.current.volume = voiceVolume;
-          if (shouldMarkIntroSpoken) markOrielVoiceIntroSpoken();
+    const chunks = splitIntoSpeechChunks(textForAudio);
 
-          audioRef.current.onended = () => {
-            setIsSpeaking(false);
-            setIsPaused(false);
-          };
+    const fetchAudio = (chunk: string): Promise<string | null> =>
+      generateSpeechMutation
+        .mutateAsync({ text: chunk, voiceId: voicePreference })
+        .then(r => (r.success && r.audioUrl ? r.audioUrl : null))
+        .catch(() => null);
 
-          audioRef.current.onerror = () => {
-            console.error("Audio playback error, falling back to browser TTS");
-            fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-          };
+    // Pre-fetch the first chunk immediately so audio starts as soon as it
+    // resolves rather than waiting for all chunks to synthesise.
+    let nextAudioPromise = fetchAudio(chunks[0]);
+    let anyPlayed = false;
 
-          audioRef.current.play().catch(error => {
-            console.error("Failed to play audio:", error);
-            fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-          });
-        } else {
-          fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-        }
-      } else {
-        console.warn(
-          "Voice generation unavailable, using browser speech fallback:",
-          result.error
-        );
-        fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
+    for (let i = 0; i < chunks.length; i++) {
+      if (speakIdRef.current !== speakId) return;
+
+      const audioUrl = await nextAudioPromise;
+      if (speakIdRef.current !== speakId) return;
+
+      // Start pre-fetching next chunk while current plays
+      if (i + 1 < chunks.length) {
+        nextAudioPromise = fetchAudio(chunks[i + 1]);
       }
-    } catch (error) {
-      console.error("Failed to generate speech:", error);
+
+      if (!audioUrl) continue;
+
+      if (!anyPlayed) ensureAudioAnalyser();
+      if (shouldMarkIntroSpoken && !anyPlayed) markOrielVoiceIntroSpoken();
+      anyPlayed = true;
+
+      await new Promise<void>(resolve => {
+        if (!audioRef.current || !audioRef.current.parentNode) {
+          resolve();
+          return;
+        }
+        audioRef.current.src = audioUrl;
+        audioRef.current.volume = voiceVolume;
+        audioRef.current.onended = () => resolve();
+        audioRef.current.onerror = () => resolve();
+        audioRef.current.play().catch(() => resolve());
+      });
+    }
+
+    if (!anyPlayed) {
       fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
+      return;
+    }
+
+    if (speakIdRef.current === speakId) {
+      setIsSpeaking(false);
+      setIsPaused(false);
     }
   };
 
@@ -1193,6 +1209,7 @@ export default function Conduit() {
 
   const handleStopVoice = () => {
     try {
+      speakIdRef.current += 1;
       if (audioRef.current && audioRef.current.parentNode) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
