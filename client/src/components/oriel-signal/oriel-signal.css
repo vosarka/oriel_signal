@@ -480,7 +480,7 @@
 .signal-page-shell
   > div:not(.signal-archive-texture):not(.signal-ambient-grid):not(
     .signal-sacred-geometry
-  ):not(.signal-page-geometry):not(.signal-starfield) {
+  ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry) {
   position: relative;
   z-index: 2;
 }
@@ -2527,8 +2527,8 @@
 }
 
 .fi-fragment--c {
-  left: 14%;
-  bottom: 27%;
+  left: 4%;
+  bottom: 36%;
   animation-duration: 18s;
 }
 

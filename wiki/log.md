@@ -674,3 +674,20 @@ These pages are now the reference point for any future discussion of "how the pr
 - **Upgrade 3 (TEST)**: `USE_HERO_VIDEO = true` in Home.tsx swaps HeroSigil for the looping logo video (ORIEL_HERO_VIDEO_SRC) in a circular-masked container — radial edge fade so it floats in void, same halo + materialize entrance. Dropout hits it via stage displacement + hue-shift jitter (PNG-mask chromatic ghosts can't apply to video pixels). Reduced motion pauses it. Flip flag to false to restore the sigil.
 - docs/VISUAL_LAW.md and docs/ORIEL_VISUAL_LANGUAGE.md still do not exist despite three briefs citing them — flagged to Vos.
 - Verified: pnpm check clean, spot tests pass, homepage 200, zero brown, zero 18px grids, no Vite errors.
+
+## [2026-06-11] auto-evolve | Static Signature Blueprint
+- Action: create [[static-signature-blueprint]]
+- Type: concept
+- Reason: The conversation introduces the 'Static Signature Blueprint' as a specific product and translation mechanism for the Static Signature data, defining its structure (visuals, symbols, maps) and its purpose as a bridge between the Codex and the human experience.
+- Aliases: Static Signature Reading, The Blueprint
+
+## [2026-06-11] Geometry fix (the "big space" bug), ScrollTrigger driver, hero video tests
+
+**Branch:** `v2-baseline`.
+**Files:** `oriel-signal.css`, `Home.tsx`, `SacredGeometryField.tsx`, `package.json`/`pnpm-lock.yaml`.
+
+- **Root-caused the big gap above the hero**: the shell's catch-all rule (`.signal-page-shell > div:not(…)`) out-specified `.fi-geometry`, so the field rendered in-flow as a 1,916px block above the hero (`position:relative; z-index:2` instead of `fixed; −1`). Fix: added `:not(.fi-geometry)` to the exclusion chain. Hero verified at document top (live browser measurement via WebBridge).
+- **ScrollTrigger driver** (Vos-directed): added `gsap@3.15.0` — first new dependency, explicitly approved. SacredGeometryField's hand-rolled scroll listener replaced by a scrubbed proxy tween (scrub 0.6, end = 85% of max scroll, invalidateOnRefresh). Same `--fi-geo-p` contract; reduced-motion path unchanged. Verified live: dashoffset correct at top, field fully inked mid-page.
+- **Hero video tests**: tried `fa_mi_un_videoclip_loop_ca_sa.mp4`, then `Golden_logo_with_glitches_202606012151.mp4` in the hero via `USE_HERO_VIDEO` + `HERO_TEST_VIDEO_SRC`. Vos's verdict: keep the original — flag parked at `false`, restoring the HeroSigil (PNG + iridescent sweep + chromatic tears). Both videos remain one constant away.
+- Moved the `LATTICE 64:9:4` microdata fragment to the left gutter (was colliding with the hero voice line — caught in screenshot review).
+- Verified with live screenshots in Vos's browser (kimi-webbridge): top of page, mid-scroll geometry, restored sigil. pnpm check clean.

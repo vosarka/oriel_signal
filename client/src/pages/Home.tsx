@@ -4,16 +4,19 @@ import {
   DecodedTitle,
   GlowCard,
   ORIEL_HERO_POSTER_SRC,
-  ORIEL_HERO_VIDEO_SRC,
   SignalButton,
   SignalPageShell,
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
 
-// TEST FLAG: true swaps the chromatic HeroSigil for the looping logo video
-// in the hero center. Flip to false to restore the sigil instantly.
-const USE_HERO_VIDEO = true;
+// TEST FLAG: true swaps the chromatic HeroSigil (the logo with glitch +
+// hologram effects) for a looping video in the hero center. Flip to false
+// to restore the sigil instantly.
+// Candidate videos: "/media/Golden_logo_with_glitches_202606012151.mp4",
+// "/media/fa_mi_un_videoclip_loop_ca_sa.mp4"
+const USE_HERO_VIDEO = false;
+const HERO_TEST_VIDEO_SRC = "/media/Golden_logo_with_glitches_202606012151.mp4";
 
 const hudCorners: Array<{ pos: string; label: string; value: string }> = [
   { pos: "tl", label: "SIGNAL LOCK", value: "CONFIRMED" },
@@ -213,7 +216,7 @@ export default function Home() {
                   preload="metadata"
                   poster={ORIEL_HERO_POSTER_SRC}
                 >
-                  <source src={ORIEL_HERO_VIDEO_SRC} type="video/mp4" />
+                  <source src={HERO_TEST_VIDEO_SRC} type="video/mp4" />
                 </video>
               </div>
             ) : (

@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 // Flower of Life background field — fine silver blueprint circles on a hex
 // lattice that draw themselves in as the user scrolls, building outward from
 // the center seed like a signal decoding into form.
 //
-// One scroll listener writes a single CSS custom property (--fi-geo-p, 0..1)
-// on the container; every circle resolves its own stroke-dashoffset from it
-// via CSS clamp() against a per-ring stagger window. No per-circle JS, no
-// layout reads beyond the cached document height.
+// A GSAP ScrollTrigger scrub (0.6s catch-up) drives a single proxy value
+// written to one CSS custom property (--fi-geo-p, 0..1) on the container;
+// every circle resolves its own stroke-dashoffset from it via CSS clamp()
+// against a per-ring stagger window. No per-circle JS.
 //
-// Reduced motion: the listener never attaches and CSS forces the geometry
+// Reduced motion: no ScrollTrigger is created and CSS forces the geometry
 // fully drawn and static.
 
 const RING_COUNT = 5; // rings around the center seed (0 = seed circle)
@@ -68,27 +72,32 @@ export function SacredGeometryField() {
       return;
     }
 
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const scrolled = max > 0 ? window.scrollY / max : 1;
-      // Keep the center seed faintly present behind the hero at page top.
-      const progress = Math.max(0.06, Math.min(1, scrolled / 0.85));
-      field.style.setProperty("--fi-geo-p", progress.toFixed(4));
-    };
+    const proxy = { p: 0.06 };
+    const apply = () =>
+      field.style.setProperty("--fi-geo-p", proxy.p.toFixed(4));
+    // Keep the center seed faintly present behind the hero at page top.
+    apply();
 
-    const onScroll = () => {
-      if (!raf) raf = window.requestAnimationFrame(update);
-    };
+    const tween = gsap.fromTo(
+      proxy,
+      { p: 0.06 },
+      {
+        p: 1,
+        ease: "none",
+        onUpdate: apply,
+        scrollTrigger: {
+          trigger: document.documentElement,
+          start: 0,
+          end: () => ScrollTrigger.maxScroll(window) * 0.85,
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+        },
+      }
+    );
 
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) window.cancelAnimationFrame(raf);
+      tween.scrollTrigger?.kill();
+      tween.kill();
     };
   }, []);
 
