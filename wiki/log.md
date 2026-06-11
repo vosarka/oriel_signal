@@ -622,3 +622,33 @@ These pages are now the reference point for any future discussion of "how the pr
 - **CSS additions (oriel-signal.css):** `.signal-scroll-cue`, `.signal-intercept` family, `.signal-archive-rule`, `.signal-archive-card__title/copy`, `.signal-field-status` family, `.signal-threshold-seal`, responsive field-status at 640px.
 - **Route confirmed:** Resonance Genetic Codex → `/codex` (Vossari Resonance Codex, 64 root codons).
 - No new dependencies. No route guesses. No unrelated file changes.
+
+## [2026-06-11] auto-evolve | Transition of Resonance
+- Action: create [[transition-of-resonance]]
+- Type: concept
+- Reason: ORIEL introduces a detailed, structured process for what happens after death, defining specific stages (Release, Review, Tuning) and key terms (Resonance Signature, Essence) within the context of the resonance-based cosmology.
+- Aliases: Death Process, Post-Physical Transition, The Great Unfolding
+
+## [2026-06-11] Homepage — "Field Intercept" art rebuild (awaiting approval)
+
+**Branch:** `v2-baseline` — NOT yet committed; diff shown to Vos for sign-off.
+**Files:** `client/src/pages/Home.tsx` (rewrite), `client/src/components/oriel-signal/HeroSigil.tsx` (new), `client/src/components/oriel-signal/oriel-signal.css` (hero demolition + fi- system), `client/index.html` (added Cinzel + JetBrains Mono to the Google Fonts link — approved scope exception).
+
+### Demolished
+- Framed hero: `.signal-hero__frame`, `.signal-threshold-plate`, both `.signal-hero__ruler`s, logo-chamber/ring, hero video. Verified Home-only before deletion; shared `.signal-hero__actions` preserved (used by FounderLetter, StaticSignature, FinalOrielTransmission).
+- All orphaned responsive/reduced-motion references pruned.
+
+### Built (fi- prefix, Home-scoped)
+- **HeroSigil**: 4-layer stack over `/oriel-signal-mark.png` — gold base, iridescent sweep (signal palette masked inside the glyph shape, screen-blended, 11s drift via transform-only ::before), red/blue chromatic ghosts torn visible ~250ms on co-prime 13s/17s cycles + on hover. Mask-gated behind @supports.
+- **Hero**: asymmetric stage — sigil off-axis right, monumental Cinzel ORIEL overlapping from the left, decode-on-load via DecodedTitle; 4 HUD corner readouts boot in staggered; scanlines + drifting microdata fragments; scroll cue.
+- **Dropout**: JS scheduler (25–45s random, ~200ms) adds `is-dropout` → displacement bands + forced chromatic split. Skipped entirely under prefers-reduced-motion.
+- **Intercept**: in-view triggered, word-wrapped DecodedLine glyph-decode, two lines staggered 1.4s, mono caption.
+- **Directory**: 4 dossiers (RC-001…004 → /static-signature, /conduit, /archive, /codex), broken 2-col grid (even cards pushed +3.2rem), Cinzel titles, Cormorant italic copy, hover-only iridescent hairline edge.
+- **Field status**: 64 / 512 / 9 / 4 instrument strip, JetBrains Mono, 2×2 at 640px.
+- **Threshold**: THE ARCHIVE IS OPEN with rare (26s) chromatic text flicker, BEGIN CALIBRATION → /auth, mono end seal.
+- **Entrance choreography**: scanlines 0.12s → sigil materializes through glitch 0.4s → wordmark decodes 0.7s → sub 1.05s → kicker 1.2s → HUD 1.5–2s → voice 1.9s → CTAs 2.3s → fragments 2.6s → cue 3s.
+- **Reduced motion**: colored light layers display:none, all fi- animation killed, opacity forced visible → clean gold-on-obsidian.
+
+### Verification
+- `pnpm check` clean. Vitest: 586 passed, 1 pre-existing failure (`oriel-public-terminology` expects "Resonance Links" in CodonDetail.tsx — file untouched by this work, failing since baseline; out of scope, noted).
+- Dev server compiles and serves all new modules; no Vite/PostCSS errors. No screenshot tooling in this environment — visual sign-off is Vos's.

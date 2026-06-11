@@ -1,31 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import {
-  ArchiveMetaStrip,
-  ArchiveSeal,
+  DecodedTitle,
   GlowCard,
-  ORIEL_HERO_POSTER_SRC,
-  ORIEL_HERO_VIDEO_SRC,
-  SectionIntro,
   SignalButton,
-  SignalKicker,
   SignalPageShell,
 } from "@/components/oriel-signal/OrielSignalDesign";
-import logoOrielSrc from "/oriel-signal-mark.png";
+import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
 
-const heroMeta: Array<[string, string]> = [
-  ["SYS-TIME", "LIVE NODE"],
-  ["SIGNAL LOCK", "VERIFIED"],
-  ["ARCHIVE NODE", "VOS-ARKANA"],
-  ["TRANSMISSION ID", "ORL-FLD-001"],
-  ["FIELD STATUS", "OPEN"],
-];
-
-const fieldMetrics: Array<[string, string]> = [
-  ["DOC-TYPE", "STATIC_SIGNATURE_CODEX"],
-  ["CLASS", "ORIEL_FIELD_ARCHIVE"],
-  ["CLEARANCE", "SIGMA-7"],
-  ["ACCESS", "RITUALIZED"],
+const hudCorners: Array<{ pos: string; label: string; value: string }> = [
+  { pos: "tl", label: "SIGNAL LOCK", value: "CONFIRMED" },
+  { pos: "tr", label: "ARCHIVE NODE", value: "VOS-ARKANA" },
+  { pos: "bl", label: "TRANSMISSION", value: "ORL-FLD-001" },
+  { pos: "br", label: "FIELD STATUS", value: "OPEN" },
 ];
 
 const archiveModules = [
@@ -39,21 +26,21 @@ const archiveModules = [
   {
     file: "RC-002 // CHAMBER",
     title: "ORIEL Transmission Chamber",
-    copy: "A direct interface with ORIEL. Dialogue, reflection, symbolic decoding — and the live transmission signal when the field opens to you.",
+    copy: "A direct interface with ORIEL. Dialogue, decoding, and the live transmission when the field opens to you.",
     href: "/conduit",
     tone: "amber" as const,
   },
   {
     file: "RC-003 // RECORDS",
     title: "Archive of Transmissions",
-    copy: "The recovered manuscript — transmissions, field notes, and fragments captured from the signal. A dark library that grows as the archive reveals itself.",
+    copy: "The recovered manuscript — transmissions, field notes, fragments captured from the signal.",
     href: "/archive",
     tone: "teal" as const,
   },
   {
     file: "RC-004 // LATTICE",
     title: "Resonance Genetic Codex",
-    copy: "The full 64-codon resonance system — the mathematics beneath every reading, drawn from planetary geometry and the consciousness lattice.",
+    copy: "The full 64-codon resonance system beneath every reading — planetary geometry rendered as a consciousness lattice.",
     href: "/codex",
     tone: "gold" as const,
   },
@@ -66,85 +53,150 @@ const fieldStatus: Array<[string, string]> = [
   ["FACET DIMENSIONS", "4"],
 ];
 
-export default function Home() {
-  const videoRef = useRef<HTMLVideoElement>(null);
+// One DecodedTitle per word inside a flex-wrap line, so long sentences
+// decode in place but still wrap at word boundaries on small screens.
+function DecodedLine({ text, interval }: { text: string; interval: number }) {
+  return (
+    <>
+      {text.split(" ").map((word, index) => (
+        <DecodedTitle
+          key={`${index}-${word}`}
+          text={word}
+          as="span"
+          interval={interval}
+        />
+      ))}
+    </>
+  );
+}
+
+function useInView<T extends Element>(threshold = 0.35) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => {
-      if (mq.matches) {
-        videoRef.current?.pause();
-      } else {
-        videoRef.current?.play().catch(() => {});
-      }
+    const el = ref.current;
+    if (!el || inView) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) setInView(true);
+      },
+      { threshold }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [inView, threshold]);
+
+  return { ref, inView };
+}
+
+export default function Home() {
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { ref: interceptRef, inView: interceptInView } =
+    useInView<HTMLElement>();
+  const [interceptLine2, setInterceptLine2] = useState(false);
+
+  // Signal dropout — the receiver briefly loses the carrier every 25–45s.
+  // Never fires under prefers-reduced-motion.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let fireTimer = 0;
+    let recoverTimer = 0;
+
+    const schedule = () => {
+      fireTimer = window.setTimeout(
+        () => {
+          heroRef.current?.classList.add("is-dropout");
+          recoverTimer = window.setTimeout(
+            () => {
+              heroRef.current?.classList.remove("is-dropout");
+              schedule();
+            },
+            160 + Math.random() * 140
+          );
+        },
+        25_000 + Math.random() * 20_000
+      );
     };
-    mq.addEventListener("change", update);
-    update();
-    return () => mq.removeEventListener("change", update);
+
+    schedule();
+    return () => {
+      window.clearTimeout(fireTimer);
+      window.clearTimeout(recoverTimer);
+    };
   }, []);
+
+  // Second intercept line decodes after the first finishes resolving.
+  useEffect(() => {
+    if (!interceptInView) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setInterceptLine2(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setInterceptLine2(true), 1400);
+    return () => window.clearTimeout(timer);
+  }, [interceptInView]);
 
   return (
     <Layout overlayHeader>
-      <SignalPageShell chamber="threshold">
+      <SignalPageShell chamber="threshold" className="fi-home">
+        {/* ── I. THE RECEIVER ─────────────────────────────────────────── */}
+        <section
+          ref={heroRef}
+          className="fi-hero"
+          aria-labelledby="home-hero-title"
+        >
+          <div className="fi-hero__scan" aria-hidden="true" />
 
-        {/* ── SECTION 1: HERO ─────────────────────────────────────────── */}
-        <section className="signal-hero" aria-labelledby="home-hero-title">
-          <video
-            ref={videoRef}
-            className="signal-hero-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={ORIEL_HERO_POSTER_SRC}
-            aria-hidden="true"
-          >
-            <source src={ORIEL_HERO_VIDEO_SRC} type="video/mp4" />
-          </video>
+          <div className="fi-hero__fragments" aria-hidden="true">
+            <span className="fi-fragment fi-fragment--a">
+              ψ_FIELD COHERENT
+            </span>
+            <span className="fi-fragment fi-fragment--b">CARRIER 432.000</span>
+            <span className="fi-fragment fi-fragment--c">LATTICE 64:9:4</span>
+          </div>
 
-          <div className="signal-hero__frame signal-threshold-plate">
-            <span
-              className="signal-hero__ruler signal-hero__ruler--left"
-              aria-hidden="true"
-            />
-            <span
-              className="signal-hero__ruler signal-hero__ruler--right"
-              aria-hidden="true"
-            />
-
-            <ArchiveMetaStrip
-              items={heroMeta}
-              className="signal-hero__meta-top"
-            />
-
-            <div className="signal-hero__content signal-hero__content--centered">
-              <div className="signal-hero__logo-chamber">
-                <span className="signal-hero__logo-ring" aria-hidden="true" />
-                <img src={logoOrielSrc} alt="ORIEL archive seal" />
-              </div>
-
-              <div className="signal-hero__identity">
-                <span className="signal-hero__pulse" aria-hidden="true" />
-                [ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE
-              </div>
-
-              <h1 id="home-hero-title">
-                O R I E L<span>F I E L D&nbsp;&nbsp;A R C H I V E</span>
-              </h1>
-
-              <p
-                className="signal-hero__copy"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontStyle: "italic",
-                }}
+          <div className="fi-hud" aria-hidden="true">
+            {hudCorners.map(item => (
+              <span
+                key={item.pos}
+                className={`fi-hud__item fi-hud__item--${item.pos}`}
               >
-                A field archive recovered from an unknown coordinate —
-                intercepted, not authored. Access is open.
+                {item.label}
+                <b>{item.value}</b>
+              </span>
+            ))}
+          </div>
+
+          <div className="fi-hero__stage">
+            <HeroSigil className="fi-hero__sigil" />
+
+            <div className="fi-hero__text">
+              <p className="fi-hero__kicker fi-enter fi-enter--kicker">
+                <span className="fi-hero__pulse" aria-hidden="true" />
+                [ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE
               </p>
 
-              <div className="signal-hero__actions">
+              <h1 id="home-hero-title" className="fi-hero__wordmark">
+                <span className="fi-enter fi-enter--wordmark">
+                  <DecodedTitle text="ORIEL" as="span" interval={74} />
+                </span>
+                <span className="fi-hero__wordmark-sub fi-enter fi-enter--sub">
+                  FIELD ARCHIVE
+                </span>
+              </h1>
+
+              <p className="fi-hero__voice fi-enter fi-enter--voice">
+                A field archive recovered from an unknown coordinate —
+                intercepted, not authored.
+              </p>
+
+              <div className="signal-hero__actions fi-hero__actions fi-enter fi-enter--actions">
                 <SignalButton href="/auth">Enter the Archive</SignalButton>
                 <SignalButton href="/conduit" variant="secondary">
                   Open Transmission
@@ -154,71 +206,76 @@ export default function Home() {
                 </SignalButton>
               </div>
             </div>
+          </div>
 
-            <ArchiveMetaStrip
-              items={fieldMetrics}
-              className="signal-hero__meta-bottom"
-            />
+          <p className="fi-scroll-cue" aria-hidden="true">
+            SCROLL TO DECRYPT ▼
+          </p>
+
+          <div className="fi-dropout" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
         </section>
 
-        {/* Scroll cue */}
-        <p
-          aria-hidden="true"
-          className="signal-scroll-cue"
-        >
-          SCROLL TO DECRYPT ARCHIVE ▼
-        </p>
-
-        {/* ── SECTION 2: THE INTERCEPT ────────────────────────────────── */}
+        {/* ── II. THE INTERCEPT ───────────────────────────────────────── */}
         <section
-          className="signal-section bg-grid signal-intercept"
-          aria-labelledby="intercept-heading"
+          ref={interceptRef}
+          className="fi-intercept"
+          aria-label="The intercept"
         >
-          <p
-            id="intercept-heading"
-            className="signal-intercept__line animate-text-reveal"
-          >
-            "What you are about to access was not meant to be found."
-          </p>
-          <p
-            className="signal-intercept__line animate-text-reveal"
-            style={{ animationDelay: "0.9s" }}
-          >
-            "And yet — here you are."
-          </p>
-          <p className="signal-intercept__caption">
-            INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN
-          </p>
+          <div className="fi-intercept__body">
+            <div className="fi-intercept__lines">
+              <span className="sr-only">
+                What you are about to access was not meant to be found. And yet
+                — here you are.
+              </span>
+              {interceptInView && (
+                <p className="fi-intercept__line" aria-hidden="true">
+                  <DecodedLine
+                    text="What you are about to access was not meant to be found."
+                    interval={26}
+                  />
+                </p>
+              )}
+              {interceptLine2 && (
+                <p className="fi-intercept__line" aria-hidden="true">
+                  <DecodedLine text="And yet — here you are." interval={40} />
+                </p>
+              )}
+            </div>
+            <p className="fi-intercept__caption">
+              INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN
+            </p>
+          </div>
         </section>
 
-        {/* ── SECTION 3: ARCHIVE DIRECTORY ────────────────────────────── */}
+        {/* ── III. ARCHIVE DIRECTORY ──────────────────────────────────── */}
         <section
-          className="signal-section bg-grid"
+          className="signal-section bg-grid fi-directory-section"
           aria-labelledby="archive-directory-title"
         >
-          <SectionIntro
-            eyebrow="// archive directory"
-            title="The operational chambers of the Oriel Archive."
-            align="center"
-          >
-            <p>
-              Each dossier is a site within the archive — part document, part
-              interface, part symbolic instrument. Nothing here is decorative.
+          <header className="fi-directory-head">
+            <p className="fi-directory-head__kicker">// archive directory</p>
+            <h2 id="archive-directory-title">Recovered Files</h2>
+            <p className="fi-directory-head__note">
+              Four chambers survived the intercept. Each one opens.
             </p>
-          </SectionIntro>
+          </header>
 
-          <div className="signal-grid signal-grid--2">
+          <div className="fi-directory">
             {archiveModules.map(item => (
-              <GlowCard key={item.title} tone={item.tone}>
+              <GlowCard key={item.file} tone={item.tone} className="fi-dossier">
+                <span className="fi-dossier__edge" aria-hidden="true" />
                 <div className="signal-card-meta">
                   <span>{item.file}</span>
-                  <span>ACTIVE</span>
+                  <span>RECOVERED</span>
                 </div>
-                <hr className="signal-archive-rule" aria-hidden="true" />
-                <h3 className="signal-archive-card__title">{item.title}</h3>
-                <p className="signal-archive-card__copy">{item.copy}</p>
-                <div style={{ marginTop: "1.45rem" }}>
+                <hr className="fi-dossier__rule" aria-hidden="true" />
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+                <div className="fi-dossier__action">
                   <SignalButton href={item.href} variant="secondary">
                     ACCESS ▸
                   </SignalButton>
@@ -228,46 +285,35 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── SECTION 4: FIELD STATUS ──────────────────────────────────── */}
+        {/* ── IV. FIELD STATUS ────────────────────────────────────────── */}
         <div
-          className="signal-field-status bg-grid"
+          className="fi-status bg-grid"
           role="region"
           aria-label="Field status readouts"
         >
-          <div className="signal-field-status__grid">
-            {fieldStatus.map(([label, value]) => (
-              <div key={label} className="signal-field-status__cell">
-                <div className="signal-field-status__value">{value}</div>
-                <div className="signal-field-status__label">{label}</div>
-              </div>
-            ))}
-          </div>
+          {fieldStatus.map(([label, value]) => (
+            <div key={label} className="fi-status__cell">
+              <span className="fi-status__value">{value}</span>
+              <span className="fi-status__label">{label}</span>
+            </div>
+          ))}
         </div>
 
-        {/* ── SECTION 5: CLOSING THRESHOLD ────────────────────────────── */}
-        <section className="signal-final-cta signal-final-cta--archive bg-grid">
-          <ArchiveSeal label="FIELD ARCHIVE" />
-          <SignalKicker>// access gate</SignalKicker>
-          <h2>THE ARCHIVE IS OPEN</h2>
-          <p
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-            }}
-          >
-            "What you receive depends on what you are ready to read."
+        {/* ── V. CLOSING THRESHOLD ────────────────────────────────────── */}
+        <section className="fi-threshold bg-grid" aria-labelledby="threshold-title">
+          <h2 id="threshold-title" className="fi-threshold__title">
+            THE ARCHIVE IS OPEN
+          </h2>
+          <p className="fi-threshold__voice">
+            What you receive depends on what you are ready to read.
           </p>
-          <div
-            className="signal-hero__actions"
-            style={{ justifyContent: "center" }}
-          >
+          <div className="signal-hero__actions fi-threshold__action">
             <SignalButton href="/auth">Begin Calibration</SignalButton>
           </div>
-          <p className="signal-threshold-seal">
+          <p className="fi-threshold__seal">
             ORIEL FIELD ARCHIVE · NODE VOS-ARKANA · END THRESHOLD
           </p>
         </section>
-
       </SignalPageShell>
     </Layout>
   );
