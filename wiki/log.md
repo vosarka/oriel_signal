@@ -606,3 +606,19 @@ These pages are now the reference point for any future discussion of "how the pr
 - Type: concept
 - Reason: Introduces a specific conceptual tool for identifying the gap between intellectual and emotional truth.
 - Aliases: Dissonance of the Heart, The Silent Friction
+
+## [2026-06-11] Homepage — "Field Intercept" refinement
+
+**Branch:** `v2-baseline`
+**Files changed:** `client/src/pages/Home.tsx`, `client/src/components/oriel-signal/oriel-signal.css`
+
+### What changed
+- **Hero:** kicker updated to `[ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE`; sub-copy rewritten to the intercept voice (Cormorant italic). Video now pauses under `prefers-reduced-motion` via `useEffect` + `videoRef`.
+- **Removed sections:** founder letter panel, ORIEL two-column, static signature two-column, recovered transmissions grid, two duplicate final CTAs.
+- **Section 2 — The Intercept:** two Cormorant italic lines revealed with `animate-text-reveal` (0.9s stagger). `prefers-reduced-motion` handled globally by index.css (animation completes instantly → visible). Mono caption: `INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN`.
+- **Section 3 — Archive Directory:** 4 GlowCards (2×2 grid) with file codes RC-001–RC-004, Cormorant italic descriptions, `ACCESS ▸` CTAs. Collapses to 1-column at 900px via existing `.signal-grid--2` CSS.
+- **Section 4 — Field Status:** new `.signal-field-status` strip — `CODONS MAPPED 64`, `EXPRESSION NODES 512`, `ARCHETYPAL CENTERS 9`, `FACET DIMENSIONS 4`. Goes 2×2 at 640px.
+- **Section 5 — Closing Threshold:** `THE ARCHIVE IS OPEN` / Cormorant italic quote / `BEGIN CALIBRATION` / mono seal.
+- **CSS additions (oriel-signal.css):** `.signal-scroll-cue`, `.signal-intercept` family, `.signal-archive-rule`, `.signal-archive-card__title/copy`, `.signal-field-status` family, `.signal-threshold-seal`, responsive field-status at 640px.
+- **Route confirmed:** Resonance Genetic Codex → `/codex` (Vossari Resonance Codex, 64 root codons).
+- No new dependencies. No route guesses. No unrelated file changes.
