@@ -10,7 +10,7 @@
     ),
     radial-gradient(
       circle at 8% 22%,
-      rgba(132, 96, 54, 0.13),
+      rgba(216, 181, 109, 0.05),
       transparent 24rem
     ),
     radial-gradient(
@@ -85,10 +85,15 @@
     ),
     radial-gradient(
       circle at 8% 22%,
-      rgba(132, 96, 54, 0.13),
+      rgba(216, 181, 109, 0.05),
       transparent 24rem
     ),
-    linear-gradient(180deg, #040404 0%, #0b0906 48%, #030303 100%);
+    linear-gradient(
+      180deg,
+      rgba(4, 4, 4, 0.4) 0%,
+      rgba(8, 8, 10, 0.4) 48%,
+      rgba(3, 3, 3, 0.4) 100%
+    );
 }
 
 .signal-page-shell--chamber {
@@ -219,13 +224,11 @@
   z-index: 0;
   opacity: 0.09;
   mix-blend-mode: screen;
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.72'/%3E%3C/svg%3E"),
-    radial-gradient(
-      circle at 20% 24%,
-      rgba(255, 248, 232, 0.12),
-      transparent 18rem
-    );
+  background-image: radial-gradient(
+    circle at 20% 24%,
+    rgba(255, 248, 232, 0.12),
+    transparent 18rem
+  );
 }
 
 .signal-ambient-grid {
@@ -808,7 +811,7 @@
   color: #fff7e6;
   border: 1px solid rgba(216, 181, 109, 0.62);
   background:
-    linear-gradient(90deg, rgba(216, 181, 109, 0.16), rgba(132, 96, 54, 0.06)),
+    linear-gradient(90deg, rgba(216, 181, 109, 0.16), rgba(216, 181, 109, 0.04)),
     rgba(216, 181, 109, 0.05);
   box-shadow: 0 0 2.3rem rgba(216, 181, 109, 0.12);
 }
@@ -1138,7 +1141,11 @@
       rgba(216, 181, 109, 0.13),
       transparent 18%
     ),
-    radial-gradient(circle at center, rgba(132, 96, 54, 0.1), transparent 44%),
+    radial-gradient(
+      circle at center,
+      rgba(216, 181, 109, 0.05),
+      transparent 44%
+    ),
     rgba(5, 5, 5, 0.44);
   border: 1px solid rgba(216, 181, 109, 0.26);
   box-shadow:
@@ -1492,7 +1499,7 @@
 
 .oriel-archive-footer__support iframe,
 .oriel-archive-footer__support img {
-  filter: saturate(0.22) sepia(0.28) brightness(0.72);
+  filter: saturate(0.22) brightness(0.72);
   opacity: 0.72;
 }
 

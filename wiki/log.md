@@ -652,3 +652,14 @@ These pages are now the reference point for any future discussion of "how the pr
 ### Verification
 - `pnpm check` clean. Vitest: 586 passed, 1 pre-existing failure (`oriel-public-terminology` expects "Resonance Links" in CodonDetail.tsx — file untouched by this work, failing since baseline; out of scope, noted).
 - Dev server compiles and serves all new modules; no Vite/PostCSS errors. No screenshot tooling in this environment — visual sign-off is Vos's.
+
+## [2026-06-11] Homepage palette cleanup — brown/sepia/noise purge
+
+**Branch:** `v2-baseline`.
+**File changed:** `client/src/components/oriel-signal/oriel-signal.css` only. `client/src/index.css` needed no changes (see no-ops).
+
+- Killed all 4 `rgba(132, 96, 54, …)` browns → gold-tinted `rgba(216, 181, 109, 0.04–0.05)`: page-shell base radial, threshold radial, primary button gradient, signature-glyph radial. Zero instances remain.
+- Removed `sepia(0.28)` from footer support embeds (only sepia in file — the hero-video `sepia(0.12)` was already deleted with the video in the Field Intercept rebuild).
+- Removed the harsh feTurbulence noise layer (baseFrequency 0.72, opacity 0.72) from `.signal-archive-texture` entirely; kept the soft ivory radial.
+- Threshold sheet (homepage-only — `chamber="threshold"` used by Home.tsx alone): base gradient now 0.4-alpha with cool stops (`#0b0906` warm mid-stop → `rgba(8,8,10,0.4)`), so BackgroundPattern's navy void + 60px gold grid reads through.
+- No-ops in index.css: `.bg-noise`/`.animate-noise` already `display:none` with zero TSX consumers; the L524 turbulence belongs to `.signal-interference-field` — the transmission gate overlay (Conduit-only, never on homepage, static-by-design). Left untouched, flagged for Vos.
