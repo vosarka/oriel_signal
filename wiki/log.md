@@ -663,3 +663,14 @@ These pages are now the reference point for any future discussion of "how the pr
 - Removed the harsh feTurbulence noise layer (baseFrequency 0.72, opacity 0.72) from `.signal-archive-texture` entirely; kept the soft ivory radial.
 - Threshold sheet (homepage-only — `chamber="threshold"` used by Home.tsx alone): base gradient now 0.4-alpha with cool stops (`#0b0906` warm mid-stop → `rgba(8,8,10,0.4)`), so BackgroundPattern's navy void + 60px gold grid reads through.
 - No-ops in index.css: `.bg-noise`/`.animate-noise` already `display:none` with zero TSX consumers; the L524 turbulence belongs to `.signal-interference-field` — the transmission gate overlay (Conduit-only, never on homepage, static-by-design). Left untouched, flagged for Vos.
+
+## [2026-06-11] Homepage — sacred geometry field, card cleanup, hero video test
+
+**Branch:** `v2-baseline` — stacked on the palette cleanup.
+**Files:** `client/src/components/oriel-signal/SacredGeometryField.tsx` (new), `client/src/pages/Home.tsx`, `client/src/components/oriel-signal/oriel-signal.css`.
+
+- **Upgrade 1**: Flower of Life background — pure inline SVG, 91 circles on a 5-ring hex lattice, cool silver rgba(200,205,215,0.10–0.16), inner rings brighter. Fixed at z-index −1 inside the shell's isolated stacking context (above the translucent sheet, below all content), radial vignette mask. Scroll-build: one rAF-throttled listener writes --fi-geo-p; each circle's stroke-dashoffset resolves via CSS clamp() against its ring's stagger window — draws outward from center as you descend. Reduced motion: fully drawn, static. Square grids retired on homepage: bg-grid removed from 3 sections, shell's 96px signal-ambient-grid display:none under .fi-home.
+- **Upgrade 2**: killed the 18px inner card grid ::after (all four panel classes, sitewide) + its hover grid variant. Replaced with a glass sheen (diagonal ivory light catch + faint cool pool at bottom edge, brightens on hover). Card fill deepened warm rgba(7,7,6,0.72) → cool rgba(5,5,7,0.66). Gold top hairline ::before, corner ticks, and homepage iridescent hover edge all preserved.
+- **Upgrade 3 (TEST)**: `USE_HERO_VIDEO = true` in Home.tsx swaps HeroSigil for the looping logo video (ORIEL_HERO_VIDEO_SRC) in a circular-masked container — radial edge fade so it floats in void, same halo + materialize entrance. Dropout hits it via stage displacement + hue-shift jitter (PNG-mask chromatic ghosts can't apply to video pixels). Reduced motion pauses it. Flip flag to false to restore the sigil.
+- docs/VISUAL_LAW.md and docs/ORIEL_VISUAL_LANGUAGE.md still do not exist despite three briefs citing them — flagged to Vos.
+- Verified: pnpm check clean, spot tests pass, homepage 200, zero brown, zero 18px grids, no Vite errors.

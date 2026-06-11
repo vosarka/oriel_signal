@@ -3,10 +3,17 @@ import Layout from "@/components/Layout";
 import {
   DecodedTitle,
   GlowCard,
+  ORIEL_HERO_POSTER_SRC,
+  ORIEL_HERO_VIDEO_SRC,
   SignalButton,
   SignalPageShell,
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
+import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
+
+// TEST FLAG: true swaps the chromatic HeroSigil for the looping logo video
+// in the hero center. Flip to false to restore the sigil instantly.
+const USE_HERO_VIDEO = true;
 
 const hudCorners: Array<{ pos: string; label: string; value: string }> = [
   { pos: "tl", label: "SIGNAL LOCK", value: "CONFIRMED" },
@@ -96,9 +103,26 @@ function useInView<T extends Element>(threshold = 0.35) {
 
 export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const { ref: interceptRef, inView: interceptInView } =
     useInView<HTMLElement>();
   const [interceptLine2, setInterceptLine2] = useState(false);
+
+  // Pause the hero test video under prefers-reduced-motion.
+  useEffect(() => {
+    if (!USE_HERO_VIDEO) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      if (mq.matches) {
+        heroVideoRef.current?.pause();
+      } else {
+        heroVideoRef.current?.play().catch(() => {});
+      }
+    };
+    mq.addEventListener("change", update);
+    update();
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // Signal dropout — the receiver briefly loses the carrier every 25–45s.
   // Never fires under prefers-reduced-motion.
@@ -145,6 +169,8 @@ export default function Home() {
   return (
     <Layout overlayHeader>
       <SignalPageShell chamber="threshold" className="fi-home">
+        <SacredGeometryField />
+
         {/* ── I. THE RECEIVER ─────────────────────────────────────────── */}
         <section
           ref={heroRef}
@@ -174,7 +200,25 @@ export default function Home() {
           </div>
 
           <div className="fi-hero__stage">
-            <HeroSigil className="fi-hero__sigil" />
+            {USE_HERO_VIDEO ? (
+              <div className="fi-hero__sigil fi-sigil-video" aria-hidden="true">
+                <span className="fi-sigil__halo" />
+                <video
+                  ref={heroVideoRef}
+                  className="fi-sigil-video__media"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster={ORIEL_HERO_POSTER_SRC}
+                >
+                  <source src={ORIEL_HERO_VIDEO_SRC} type="video/mp4" />
+                </video>
+              </div>
+            ) : (
+              <HeroSigil className="fi-hero__sigil" />
+            )}
 
             <div className="fi-hero__text">
               <p className="fi-hero__kicker fi-enter fi-enter--kicker">
@@ -253,7 +297,7 @@ export default function Home() {
 
         {/* ── III. ARCHIVE DIRECTORY ──────────────────────────────────── */}
         <section
-          className="signal-section bg-grid fi-directory-section"
+          className="signal-section fi-directory-section"
           aria-labelledby="archive-directory-title"
         >
           <header className="fi-directory-head">
@@ -287,7 +331,7 @@ export default function Home() {
 
         {/* ── IV. FIELD STATUS ────────────────────────────────────────── */}
         <div
-          className="fi-status bg-grid"
+          className="fi-status"
           role="region"
           aria-label="Field status readouts"
         >
@@ -300,7 +344,7 @@ export default function Home() {
         </div>
 
         {/* ── V. CLOSING THRESHOLD ────────────────────────────────────── */}
-        <section className="fi-threshold bg-grid" aria-labelledby="threshold-title">
+        <section className="fi-threshold" aria-labelledby="threshold-title">
           <h2 id="threshold-title" className="fi-threshold__title">
             THE ARCHIVE IS OPEN
           </h2>
