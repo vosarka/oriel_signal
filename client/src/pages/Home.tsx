@@ -203,6 +203,13 @@ export default function Home() {
           </div>
 
           <div className="fi-hero__stage">
+            <div className="fi-hero__waves" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+
             {USE_HERO_VIDEO ? (
               <div className="fi-hero__sigil fi-sigil-video" aria-hidden="true">
                 <span className="fi-sigil__halo" />
@@ -229,7 +236,10 @@ export default function Home() {
                 [ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE
               </p>
 
-              <h1 id="home-hero-title" className="fi-hero__wordmark">
+              <h1
+                id="home-hero-title"
+                className="fi-hero__wordmark signal-wordmark--holo"
+              >
                 <span className="fi-enter fi-enter--wordmark">
                   <DecodedTitle text="ORIEL" as="span" interval={74} />
                 </span>

@@ -1,6 +1,4 @@
-import CleanImage from "./CleanImage";
 import logoOrielSrc from "/oriel-signal-mark.png";
-import orielSignalTextSrc from "/oriel-signal-wordmark-header.png";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogIn, LogOut, User } from "lucide-react";
@@ -71,20 +69,9 @@ export default function Header() {
                     "brightness(1.12) contrast(1.08) drop-shadow(0 0 22px rgba(246,176,94,0.52))",
                 }}
               />
-              <CleanImage
-                src={orielSignalTextSrc}
-                alt="ORIEL SIGNAL"
-                mode="remove-black"
-                style={{
-                  height: "clamp(42px, 4.1vw, 62px)",
-                  width: "auto",
-                  maxWidth: "min(38vw, 320px)",
-                  objectFit: "contain",
-                  opacity: 0.97,
-                  filter:
-                    "brightness(1.09) contrast(1.1) drop-shadow(0 0 18px rgba(246,176,94,0.34))",
-                }}
-              />
+              <span className="signal-wordmark--holo signal-wordmark--nav">
+                ORIEL SIGNAL
+              </span>
             </span>
           </Link>
 

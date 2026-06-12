@@ -2335,20 +2335,77 @@
 .fi-hero__stage {
   position: relative;
   z-index: 2;
-  width: min(100% - 3rem, 86rem);
+  width: min(100% - 3rem, 92rem);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   align-items: center;
 }
 
 .fi-hero__sigil {
   grid-column: 2;
   grid-row: 1;
-  width: clamp(22rem, 38vw, 35rem);
+  width: clamp(26rem, 46vw, 44rem);
   max-width: 100%;
   justify-self: center;
-  margin: -5% 0 0 4%;
+  margin: -4% 0 0 2%;
+}
+
+/* Signal waves — concentric ripples radiating from the centerpiece.
+   Signal palette as light only: faint cyan/violet rings, screen-blended,
+   slow 14s loop. Sits in the same grid cell, painted beneath. */
+.fi-hero__waves {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: clamp(26rem, 46vw, 44rem);
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: -4% 0 0 2%;
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.fi-hero__waves span {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 249, 255, 0.14);
+  opacity: 0;
+  animation: fiWaveRipple 14s linear infinite;
+}
+
+.fi-hero__waves span:nth-child(2) {
+  border-color: rgba(179, 136, 255, 0.12);
+  animation-delay: 3.5s;
+}
+
+.fi-hero__waves span:nth-child(3) {
+  animation-delay: 7s;
+}
+
+.fi-hero__waves span:nth-child(4) {
+  border-color: rgba(179, 136, 255, 0.12);
+  animation-delay: 10.5s;
+}
+
+@keyframes fiWaveRipple {
+  0% {
+    opacity: 0;
+    transform: scale(0.42);
+  }
+  12% {
+    opacity: 0.1;
+  }
+  70% {
+    opacity: 0.04;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
 }
 
 .fi-hero__text {
@@ -2384,18 +2441,35 @@
   animation: signalSoftPulse 2.8s ease-in-out infinite;
 }
 
+/* Shared holographic wordmark treatment — used by the hero h1 and the
+   navbar brand text so they match exactly. Ivory core, void backplate,
+   gold glow, and a faint cyan/violet spectral fringe. Self-contained
+   font stack (no .fi-home vars) so it works anywhere, navbar included. */
+.signal-wordmark--holo {
+  font-family: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  color: #fff7e6;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 28px rgba(3, 3, 3, 0.92),
+    0 0 64px rgba(216, 181, 109, 0.26),
+    0 0 16px rgba(216, 181, 109, 0.34),
+    -1px 0 7px rgba(125, 249, 255, 0.2),
+    1px 0 7px rgba(179, 136, 255, 0.18);
+}
+
+.signal-wordmark--nav {
+  font-size: clamp(0.95rem, 1.5vw, 1.22rem);
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  white-space: nowrap;
+}
+
 .fi-hero__wordmark {
   margin: 0;
-  color: #fff7e6;
-  font-family: var(--fi-font-display);
   font-size: clamp(4.2rem, 10.5vw, 10rem);
   font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 0.92;
-  text-transform: uppercase;
-  text-shadow:
-    0 0 28px rgba(3, 3, 3, 0.92),
-    0 0 64px rgba(216, 181, 109, 0.26);
 }
 
 .fi-hero__wordmark .decoded-title {
@@ -3313,7 +3387,14 @@
   .fi-hero__sigil {
     grid-column: 1;
     grid-row: 1;
-    width: clamp(15rem, 56vw, 22rem);
+    width: clamp(16rem, 62vw, 26rem);
+    margin: 0;
+  }
+
+  .fi-hero__waves {
+    grid-column: 1;
+    grid-row: 1;
+    width: clamp(16rem, 62vw, 26rem);
     margin: 0;
   }
 
@@ -3499,6 +3580,7 @@
   .fi-sigil__ghost,
   .fi-hero__scan,
   .fi-hero__fragments,
+  .fi-hero__waves,
   .fi-dropout {
     display: none !important;
   }
