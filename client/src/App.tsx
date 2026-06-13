@@ -22,6 +22,7 @@ import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 import StaticReading from "./pages/StaticReading";
 import DynamicReading from "./pages/DynamicReading";
+import Tiers from "./pages/Tiers";
 import CurrentResonance from "./pages/CurrentResonance";
 import FoundingSignatureLetter from "./pages/FoundingSignatureLetter";
 import {
@@ -92,6 +93,7 @@ function Router() {
       <Route path={"/reading/static/:readingId"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
       <Route path={"/reading/dynamic/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
       <Route path={"/reading/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/tiers"} component={Tiers} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -111,7 +113,11 @@ function AppGate() {
       location === "/profile" ||
       location === "/signature";
 
-    if (requiresNatalProfile && location !== "/complete-profile") {
+    // requiresNatalProfile is only true on /profile or /signature, so it is
+    // already never /complete-profile (and redirecting there clears it, no
+    // loop). The old `&& location !== "/complete-profile"` guard was dead and
+    // tripped TS2367 once location became a typed union.
+    if (requiresNatalProfile) {
       setLocation("/complete-profile");
     }
   }, [loading, location, setLocation, user]);

@@ -177,7 +177,9 @@ function parseReadingText(text: string): ParsedReading | null {
 
 export default function ReadingEnhanced() {
   const { user } = useAuth();
-  const [, params] = useRoute("/signature");
+  // Dormant component (route /reading/:id now redirects to /signature);
+  // keep the parameterised pattern so params.id stays type-valid.
+  const [, params] = useRoute("/reading/:id");
   const readingId = params?.id ? parseInt(params.id) : 0;
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>

@@ -378,7 +378,9 @@ function CoherenceSparkline({
 // ══════════════════════════════════════════════════════════════
 export default function DynamicReading() {
   const { user } = useAuth();
-  const [, params] = useRoute("/signature");
+  // Dormant component (route /reading/dynamic/:id now redirects to
+  // /signature); keep the parameterised pattern so params.id stays valid.
+  const [, params] = useRoute("/reading/dynamic/:id");
   const readingId = params?.id ? parseInt(params.id, 10) : 0;
 
   const [activeView, setActiveView] = useState<
