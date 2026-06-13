@@ -1222,7 +1222,7 @@ export default function Profile() {
                           alignItems: "center",
                         }}
                       >
-                        <Link href="/blueprint">
+                        <Link href="/signature">
                           <span
                             style={{
                               display: "inline-block",
@@ -1515,7 +1515,7 @@ export default function Profile() {
               flexWrap: "wrap",
             }}
           >
-            <Link href="/carrierlock">
+            <Link href="/signature">
               <span
                 style={{
                   display: "inline-block",

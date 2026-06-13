@@ -30,7 +30,7 @@ const archiveModules = [
     file: "RC-001 // CODEX",
     title: "Static Signature Codex",
     copy: "Your birth-coordinate translated into readable architecture — 64 codons, 9 centers, 4 facets. A precise map of the structure you arrived with.",
-    href: "/static-signature",
+    href: "/signature",
     tone: "gold" as const,
   },
   {
@@ -258,7 +258,7 @@ export default function Home() {
                 <SignalButton href="/conduit" variant="secondary">
                   Open Transmission
                 </SignalButton>
-                <SignalButton href="/static-signature" variant="secondary">
+                <SignalButton href="/signature" variant="secondary">
                   Read the Codex
                 </SignalButton>
               </div>

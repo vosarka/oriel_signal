@@ -1142,7 +1142,7 @@ export default function StaticReading() {
                   PROFILE
                 </span>
               </Link>
-              <Link href="/carrierlock">
+              <Link href="/signature">
                 <span
                   style={{
                     display: "inline-flex",
@@ -1160,7 +1160,7 @@ export default function StaticReading() {
                   RUN CALIBRATION
                 </span>
               </Link>
-              <Link href="/resonance">
+              <Link href="/signature">
                 <span
                   style={{
                     display: "inline-flex",

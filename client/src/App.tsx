@@ -2,6 +2,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -37,7 +38,6 @@ import OrbPreview from "./pages/OrbPreview";
 import OracleDetail from "./pages/OracleDetail";
 import NatalProfile from "./pages/NatalProfile";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
 
 function Router() {
   return (
@@ -50,7 +50,6 @@ function Router() {
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />
-      <Route path={"/blueprint"} component={StaticReading} />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/terms"} component={TermsOfService} />
       <Route
@@ -81,16 +80,18 @@ function Router() {
       <Route path={"/conduit"} component={Conduit} />
       <Route path={"/codex"} component={Codex} />
       <Route path={"/codex/:id"} component={CodonDetail} />
-      {/* NEW: /cosmichronica for the sacred cosmological text (separate from /codex codon library) */}
+      {/* Cosmichronica: the sacred cosmological text (separate from /codex codon library per structure) */}
       <Route path={"/cosmichronica"} component={Protocol} />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
       <Route path={"/signature"} component={StaticReading} />
-      <Route path={"/carrierlock"} component={Carrierlock} />
-      <Route path={"/resonance"} component={CurrentResonance} />
-      <Route path={"/readings"} component={Readings} />
-      <Route path={"/reading/static/:readingId"} component={StaticReading} />
-      <Route path={"/reading/dynamic/:id"} component={DynamicReading} />
-      <Route path={"/reading/:id"} component={Reading} />
+      {/* Redirects for old reading routes to the single /signature */}
+      <Route path={"/blueprint"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/carrierlock"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/resonance"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/readings"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/static/:readingId"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/dynamic/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -107,11 +108,8 @@ function AppGate() {
     if (loading || !user || user.hasNatalProfile) return;
 
     const requiresNatalProfile =
-      location === "/blueprint" ||
-      location === "/carrierlock" ||
       location === "/profile" ||
-      location === "/readings" ||
-      location.startsWith("/reading/");
+      location === "/signature";
 
     if (requiresNatalProfile && location !== "/complete-profile") {
       setLocation("/complete-profile");

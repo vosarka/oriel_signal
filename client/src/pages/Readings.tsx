@@ -208,7 +208,7 @@ export default function Readings() {
               >
                 NO DYNAMIC READINGS GENERATED YET
               </div>
-              <Link href="/carrierlock">
+              <Link href="/signature">
                 <span
                   className="dew-drop retina-border"
                   style={{
@@ -266,7 +266,7 @@ export default function Readings() {
                   : "—";
 
                 return (
-                  <Link key={r.id} href={`/reading/dynamic/${r.id}`}>
+                  <Link key={r.id} href={`/signature`}>
                     <div
                       className="cinematic-card"
                       style={{
@@ -436,7 +436,7 @@ export default function Readings() {
                 justifyContent: "center",
               }}
             >
-              <Link href="/carrierlock">
+              <Link href="/signature">
                 <span
                   className="dew-drop retina-border"
                   style={{

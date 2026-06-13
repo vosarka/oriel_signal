@@ -378,7 +378,7 @@ function CoherenceSparkline({
 // ══════════════════════════════════════════════════════════════
 export default function DynamicReading() {
   const { user } = useAuth();
-  const [, params] = useRoute("/reading/dynamic/:id");
+  const [, params] = useRoute("/signature");
   const readingId = params?.id ? parseInt(params.id, 10) : 0;
 
   const [activeView, setActiveView] = useState<
@@ -631,7 +631,7 @@ export default function DynamicReading() {
             >
               Reading not found
             </p>
-            <Link href="/carrierlock">
+            <Link href="/signature">
               <span
                 style={{
                   display: "inline-flex",
@@ -1316,7 +1316,7 @@ export default function DynamicReading() {
             Complete more Carrierlock assessments to see your coherence
             trajectory over time.
           </p>
-          <Link href="/carrierlock">
+          <Link href="/signature">
             <span
               style={{
                 display: "inline-block",
@@ -1805,7 +1805,7 @@ export default function DynamicReading() {
             zIndex: 1,
           }}
         >
-          <Link href="/carrierlock">
+          <Link href="/signature">
             <span
               style={{
                 fontFamily: "var(--font-ritual)",
@@ -2158,7 +2158,7 @@ function StaticContextSection({
 
       {/* Link to canonical Static Signature */}
       {latest && (
-        <Link href="/blueprint">
+        <Link href="/signature">
           <div
             style={{
               background: C.deep,

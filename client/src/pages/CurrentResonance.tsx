@@ -227,7 +227,7 @@ function MissingState({
   const links =
     status === "missing_static_profile"
       ? [{ href: "/complete-profile", label: "Complete profile" }]
-      : [{ href: "/carrierlock", label: "Run calibration" }];
+      : [{ href: "/signature", label: "Run calibration" }];
 
   return (
     <div
@@ -560,7 +560,7 @@ export default function CurrentResonance() {
             </div>
 
             <ActionLink
-              href="/carrierlock"
+              href="/signature"
               label="New calibration"
               primary
               icon={<Activity size={14} />}

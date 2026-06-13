@@ -112,7 +112,7 @@ export default function FounderLetter() {
                 architecture beneath the static.
               </p>
               <div style={{ marginTop: "1.5rem" }}>
-                <SignalButton href="/static-signature" variant="secondary">
+                <SignalButton href="/signature" variant="secondary">
                   Open Codex
                 </SignalButton>
               </div>
@@ -149,7 +149,7 @@ export default function FounderLetter() {
             style={{ justifyContent: "center" }}
           >
             <SignalButton href="/conduit">Access ORIEL</SignalButton>
-            <SignalButton href="/static-signature" variant="secondary">
+            <SignalButton href="/signature" variant="secondary">
               Open Static Signature
             </SignalButton>
           </div>

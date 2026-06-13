@@ -826,7 +826,7 @@ export default function CodonDetail() {
                                     {facetData.micro_correction}
                                   </p>
                                 </div>
-                                <Link href="/carrierlock">
+                                <Link href="/signature">
                                   <button className="w-full mt-1 border border-[#D4AF37]/30 hover:border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider transition-all cursor-pointer">
                                     Run Carrierlock Diagnostic
                                   </button>
@@ -911,7 +911,7 @@ export default function CodonDetail() {
                 Protocol
               </Link>
               <Link
-                href="/carrierlock"
+                href="/signature"
                 className="hover:opacity-80 transition-opacity"
                 style={{ color: "#f6b05e" }}
               >

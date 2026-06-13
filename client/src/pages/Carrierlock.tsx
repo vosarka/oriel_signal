@@ -231,7 +231,7 @@ export default function Carrierlock() {
         falsifier: data.falsifier ?? "",
       });
 
-      setLocation("/resonance");
+      setLocation("/signature");
     } catch (error) {
       console.error("Failed to generate reading:", error);
       setReadingError(

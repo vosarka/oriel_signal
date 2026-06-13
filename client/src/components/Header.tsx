@@ -22,13 +22,14 @@ export default function Header() {
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
-    if (href === "/carrierlock") {
-      return (
-        location.startsWith("/carrierlock") ||
-        location.startsWith("/resonance") ||
-        location.startsWith("/readings") ||
-        location.startsWith("/reading/dynamic")
-      );
+    if (href === "/signature") {
+      return location === "/signature";
+    }
+    if (href === "/codex") {
+      return location.startsWith("/codex");
+    }
+    if (href === "/cosmichronica") {
+      return location.startsWith("/cosmichronica") || location === "/protocol";
     }
     return location.startsWith(href);
   };

@@ -216,7 +216,7 @@ export default function Codex() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setLocation("/carrierlock")}
+                  onClick={() => setLocation("/signature")}
                   className="codex-reading-button"
                 >
                   GET READING

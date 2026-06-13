@@ -177,7 +177,7 @@ function parseReadingText(text: string): ParsedReading | null {
 
 export default function ReadingEnhanced() {
   const { user } = useAuth();
-  const [, params] = useRoute("/reading/:id");
+  const [, params] = useRoute("/signature");
   const readingId = params?.id ? parseInt(params.id) : 0;
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
@@ -251,7 +251,7 @@ export default function ReadingEnhanced() {
         <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
           <div className="text-center">
             <p className="text-zinc-400 mb-4">Reading not found</p>
-            <Link href="/carrierlock">
+            <Link href="/signature">
               <Button variant="outline" className="border-primary/30">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Assessment
@@ -358,7 +358,7 @@ export default function ReadingEnhanced() {
             </Card>
 
             <div className="flex justify-center pt-4">
-              <Link href="/carrierlock">
+              <Link href="/signature">
                 <Button
                   variant="outline"
                   className="border-primary/30 text-primary hover:bg-primary/10"
@@ -617,7 +617,7 @@ export default function ReadingEnhanced() {
 
           {/* Back Button */}
           <div className="flex justify-center pt-8">
-            <Link href="/carrierlock">
+            <Link href="/signature">
               <Button
                 variant="outline"
                 className="border-primary/30 text-primary hover:bg-primary/10"
