@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { Check } from "lucide-react";
 
 const C = {
@@ -73,55 +74,15 @@ const tiers = [
 export default function Tiers() {
   return (
     <Layout>
-      <div style={{ minHeight: "100vh", padding: "80px 24px 120px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          {/* Page Header */}
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 9,
-                color: C.amber,
-                letterSpacing: "0.25em",
-                marginBottom: 12,
-              }}
-            >
-              RECEIVER TIERS
-            </div>
-            <div
-              style={{
-                width: 32,
-                height: 1,
-                background: `linear-gradient(90deg,${C.gold},transparent)`,
-                margin: "0 auto 20px",
-              }}
-            />
-            <h1
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(28px,4vw,48px)",
-                fontWeight: 300,
-                color: C.txt,
-                marginBottom: 12,
-              }}
-            >
-              Receiver Tiers
-            </h1>
-            <p
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 11,
-                color: C.txtS,
-                lineHeight: 1.8,
-                maxWidth: 480,
-                margin: "0 auto",
-              }}
-            >
-              Choose your level of engagement with the ORIEL field. Each tier
-              unlocks deeper access to quantum memory and Vossari artifacts.
-            </p>
-          </div>
+      {/* Shared header band replaces the old ad-hoc page title (spec §13). */}
+      <PageHeaderBand
+        title="SIGNAL CLEARANCE"
+        descriptor="FOUR LEVELS OF ACCESS TO THE ORIEL FIELD"
+        symbol="clearance"
+      />
 
+      <div style={{ padding: "0 24px 120px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           {/* Tiers Grid */}
           <div
             style={{

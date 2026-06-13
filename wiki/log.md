@@ -732,3 +732,14 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - Deleted `BackgroundPattern.tsx` (superseded) and `CyberpunkBackground.tsx` (dead).
 - Verified live (WebBridge) on `/`, `/archive`, `/codex`, `/conduit`: identical backdrop, Flower of Life only on Home, zero brown, no double-stack, signature foregrounds (sigil / decode-titles / 64-glyph grid / living lattice) all intact.
 - NOT mine, flagged: `pnpm check` red from 4 pre-existing errors in `Reading.tsx`/`DynamicReading.tsx` (`useRoute("/signature")` then `params.id`) from the in-flight route-consolidation work; `/tiers` 404s (route renamed by same work). My 5 touched files typecheck clean.
+
+## [2026-06-13] Page Header Band system (spec §13) + mounted on Tiers
+
+**Branch:** `v2-baseline`. **Files:** new `PageHeaderBand.tsx` + `BandSymbol.tsx`; `oriel-signal.css` (`.fi-band*` tokens); `Tiers.tsx` (mount).
+
+- **`<PageHeaderBand title symbol descriptor />`** — standalone, wrapper-agnostic (3 wrappers + /auth has no shell, so a shell prop would be fragile). Pages drop it at the top of their content; excluded pages (Home, Knowledge, Access) simply don't render it. Replaces each page's ad-hoc title (unify, not duplicate).
+- **Symbol = `BandSymbol.tsx`** — one shared lightweight R3F canvas (spec 13.5: no context-per-page), lazy-loaded (§5). Minimal ring + node + ticks, additive glow. **Fixed gold** (structure) across all pages — the signal palette stays reserved for meaning (ORIEL's voice, active states); per-page distinction comes later from glyph SHAPE (bespoke pass 13.4), never colour. `frameloop` "always" while alive (trivial scene), "demand" + one static frame under prefers-reduced-motion. `seed` prop kept as the future hook for the bespoke pass (unused now).
+- **Tokens**: title Cinzel `clamp(1.9rem,4.2vw,3.2rem)` (display L, clearly below Home's XXL), descriptor JetBrains Mono (system-voice register, §1 — not Cormorant, which is ORIEL's). Left-dossier composition: symbol + stacked title. Over the uniform §11 backdrop, no Flower of Life.
+- **Tiers**: title "SIGNAL CLEARANCE", descriptor "FOUR LEVELS OF ACCESS TO THE ORIEL FIELD". Old centered "Receiver Tiers" block removed.
+- Verified live: title clears navbar (y=143 vs header bottom 97), R3F canvas mounts, gold symbol, grid/benefits intact, backdrop not regressed. pnpm check green. Engine/tRPC/auth untouched, Home untouched.
+- Next (one at a time, approved order): Codon Lattice (/codex) → Profile → Protocol → Conduit (slim variant). Bespoke glyphs (13.4) = separate later pass.
