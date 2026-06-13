@@ -2,23 +2,11 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 50% -8%,
-      rgba(216, 181, 109, 0.09),
-      transparent 30rem
-    ),
-    radial-gradient(
-      circle at 8% 22%,
-      rgba(216, 181, 109, 0.05),
-      transparent 24rem
-    ),
-    radial-gradient(
-      circle at 92% 38%,
-      rgba(228, 200, 140, 0.06),
-      transparent 28rem
-    ),
-    linear-gradient(180deg, #050505 0%, #0a0907 46%, #030303 100%);
+  /* Background now comes from the global SignalBackdrop (mounted in Layout).
+     The shell is transparent so every page shares one field; its variant
+     gradients and decorative geometry are neutralised below and re-enabled
+     only on Home (.fi-home). */
+  background: transparent;
   color: var(--oriel-ivory);
   isolation: isolate;
 }
@@ -3479,10 +3467,70 @@
 
 /* ── Sacred geometry field — the silver manuscript beneath ───────── */
 
-/* Pages carrying the Flower of Life field retire the square lattice.
-   .fi-world marks any SignalPageShell that includes SacredGeometryField. */
-.fi-home .signal-ambient-grid,
-.fi-world .signal-ambient-grid {
+/* ════════════════════════════════════════════════════════════════════
+   ONE SHARED BACKGROUND — the SignalBackdrop is the single field for the
+   whole app. The page-shell variants are neutralised here (later source
+   wins the equal-specificity tie) and every decorative geometry layer is
+   gated to Home only. Home keeps its full geometry + Flower of Life as
+   its signature; every other page shows only the shared backdrop.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* The shared backdrop — opaque void + top-center gold bloom, mounted once
+   in Layout. Its grain/starfield children reuse the shell's texture classes
+   (which are NOT gated here because they are not inside .signal-page-shell). */
+.signal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 10%,
+      rgba(216, 181, 109, 0.15),
+      transparent 32rem
+    ),
+    radial-gradient(
+      circle at 50% 56%,
+      rgba(255, 248, 232, 0.045),
+      transparent 40rem
+    ),
+    radial-gradient(
+      circle at 8% 22%,
+      rgba(216, 181, 109, 0.045),
+      transparent 26rem
+    ),
+    radial-gradient(
+      circle at 92% 38%,
+      rgba(228, 200, 140, 0.05),
+      transparent 30rem
+    ),
+    linear-gradient(180deg, #0a0a0c 0%, #08080b 48%, #050507 100%);
+}
+
+/* Neutralise every page-shell variant background — the backdrop owns it. */
+.signal-page-shell--threshold,
+.signal-page-shell--chamber,
+.signal-page-shell--codex,
+.signal-page-shell--transmissions,
+.signal-page-shell--origin-seal,
+.signal-page-shell--gate,
+.signal-page-shell--receiver-node,
+.signal-page-shell--revelation {
+  background: transparent;
+}
+
+/* Geometry and texture decorations live on Home only. Every other shell
+   page shows the bare shared backdrop. */
+.signal-page-shell:not(.fi-home) > .signal-archive-texture,
+.signal-page-shell:not(.fi-home) > .signal-ambient-grid,
+.signal-page-shell:not(.fi-home) > .signal-sacred-geometry,
+.signal-page-shell:not(.fi-home) > .signal-starfield,
+.signal-page-shell:not(.fi-home) > .signal-page-geometry {
+  display: none;
+}
+
+.signal-page-shell:not(.fi-home)::before,
+.signal-page-shell:not(.fi-home)::after {
   display: none;
 }
 

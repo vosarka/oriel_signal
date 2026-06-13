@@ -1586,7 +1586,7 @@ export default function Conduit() {
   const sendDisabled = inputDisabled || !message.trim();
 
   return (
-    <Layout noBackground hideFooter>
+    <Layout hideFooter>
       {/* Full-screen overlays stay outside the shell's stacking context
           so they keep painting above the fixed header. */}
       <SignalInterferenceGate {...transmissionGate.gateProps} />

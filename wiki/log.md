@@ -718,3 +718,17 @@ These pages are now the reference point for any future discussion of "how the pr
 - `.fi-world .signal-ambient-grid { display:none }` so shell pages drop the square lattice.
 - **Stability fix (chat was unframed):** shell `min-height:100vh` + Layout's 4rem top padding made the document 64px taller than the viewport, so the chat's scroll-to-bottom dragged the whole window under the navbar (hole at the bottom, New Transmission button hidden). `.fi-conduit-shell` locks `height: calc(100vh - 96px)` and `overflow: clip` on shell/stage/inner so only the message list scrolls.
 - **Navbar overlap fix:** header is `h-24` (96px) but Layout offsets only 64px. Added `margin-top: 32px` so the chamber starts fully below the navbar; inner stage height also bumped 64→96. Verified live (WebBridge): window unscrollable, header bottom 97px, chamber top 96px, New Transmission button top 108px — fully clear.
+
+## [2026-06-13] Section 11 — one shared background across the app
+
+**Branch:** `v2-baseline`. **Files:** new `SignalBackdrop.tsx`; `Layout.tsx`, `oriel-signal.css`, `VossArchiveShell.tsx`, `Conduit.tsx`; deleted `BackgroundPattern.tsx` + `CyberpunkBackground.tsx`.
+
+Goal (design doc §11): every page shows the identical Home-hero background base; sacred geometry stays on Home only; per-page signature foregrounds untouched.
+
+- Found three competing background systems + dead code: `BackgroundPattern` (Layout pages — had a rotating sacred-geometry ring), the `SignalPageShell` CSS layers (Home/Conduit/Founder/FinalOriel/StaticSignature), and `VossArchiveShell`'s `.voss-archive-root` (Archive/Codex — carried a 96px grid AND `rgba(132,96,54)` brown, and double-stacked because it wraps Layout). `CyberpunkBackground.tsx` was imported nowhere.
+- **`SignalBackdrop`**: new single source of truth — opaque obsidian void + top-center gold bloom + grain + starfield, NO geometry. Mounted once in `Layout` (unconditional; the dead `noBackground` prop removed, only Conduit passed it).
+- **`oriel-signal.css`**: `.signal-page-shell` base → transparent; all `--variant` backgrounds nulled (later-source override); decorative layers (`signal-archive-texture/ambient-grid/sacred-geometry/starfield/page-geometry`, `::before/::after`) gated to `.fi-home` only. `.signal-backdrop` styles added.
+- **`VossArchiveShell`**: `.voss-archive-root` background → transparent; removed the grid `::before`, the redundant `::after`, and the brown. Foreground panel/type tokens kept.
+- Deleted `BackgroundPattern.tsx` (superseded) and `CyberpunkBackground.tsx` (dead).
+- Verified live (WebBridge) on `/`, `/archive`, `/codex`, `/conduit`: identical backdrop, Flower of Life only on Home, zero brown, no double-stack, signature foregrounds (sigil / decode-titles / 64-glyph grid / living lattice) all intact.
+- NOT mine, flagged: `pnpm check` red from 4 pre-existing errors in `Reading.tsx`/`DynamicReading.tsx` (`useRoute("/signature")` then `params.id`) from the in-flight route-consolidation work; `/tiers` 404s (route renamed by same work). My 5 touched files typecheck clean.

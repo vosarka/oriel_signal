@@ -1,24 +1,25 @@
 import { ReactNode } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
-import BackgroundPattern from "./BackgroundPattern";
+import { SignalBackdrop } from "./oriel-signal/SignalBackdrop";
 
 interface LayoutProps {
   children: ReactNode;
   hideFooter?: boolean;
-  noBackground?: boolean;
   overlayHeader?: boolean;
 }
 
 export default function Layout({
   children,
   hideFooter,
-  noBackground,
   overlayHeader,
 }: LayoutProps) {
   return (
     <div className="oriel-shell">
-      {!noBackground && <BackgroundPattern />}
+      {/* One shared background for every route. Pages layer their own
+          signature visuals (Home's Flower of Life, the ORIEL orb, the
+          living lattice, the bodygraph) on top of this. */}
+      <SignalBackdrop />
 
       <Header />
 
