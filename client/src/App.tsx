@@ -81,6 +81,10 @@ function Router() {
       <Route path={"/conduit"} component={Conduit} />
       <Route path={"/codex"} component={Codex} />
       <Route path={"/codex/:id"} component={CodonDetail} />
+      {/* NEW: /cosmichronica for the sacred cosmological text (separate from /codex codon library) */}
+      <Route path={"/cosmichronica"} component={Protocol} />
+      {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
+      <Route path={"/signature"} component={StaticReading} />
       <Route path={"/carrierlock"} component={Carrierlock} />
       <Route path={"/resonance"} component={CurrentResonance} />
       <Route path={"/readings"} component={Readings} />

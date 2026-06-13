@@ -3479,9 +3479,36 @@
 
 /* ── Sacred geometry field — the silver manuscript beneath ───────── */
 
-/* The homepage retires the square lattice; the Flower of Life replaces it. */
-.fi-home .signal-ambient-grid {
+/* Pages carrying the Flower of Life field retire the square lattice.
+   .fi-world marks any SignalPageShell that includes SacredGeometryField. */
+.fi-home .signal-ambient-grid,
+.fi-world .signal-ambient-grid {
   display: none;
+}
+
+/* Conduit: the chamber must sit exactly between the header offset and
+   the viewport bottom. The shell's default min-height:100vh plus the
+   main's 4rem top padding made the document 64px taller than the
+   viewport, so the chat's scroll-to-bottom dragged the whole window up
+   under the navbar. Locking the shell height removes window overflow. */
+.fi-conduit-shell {
+  min-height: 0;
+  /* The fixed header is h-24 (96px) but the layout only pads 64px —
+     the extra 32px margin clears the difference so the chamber (and
+     its New Transmission button) starts fully below the navbar.
+     64 + 32 + (100vh - 96) = 100vh exactly: still no window scroll. */
+  margin-top: 32px;
+  height: calc(100vh - 96px);
+}
+
+/* overflow:hidden boxes are still scrollable by script — the chat's
+   scrollIntoView was silently scrolling these ancestors and dragging
+   the chamber under the navbar. clip is genuinely unscrollable; only
+   the message list (overflow-y-auto) may scroll. */
+.fi-conduit-shell,
+.fi-conduit-shell .oriel-chamber-stage,
+.fi-conduit-shell .oriel-chamber-stage .overflow-hidden {
+  overflow: clip;
 }
 
 .fi-geometry {

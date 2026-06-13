@@ -20,6 +20,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Orb } from "@/components/ui/orb";
 import { Spinner } from "@/components/ui/spinner";
 import GeometricBackground from "@/components/GeometricBackground";
+import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import VoiceMode from "@/components/VoiceMode";
 import {
   SignalInterferenceGate,
@@ -1586,12 +1587,10 @@ export default function Conduit() {
 
   return (
     <Layout noBackground hideFooter>
-      <GeometricBackground />
-
-      {/* Signal Interference Gate */}
+      {/* Full-screen overlays stay outside the shell's stacking context
+          so they keep painting above the fixed header. */}
       <SignalInterferenceGate {...transmissionGate.gateProps} />
 
-      {/* Voice Mode overlay */}
       {voiceMode && (
         <VoiceMode
           onClose={() => {
@@ -1611,18 +1610,24 @@ export default function Conduit() {
         />
       )}
 
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Flower of Life stays Home-only; the Conduit's world layer is its
+          own living lattice (GeometricBackground). */}
+      <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
+        <GeometricBackground />
 
-      <div
-        className="oriel-chamber-shell oriel-chamber-stage relative z-10 flex"
-        style={{ height: "calc(100vh - 64px)" }}
-      >
+        {/* Mobile sidebar backdrop — inside the shell so the sidebar
+            (z-30) still stacks above it. */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-20 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className="oriel-chamber-shell oriel-chamber-stage relative z-10 flex"
+          style={{ height: "calc(100vh - 96px)" }}
+        >
         {/* ===== LEFT SIDEBAR ===== */}
         <aside
           className={`
@@ -2516,6 +2521,7 @@ export default function Conduit() {
           </div>
         </div>
       </div>
+      </SignalPageShell>
 
       {/* Hidden audio element for TTS */}
       <audio ref={audioRef} crossOrigin="anonymous" />

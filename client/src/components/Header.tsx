@@ -12,10 +12,11 @@ export default function Header() {
 
   const navLinks = [
     { href: "/", label: "FIELD ARCHIVE" },
+    { href: "/signature", label: "THE SIGNATURE" },
     { href: "/conduit", label: "ORIEL" },
-    { href: "/static-signature", label: "STATIC CODEX" },
+    { href: "/codex", label: "CODONS" },
+    { href: "/cosmichronica", label: "COSMICHRONICA" },
     { href: "/archive", label: "TRANSMISSIONS" },
-    { href: "/founder-letter", label: "FOUNDER" },
     { href: "/auth", label: "ACCESS" },
   ];
 

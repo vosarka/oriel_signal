@@ -59,7 +59,14 @@ function buildFlowerOfLife(): GeoCircle[] {
   return circles;
 }
 
-export function SacredGeometryField() {
+export function SacredGeometryField({
+  static: isStatic = false,
+}: {
+  // Fully-drawn, no scroll animation — for short or height-constrained
+  // pages where a scroll-build would never complete. Home keeps the
+  // scroll-driven version.
+  static?: boolean;
+} = {}) {
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const circles = useMemo(buildFlowerOfLife, []);
   const circumference = 2 * Math.PI * RADIUS;
@@ -67,7 +74,10 @@ export function SacredGeometryField() {
   useEffect(() => {
     const field = fieldRef.current;
     if (!field) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      isStatic ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       field.style.setProperty("--fi-geo-p", "1");
       return;
     }
@@ -99,7 +109,7 @@ export function SacredGeometryField() {
       tween.scrollTrigger?.kill();
       tween.kill();
     };
-  }, []);
+  }, [isStatic]);
 
   return (
     <div ref={fieldRef} className="fi-geometry" aria-hidden="true">

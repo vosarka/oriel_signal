@@ -707,3 +707,14 @@ These pages are now the reference point for any future discussion of "how the pr
 - **B1**: extracted shared `.signal-wordmark--holo` (Cinzel, ivory, void backplate + gold glow + ±1px cyan/violet spectral fringe; self-contained font stack). Hero h1 uses it; navbar PNG wordmark (`oriel-signal-wordmark-header.png` via CleanImage) replaced with live text `ORIEL SIGNAL` + `--nav` modifier.
 - **B2**: no-op — navbar emblem already uses `/oriel-signal-mark.png`, the same asset as the hero sigil.
 - Verified live via WebBridge screenshots (mid-decode + resolved) and DOM checks (4 waves animating 14s, sigil 704px, nav text live). pnpm check clean. Noted, not touched: nav active-link amber #f6b05e slightly off-palette — out of scope per brief.
+
+## [2026-06-13] Part C.1 — Conduit into the shared world
+
+**Branch:** `v2-baseline`. **Files:** `Conduit.tsx`, `SacredGeometryField.tsx`, `oriel-signal.css`.
+
+- Wrapped Conduit in `SignalPageShell chamber="chamber"` + `.fi-world`. Full-screen overlays (interference gate, VoiceMode) kept OUTSIDE the shell so they still paint above the fixed header; mobile sidebar backdrop moved inside.
+- Signature element preserved: the living gold lattice (`GeometricBackground`) + Orb. Flower of Life is Home-ONLY per Vos — removed from Conduit after it read as visual noise there.
+- Added `static` prop to `SacredGeometryField` (fully-inked, no ScrollTrigger) for height-constrained pages. Dormant on Conduit now; available for later Part C pages.
+- `.fi-world .signal-ambient-grid { display:none }` so shell pages drop the square lattice.
+- **Stability fix (chat was unframed):** shell `min-height:100vh` + Layout's 4rem top padding made the document 64px taller than the viewport, so the chat's scroll-to-bottom dragged the whole window under the navbar (hole at the bottom, New Transmission button hidden). `.fi-conduit-shell` locks `height: calc(100vh - 96px)` and `overflow: clip` on shell/stage/inner so only the message list scrolls.
+- **Navbar overlap fix:** header is `h-24` (96px) but Layout offsets only 64px. Added `margin-top: 32px` so the chamber starts fully below the navbar; inner stage height also bumped 64→96. Verified live (WebBridge): window unscrollable, header bottom 97px, chamber top 96px, New Transmission button top 108px — fully clear.
