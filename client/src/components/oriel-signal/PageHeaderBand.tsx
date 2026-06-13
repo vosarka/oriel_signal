@@ -17,15 +17,25 @@ export function PageHeaderBand({
   title,
   descriptor,
   symbol,
+  width,
 }: {
   title: string;
   descriptor?: string;
-  // Seed for the shared symbol's accent; bespoke per-page glyphs are a later
-  // pass (spec 13.4).
+  // Reserved hook for the bespoke per-page glyph pass (spec 13.4); does not
+  // affect the symbol yet.
   symbol?: string;
+  // Optional width override for pages whose content column is wider than the
+  // band's default 78rem (e.g. Codex's 1440px grid). Pass "100%" when the
+  // band sits inside that wider container so it aligns with the page content
+  // instead of insetting from it. Omit to keep the standard 78rem.
+  width?: string;
 }) {
   return (
-    <header className="fi-band" aria-label={title}>
+    <header
+      className="fi-band"
+      aria-label={title}
+      style={width ? { width, maxWidth: "100%" } : undefined}
+    >
       <div className="fi-band__symbol" aria-hidden="true">
         <Suspense fallback={<span className="fi-band__symbol-fallback" />}>
           <BandSymbol seed={symbol} />

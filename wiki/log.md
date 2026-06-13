@@ -743,3 +743,12 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - **Tiers**: title "SIGNAL CLEARANCE", descriptor "FOUR LEVELS OF ACCESS TO THE ORIEL FIELD". Old centered "Receiver Tiers" block removed.
 - Verified live: title clears navbar (y=143 vs header bottom 97), R3F canvas mounts, gold symbol, grid/benefits intact, backdrop not regressed. pnpm check green. Engine/tRPC/auth untouched, Home untouched.
 - Next (one at a time, approved order): Codon Lattice (/codex) → Profile → Protocol → Conduit (slim variant). Bespoke glyphs (13.4) = separate later pass.
+
+## [2026-06-13] Page band mounted on Codon Lattice (/codex) + band width override
+
+**Branch:** `v2-baseline`. **Files:** `Codex.tsx`, `PageHeaderBand.tsx`.
+
+- Mounted `<PageHeaderBand title="CODON LATTICE" descriptor="THE 64-CODON FIELD INDEX">` on /codex (the first VossArchiveShell test). Replaced the ad-hoc title block ("The Vossari Resonance Codex" + kicker + subtitle); search + GET READING tidied into the existing sticky panel; the 64-CodonGlyph grid (page signature) untouched.
+- **Wrapper conflict found + resolved (decision: option 2):** Codex content is 1440px but the band defaults to 78rem (1248px) → centered, the band inset 96px from the grid (visible misalignment). Stopped and surfaced it per the /codex caution. Added an optional `width` prop to PageHeaderBand (default 78rem unchanged); Codex passes `width="100%"` so the band fills codex-shell and aligns with the grid. Verified: codex band 1440 = grid 1440 (misalign 0); Tiers still 1248 (default unaffected).
+- Verified live: title replaced, alignment 0, sticky search panel works, grid intact, §11 backdrop not regressed, gold symbol. pnpm check green. Engine/tRPC/auth + Home untouched.
+- Next: Profile, Protocol (pure pattern, implement→diff one at a time); Conduit special (slim variant).
