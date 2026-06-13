@@ -5,6 +5,7 @@ import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
+import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 import "@/components/oriel-signal/oriel-signal.css";
 
@@ -782,33 +783,21 @@ export default function Profile() {
     <Layout>
       <div
         className="receiver-node-shell receiver-node-shell--living"
-        style={{ minHeight: "100vh", padding: "80px 24px 120px" }}
+        style={{ minHeight: "100vh", padding: "0 24px 120px" }}
       >
         <div
           className="receiver-node-container"
           style={{ maxWidth: 640, margin: "0 auto" }}
         >
-          {/* Page header */}
-          <div style={{ marginBottom: 36 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 9,
-                color: C.amber,
-                letterSpacing: "0.25em",
-                marginBottom: 12,
-              }}
-            >
-              // RECEIVER NODE
-            </div>
-            <div
-              style={{
-                width: 32,
-                height: 1,
-                background: `linear-gradient(90deg, ${C.gold}, transparent)`,
-              }}
-            />
-          </div>
+          {/* Shared header band replaces the ad-hoc kicker (spec §13).
+              width="100%" so it fills the 640px container and aligns with
+              the panels below. */}
+          <PageHeaderBand
+            title="PROFILE"
+            descriptor="RECEIVER NODE"
+            symbol="node"
+            width="100%"
+          />
 
           {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
           <div

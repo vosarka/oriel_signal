@@ -752,3 +752,12 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - **Wrapper conflict found + resolved (decision: option 2):** Codex content is 1440px but the band defaults to 78rem (1248px) → centered, the band inset 96px from the grid (visible misalignment). Stopped and surfaced it per the /codex caution. Added an optional `width` prop to PageHeaderBand (default 78rem unchanged); Codex passes `width="100%"` so the band fills codex-shell and aligns with the grid. Verified: codex band 1440 = grid 1440 (misalign 0); Tiers still 1248 (default unaffected).
 - Verified live: title replaced, alignment 0, sticky search panel works, grid intact, §11 backdrop not regressed, gold symbol. pnpm check green. Engine/tRPC/auth + Home untouched.
 - Next: Profile, Protocol (pure pattern, implement→diff one at a time); Conduit special (slim variant).
+
+## [2026-06-14] Page band mounted on Profile
+
+**Branch:** `v2-baseline`. **File:** `Profile.tsx`.
+
+- Mounted `<PageHeaderBand title="PROFILE" descriptor="RECEIVER NODE" symbol="node" width="100%">`, replacing the ad-hoc "// RECEIVER NODE" kicker + rule. The ProfileSigil identity hero (Wavekeeper/tier sigil) — the page's signature — is untouched.
+- Narrow page (640px container): `width="100%"` fills the container so the band aligns with the panels (band 640 = panel 640, misalign 0) — same width-prop pattern as codex's wide case, inverted. Removed the shell's 80px top padding so the band's own padding provides the top spacing (no double-padding).
+- Verified live: path /profile (no AppGate redirect — user has natal profile), title replaced, alignment 0, sigil hero kept, backdrop §11 not regressed. pnpm check green. Engine/tRPC/auth + Home untouched.
+- Next: Protocol (VossArchiveShell), then Conduit (slim variant).
