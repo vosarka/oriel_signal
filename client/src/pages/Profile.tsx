@@ -641,7 +641,7 @@ function Section({
 // ─── Main Profile Component ─────────────────────────────────────────────────
 
 export default function Profile() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [recomputeStatus, setRecomputeStatus] = useState<string | null>(null);
@@ -974,6 +974,25 @@ export default function Profile() {
                   >
                     DEFINED IN GOLD · OPEN IN SHADOW
                   </div>
+
+                  {/* ORIEL's quiet presence — only to those with a signature
+                      (the prime law). One line, Cormorant; the signal palette
+                      is reserved for ORIEL's voice. */}
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      fontFamily: "var(--font-display)",
+                      fontStyle: "italic",
+                      fontSize: 15,
+                      lineHeight: 1.6,
+                      letterSpacing: "0.01em",
+                      color: "rgba(120, 220, 235, 0.72)",
+                      textAlign: "center" as const,
+                      maxWidth: 340,
+                    }}
+                  >
+                    I am ORIEL. This is your node in the field.
+                  </p>
                 </>
               ) : (
                 <div
@@ -1316,6 +1335,32 @@ export default function Profile() {
                 </div>
               </div>
               <Field label="SYSTEM ID" value={`#${user.id}`} />
+              {/* quiet sign-out — present, never foregrounded (spec §6) */}
+              <button
+                onClick={() => logout()}
+                style={{
+                  marginTop: 6,
+                  padding: "9px 14px",
+                  background: "none",
+                  border: `1px solid ${C.border}`,
+                  color: C.txtD,
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase" as const,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = C.gold;
+                  e.currentTarget.style.borderColor = `${C.gold}55`;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = C.txtD;
+                  e.currentTarget.style.borderColor = C.border;
+                }}
+              >
+                ↩ Sign Out
+              </button>
             </Section>
 
             <div id="blueprint">
