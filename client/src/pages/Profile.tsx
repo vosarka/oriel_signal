@@ -7,10 +7,12 @@ import { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import CodonGlyph from "@/components/CodonGlyph";
+import ResonanceBodygraph from "@/components/ResonanceBodygraph";
 import CoherenceTrajectory, {
   coherenceBand,
 } from "@/components/oriel-signal/CoherenceTrajectory";
 import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
+import { isWebGLAvailable } from "@/lib/webgl";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 
 // The Node's living R3F figure is lazy-loaded so its WebGL scene never bloats
@@ -676,6 +678,11 @@ export default function Profile() {
     [nodeCenters]
   );
 
+  // The R3F figure needs a WebGL context; when the browser can't give one
+  // (hardware acceleration off, GPU blocklisted), fall back to the 2D SVG
+  // bodygraph instead of a blank canvas. Same centers/channels data.
+  const canUseWebGL = useMemo(() => isWebGLAvailable(), []);
+
   // THE TRAJECTORY — the user's field over time: real Carrierlock coherence
   // history (coherenceScore by createdAt), newest-first.
   const coherenceQuery = trpc.codex.getCoherenceHistory.useQuery(
@@ -901,27 +908,58 @@ export default function Profile() {
               ) : nodeCenters.length > 0 ? (
                 <>
                   {/* the living figure — defined centers lit gold, open
-                      centers dim and hollow, channels drawn between them */}
-                  <div style={{ width: "100%", height: 360 }}>
-                    <Suspense
-                      fallback={
+                      centers dim and hollow, channels drawn between them.
+                      alignSelf stretch so the Canvas gets a real width inside
+                      the centered flex column (R3F needs a measurable box). */}
+                  <div
+                    style={{
+                      alignSelf: "stretch",
+                      width: "100%",
+                      minWidth: 0,
+                      height: 360,
+                    }}
+                  >
+                    {canUseWebGL ? (
+                      <Suspense
+                        fallback={
+                          <div
+                            style={{
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Spinner size={22} label="Forming node" />
+                          </div>
+                        }
+                      >
+                        <NodeFigure
+                          centers={nodeCenters}
+                          channels={nodeChannels}
+                        />
+                      </Suspense>
+                    ) : (
+                      // WebGL unavailable — 2D bodygraph fallback (same data)
+                      <div
+                        style={{
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <div
-                          style={{
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
+                          style={{ width: 340, height: 340, maxWidth: "100%" }}
                         >
-                          <Spinner size={22} label="Forming node" />
+                          <ResonanceBodygraph
+                            centers={nodeCenters}
+                            channels={nodeChannels}
+                            className="w-full h-full"
+                          />
                         </div>
-                      }
-                    >
-                      <NodeFigure
-                        centers={nodeCenters}
-                        channels={nodeChannels}
-                      />
-                    </Suspense>
+                      </div>
+                    )}
                   </div>
 
                   {/* caption — the figure's count + its visual language */}
