@@ -35,6 +35,50 @@ function toWorld(x: number, y: number): [number, number, number] {
   return [(x - 50) * SCALE, (50 - y) * SCALE, 0];
 }
 
+// Tier 2 (spec §2.2, route 2a): a stylized low-poly meditation silhouette —
+// head, tapered torso, wide lotus base, resting knees — in faint gold
+// wireframe. Purely procedural (no model, no licence risk). It's a scaffold
+// for the centers and never competes with them: low opacity, no solid fills,
+// drawn behind the lit nodes. The meaning still lives in the centers; if this
+// ever felt heavy it could be dropped without touching Tier 1.
+function Scaffold() {
+  const wire = {
+    color: GOLD,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.14,
+    toneMapped: false,
+  } as const;
+  return (
+    <group>
+      {/* head — encloses the crown/ajna region */}
+      <mesh position={[0, 2.0, 0]}>
+        <icosahedronGeometry args={[0.46, 0]} />
+        <meshBasicMaterial {...wire} />
+      </mesh>
+      {/* torso — shoulders tapering to waist (hexagonal prism) */}
+      <mesh position={[0, 0.55, 0]}>
+        <cylinderGeometry args={[0.66, 0.36, 2.0, 6]} />
+        <meshBasicMaterial {...wire} />
+      </mesh>
+      {/* lotus base — crossed legs, flattened in depth */}
+      <mesh position={[0, -1.4, 0]} scale={[1, 1, 0.55]}>
+        <cylinderGeometry args={[0.36, 1.4, 0.85, 6]} />
+        <meshBasicMaterial {...wire} />
+      </mesh>
+      {/* knees */}
+      <mesh position={[-1.05, -1.5, 0.1]}>
+        <icosahedronGeometry args={[0.28, 0]} />
+        <meshBasicMaterial {...wire} />
+      </mesh>
+      <mesh position={[1.05, -1.5, 0.1]}>
+        <icosahedronGeometry args={[0.28, 0]} />
+        <meshBasicMaterial {...wire} />
+      </mesh>
+    </group>
+  );
+}
+
 function Constellation({
   centers,
   channels,
@@ -75,6 +119,9 @@ function Constellation({
 
   return (
     <group ref={group}>
+      {/* Tier 2 humanoid scaffold, drawn behind the centers */}
+      <Scaffold />
+
       {/* channels — lit gold lines between defined centers */}
       {activeChannels.map((ch, i) => {
         const a = LAYOUT[ch.centerA];
