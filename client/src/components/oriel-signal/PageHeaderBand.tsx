@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import "./oriel-signal.css";
 
 // The R3F symbol canvas is lazy-loaded so it never bloats a page's initial
@@ -18,6 +18,7 @@ export function PageHeaderBand({
   descriptor,
   symbol,
   width,
+  renderSymbol,
 }: {
   title: string;
   descriptor?: string;
@@ -29,6 +30,12 @@ export function PageHeaderBand({
   // band sits inside that wider container so it aligns with the page content
   // instead of insetting from it. Omit to keep the standard 78rem.
   width?: string;
+  // Optional custom glyph for the symbol slot, replacing the default shared
+  // R3F BandSymbol. Profile passes its dominant-codon glyph here (spec §3) so
+  // the header is personal AND the page keeps a single WebGL context (the
+  // Node figure) — the symbol stays gold; personalization is in shape, not
+  // colour.
+  renderSymbol?: ReactNode;
 }) {
   return (
     <header
@@ -37,9 +44,11 @@ export function PageHeaderBand({
       style={width ? { width, maxWidth: "100%" } : undefined}
     >
       <div className="fi-band__symbol" aria-hidden="true">
-        <Suspense fallback={<span className="fi-band__symbol-fallback" />}>
-          <BandSymbol seed={symbol} />
-        </Suspense>
+        {renderSymbol ?? (
+          <Suspense fallback={<span className="fi-band__symbol-fallback" />}>
+            <BandSymbol seed={symbol} />
+          </Suspense>
+        )}
       </div>
 
       <div className="fi-band__text">

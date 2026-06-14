@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
+import CodonGlyph from "@/components/CodonGlyph";
 import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 
@@ -763,6 +764,13 @@ export default function Profile() {
     : [];
   const blueprintPrime = blueprintPrimeStack[0];
 
+  // Dominant codon → the personal header glyph (spec §3). Profile is the one
+  // page whose band symbol is the user's own codon shape (still gold).
+  const dominantCodon =
+    blueprintPrime?.codon != null && Number.isFinite(Number(blueprintPrime.codon))
+      ? Number(blueprintPrime.codon)
+      : null;
+
   const handleCopy = () => {
     try {
       navigator.clipboard.writeText(conduitId).catch(() => {});
@@ -819,9 +827,26 @@ export default function Profile() {
               the panels below. */}
           <PageHeaderBand
             title="PROFILE"
-            descriptor="RECEIVER NODE"
+            descriptor="RECEIVER NODE · COORDINATE LOCKED"
             symbol="node"
             width="100%"
+            renderSymbol={
+              dominantCodon != null ? (
+                <span
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    color: C.gold,
+                  }}
+                >
+                  <CodonGlyph
+                    codonNumber={dominantCodon}
+                    className="w-full h-full"
+                  />
+                </span>
+              ) : undefined
+            }
           />
 
           {/* ─── THE NODE (centerpiece) ────────────────────────────
