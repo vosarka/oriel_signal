@@ -3,11 +3,17 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
+
+// The Node's living R3F figure is lazy-loaded so its WebGL scene never bloats
+// the page's initial bundle (spec §5: heavy scenes lazy-load).
+const NodeFigure = lazy(
+  () => import("@/components/oriel-signal/NodeFigure")
+);
 import "@/components/oriel-signal/oriel-signal.css";
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -859,6 +865,31 @@ export default function Profile() {
                 <Spinner size={22} label="Resolving node" />
               ) : nodeCenters.length > 0 ? (
                 <>
+                  {/* the living figure — defined centers lit gold, open
+                      centers dim and hollow, channels drawn between them */}
+                  <div style={{ width: "100%", height: 360 }}>
+                    <Suspense
+                      fallback={
+                        <div
+                          style={{
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Spinner size={22} label="Forming node" />
+                        </div>
+                      }
+                    >
+                      <NodeFigure
+                        centers={nodeCenters}
+                        channels={nodeChannels}
+                      />
+                    </Suspense>
+                  </div>
+
+                  {/* caption — the figure's count + its visual language */}
                   <div style={{ display: "flex", gap: 30 }}>
                     {[
                       { n: nodeCenters.length, label: "CENTERS" },
@@ -875,7 +906,7 @@ export default function Profile() {
                         <div
                           style={{
                             fontFamily: "var(--font-display)",
-                            fontSize: 30,
+                            fontSize: 26,
                             fontWeight: 300,
                             color: C.gold,
                             lineHeight: 1,
@@ -900,15 +931,13 @@ export default function Profile() {
                   <div
                     style={{
                       fontFamily: "var(--font-ritual)",
-                      fontSize: 9,
-                      letterSpacing: "0.16em",
+                      fontSize: 8,
+                      letterSpacing: "0.2em",
                       color: C.txtD,
                       textAlign: "center" as const,
-                      maxWidth: 320,
-                      lineHeight: 1.8,
                     }}
                   >
-                    YOUR NODE FORMS HERE — NINE CENTERS, LIT BY DEFINITION.
+                    DEFINED IN GOLD · OPEN IN SHADOW
                   </div>
                 </>
               ) : (
