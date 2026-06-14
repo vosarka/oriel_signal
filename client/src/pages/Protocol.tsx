@@ -1081,7 +1081,11 @@ export default function Protocol() {
           --text-soft: var(--voss-text-soft);
           --text-dim: var(--voss-text-dim);
           min-height: 100vh;
-          background: var(--void);
+          /* §11: transparent so the shared SignalBackdrop carries cohesion.
+             Protocol keeps its own editorial hero (manifesto title + source +
+             intro) instead of a header band — where the opening is real
+             content, the background alone joins it to the unified world. */
+          background: transparent;
           position: relative;
           isolation: isolate;
           padding: 82px 30px 120px;
