@@ -3,9 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
+import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 import "@/components/oriel-signal/oriel-signal.css";
 
@@ -647,6 +648,24 @@ export default function Profile() {
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+
+  // THE NODE — the 9 Centers of Photonic Resonance + their channels, read from
+  // the user's already-computed Static Signature (never recomputed/invented).
+  // Same data the 2D ResonanceBodygraph renders; the R3F figure (Stage 2) will
+  // consume these. Deterministic: identical signature → identical node.
+  const nodeCenters = useMemo(
+    () => normalizeCenters(staticProfileQuery.data?.ninecenters),
+    [staticProfileQuery.data]
+  );
+  const nodeChannels = useMemo(
+    () => normalizeChannels(staticProfileQuery.data?.channelStatuses),
+    [staticProfileQuery.data]
+  );
+  const definedCenterCount = useMemo(
+    () => nodeCenters.filter(c => c.defined).length,
+    [nodeCenters]
+  );
+
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
     { limit: 10 },
     { enabled: isAuthenticated }
@@ -798,6 +817,121 @@ export default function Profile() {
             symbol="node"
             width="100%"
           />
+
+          {/* ─── THE NODE (centerpiece) ────────────────────────────
+              Stage 1: a data-driven placeholder for the page's soul.
+              The living R3F bodygraph — the 9 Centers of Photonic
+              Resonance and the channels between them — lands in this
+              slot in Stage 2, reading nodeCenters / nodeChannels. */}
+          <section
+            className="receiver-node-panel receiver-node-panel--node"
+            style={{
+              background: `radial-gradient(circle at 50% 28%, ${C.deep}, ${C.void})`,
+              border: `1px solid ${C.gold}15`,
+              padding: "28px 24px",
+              marginBottom: 2,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                letterSpacing: "0.32em",
+                color: C.txtD,
+                textAlign: "center" as const,
+                marginBottom: 20,
+              }}
+            >
+              THE NODE
+            </div>
+
+            <div
+              style={{
+                minHeight: 200,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+              }}
+            >
+              {staticProfileQuery.isLoading ? (
+                <Spinner size={22} label="Resolving node" />
+              ) : nodeCenters.length > 0 ? (
+                <>
+                  <div style={{ display: "flex", gap: 30 }}>
+                    {[
+                      { n: nodeCenters.length, label: "CENTERS" },
+                      { n: definedCenterCount, label: "DEFINED" },
+                      {
+                        n: nodeChannels.filter(c => c.active).length,
+                        label: "CHANNELS",
+                      },
+                    ].map(stat => (
+                      <div
+                        key={stat.label}
+                        style={{ textAlign: "center" as const }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "var(--font-display)",
+                            fontSize: 30,
+                            fontWeight: 300,
+                            color: C.gold,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {stat.n}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-ritual)",
+                            fontSize: 8,
+                            letterSpacing: "0.22em",
+                            color: C.txtD,
+                            marginTop: 6,
+                          }}
+                        >
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 9,
+                      letterSpacing: "0.16em",
+                      color: C.txtD,
+                      textAlign: "center" as const,
+                      maxWidth: 320,
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    YOUR NODE FORMS HERE — NINE CENTERS, LIT BY DEFINITION.
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    color: C.txtD,
+                    textAlign: "center" as const,
+                    lineHeight: 1.9,
+                  }}
+                >
+                  NO SIGNATURE YET.{" "}
+                  <Link href="/signature">
+                    <span style={{ color: C.gold, cursor: "pointer" }}>
+                      RESOLVE YOUR SIGNAL
+                    </span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
           <div
@@ -1135,11 +1269,72 @@ export default function Profile() {
                   </div>
                 ) : staticProfileQuery.data ? (
                   <>
-                    <Field
-                      label="NATAL ORIGIN"
-                      value={`${staticProfileQuery.data.birthDate} · ${staticProfileQuery.data.birthTime} · ${staticProfileQuery.data.birthCity}, ${staticProfileQuery.data.birthCountry}`}
-                      accent
-                    />
+                    {/* THE SEAL — the coordinate that locked your signal.
+                        Not "your birthday": a temporal + spatial coordinate,
+                        sealed. Recalibration stays quiet (the /signature +
+                        recompute flow already below). */}
+                    <div
+                      style={{
+                        marginBottom: 20,
+                        padding: "16px 18px",
+                        background: C.surface,
+                        borderLeft: `2px solid ${C.gold}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 9,
+                          letterSpacing: "0.26em",
+                          color: C.gold,
+                          marginBottom: 14,
+                        }}
+                      >
+                        THE SEAL · COORDINATE LOCKED
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                        }}
+                      >
+                        {[
+                          {
+                            label: "TEMPORAL",
+                            value: `${staticProfileQuery.data.birthDate} · ${staticProfileQuery.data.birthTime}`,
+                          },
+                          {
+                            label: "SPATIAL",
+                            value: `${staticProfileQuery.data.birthCity}, ${staticProfileQuery.data.birthCountry}`,
+                          },
+                        ].map(coord => (
+                          <div key={coord.label}>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 8,
+                                letterSpacing: "0.2em",
+                                color: C.txtD,
+                                marginBottom: 6,
+                              }}
+                            >
+                              {coord.label}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 12,
+                                color: C.txtS,
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {coord.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <div
                       style={{
                         display: "grid",
