@@ -1845,10 +1845,7 @@ export default function Conduit() {
                 <Menu size={18} />
               </button>
 
-              <p
-                className="font-mono text-[10px] tracking-[0.35em] uppercase"
-                style={{ color: "rgba(189,163,107,0.5)" }}
-              >
+              <p className="fi-chamber-title">
                 {activeConversationId && activeConvData
                   ? activeConvData.title
                   : "ORIEL TRANSMISSION CHAMBER"}

@@ -3596,6 +3596,30 @@
   color: #6a665e;
 }
 
+/* Conduit top-bar title — the §13 "B" variant: a scaled-down echo of the
+   page-header band title (same Cinzel + ivory + gold glow), sized for the
+   slim chamber bar so the chat reads as kin to the banded pages. No symbol
+   and no extra element — it restyles the existing dynamic title in place,
+   so the chat's calc(100vh - 96px) height lock is untouched. nowrap+ellipsis
+   keeps a long conversation title from expanding the slim bar. */
+.fi-chamber-title {
+  margin: 0;
+  font-family: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #fff7e6;
+  text-shadow:
+    0 0 18px rgba(3, 3, 3, 0.85),
+    0 0 22px rgba(216, 181, 109, 0.22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52ch;
+}
+
 @media (max-width: 640px) {
   .fi-band {
     gap: 1rem;
