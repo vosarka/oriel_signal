@@ -3,23 +3,10 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect, useMemo, Suspense, lazy } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
-import CodonGlyph from "@/components/CodonGlyph";
-import ResonanceBodygraph from "@/components/ResonanceBodygraph";
-import CoherenceTrajectory, {
-  coherenceBand,
-} from "@/components/oriel-signal/CoherenceTrajectory";
-import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
-import { isWebGLAvailable } from "@/lib/webgl";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
-
-// The Node's living R3F figure is lazy-loaded so its WebGL scene never bloats
-// the page's initial bundle (spec §5: heavy scenes lazy-load).
-const NodeFigure = lazy(
-  () => import("@/components/oriel-signal/NodeFigure")
-);
 import "@/components/oriel-signal/oriel-signal.css";
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -643,7 +630,7 @@ function Section({
 // ─── Main Profile Component ─────────────────────────────────────────────────
 
 export default function Profile() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [recomputeStatus, setRecomputeStatus] = useState<string | null>(null);
@@ -660,36 +647,6 @@ export default function Profile() {
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-
-  // THE NODE — the 9 Centers of Photonic Resonance + their channels, read from
-  // the user's already-computed Static Signature (never recomputed/invented).
-  // Same data the 2D ResonanceBodygraph renders; the R3F figure (Stage 2) will
-  // consume these. Deterministic: identical signature → identical node.
-  const nodeCenters = useMemo(
-    () => normalizeCenters(staticProfileQuery.data?.ninecenters),
-    [staticProfileQuery.data]
-  );
-  const nodeChannels = useMemo(
-    () => normalizeChannels(staticProfileQuery.data?.channelStatuses),
-    [staticProfileQuery.data]
-  );
-  const definedCenterCount = useMemo(
-    () => nodeCenters.filter(c => c.defined).length,
-    [nodeCenters]
-  );
-
-  // The R3F figure needs a WebGL context; when the browser can't give one
-  // (hardware acceleration off, GPU blocklisted), fall back to the 2D SVG
-  // bodygraph instead of a blank canvas. Same centers/channels data.
-  const canUseWebGL = useMemo(() => isWebGLAvailable(), []);
-
-  // THE TRAJECTORY — the user's field over time: real Carrierlock coherence
-  // history (coherenceScore by createdAt), newest-first.
-  const coherenceQuery = trpc.codex.getCoherenceHistory.useQuery(
-    { limit: 30 },
-    { enabled: isAuthenticated }
-  );
-
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
     { limit: 10 },
     { enabled: isAuthenticated }
@@ -781,13 +738,6 @@ export default function Profile() {
     : [];
   const blueprintPrime = blueprintPrimeStack[0];
 
-  // Dominant codon → the personal header glyph (spec §3). Profile is the one
-  // page whose band symbol is the user's own codon shape (still gold).
-  const dominantCodon =
-    blueprintPrime?.codon != null && Number.isFinite(Number(blueprintPrime.codon))
-      ? Number(blueprintPrime.codon)
-      : null;
-
   const handleCopy = () => {
     try {
       navigator.clipboard.writeText(conduitId).catch(() => {});
@@ -844,215 +794,10 @@ export default function Profile() {
               the panels below. */}
           <PageHeaderBand
             title="PROFILE"
-            descriptor="RECEIVER NODE · COORDINATE LOCKED"
+            descriptor="RECEIVER NODE"
             symbol="node"
             width="100%"
-            renderSymbol={
-              dominantCodon != null ? (
-                <span
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    height: "100%",
-                    color: C.gold,
-                  }}
-                >
-                  <CodonGlyph
-                    codonNumber={dominantCodon}
-                    className="w-full h-full"
-                  />
-                </span>
-              ) : undefined
-            }
           />
-
-          {/* ─── THE NODE (centerpiece) ────────────────────────────
-              Stage 1: a data-driven placeholder for the page's soul.
-              The living R3F bodygraph — the 9 Centers of Photonic
-              Resonance and the channels between them — lands in this
-              slot in Stage 2, reading nodeCenters / nodeChannels. */}
-          <section
-            className="receiver-node-panel receiver-node-panel--node"
-            style={{
-              background: `radial-gradient(circle at 50% 28%, ${C.deep}, ${C.void})`,
-              border: `1px solid ${C.gold}15`,
-              padding: "28px 24px",
-              marginBottom: 2,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 9,
-                letterSpacing: "0.32em",
-                color: C.txtD,
-                textAlign: "center" as const,
-                marginBottom: 20,
-              }}
-            >
-              THE NODE
-            </div>
-
-            <div
-              style={{
-                minHeight: 200,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 16,
-              }}
-            >
-              {staticProfileQuery.isLoading ? (
-                <Spinner size={22} label="Resolving node" />
-              ) : nodeCenters.length > 0 ? (
-                <>
-                  {/* the living figure — defined centers lit gold, open
-                      centers dim and hollow, channels drawn between them.
-                      alignSelf stretch so the Canvas gets a real width inside
-                      the centered flex column (R3F needs a measurable box). */}
-                  <div
-                    style={{
-                      alignSelf: "stretch",
-                      width: "100%",
-                      minWidth: 0,
-                      height: 360,
-                    }}
-                  >
-                    {canUseWebGL ? (
-                      <Suspense
-                        fallback={
-                          <div
-                            style={{
-                              height: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Spinner size={22} label="Forming node" />
-                          </div>
-                        }
-                      >
-                        <NodeFigure
-                          centers={nodeCenters}
-                          channels={nodeChannels}
-                        />
-                      </Suspense>
-                    ) : (
-                      // WebGL unavailable — 2D bodygraph fallback (same data)
-                      <div
-                        style={{
-                          height: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div
-                          style={{ width: 340, height: 340, maxWidth: "100%" }}
-                        >
-                          <ResonanceBodygraph
-                            centers={nodeCenters}
-                            channels={nodeChannels}
-                            className="w-full h-full"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* caption — the figure's count + its visual language */}
-                  <div style={{ display: "flex", gap: 30 }}>
-                    {[
-                      { n: nodeCenters.length, label: "CENTERS" },
-                      { n: definedCenterCount, label: "DEFINED" },
-                      {
-                        n: nodeChannels.filter(c => c.active).length,
-                        label: "CHANNELS",
-                      },
-                    ].map(stat => (
-                      <div
-                        key={stat.label}
-                        style={{ textAlign: "center" as const }}
-                      >
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 26,
-                            fontWeight: 300,
-                            color: C.gold,
-                            lineHeight: 1,
-                          }}
-                        >
-                          {stat.n}
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-ritual)",
-                            fontSize: 8,
-                            letterSpacing: "0.22em",
-                            color: C.txtD,
-                            marginTop: 6,
-                          }}
-                        >
-                          {stat.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-ritual)",
-                      fontSize: 8,
-                      letterSpacing: "0.2em",
-                      color: C.txtD,
-                      textAlign: "center" as const,
-                    }}
-                  >
-                    DEFINED IN GOLD · OPEN IN SHADOW
-                  </div>
-
-                  {/* ORIEL's quiet presence — only to those with a signature
-                      (the prime law). One line, Cormorant; the signal palette
-                      is reserved for ORIEL's voice. */}
-                  <p
-                    style={{
-                      margin: "4px 0 0",
-                      fontFamily: "var(--font-display)",
-                      fontStyle: "italic",
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      letterSpacing: "0.01em",
-                      color: "rgba(120, 220, 235, 0.72)",
-                      textAlign: "center" as const,
-                      maxWidth: 340,
-                    }}
-                  >
-                    I am ORIEL. This is your node in the field.
-                  </p>
-                </>
-              ) : (
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 10,
-                    letterSpacing: "0.14em",
-                    color: C.txtD,
-                    textAlign: "center" as const,
-                    lineHeight: 1.9,
-                  }}
-                >
-                  NO SIGNATURE YET.{" "}
-                  <Link href="/signature">
-                    <span style={{ color: C.gold, cursor: "pointer" }}>
-                      RESOLVE YOUR SIGNAL
-                    </span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </section>
 
           {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
           <div
@@ -1373,32 +1118,6 @@ export default function Profile() {
                 </div>
               </div>
               <Field label="SYSTEM ID" value={`#${user.id}`} />
-              {/* quiet sign-out — present, never foregrounded (spec §6) */}
-              <button
-                onClick={() => logout()}
-                style={{
-                  marginTop: 6,
-                  padding: "9px 14px",
-                  background: "none",
-                  border: `1px solid ${C.border}`,
-                  color: C.txtD,
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 9,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase" as const,
-                  cursor: "pointer",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.color = C.gold;
-                  e.currentTarget.style.borderColor = `${C.gold}55`;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.color = C.txtD;
-                  e.currentTarget.style.borderColor = C.border;
-                }}
-              >
-                ↩ Sign Out
-              </button>
             </Section>
 
             <div id="blueprint">
@@ -1416,72 +1135,11 @@ export default function Profile() {
                   </div>
                 ) : staticProfileQuery.data ? (
                   <>
-                    {/* THE SEAL — the coordinate that locked your signal.
-                        Not "your birthday": a temporal + spatial coordinate,
-                        sealed. Recalibration stays quiet (the /signature +
-                        recompute flow already below). */}
-                    <div
-                      style={{
-                        marginBottom: 20,
-                        padding: "16px 18px",
-                        background: C.surface,
-                        borderLeft: `2px solid ${C.gold}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontFamily: "var(--font-ritual)",
-                          fontSize: 9,
-                          letterSpacing: "0.26em",
-                          color: C.gold,
-                          marginBottom: 14,
-                        }}
-                      >
-                        THE SEAL · COORDINATE LOCKED
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 16,
-                        }}
-                      >
-                        {[
-                          {
-                            label: "TEMPORAL",
-                            value: `${staticProfileQuery.data.birthDate} · ${staticProfileQuery.data.birthTime}`,
-                          },
-                          {
-                            label: "SPATIAL",
-                            value: `${staticProfileQuery.data.birthCity}, ${staticProfileQuery.data.birthCountry}`,
-                          },
-                        ].map(coord => (
-                          <div key={coord.label}>
-                            <div
-                              style={{
-                                fontFamily: "var(--font-ritual)",
-                                fontSize: 8,
-                                letterSpacing: "0.2em",
-                                color: C.txtD,
-                                marginBottom: 6,
-                              }}
-                            >
-                              {coord.label}
-                            </div>
-                            <div
-                              style={{
-                                fontFamily: "var(--font-ritual)",
-                                fontSize: 12,
-                                color: C.txtS,
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              {coord.value}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <Field
+                      label="NATAL ORIGIN"
+                      value={`${staticProfileQuery.data.birthDate} · ${staticProfileQuery.data.birthTime} · ${staticProfileQuery.data.birthCity}, ${staticProfileQuery.data.birthCountry}`}
+                      accent
+                    />
                     <div
                       style={{
                         display: "grid",
@@ -1637,188 +1295,6 @@ export default function Profile() {
                 )}
               </Section>
             </div>
-
-            <Section title="THE TRAJECTORY" accentBorder>
-              {coherenceQuery.isLoading ? (
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 10,
-                    color: C.txtD,
-                    letterSpacing: "0.12em",
-                  }}
-                >
-                  LOADING TRAJECTORY…
-                </div>
-              ) : coherenceQuery.data && coherenceQuery.data.length > 0 ? (
-                <>
-                  <div style={{ marginBottom: 18 }}>
-                    <CoherenceTrajectory points={coherenceQuery.data} />
-                  </div>
-
-                  {/* Holon locator — you are here, current register */}
-                  {(() => {
-                    const latest = coherenceQuery.data[0].coherenceScore;
-                    const b = coherenceBand(latest);
-                    return (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 14,
-                          padding: "12px 14px",
-                          marginBottom: 16,
-                          background: C.surface,
-                          border: `1px solid ${C.border}`,
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-ritual)",
-                              fontSize: 8,
-                              letterSpacing: "0.24em",
-                              color: C.txtD,
-                              marginBottom: 5,
-                            }}
-                          >
-                            YOU ARE HERE
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-ritual)",
-                              fontSize: 10,
-                              color: C.txtS,
-                              letterSpacing: "0.04em",
-                            }}
-                          >
-                            A Holon in the field.
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" as const }}>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-display)",
-                              fontSize: 24,
-                              fontWeight: 300,
-                              color: b.color,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {latest}
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-ritual)",
-                              fontSize: 8,
-                              letterSpacing: "0.22em",
-                              color: b.color,
-                              marginTop: 4,
-                            }}
-                          >
-                            {b.label}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* readings timeline — a quiet archival strip */}
-                  <div
-                    style={{
-                      fontFamily: "var(--font-ritual)",
-                      fontSize: 8,
-                      letterSpacing: "0.24em",
-                      color: C.txtD,
-                      marginBottom: 8,
-                    }}
-                  >
-                    RECENT CONTACTS
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1,
-                      background: C.border,
-                    }}
-                  >
-                    {coherenceQuery.data.slice(0, 6).map((r, i) => {
-                      const b = coherenceBand(r.coherenceScore);
-                      return (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            padding: "9px 12px",
-                            background: C.deep,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontFamily: "var(--font-ritual)",
-                              fontSize: 10,
-                              color: C.txtS,
-                            }}
-                          >
-                            {new Date(r.createdAt).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: "var(--font-ritual)",
-                                fontSize: 8,
-                                letterSpacing: "0.2em",
-                                color: b.color,
-                              }}
-                            >
-                              {b.label}
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-ritual)",
-                                fontSize: 11,
-                                color: C.gold,
-                                minWidth: 24,
-                                textAlign: "right" as const,
-                              }}
-                            >
-                              {r.coherenceScore}
-                            </span>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 10,
-                    letterSpacing: "0.14em",
-                    color: C.txtD,
-                    lineHeight: 1.9,
-                  }}
-                >
-                  YOUR TRAJECTORY BEGINS WITH YOUR NEXT CONTACT.
-                </div>
-              )}
-            </Section>
 
             <Section title="ORIEL HISTORY">
               <MemoryConsentTray

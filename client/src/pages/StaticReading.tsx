@@ -4,7 +4,6 @@ import CodonGlyph from "@/components/CodonGlyph";
 import ResonanceBodygraph from "@/components/ResonanceBodygraph";
 import Layout from "@/components/Layout";
 import { trpc } from "@/lib/trpc";
-import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -73,6 +72,22 @@ type PrimeStackEntry = {
   center: string;
   weightedFrequency: number;
   baseFrequency: number;
+};
+
+type CenterEntry = {
+  id: string;
+  centerName: string;
+  codon256Id: string;
+  frequency: number;
+  defined: boolean;
+};
+
+type ChannelEntry = {
+  gateA: number;
+  gateB: number;
+  active: boolean;
+  centerA: string;
+  centerB: string;
 };
 
 type ActivationEntry = {
@@ -160,6 +175,44 @@ function normalizePrimeStack(value: unknown): PrimeStackEntry[] {
     })
     .filter((entry): entry is PrimeStackEntry =>
       Boolean(entry && entry.codon > 0)
+    );
+}
+
+function normalizeCenters(value: unknown): CenterEntry[] {
+  if (!value || typeof value !== "object") return [];
+
+  return Object.entries(value as Record<string, unknown>)
+    .map(([id, raw]) => {
+      if (!raw || typeof raw !== "object") return null;
+      const row = raw as Record<string, unknown>;
+      return {
+        id,
+        centerName: stringOr(row.centerName, id),
+        codon256Id: stringOr(row.codon256Id, ""),
+        frequency: numberOr(row.frequency, 0),
+        defined: Boolean(row.defined),
+      };
+    })
+    .filter((entry): entry is CenterEntry => Boolean(entry));
+}
+
+function normalizeChannels(value: unknown): ChannelEntry[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(entry => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      return {
+        gateA: numberOr(row.gateA, 0),
+        gateB: numberOr(row.gateB, 0),
+        active: Boolean(row.active),
+        centerA: stringOr(row.centerA, "Unknown"),
+        centerB: stringOr(row.centerB, "Unknown"),
+      };
+    })
+    .filter((entry): entry is ChannelEntry =>
+      Boolean(entry && entry.gateA > 0 && entry.gateB > 0)
     );
 }
 
