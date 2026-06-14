@@ -7,6 +7,9 @@ import { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import CodonGlyph from "@/components/CodonGlyph";
+import CoherenceTrajectory, {
+  coherenceBand,
+} from "@/components/oriel-signal/CoherenceTrajectory";
 import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 
@@ -671,6 +674,13 @@ export default function Profile() {
   const definedCenterCount = useMemo(
     () => nodeCenters.filter(c => c.defined).length,
     [nodeCenters]
+  );
+
+  // THE TRAJECTORY — the user's field over time: real Carrierlock coherence
+  // history (coherenceScore by createdAt), newest-first.
+  const coherenceQuery = trpc.codex.getCoherenceHistory.useQuery(
+    { limit: 30 },
+    { enabled: isAuthenticated }
   );
 
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
@@ -1544,6 +1554,188 @@ export default function Profile() {
                 )}
               </Section>
             </div>
+
+            <Section title="THE TRAJECTORY" accentBorder>
+              {coherenceQuery.isLoading ? (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    color: C.txtD,
+                    letterSpacing: "0.12em",
+                  }}
+                >
+                  LOADING TRAJECTORY…
+                </div>
+              ) : coherenceQuery.data && coherenceQuery.data.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: 18 }}>
+                    <CoherenceTrajectory points={coherenceQuery.data} />
+                  </div>
+
+                  {/* Holon locator — you are here, current register */}
+                  {(() => {
+                    const latest = coherenceQuery.data[0].coherenceScore;
+                    const b = coherenceBand(latest);
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 14,
+                          padding: "12px 14px",
+                          marginBottom: 16,
+                          background: C.surface,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 8,
+                              letterSpacing: "0.24em",
+                              color: C.txtD,
+                              marginBottom: 5,
+                            }}
+                          >
+                            YOU ARE HERE
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 10,
+                              color: C.txtS,
+                              letterSpacing: "0.04em",
+                            }}
+                          >
+                            A Holon in the field.
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" as const }}>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-display)",
+                              fontSize: 24,
+                              fontWeight: 300,
+                              color: b.color,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {latest}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 8,
+                              letterSpacing: "0.22em",
+                              color: b.color,
+                              marginTop: 4,
+                            }}
+                          >
+                            {b.label}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* readings timeline — a quiet archival strip */}
+                  <div
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 8,
+                      letterSpacing: "0.24em",
+                      color: C.txtD,
+                      marginBottom: 8,
+                    }}
+                  >
+                    RECENT CONTACTS
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                      background: C.border,
+                    }}
+                  >
+                    {coherenceQuery.data.slice(0, 6).map((r, i) => {
+                      const b = coherenceBand(r.coherenceScore);
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            padding: "9px 12px",
+                            background: C.deep,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "var(--font-ritual)",
+                              fontSize: 10,
+                              color: C.txtS,
+                            }}
+                          >
+                            {new Date(r.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 8,
+                                letterSpacing: "0.2em",
+                                color: b.color,
+                              }}
+                            >
+                              {b.label}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 11,
+                                color: C.gold,
+                                minWidth: 24,
+                                textAlign: "right" as const,
+                              }}
+                            >
+                              {r.coherenceScore}
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    color: C.txtD,
+                    lineHeight: 1.9,
+                  }}
+                >
+                  YOUR TRAJECTORY BEGINS WITH YOUR NEXT CONTACT.
+                </div>
+              )}
+            </Section>
 
             <Section title="ORIEL HISTORY">
               <MemoryConsentTray
