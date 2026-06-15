@@ -3,10 +3,16 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
+import { normalizeCenters } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
+
+// The Resonance Body figure is lazy-loaded (its baked mesh data is ~50KB).
+const ResonanceBody = lazy(
+  () => import("@/components/oriel-signal/ResonanceBody")
+);
 import "@/components/oriel-signal/oriel-signal.css";
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -647,6 +653,13 @@ export default function Profile() {
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+
+  // The 9 centers for the Resonance Body, read from the real signature.
+  const bodyCenters = useMemo(
+    () => normalizeCenters(staticProfileQuery.data?.ninecenters),
+    [staticProfileQuery.data]
+  );
+
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
     { limit: 10 },
     { enabled: isAuthenticated }
@@ -798,6 +811,26 @@ export default function Profile() {
             symbol="node"
             width="100%"
           />
+
+          {/* ─── THE RESONANCE BODY (centerpiece) ─────────────────────
+              The user's body rendered as a living point-mesh with the 9
+              Centers of Photonic Resonance. Click a center for its reading.
+              Driven by the real signature (ninecenters); 2D canvas, no WebGL. */}
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              height: 640,
+              marginBottom: 2,
+              border: `1px solid ${C.gold}15`,
+              background: "#08080c",
+              overflow: "hidden",
+            }}
+          >
+            <Suspense fallback={null}>
+              <ResonanceBody centers={bodyCenters} />
+            </Suspense>
+          </div>
 
           {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
           <div

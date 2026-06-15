@@ -36,6 +36,7 @@ import TermsOfService from "./pages/TermsOfService";
 import Admin from "./pages/Admin";
 import AdminSignatureLetters from "./pages/AdminSignatureLetters";
 import OrbPreview from "./pages/OrbPreview";
+import ResonanceBodyLab from "./pages/ResonanceBodyLab";
 import OracleDetail from "./pages/OracleDetail";
 import NatalProfile from "./pages/NatalProfile";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -44,6 +45,7 @@ function Router() {
   return (
     <Switch>
       <Route path={"/orb-preview"} component={OrbPreview} />
+      <Route path={"/resonance-body"} component={ResonanceBodyLab} />
       <Route
         path={"/admin/signature-letters"}
         component={AdminSignatureLetters}
