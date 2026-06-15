@@ -104,7 +104,10 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['data']['value']\\)\")",
       "Bash(python3 -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['data']['value']\\)\")",
       "Bash(sed -n '1599,1616p;2147,2160p' client/src/components/oriel-signal/oriel-signal.css)",
-      "Bash(sed -n '255,260p' client/src/index.css)"
+      "Bash(sed -n '255,260p' client/src/index.css)",
+      "Bash(git rm *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('nav:', d.get\\('data',{}\\).get\\('success'\\)\\)\")",
+      "Bash(npx skills *)"
     ]
   },
   "prefersReducedMotion": false
