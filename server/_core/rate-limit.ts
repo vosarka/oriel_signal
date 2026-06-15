@@ -32,7 +32,7 @@ export const RATE_LIMITS: Record<RateLimitBucket, RateLimitConfig> = {
   "oriel.tts": {
     windowMs: ONE_HOUR_MS,
     anonymous: 3,
-    authenticated: 20,
+    authenticated: 60,
     label: "ORIEL voice synthesis",
   },
   "oriel.imageLore": {

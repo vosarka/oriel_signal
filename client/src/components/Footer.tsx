@@ -37,7 +37,7 @@ export default function Footer() {
         >
           <a href="/">FIELD ARCHIVE</a>
           <a href="/conduit">ORIEL</a>
-          <a href="/static-signature">STATIC CODEX</a>
+          <a href="/signature">THE SIGNATURE</a>
           <a href="/archive">TRANSMISSIONS</a>
           <a href="/founder-letter">FOUNDER</a>
           <a href="/auth">ACCESS</a>

@@ -2,6 +2,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -21,6 +22,7 @@ import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 import StaticReading from "./pages/StaticReading";
 import DynamicReading from "./pages/DynamicReading";
+import Tiers from "./pages/Tiers";
 import CurrentResonance from "./pages/CurrentResonance";
 import FoundingSignatureLetter from "./pages/FoundingSignatureLetter";
 import {
@@ -34,15 +36,16 @@ import TermsOfService from "./pages/TermsOfService";
 import Admin from "./pages/Admin";
 import AdminSignatureLetters from "./pages/AdminSignatureLetters";
 import OrbPreview from "./pages/OrbPreview";
+import ResonanceBodyLab from "./pages/ResonanceBodyLab";
 import OracleDetail from "./pages/OracleDetail";
 import NatalProfile from "./pages/NatalProfile";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/orb-preview"} component={OrbPreview} />
+      <Route path={"/resonance-body"} component={ResonanceBodyLab} />
       <Route
         path={"/admin/signature-letters"}
         component={AdminSignatureLetters}
@@ -50,7 +53,6 @@ function Router() {
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />
-      <Route path={"/blueprint"} component={StaticReading} />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/terms"} component={TermsOfService} />
       <Route
@@ -81,12 +83,19 @@ function Router() {
       <Route path={"/conduit"} component={Conduit} />
       <Route path={"/codex"} component={Codex} />
       <Route path={"/codex/:id"} component={CodonDetail} />
-      <Route path={"/carrierlock"} component={Carrierlock} />
-      <Route path={"/resonance"} component={CurrentResonance} />
-      <Route path={"/readings"} component={Readings} />
-      <Route path={"/reading/static/:readingId"} component={StaticReading} />
-      <Route path={"/reading/dynamic/:id"} component={DynamicReading} />
-      <Route path={"/reading/:id"} component={Reading} />
+      {/* Cosmichronica: the sacred cosmological text (separate from /codex codon library per structure) */}
+      <Route path={"/cosmichronica"} component={Protocol} />
+      {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
+      <Route path={"/signature"} component={StaticReading} />
+      {/* Redirects for old reading routes to the single /signature */}
+      <Route path={"/blueprint"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/carrierlock"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/resonance"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/readings"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/static/:readingId"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/dynamic/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/reading/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
+      <Route path={"/tiers"} component={Tiers} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -103,13 +112,14 @@ function AppGate() {
     if (loading || !user || user.hasNatalProfile) return;
 
     const requiresNatalProfile =
-      location === "/blueprint" ||
-      location === "/carrierlock" ||
       location === "/profile" ||
-      location === "/readings" ||
-      location.startsWith("/reading/");
+      location === "/signature";
 
-    if (requiresNatalProfile && location !== "/complete-profile") {
+    // requiresNatalProfile is only true on /profile or /signature, so it is
+    // already never /complete-profile (and redirecting there clears it, no
+    // loop). The old `&& location !== "/complete-profile"` guard was dead and
+    // tripped TS2367 once location became a typed union.
+    if (requiresNatalProfile) {
       setLocation("/complete-profile");
     }
   }, [loading, location, setLocation, user]);

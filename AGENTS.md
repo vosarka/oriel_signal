@@ -1,37 +1,38 @@
-# Repository Guidelines
+# AGENTS.md — Operating Contract for Any Agent
 
-## Project Structure & Module Organization
+Read this file first, every session. Then wiki/SCHEMA.md,
+then wiki/index.md, then the task spec.
 
-`client/src/` contains the React 19 + Vite app. Route-level views live in `client/src/pages/`, shared components in `client/src/components/`, shadcn/ui primitives in `client/src/components/ui/`, and reusable client utilities in `client/src/lib/`, `hooks/`, and `contexts/`.
+This project was damaged by an agent that dropped production
+database tables and made unrequested changes.
+These rules are not optional.
 
-`server/_core/` holds framework plumbing: Express setup, tRPC, auth/session helpers, env loading, Vite middleware, and LLM abstraction. Domain code sits in `server/`, including ORIEL behavior, RGP engines, ephemeris logic, voice/LLM integrations, `routers.ts`, and `db.ts`. Shared types/constants live in `shared/`. Database schema and migrations are in `drizzle/`. Storybook files live in `stories/`.
+## Stack
+Vite + React 19 + Express + tRPC v11 + Drizzle (MySQL/TiDB)
++ better-auth + PayPal. Three.js + React Three Fiber.
+Wouter routing. NOT Next.js. pnpm only.
 
-## Build, Test, and Development Commands
+## Hard rules
+1. Read before you edit. Report before you act. Show findings
+   and plan, wait for approval before modifying files.
+2. Never run destructive SQL. No DROP, TRUNCATE, or 
+   unfiltered DELETE ever. Schema changes go through Drizzle
+   migrations, proposed first.
+3. Never use production credentials. Dev database only.
+   Never print, commit, or log secrets.
+4. Work on a branch. main is protected. Show diff stats 
+   before irreversible commits.
+5. No ghost links in the wiki. Only link to pages that exist.
+   Run scripts/wiki-lint.py before any wiki commit.
+6. Stay in scope. Do not improve adjacent code, reformat
+   unrelated files, or refactor uninvited. Note it, don't do it.
+7. Preserve the design language. Cormorant Garamond / Cinzel /
+   JetBrains Mono. Match oriel-signal/ design system always.
+8. Ask when in doubt. A question is cheaper than an 
+   unrequested change.
 
-Use pnpm for this repository.
-
-- `pnpm install` installs dependencies.
-- `pnpm dev` starts the single-port Express + Vite dev server.
-- `pnpm build` builds the Vite client and bundled Node server into `dist/`.
-- `pnpm start` runs the production server after a build.
-- `pnpm check` runs `tsc --noEmit`.
-- `pnpm test` runs Vitest.
-- `pnpm format` applies Prettier.
-- `pnpm db:push` generates and applies Drizzle migrations against `DATABASE_URL`.
-- `pnpm storybook` starts Storybook on port 6006.
-
-## Coding Style & Naming Conventions
-
-This is a strict TypeScript ESM codebase. Prettier is authoritative: 2 spaces, semicolons, double quotes, ES5 trailing commas, LF endings, and 80-character print width. Prefer existing aliases: `@/*` for `client/src/*` and `@shared/*` for `shared/*`. Name React components in PascalCase, hooks as `useSomething`, and tests as `*.test.ts` or `*.spec.ts`.
-
-## Testing Guidelines
-
-Vitest is configured with `environment: "node"`, `dotenv/config`, a 15-second timeout, and default includes for `server/**/*.test.ts` and `server/**/*.spec.ts`. Run a focused test with `pnpm vitest run server/oriel-context-layers.test.ts`. Client test files exist, but they are not included by the current default Vitest config; add or adjust coverage deliberately when changing client behavior. Mock external LLM, database, voice, payment, and storage services unless a test explicitly targets integration.
-
-## Commit & Pull Request Guidelines
-
-Recent history uses short, imperative commit subjects such as `Stabilize realtime voice conversation` and `Add contextual clarity transmission trigger`. Keep commits focused and avoid unrelated formatting churn. PRs should describe the user-visible change, list verification commands, mention schema/env changes, link related issues, and include screenshots or recordings for UI and voice-flow changes.
-
-## Security & Configuration Tips
-
-Do not commit secrets. Copy `.env.example` to `.env` locally and keep `RUN_MIGRATIONS=false` unless you intentionally want startup migrations. Treat `pnpm db:push` and any `RUN_MIGRATIONS=true` boot as production-impacting when `DATABASE_URL` targets shared infrastructure.
+## Done when
+- Relevant tests pass (npx vitest run)
+- No secrets, no scratch files (_tmp_*, .hermes-tmp.*) in diff
+- Work logged in wiki/log.md
+- Short summary of what changed and why

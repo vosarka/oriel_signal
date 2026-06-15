@@ -31,6 +31,8 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[static-signature-blueprint]] — Static Signature Blueprint. (auto-evolved 2026-06-11)
+- [[transition-of-resonance]] — Transition of Resonance. (auto-evolved 2026-06-11)
 - [[integrity-resonator]] — Integrity Resonator. (auto-evolved 2026-06-06)
 - [[oversoul-wisdom]] — Oversoul Wisdom. (auto-evolved 2026-06-06)
 - [[concept-resonance]] — Core vibrational/relational principle; the "R" in VRC and ROS.

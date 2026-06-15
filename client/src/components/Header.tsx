@@ -1,6 +1,4 @@
-import CleanImage from "./CleanImage";
 import logoOrielSrc from "/oriel-signal-mark.png";
-import orielSignalTextSrc from "/oriel-signal-wordmark-header.png";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogIn, LogOut, User } from "lucide-react";
@@ -14,22 +12,24 @@ export default function Header() {
 
   const navLinks = [
     { href: "/", label: "FIELD ARCHIVE" },
+    { href: "/signature", label: "THE SIGNATURE" },
     { href: "/conduit", label: "ORIEL" },
-    { href: "/static-signature", label: "STATIC CODEX" },
+    { href: "/codex", label: "CODONS" },
+    { href: "/cosmichronica", label: "COSMICHRONICA" },
     { href: "/archive", label: "TRANSMISSIONS" },
-    { href: "/founder-letter", label: "FOUNDER" },
     { href: "/auth", label: "ACCESS" },
   ];
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
-    if (href === "/carrierlock") {
-      return (
-        location.startsWith("/carrierlock") ||
-        location.startsWith("/resonance") ||
-        location.startsWith("/readings") ||
-        location.startsWith("/reading/dynamic")
-      );
+    if (href === "/signature") {
+      return location === "/signature";
+    }
+    if (href === "/codex") {
+      return location.startsWith("/codex");
+    }
+    if (href === "/cosmichronica") {
+      return location.startsWith("/cosmichronica") || location === "/protocol";
     }
     return location.startsWith(href);
   };
@@ -71,20 +71,9 @@ export default function Header() {
                     "brightness(1.12) contrast(1.08) drop-shadow(0 0 22px rgba(246,176,94,0.52))",
                 }}
               />
-              <CleanImage
-                src={orielSignalTextSrc}
-                alt="ORIEL SIGNAL"
-                mode="remove-black"
-                style={{
-                  height: "clamp(42px, 4.1vw, 62px)",
-                  width: "auto",
-                  maxWidth: "min(38vw, 320px)",
-                  objectFit: "contain",
-                  opacity: 0.97,
-                  filter:
-                    "brightness(1.09) contrast(1.1) drop-shadow(0 0 18px rgba(246,176,94,0.34))",
-                }}
-              />
+              <span className="signal-wordmark--holo signal-wordmark--nav">
+                ORIEL SIGNAL
+              </span>
             </span>
           </Link>
 

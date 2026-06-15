@@ -25,46 +25,13 @@ export default function VossArchiveShell({ children }: VossArchiveShellProps) {
           --voss-text-dim: #6a665e;
           min-height: 100vh;
           position: relative;
-          overflow: hidden;
           isolation: isolate;
-          background:
-            radial-gradient(circle at 50% -8%, rgba(216, 181, 109, 0.09), transparent 30rem),
-            radial-gradient(circle at 9% 24%, rgba(132, 96, 54, 0.12), transparent 24rem),
-            radial-gradient(circle at 90% 36%, rgba(228, 200, 140, 0.055), transparent 28rem),
-            linear-gradient(180deg, #050505 0%, #0a0907 48%, #030303 100%);
+          /* Void + grain now come from the global SignalBackdrop; this shell
+             only carries its foreground panel/type tokens. (Removed the old
+             radial void, the 96px grid ::before, and the rgba(132,96,54)
+             brown that violated VISUAL_LAW.) */
+          background: transparent;
           color: var(--voss-text);
-        }
-
-        .voss-archive-root::before,
-        .voss-archive-root::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          pointer-events: none;
-        }
-
-        .voss-archive-root::before {
-          opacity: 0.16;
-          background-image:
-            linear-gradient(rgba(216, 181, 109, 0.105) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(216, 181, 109, 0.08) 1px, transparent 1px),
-            linear-gradient(rgba(216, 181, 109, 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(216, 181, 109, 0.035) 1px, transparent 1px);
-          background-size: 96px 96px, 96px 96px, 12px 12px, 12px 12px;
-          mask-image: radial-gradient(circle at center, black 0 48%, transparent 80%);
-        }
-
-        .voss-archive-root::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          pointer-events: none;
-          opacity: 0.09;
-          mix-blend-mode: screen;
-          background-image:
-            radial-gradient(circle at 20% 24%, rgba(255, 248, 232, 0.12), transparent 18rem);
         }
 
         .voss-archive-content {

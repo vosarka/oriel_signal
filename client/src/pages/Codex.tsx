@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useState, useRef } from "react";
 import { Search } from "lucide-react";
 import VossArchiveShell from "@/components/VossArchiveShell";
+import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import CodonGlyph from "@/components/CodonGlyph";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -201,27 +202,19 @@ export default function Codex() {
 
       <div className="codex-page">
         <div className="codex-shell">
-          {/* ── Header ──────────────────────────────────────────────────────── */}
+          {/* Shared header band replaces the ad-hoc title (spec §13).
+              width="100%" so it fills codex-shell (1440px) and aligns with
+              the grid rather than insetting to the default 78rem. */}
+          <PageHeaderBand
+            title="CODON LATTICE"
+            descriptor="THE 64-CODON FIELD INDEX"
+            symbol="lattice"
+            width="100%"
+          />
+
+          {/* ── Search / actions (sticky) ──────────────────────────────────── */}
           <div className="codex-hero">
-            <div>
-              <div className="codex-hero-row">
-                <div>
-                  <div className="codex-kicker">
-                    FIELD INDEX · 64 ROOT CODONS
-                  </div>
-                  <h1 className="codex-title">The Vossari Resonance Codex</h1>
-                  <p className="codex-subtitle">
-                    A living map of codons, facets, centers, and resonance
-                    architecture.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setLocation("/carrierlock")}
-                  className="codex-reading-button"
-                >
-                  GET READING
-                </button>
-              </div>
+            <div className="codex-hero-row">
               <div className="codex-search">
                 <Search />
                 <input
@@ -231,6 +224,12 @@ export default function Codex() {
                   onChange={e => setSearchQuery(e.target.value)}
                 />
               </div>
+              <button
+                onClick={() => setLocation("/signature")}
+                className="codex-reading-button"
+              >
+                GET READING
+              </button>
             </div>
           </div>
 

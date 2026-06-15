@@ -23,7 +23,7 @@ type SignalInterferenceGateProps = {
   duration?: number;
   onComplete?: () => void;
   finalLabel?: string;
-  phase?: "acquiring" | "locking";
+  phase?: "acquiring" | "locking" | "failed";
 };
 
 type TransmissionTriggerOptions = {
@@ -70,7 +70,12 @@ export function SignalInterferenceGate({
     [active, resolvedDuration]
   );
   const statusLabel =
-    finalLabel ?? (phase === "locking" ? "SIGNAL LOCKED" : "SIGNAL ACQUIRING");
+    finalLabel ??
+    (phase === "locking"
+      ? "SIGNAL LOCKED"
+      : phase === "failed"
+        ? "TRANSMISSION FAILED TO ALIGN — RETRY"
+        : "SIGNAL ACQUIRING");
 
   useEffect(() => {
     if (!active || phase !== "locking") return;
@@ -82,11 +87,21 @@ export function SignalInterferenceGate({
     return () => window.clearTimeout(timer);
   }, [active, onComplete, phase, resolvedDuration]);
 
+  useEffect(() => {
+    if (!active || phase !== "failed") return;
+
+    const timer = window.setTimeout(() => {
+      onComplete?.();
+    }, 3000);
+
+    return () => window.clearTimeout(timer);
+  }, [active, onComplete, phase]);
+
   if (!active) return null;
 
   return (
     <div
-      className={`signal-interference-gate is-${phase}`}
+      className={`signal-interference-gate is-${phase === "failed" ? "acquiring" : phase}`}
       aria-live="polite"
       aria-label="Transmission channel interference"
       style={
@@ -150,7 +165,7 @@ export function useTransmissionTrigger({
   onComplete,
 }: TransmissionTriggerOptions = {}) {
   const resolvedDuration = clampDuration(duration);
-  const [phase, setPhase] = useState<"idle" | "acquiring" | "locking">("idle");
+  const [phase, setPhase] = useState<"idle" | "acquiring" | "locking" | "failed">("idle");
   const resolveRef = useRef<(() => void) | null>(null);
 
   const trigger = useCallback(() => {
@@ -183,6 +198,12 @@ export function useTransmissionTrigger({
     resolveRef.current = null;
   }, []);
 
+  const fail = useCallback(() => {
+    setPhase("failed");
+    resolveRef.current?.();
+    resolveRef.current = null;
+  }, []);
+
   const complete = useCallback(() => {
     setPhase("idle");
     resolveRef.current?.();
@@ -197,6 +218,7 @@ export function useTransmissionTrigger({
     startAcquiring,
     lock,
     cancel,
+    fail,
     gateProps: {
       active: phase !== "idle",
       duration: resolvedDuration,

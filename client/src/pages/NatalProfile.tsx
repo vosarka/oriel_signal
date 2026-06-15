@@ -83,7 +83,7 @@ export default function NatalProfile() {
 
   useEffect(() => {
     if (statusQuery.data?.complete) {
-      setLocation("/blueprint");
+      setLocation("/signature");
     }
   }, [setLocation, statusQuery.data]);
 
@@ -119,7 +119,7 @@ export default function NatalProfile() {
       });
       await refresh();
       setSuccess("Your Static Signature has been calculated and saved.");
-      window.location.href = "/blueprint";
+      window.location.href = "/signature";
     } catch (mutationError) {
       setError(
         mutationError instanceof Error

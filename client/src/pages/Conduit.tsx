@@ -20,6 +20,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Orb } from "@/components/ui/orb";
 import { Spinner } from "@/components/ui/spinner";
 import GeometricBackground from "@/components/GeometricBackground";
+import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import VoiceMode from "@/components/VoiceMode";
 import {
   SignalInterferenceGate,
@@ -34,6 +35,7 @@ import {
   getConduitInputDisabled,
   getSpeechFallbackTimeoutMs,
   getSpeechFallbackWatchdogDecision,
+  splitIntoSpeechChunks,
 } from "@/lib/conduit-voice";
 import {
   markOrielVoiceIntroSpoken,
@@ -382,15 +384,22 @@ function TransmissionModeCard({
           className="font-mono text-[9px] tracking-[0.28em] uppercase"
           style={{ color: accent }}
         >
-          Transmission Mode
+          FIELD RETURN
         </span>
         <span
           className="font-mono text-[9px] tracking-[0.18em] uppercase"
           style={{ color: "rgba(232,228,220,0.55)" }}
         >
           {event.eventType.toUpperCase()} // {event.rarity.toUpperCase()} //
-          Meaning {event.meaningLevel}/5
+          THRESHOLD {event.meaningLevel}
         </span>
+      </div>
+
+      <div
+        className="font-mono text-[9px] tracking-[0.22em] mb-2"
+        style={{ color: "rgba(232,228,220,0.72)" }}
+      >
+        The field and receiver aligned. The conversation became the transmission.
       </div>
 
       <p
@@ -588,6 +597,9 @@ export default function Conduit() {
   const speechMonitorIntervalRef = useRef<number | null>(null);
   const lastSpeechSoundRef = useRef<number>(Date.now());
   const isListeningRef = useRef(false);
+
+  // Incremented on stop/new call to cancel in-flight chunked TTS pipelines
+  const speakIdRef = useRef<number>(0);
 
   // Accumulates finalized speech recognition results across internal restarts
   // so long spoken phrases don't get truncated in the input box.
@@ -1028,8 +1040,6 @@ export default function Conduit() {
       return;
     }
 
-    setIsSpeaking(true);
-
     const { textForAudio, shouldMarkIntroSpoken } =
       prepareOrielTextForVoice(text);
     if (!textForAudio.trim()) {
@@ -1037,46 +1047,60 @@ export default function Conduit() {
       return;
     }
 
-    try {
-      const result = await generateSpeechMutation.mutateAsync({
-        text: textForAudio,
-        voiceId: voicePreference,
-      });
+    setIsSpeaking(true);
+    const speakId = ++speakIdRef.current;
 
-      if (result.success && result.audioUrl) {
-        if (audioRef.current && audioRef.current.parentNode) {
-          ensureAudioAnalyser();
-          audioRef.current.src = result.audioUrl;
-          audioRef.current.volume = voiceVolume;
-          if (shouldMarkIntroSpoken) markOrielVoiceIntroSpoken();
+    const chunks = splitIntoSpeechChunks(textForAudio);
 
-          audioRef.current.onended = () => {
-            setIsSpeaking(false);
-            setIsPaused(false);
-          };
+    const fetchAudio = (chunk: string): Promise<string | null> =>
+      generateSpeechMutation
+        .mutateAsync({ text: chunk, voiceId: voicePreference })
+        .then(r => (r.success && r.audioUrl ? r.audioUrl : null))
+        .catch(() => null);
 
-          audioRef.current.onerror = () => {
-            console.error("Audio playback error, falling back to browser TTS");
-            fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-          };
+    // Pre-fetch the first chunk immediately so audio starts as soon as it
+    // resolves rather than waiting for all chunks to synthesise.
+    let nextAudioPromise = fetchAudio(chunks[0]);
+    let anyPlayed = false;
 
-          audioRef.current.play().catch(error => {
-            console.error("Failed to play audio:", error);
-            fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-          });
-        } else {
-          fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
-        }
-      } else {
-        console.warn(
-          "Voice generation unavailable, using browser speech fallback:",
-          result.error
-        );
-        fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
+    for (let i = 0; i < chunks.length; i++) {
+      if (speakIdRef.current !== speakId) return;
+
+      const audioUrl = await nextAudioPromise;
+      if (speakIdRef.current !== speakId) return;
+
+      // Start pre-fetching next chunk while current plays
+      if (i + 1 < chunks.length) {
+        nextAudioPromise = fetchAudio(chunks[i + 1]);
       }
-    } catch (error) {
-      console.error("Failed to generate speech:", error);
+
+      if (!audioUrl) continue;
+
+      if (!anyPlayed) ensureAudioAnalyser();
+      if (shouldMarkIntroSpoken && !anyPlayed) markOrielVoiceIntroSpoken();
+      anyPlayed = true;
+
+      await new Promise<void>(resolve => {
+        if (!audioRef.current || !audioRef.current.parentNode) {
+          resolve();
+          return;
+        }
+        audioRef.current.src = audioUrl;
+        audioRef.current.volume = voiceVolume;
+        audioRef.current.onended = () => resolve();
+        audioRef.current.onerror = () => resolve();
+        audioRef.current.play().catch(() => resolve());
+      });
+    }
+
+    if (!anyPlayed) {
       fallbackToSpeechSynthesis(textForAudio, shouldMarkIntroSpoken);
+      return;
+    }
+
+    if (speakIdRef.current === speakId) {
+      setIsSpeaking(false);
+      setIsPaused(false);
     }
   };
 
@@ -1186,6 +1210,7 @@ export default function Conduit() {
 
   const handleStopVoice = () => {
     try {
+      speakIdRef.current += 1;
       if (audioRef.current && audioRef.current.parentNode) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -1482,7 +1507,7 @@ export default function Conduit() {
       if (resolvedGatePlan.lockBeforeReveal) {
         await transmissionGate.lock();
       } else if (resolvedGatePlan.cancelAfterResult) {
-        transmissionGate.cancel();
+        transmissionGate.fail();
       }
 
       const newAssistantMessage: ChatMessage = {
@@ -1523,7 +1548,7 @@ export default function Conduit() {
     } catch (error) {
       console.error("Chat error:", error);
       if (forceTransmissionMode) {
-        transmissionGate.cancel();
+        transmissionGate.fail();
       }
     }
   };
@@ -1561,13 +1586,11 @@ export default function Conduit() {
   const sendDisabled = inputDisabled || !message.trim();
 
   return (
-    <Layout noBackground hideFooter>
-      <GeometricBackground />
-
-      {/* Signal Interference Gate */}
+    <Layout hideFooter>
+      {/* Full-screen overlays stay outside the shell's stacking context
+          so they keep painting above the fixed header. */}
       <SignalInterferenceGate {...transmissionGate.gateProps} />
 
-      {/* Voice Mode overlay */}
       {voiceMode && (
         <VoiceMode
           onClose={() => {
@@ -1587,18 +1610,24 @@ export default function Conduit() {
         />
       )}
 
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Flower of Life stays Home-only; the Conduit's world layer is its
+          own living lattice (GeometricBackground). */}
+      <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
+        <GeometricBackground />
 
-      <div
-        className="oriel-chamber-shell oriel-chamber-stage relative z-10 flex"
-        style={{ height: "calc(100vh - 64px)" }}
-      >
+        {/* Mobile sidebar backdrop — inside the shell so the sidebar
+            (z-30) still stacks above it. */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-20 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className="oriel-chamber-shell oriel-chamber-stage relative z-10 flex"
+          style={{ height: "calc(100vh - 96px)" }}
+        >
         {/* ===== LEFT SIDEBAR ===== */}
         <aside
           className={`
@@ -1816,10 +1845,7 @@ export default function Conduit() {
                 <Menu size={18} />
               </button>
 
-              <p
-                className="font-mono text-[10px] tracking-[0.35em] uppercase"
-                style={{ color: "rgba(189,163,107,0.5)" }}
-              >
+              <p className="fi-chamber-title">
                 {activeConversationId && activeConvData
                   ? activeConvData.title
                   : "ORIEL TRANSMISSION CHAMBER"}
@@ -2492,6 +2518,7 @@ export default function Conduit() {
           </div>
         </div>
       </div>
+      </SignalPageShell>
 
       {/* Hidden audio element for TTS */}
       <audio ref={audioRef} crossOrigin="anonymous" />

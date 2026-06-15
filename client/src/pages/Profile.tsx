@@ -3,9 +3,16 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
+import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
+import { normalizeCenters } from "@/lib/bodygraph-data";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
+
+// The Resonance Body figure is lazy-loaded (its baked mesh data is ~50KB).
+const ResonanceBody = lazy(
+  () => import("@/components/oriel-signal/ResonanceBody")
+);
 import "@/components/oriel-signal/oriel-signal.css";
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -646,6 +653,13 @@ export default function Profile() {
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+
+  // The 9 centers for the Resonance Body, read from the real signature.
+  const bodyCenters = useMemo(
+    () => normalizeCenters(staticProfileQuery.data?.ninecenters),
+    [staticProfileQuery.data]
+  );
+
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
     { limit: 10 },
     { enabled: isAuthenticated }
@@ -782,32 +796,40 @@ export default function Profile() {
     <Layout>
       <div
         className="receiver-node-shell receiver-node-shell--living"
-        style={{ minHeight: "100vh", padding: "80px 24px 120px" }}
+        style={{ minHeight: "100vh", padding: "0 24px 120px" }}
       >
         <div
           className="receiver-node-container"
           style={{ maxWidth: 640, margin: "0 auto" }}
         >
-          {/* Page header */}
-          <div style={{ marginBottom: 36 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 9,
-                color: C.amber,
-                letterSpacing: "0.25em",
-                marginBottom: 12,
-              }}
-            >
-              // RECEIVER NODE
-            </div>
-            <div
-              style={{
-                width: 32,
-                height: 1,
-                background: `linear-gradient(90deg, ${C.gold}, transparent)`,
-              }}
-            />
+          {/* Shared header band replaces the ad-hoc kicker (spec §13).
+              width="100%" so it fills the 640px container and aligns with
+              the panels below. */}
+          <PageHeaderBand
+            title="PROFILE"
+            descriptor="RECEIVER NODE"
+            symbol="node"
+            width="100%"
+          />
+
+          {/* ─── THE RESONANCE BODY (centerpiece) ─────────────────────
+              The user's body rendered as a living point-mesh with the 9
+              Centers of Photonic Resonance. Click a center for its reading.
+              Driven by the real signature (ninecenters); 2D canvas, no WebGL. */}
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              height: 640,
+              marginBottom: 2,
+              border: `1px solid ${C.gold}15`,
+              background: "#08080c",
+              overflow: "hidden",
+            }}
+          >
+            <Suspense fallback={null}>
+              <ResonanceBody centers={bodyCenters} />
+            </Suspense>
           </div>
 
           {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
@@ -1222,7 +1244,7 @@ export default function Profile() {
                           alignItems: "center",
                         }}
                       >
-                        <Link href="/blueprint">
+                        <Link href="/signature">
                           <span
                             style={{
                               display: "inline-block",
@@ -1515,7 +1537,7 @@ export default function Profile() {
               flexWrap: "wrap",
             }}
           >
-            <Link href="/carrierlock">
+            <Link href="/signature">
               <span
                 style={{
                   display: "inline-block",

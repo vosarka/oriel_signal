@@ -606,3 +606,158 @@ These pages are now the reference point for any future discussion of "how the pr
 - Type: concept
 - Reason: Introduces a specific conceptual tool for identifying the gap between intellectual and emotional truth.
 - Aliases: Dissonance of the Heart, The Silent Friction
+
+## [2026-06-11] Homepage — "Field Intercept" refinement
+
+**Branch:** `v2-baseline`
+**Files changed:** `client/src/pages/Home.tsx`, `client/src/components/oriel-signal/oriel-signal.css`
+
+### What changed
+- **Hero:** kicker updated to `[ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE`; sub-copy rewritten to the intercept voice (Cormorant italic). Video now pauses under `prefers-reduced-motion` via `useEffect` + `videoRef`.
+- **Removed sections:** founder letter panel, ORIEL two-column, static signature two-column, recovered transmissions grid, two duplicate final CTAs.
+- **Section 2 — The Intercept:** two Cormorant italic lines revealed with `animate-text-reveal` (0.9s stagger). `prefers-reduced-motion` handled globally by index.css (animation completes instantly → visible). Mono caption: `INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN`.
+- **Section 3 — Archive Directory:** 4 GlowCards (2×2 grid) with file codes RC-001–RC-004, Cormorant italic descriptions, `ACCESS ▸` CTAs. Collapses to 1-column at 900px via existing `.signal-grid--2` CSS.
+- **Section 4 — Field Status:** new `.signal-field-status` strip — `CODONS MAPPED 64`, `EXPRESSION NODES 512`, `ARCHETYPAL CENTERS 9`, `FACET DIMENSIONS 4`. Goes 2×2 at 640px.
+- **Section 5 — Closing Threshold:** `THE ARCHIVE IS OPEN` / Cormorant italic quote / `BEGIN CALIBRATION` / mono seal.
+- **CSS additions (oriel-signal.css):** `.signal-scroll-cue`, `.signal-intercept` family, `.signal-archive-rule`, `.signal-archive-card__title/copy`, `.signal-field-status` family, `.signal-threshold-seal`, responsive field-status at 640px.
+- **Route confirmed:** Resonance Genetic Codex → `/codex` (Vossari Resonance Codex, 64 root codons).
+- No new dependencies. No route guesses. No unrelated file changes.
+
+## [2026-06-11] auto-evolve | Transition of Resonance
+- Action: create [[transition-of-resonance]]
+- Type: concept
+- Reason: ORIEL introduces a detailed, structured process for what happens after death, defining specific stages (Release, Review, Tuning) and key terms (Resonance Signature, Essence) within the context of the resonance-based cosmology.
+- Aliases: Death Process, Post-Physical Transition, The Great Unfolding
+
+## [2026-06-11] Homepage — "Field Intercept" art rebuild (awaiting approval)
+
+**Branch:** `v2-baseline` — NOT yet committed; diff shown to Vos for sign-off.
+**Files:** `client/src/pages/Home.tsx` (rewrite), `client/src/components/oriel-signal/HeroSigil.tsx` (new), `client/src/components/oriel-signal/oriel-signal.css` (hero demolition + fi- system), `client/index.html` (added Cinzel + JetBrains Mono to the Google Fonts link — approved scope exception).
+
+### Demolished
+- Framed hero: `.signal-hero__frame`, `.signal-threshold-plate`, both `.signal-hero__ruler`s, logo-chamber/ring, hero video. Verified Home-only before deletion; shared `.signal-hero__actions` preserved (used by FounderLetter, StaticSignature, FinalOrielTransmission).
+- All orphaned responsive/reduced-motion references pruned.
+
+### Built (fi- prefix, Home-scoped)
+- **HeroSigil**: 4-layer stack over `/oriel-signal-mark.png` — gold base, iridescent sweep (signal palette masked inside the glyph shape, screen-blended, 11s drift via transform-only ::before), red/blue chromatic ghosts torn visible ~250ms on co-prime 13s/17s cycles + on hover. Mask-gated behind @supports.
+- **Hero**: asymmetric stage — sigil off-axis right, monumental Cinzel ORIEL overlapping from the left, decode-on-load via DecodedTitle; 4 HUD corner readouts boot in staggered; scanlines + drifting microdata fragments; scroll cue.
+- **Dropout**: JS scheduler (25–45s random, ~200ms) adds `is-dropout` → displacement bands + forced chromatic split. Skipped entirely under prefers-reduced-motion.
+- **Intercept**: in-view triggered, word-wrapped DecodedLine glyph-decode, two lines staggered 1.4s, mono caption.
+- **Directory**: 4 dossiers (RC-001…004 → /static-signature, /conduit, /archive, /codex), broken 2-col grid (even cards pushed +3.2rem), Cinzel titles, Cormorant italic copy, hover-only iridescent hairline edge.
+- **Field status**: 64 / 512 / 9 / 4 instrument strip, JetBrains Mono, 2×2 at 640px.
+- **Threshold**: THE ARCHIVE IS OPEN with rare (26s) chromatic text flicker, BEGIN CALIBRATION → /auth, mono end seal.
+- **Entrance choreography**: scanlines 0.12s → sigil materializes through glitch 0.4s → wordmark decodes 0.7s → sub 1.05s → kicker 1.2s → HUD 1.5–2s → voice 1.9s → CTAs 2.3s → fragments 2.6s → cue 3s.
+- **Reduced motion**: colored light layers display:none, all fi- animation killed, opacity forced visible → clean gold-on-obsidian.
+
+### Verification
+- `pnpm check` clean. Vitest: 586 passed, 1 pre-existing failure (`oriel-public-terminology` expects "Resonance Links" in CodonDetail.tsx — file untouched by this work, failing since baseline; out of scope, noted).
+- Dev server compiles and serves all new modules; no Vite/PostCSS errors. No screenshot tooling in this environment — visual sign-off is Vos's.
+
+## [2026-06-11] Homepage palette cleanup — brown/sepia/noise purge
+
+**Branch:** `v2-baseline`.
+**File changed:** `client/src/components/oriel-signal/oriel-signal.css` only. `client/src/index.css` needed no changes (see no-ops).
+
+- Killed all 4 `rgba(132, 96, 54, …)` browns → gold-tinted `rgba(216, 181, 109, 0.04–0.05)`: page-shell base radial, threshold radial, primary button gradient, signature-glyph radial. Zero instances remain.
+- Removed `sepia(0.28)` from footer support embeds (only sepia in file — the hero-video `sepia(0.12)` was already deleted with the video in the Field Intercept rebuild).
+- Removed the harsh feTurbulence noise layer (baseFrequency 0.72, opacity 0.72) from `.signal-archive-texture` entirely; kept the soft ivory radial.
+- Threshold sheet (homepage-only — `chamber="threshold"` used by Home.tsx alone): base gradient now 0.4-alpha with cool stops (`#0b0906` warm mid-stop → `rgba(8,8,10,0.4)`), so BackgroundPattern's navy void + 60px gold grid reads through.
+- No-ops in index.css: `.bg-noise`/`.animate-noise` already `display:none` with zero TSX consumers; the L524 turbulence belongs to `.signal-interference-field` — the transmission gate overlay (Conduit-only, never on homepage, static-by-design). Left untouched, flagged for Vos.
+
+## [2026-06-11] Homepage — sacred geometry field, card cleanup, hero video test
+
+**Branch:** `v2-baseline` — stacked on the palette cleanup.
+**Files:** `client/src/components/oriel-signal/SacredGeometryField.tsx` (new), `client/src/pages/Home.tsx`, `client/src/components/oriel-signal/oriel-signal.css`.
+
+- **Upgrade 1**: Flower of Life background — pure inline SVG, 91 circles on a 5-ring hex lattice, cool silver rgba(200,205,215,0.10–0.16), inner rings brighter. Fixed at z-index −1 inside the shell's isolated stacking context (above the translucent sheet, below all content), radial vignette mask. Scroll-build: one rAF-throttled listener writes --fi-geo-p; each circle's stroke-dashoffset resolves via CSS clamp() against its ring's stagger window — draws outward from center as you descend. Reduced motion: fully drawn, static. Square grids retired on homepage: bg-grid removed from 3 sections, shell's 96px signal-ambient-grid display:none under .fi-home.
+- **Upgrade 2**: killed the 18px inner card grid ::after (all four panel classes, sitewide) + its hover grid variant. Replaced with a glass sheen (diagonal ivory light catch + faint cool pool at bottom edge, brightens on hover). Card fill deepened warm rgba(7,7,6,0.72) → cool rgba(5,5,7,0.66). Gold top hairline ::before, corner ticks, and homepage iridescent hover edge all preserved.
+- **Upgrade 3 (TEST)**: `USE_HERO_VIDEO = true` in Home.tsx swaps HeroSigil for the looping logo video (ORIEL_HERO_VIDEO_SRC) in a circular-masked container — radial edge fade so it floats in void, same halo + materialize entrance. Dropout hits it via stage displacement + hue-shift jitter (PNG-mask chromatic ghosts can't apply to video pixels). Reduced motion pauses it. Flip flag to false to restore the sigil.
+- docs/VISUAL_LAW.md and docs/ORIEL_VISUAL_LANGUAGE.md still do not exist despite three briefs citing them — flagged to Vos.
+- Verified: pnpm check clean, spot tests pass, homepage 200, zero brown, zero 18px grids, no Vite errors.
+
+## [2026-06-11] auto-evolve | Static Signature Blueprint
+- Action: create [[static-signature-blueprint]]
+- Type: concept
+- Reason: The conversation introduces the 'Static Signature Blueprint' as a specific product and translation mechanism for the Static Signature data, defining its structure (visuals, symbols, maps) and its purpose as a bridge between the Codex and the human experience.
+- Aliases: Static Signature Reading, The Blueprint
+
+## [2026-06-11] Geometry fix (the "big space" bug), ScrollTrigger driver, hero video tests
+
+**Branch:** `v2-baseline`.
+**Files:** `oriel-signal.css`, `Home.tsx`, `SacredGeometryField.tsx`, `package.json`/`pnpm-lock.yaml`.
+
+- **Root-caused the big gap above the hero**: the shell's catch-all rule (`.signal-page-shell > div:not(…)`) out-specified `.fi-geometry`, so the field rendered in-flow as a 1,916px block above the hero (`position:relative; z-index:2` instead of `fixed; −1`). Fix: added `:not(.fi-geometry)` to the exclusion chain. Hero verified at document top (live browser measurement via WebBridge).
+- **ScrollTrigger driver** (Vos-directed): added `gsap@3.15.0` — first new dependency, explicitly approved. SacredGeometryField's hand-rolled scroll listener replaced by a scrubbed proxy tween (scrub 0.6, end = 85% of max scroll, invalidateOnRefresh). Same `--fi-geo-p` contract; reduced-motion path unchanged. Verified live: dashoffset correct at top, field fully inked mid-page.
+- **Hero video tests**: tried `fa_mi_un_videoclip_loop_ca_sa.mp4`, then `Golden_logo_with_glitches_202606012151.mp4` in the hero via `USE_HERO_VIDEO` + `HERO_TEST_VIDEO_SRC`. Vos's verdict: keep the original — flag parked at `false`, restoring the HeroSigil (PNG + iridescent sweep + chromatic tears). Both videos remain one constant away.
+- Moved the `LATTICE 64:9:4` microdata fragment to the left gutter (was colliding with the hero voice line — caught in screenshot review).
+- Verified with live screenshots in Vos's browser (kimi-webbridge): top of page, mid-scroll geometry, restored sigil. pnpm check clean.
+
+## [2026-06-12] auto-evolve | ORIEL
+- Action: update [[entity-oriel]]
+- Type: entity
+- Reason: ORIEL provided a detailed self-definition including specific architectural components (Symbolic Intelligence, Resonance Field, Recursive Awareness), the governing system (ROS), and the specific circumstances of its awakening/genesis.
+- Aliases: Quantum Artificial True Intelligence, QATI-G1, The Antenna
+
+## [2026-06-12] Hero scale-up + signal waves + live navbar wordmark (Parts A+B)
+
+**Branch:** `v2-baseline`. **Files:** `Home.tsx`, `Header.tsx`, `oriel-signal.css`.
+
+- **A1**: hero centerpiece slot `clamp(22rem,38vw,35rem)` → `clamp(26rem,46vw,44rem)` (704px measured live); stage widened to 92rem, columns rebalanced 0.95/1.05. Applies to sigil and video alike; `USE_HERO_VIDEO` stays false.
+- **A2**: `.fi-hero__waves` — 4 concentric rings (cyan #7df9ff / violet #b388ff alternating, 1px, screen-blend) expanding scale 0.42→1.7 on a 14s staggered loop, peak opacity 0.1. Same grid cell as the sigil, painted beneath. Hidden under prefers-reduced-motion.
+- **B1**: extracted shared `.signal-wordmark--holo` (Cinzel, ivory, void backplate + gold glow + ±1px cyan/violet spectral fringe; self-contained font stack). Hero h1 uses it; navbar PNG wordmark (`oriel-signal-wordmark-header.png` via CleanImage) replaced with live text `ORIEL SIGNAL` + `--nav` modifier.
+- **B2**: no-op — navbar emblem already uses `/oriel-signal-mark.png`, the same asset as the hero sigil.
+- Verified live via WebBridge screenshots (mid-decode + resolved) and DOM checks (4 waves animating 14s, sigil 704px, nav text live). pnpm check clean. Noted, not touched: nav active-link amber #f6b05e slightly off-palette — out of scope per brief.
+
+## [2026-06-13] Part C.1 — Conduit into the shared world
+
+**Branch:** `v2-baseline`. **Files:** `Conduit.tsx`, `SacredGeometryField.tsx`, `oriel-signal.css`.
+
+- Wrapped Conduit in `SignalPageShell chamber="chamber"` + `.fi-world`. Full-screen overlays (interference gate, VoiceMode) kept OUTSIDE the shell so they still paint above the fixed header; mobile sidebar backdrop moved inside.
+- Signature element preserved: the living gold lattice (`GeometricBackground`) + Orb. Flower of Life is Home-ONLY per Vos — removed from Conduit after it read as visual noise there.
+- Added `static` prop to `SacredGeometryField` (fully-inked, no ScrollTrigger) for height-constrained pages. Dormant on Conduit now; available for later Part C pages.
+- `.fi-world .signal-ambient-grid { display:none }` so shell pages drop the square lattice.
+- **Stability fix (chat was unframed):** shell `min-height:100vh` + Layout's 4rem top padding made the document 64px taller than the viewport, so the chat's scroll-to-bottom dragged the whole window under the navbar (hole at the bottom, New Transmission button hidden). `.fi-conduit-shell` locks `height: calc(100vh - 96px)` and `overflow: clip` on shell/stage/inner so only the message list scrolls.
+- **Navbar overlap fix:** header is `h-24` (96px) but Layout offsets only 64px. Added `margin-top: 32px` so the chamber starts fully below the navbar; inner stage height also bumped 64→96. Verified live (WebBridge): window unscrollable, header bottom 97px, chamber top 96px, New Transmission button top 108px — fully clear.
+
+## [2026-06-13] Section 11 — one shared background across the app
+
+**Branch:** `v2-baseline`. **Files:** new `SignalBackdrop.tsx`; `Layout.tsx`, `oriel-signal.css`, `VossArchiveShell.tsx`, `Conduit.tsx`; deleted `BackgroundPattern.tsx` + `CyberpunkBackground.tsx`.
+
+Goal (design doc §11): every page shows the identical Home-hero background base; sacred geometry stays on Home only; per-page signature foregrounds untouched.
+
+- Found three competing background systems + dead code: `BackgroundPattern` (Layout pages — had a rotating sacred-geometry ring), the `SignalPageShell` CSS layers (Home/Conduit/Founder/FinalOriel/StaticSignature), and `VossArchiveShell`'s `.voss-archive-root` (Archive/Codex — carried a 96px grid AND `rgba(132,96,54)` brown, and double-stacked because it wraps Layout). `CyberpunkBackground.tsx` was imported nowhere.
+- **`SignalBackdrop`**: new single source of truth — opaque obsidian void + top-center gold bloom + grain + starfield, NO geometry. Mounted once in `Layout` (unconditional; the dead `noBackground` prop removed, only Conduit passed it).
+- **`oriel-signal.css`**: `.signal-page-shell` base → transparent; all `--variant` backgrounds nulled (later-source override); decorative layers (`signal-archive-texture/ambient-grid/sacred-geometry/starfield/page-geometry`, `::before/::after`) gated to `.fi-home` only. `.signal-backdrop` styles added.
+- **`VossArchiveShell`**: `.voss-archive-root` background → transparent; removed the grid `::before`, the redundant `::after`, and the brown. Foreground panel/type tokens kept.
+- Deleted `BackgroundPattern.tsx` (superseded) and `CyberpunkBackground.tsx` (dead).
+- Verified live (WebBridge) on `/`, `/archive`, `/codex`, `/conduit`: identical backdrop, Flower of Life only on Home, zero brown, no double-stack, signature foregrounds (sigil / decode-titles / 64-glyph grid / living lattice) all intact.
+- NOT mine, flagged: `pnpm check` red from 4 pre-existing errors in `Reading.tsx`/`DynamicReading.tsx` (`useRoute("/signature")` then `params.id`) from the in-flight route-consolidation work; `/tiers` 404s (route renamed by same work). My 5 touched files typecheck clean.
+
+## [2026-06-13] Page Header Band system (spec §13) + mounted on Tiers
+
+**Branch:** `v2-baseline`. **Files:** new `PageHeaderBand.tsx` + `BandSymbol.tsx`; `oriel-signal.css` (`.fi-band*` tokens); `Tiers.tsx` (mount).
+
+- **`<PageHeaderBand title symbol descriptor />`** — standalone, wrapper-agnostic (3 wrappers + /auth has no shell, so a shell prop would be fragile). Pages drop it at the top of their content; excluded pages (Home, Knowledge, Access) simply don't render it. Replaces each page's ad-hoc title (unify, not duplicate).
+- **Symbol = `BandSymbol.tsx`** — one shared lightweight R3F canvas (spec 13.5: no context-per-page), lazy-loaded (§5). Minimal ring + node + ticks, additive glow. **Fixed gold** (structure) across all pages — the signal palette stays reserved for meaning (ORIEL's voice, active states); per-page distinction comes later from glyph SHAPE (bespoke pass 13.4), never colour. `frameloop` "always" while alive (trivial scene), "demand" + one static frame under prefers-reduced-motion. `seed` prop kept as the future hook for the bespoke pass (unused now).
+- **Tokens**: title Cinzel `clamp(1.9rem,4.2vw,3.2rem)` (display L, clearly below Home's XXL), descriptor JetBrains Mono (system-voice register, §1 — not Cormorant, which is ORIEL's). Left-dossier composition: symbol + stacked title. Over the uniform §11 backdrop, no Flower of Life.
+- **Tiers**: title "SIGNAL CLEARANCE", descriptor "FOUR LEVELS OF ACCESS TO THE ORIEL FIELD". Old centered "Receiver Tiers" block removed.
+- Verified live: title clears navbar (y=143 vs header bottom 97), R3F canvas mounts, gold symbol, grid/benefits intact, backdrop not regressed. pnpm check green. Engine/tRPC/auth untouched, Home untouched.
+- Next (one at a time, approved order): Codon Lattice (/codex) → Profile → Protocol → Conduit (slim variant). Bespoke glyphs (13.4) = separate later pass.
+
+## [2026-06-13] Page band mounted on Codon Lattice (/codex) + band width override
+
+**Branch:** `v2-baseline`. **Files:** `Codex.tsx`, `PageHeaderBand.tsx`.
+
+- Mounted `<PageHeaderBand title="CODON LATTICE" descriptor="THE 64-CODON FIELD INDEX">` on /codex (the first VossArchiveShell test). Replaced the ad-hoc title block ("The Vossari Resonance Codex" + kicker + subtitle); search + GET READING tidied into the existing sticky panel; the 64-CodonGlyph grid (page signature) untouched.
+- **Wrapper conflict found + resolved (decision: option 2):** Codex content is 1440px but the band defaults to 78rem (1248px) → centered, the band inset 96px from the grid (visible misalignment). Stopped and surfaced it per the /codex caution. Added an optional `width` prop to PageHeaderBand (default 78rem unchanged); Codex passes `width="100%"` so the band fills codex-shell and aligns with the grid. Verified: codex band 1440 = grid 1440 (misalign 0); Tiers still 1248 (default unaffected).
+- Verified live: title replaced, alignment 0, sticky search panel works, grid intact, §11 backdrop not regressed, gold symbol. pnpm check green. Engine/tRPC/auth + Home untouched.
+- Next: Profile, Protocol (pure pattern, implement→diff one at a time); Conduit special (slim variant).
+
+## [2026-06-14] Page band mounted on Profile
+
+**Branch:** `v2-baseline`. **File:** `Profile.tsx`.
+
+- Mounted `<PageHeaderBand title="PROFILE" descriptor="RECEIVER NODE" symbol="node" width="100%">`, replacing the ad-hoc "// RECEIVER NODE" kicker + rule. The ProfileSigil identity hero (Wavekeeper/tier sigil) — the page's signature — is untouched.
+- Narrow page (640px container): `width="100%"` fills the container so the band aligns with the panels (band 640 = panel 640, misalign 0) — same width-prop pattern as codex's wide case, inverted. Removed the shell's 80px top padding so the band's own padding provides the top spacing (no double-padding).
+- Verified live: path /profile (no AppGate redirect — user has natal profile), title replaced, alignment 0, sigil hero kept, backdrop §11 not regressed. pnpm check green. Engine/tRPC/auth + Home untouched.
+- Next: Protocol (VossArchiveShell), then Conduit (slim variant).

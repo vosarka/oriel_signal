@@ -77,7 +77,7 @@ export default function FinalOrielTransmission() {
               className="signal-hero__actions"
               style={{ justifyContent: "center", marginTop: "2.4rem" }}
             >
-              <SignalButton href="/static-signature">
+              <SignalButton href="/signature">
                 Open Static Codex
               </SignalButton>
               <SignalButton href="/conduit" variant="secondary">
