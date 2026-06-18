@@ -871,9 +871,23 @@ function DailyAlignmentPanel({
 }) {
   const state = coherenceState(currentResonance?.carrierlock?.coherenceScore);
   const activePattern = currentResonance?.activePattern;
+  const carrierlock = currentResonance?.carrierlock;
+  const evidence = Array.isArray(currentResonance?.evidence)
+    ? currentResonance.evidence.slice(0, 3)
+    : [];
+  const statusLabel = currentResonance?.status
+    ? String(currentResonance.status).replaceAll("_", " ").toUpperCase()
+    : "FIELD AWAITING DATA";
   const activeLabel = activePattern
     ? `${activePattern.codon256Id || "RC—"} · SLI ${activePattern.sli ?? "—"}`
     : "Awaiting Signal Check";
+  const carrierlockStress = carrierlock
+    ? [
+        `MENTAL ${carrierlock.mentalNoise ?? "—"}`,
+        `BODY ${carrierlock.bodyTension ?? "—"}`,
+        `EMOTIONAL ${carrierlock.emotionalTurbulence ?? "—"}`,
+      ].join(" · ")
+    : "No Carrierlock diagnostic stored";
 
   return (
     <ChamberPanel eyebrow="CURRENT RESONANCE" title="Today's Alignment" accent>
@@ -900,12 +914,24 @@ function DailyAlignmentPanel({
               }
               accent
             />
+            <MetricTile label="FIELD STATUS" value={statusLabel} />
             <MetricTile label="ACTIVE PATTERN" value={activeLabel} />
             <MetricTile
               label="STATIC POSITION"
               value={
                 currentResonance?.primeStackPosition?.label ||
                 "Prime Stack position unresolved"
+              }
+            />
+            <MetricTile
+              label="CARRIERLOCK TRACE"
+              value={carrierlockStress}
+              note={
+                carrierlock?.breathCompletion === true
+                  ? "Breath completion recorded"
+                  : carrierlock?.breathCompletion === false
+                    ? "Breath completion not recorded"
+                    : "Breath state unavailable"
               }
             />
           </div>
@@ -922,6 +948,112 @@ function DailyAlignmentPanel({
           >
             {currentResonance?.nextAction || state.copy}
           </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 16px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(246,176,94,0.035)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.amber,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                MICRO-CORRECTION
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.75,
+                }}
+              >
+                {currentResonance?.microCorrection ||
+                  "Run a fresh Signal Check to resolve the next precise adjustment."}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "14px 16px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.txtD,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                FALSIFIER
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.75,
+                }}
+              >
+                {currentResonance?.falsifier ||
+                  "No falsifier is stored for the current field state."}
+              </div>
+            </div>
+          </div>
+          {evidence.length > 0 && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "12px 14px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(255,255,255,0.01)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 8,
+                  color: C.txtD,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                EVIDENCE TRACE
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {evidence.map((item: string, index: number) => (
+                  <div
+                    key={`${item}-${index}`}
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 9,
+                      color: C.txtD,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {index + 1}. {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ marginTop: 14 }}>
             <Link href="/signal/check">
               <span
