@@ -1319,6 +1319,13 @@ export default function Profile() {
     ? (staticProfileQuery.data.primeStack as PrimeStackEntry[])
     : [];
   const blueprintPrime = blueprintPrimeStack[0];
+  const currentAlignmentState = coherenceState(
+    currentResonanceQuery.data?.carrierlock?.coherenceScore
+  );
+  const currentCoherenceScore =
+    typeof currentResonanceQuery.data?.carrierlock?.coherenceScore === "number"
+      ? currentResonanceQuery.data.carrierlock.coherenceScore
+      : null;
 
   const handleCopy = () => {
     try {
@@ -1429,7 +1436,7 @@ export default function Profile() {
               gap: 1,
             }}
           >
-            <Section title="USER CREDENTIALS">
+            <Section title="RECEIVER LEDGER">
               <Field label="USERNAME" value={user.name || "UNKNOWN"} accent />
               <Field
                 label="EMAIL ADDRESS"
@@ -1492,8 +1499,62 @@ export default function Profile() {
               <Field label="SYSTEM ID" value={`#${user.id}`} />
             </Section>
 
+            <Section title="SIGNAL LEDGER" accentBorder>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <MetricTile
+                  label="LUMENS"
+                  value={lumens.toLocaleString()}
+                  note="Symbolic participation trace only. No tiers, no locks, no feature gates."
+                  accent
+                />
+                <MetricTile
+                  label="READINGS ARCHIVED"
+                  value={readingCount.toLocaleString()}
+                  note="Stored dynamic/static reading activity that contributes to the symbolic trace."
+                />
+                <MetricTile
+                  label="STATIC SIGNATURE"
+                  value={staticProfileQuery.data ? "ANCHORED" : "AWAITING"}
+                  note="The immutable receiver blueprint used by the Profile chamber."
+                />
+                <MetricTile
+                  label="CURRENT COHERENCE"
+                  value={
+                    currentCoherenceScore === null
+                      ? currentAlignmentState.label
+                      : `${currentCoherenceScore}/100 · ${currentAlignmentState.label}`
+                  }
+                  note="Pulled from Current Resonance / Carrierlock when available."
+                  accent={currentAlignmentState.label === "ALIGNED"}
+                />
+              </div>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  border: `1px solid ${C.border}`,
+                  background: "rgba(255,255,255,0.015)",
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.8,
+                }}
+              >
+                Lumens are restored here as a future-ready signal ledger, not as
+                an economy, tier, or access mechanism. If a Lumens economy is
+                designed later, this block can become its transparent archive
+                surface without changing Profile access.
+              </div>
+            </Section>
+
             <div id="blueprint">
-              <Section title="CANONICAL STATIC SIGNATURE" accentBorder>
+              <Section title="STATIC SIGNATURE ARCHIVE" accentBorder>
                 {staticProfileQuery.isLoading ? (
                   <div
                     style={{
@@ -1668,7 +1729,7 @@ export default function Profile() {
               </Section>
             </div>
 
-            <Section title="ORIEL HISTORY">
+            <Section title="ORIEL MEMORY">
               <MemoryConsentTray
                 pendingCandidates={pendingMemoryQuery.data ?? []}
                 acceptedMemories={acceptedMemoryQuery.data ?? []}
@@ -1684,7 +1745,7 @@ export default function Profile() {
               />
             </Section>
 
-            <Section title="NODE SETTINGS">
+            <Section title="NODE OPERATIONS">
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
               >
@@ -1735,7 +1796,7 @@ export default function Profile() {
             </Section>
 
             {/* Support CTA */}
-            <Section title="SUPPORT THE SIGNAL">
+            <Section title="SIGNAL SUPPORT">
               <div style={{ marginBottom: 20 }}>
                 <p
                   style={{
