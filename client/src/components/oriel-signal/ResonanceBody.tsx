@@ -99,6 +99,7 @@ export default function ResonanceBody({
   const [selected, setSelected] = useState<string | null>(null);
 
   const dataById = new Map((centers ?? []).map(c => [c.id, c]));
+  const hasRealCenterData = Boolean(centers?.length);
   const defined =
     centers && centers.length
       ? new Set(centers.filter(c => c.defined).map(c => c.id))
@@ -109,6 +110,8 @@ export default function ResonanceBody({
   selectedRef.current = selected;
   const definedRef = useRef(defined);
   definedRef.current = defined;
+  const hasRealCenterDataRef = useRef(hasRealCenterData);
+  hasRealCenterDataRef.current = hasRealCenterData;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -225,9 +228,7 @@ export default function ResonanceBody({
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
-        ctx.strokeStyle = lit
-          ? `rgba(${GOLD}, 0.6)`
-          : `rgba(${GOLD}, 0.12)`;
+        ctx.strokeStyle = lit ? `rgba(${GOLD}, 0.6)` : `rgba(${GOLD}, 0.12)`;
         ctx.lineWidth = lit ? 1.6 : 0.8;
         ctx.stroke();
       }
@@ -281,7 +282,7 @@ export default function ResonanceBody({
       ctx.lineTo(cx, cy);
       ctx.stroke();
 
-      // ── HUD readouts (decorative for now) ──
+      // ── HUD readouts: only signature-derived or explicitly scaffolded values ──
       ctx.globalCompositeOperation = "source-over";
       const small = "9px 'IBM Plex Mono', ui-monospace, monospace";
       const mono = "11px 'IBM Plex Mono', ui-monospace, monospace";
@@ -302,12 +303,26 @@ export default function ResonanceBody({
       };
       const lx = W * 0.06;
       const rx = W * 0.94;
-      drawStat(lx, H * 0.22, "SIGNAL INTEGRITY", "98.7%", "left");
-      drawStat(lx, H * 0.4, "RESO. FREQUENCY", "741.33 THz", "left");
-      drawStat(lx, H * 0.58, "DEFINED CENTERS", `${defined.size} / 9`, "left");
-      drawStat(rx, H * 0.22, "RECEPTOR STATUS", "ACTIVE", "right");
-      drawStat(rx, H * 0.4, "ORIEL ALIGNMENT", "93.2%", "right");
-      drawStat(rx, H * 0.58, "CODEX LINK", "ESTABLISHED", "right");
+      const definedCount = defined.size;
+      const openCount = Math.max(0, Object.keys(CENTERS).length - definedCount);
+      const activeLinks = CHANNELS.filter(
+        ([a, b]) => defined.has(a) && defined.has(b)
+      ).length;
+      const source = hasRealCenterDataRef.current
+        ? "STATIC SIGNATURE"
+        : "DEMO FIELD";
+      drawStat(lx, H * 0.22, "FIELD SOURCE", source, "left");
+      drawStat(lx, H * 0.4, "CENTER MAP", "9 CENTERS", "left");
+      drawStat(lx, H * 0.58, "DEFINED CENTERS", `${definedCount} / 9`, "left");
+      drawStat(rx, H * 0.22, "OPEN CENTERS", `${openCount} / 9`, "right");
+      drawStat(
+        rx,
+        H * 0.4,
+        "RESONANCE LINKS",
+        `${activeLinks} / ${CHANNELS.length}`,
+        "right"
+      );
+      drawStat(rx, H * 0.58, "INSPECT MODE", "CLICK CENTER", "right");
 
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', ui-monospace, monospace";
@@ -363,7 +378,10 @@ export default function ResonanceBody({
       onClick={e => setSelected(centerAt(e.clientX, e.clientY))}
       onPointerMove={e => {
         const c = canvasRef.current;
-        if (c) c.style.cursor = centerAt(e.clientX, e.clientY) ? "pointer" : "default";
+        if (c)
+          c.style.cursor = centerAt(e.clientX, e.clientY)
+            ? "pointer"
+            : "default";
       }}
     >
       <canvas ref={canvasRef} style={{ display: "block" }} />
