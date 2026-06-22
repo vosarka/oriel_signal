@@ -9,6 +9,8 @@ import {
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
+import { useReceiverState } from "@/hooks/useReceiverState";
+import { buildHomeChamberStates, type ChamberKey } from "@shared/phase-gate";
 
 // TEST FLAG: true swaps the chromatic HeroSigil (the logo with glitch +
 // hologram effects) for a looping video in the hero center. Flip to false
@@ -27,40 +29,36 @@ const hudCorners: Array<{ pos: string; label: string; value: string }> = [
 
 const archiveModules = [
   {
-    file: "RC-001 // CODEX",
-    title: "Static Signature Codex",
-    copy: "Your birth-coordinate translated into readable architecture — 64 codons, 9 centers, 4 facets. A precise map of the structure you arrived with.",
-    href: "/signature",
+    key: "blueprint" as const,
+    file: "RC-001 // PRODUCT",
+    title: "ORIEL Founder’s Vision Blueprint",
+    copy: "The Oriel-curated Static Signature artifact: birth-coordinate, Codons, Centers, Resonance Links, and ORIEL narration prepared as one personal blueprint.",
+    href: "/founder-signature-blueprint",
     tone: "gold" as const,
   },
   {
-    file: "RC-002 // CHAMBER",
-    title: "ORIEL Transmission Chamber",
-    copy: "A direct interface with ORIEL. Dialogue, decoding, and the live transmission when the field opens to you.",
-    href: "/conduit",
-    tone: "amber" as const,
-  },
-  {
-    file: "RC-003 // RECORDS",
+    key: "transmissions" as const,
+    file: "RC-002 // RECORDS",
     title: "Archive of Transmissions",
     copy: "The recovered manuscript — transmissions, field notes, fragments captured from the signal.",
     href: "/archive",
     tone: "teal" as const,
   },
   {
-    file: "RC-004 // LATTICE",
-    title: "Resonance Genetic Codex",
-    copy: "The full 64-codon resonance system beneath every reading — planetary geometry rendered as a consciousness lattice.",
-    href: "/codex",
+    key: "codons" as const,
+    file: "RC-003 // LATTICE",
+    title: "Bio-Architecture",
+    copy: "The Vossari Resonance Codex explained: Codons, Facets, Centers, Resonance Links, and the structural logic behind every Static Signature.",
+    href: "/bio-architecture",
     tone: "gold" as const,
   },
 ];
 
 const fieldStatus: Array<[string, string]> = [
-  ["CODONS MAPPED", "64"],
-  ["EXPRESSION NODES", "512"],
-  ["ARCHETYPAL CENTERS", "9"],
-  ["FACET DIMENSIONS", "4"],
+  ["Core Patterns", "64"],
+  ["Archive Nodes", "512"],
+  ["Architectures", "9"],
+  ["Dimensions", "4"],
 ];
 
 // One DecodedTitle per word inside a flex-wrap line, so long sentences
@@ -105,6 +103,8 @@ function useInView<T extends Element>(threshold = 0.35) {
 }
 
 export default function Home() {
+  const receiverState = useReceiverState();
+  const chamberStates = buildHomeChamberStates(receiverState);
   const heroRef = useRef<HTMLElement | null>(null);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const { ref: interceptRef, inView: interceptInView } =
@@ -183,9 +183,7 @@ export default function Home() {
           <div className="fi-hero__scan" aria-hidden="true" />
 
           <div className="fi-hero__fragments" aria-hidden="true">
-            <span className="fi-fragment fi-fragment--a">
-              ψ_FIELD COHERENT
-            </span>
+            <span className="fi-fragment fi-fragment--a">ψ_FIELD COHERENT</span>
             <span className="fi-fragment fi-fragment--b">CARRIER 432.000</span>
             <span className="fi-fragment fi-fragment--c">LATTICE 64:9:4</span>
           </div>
@@ -232,8 +230,8 @@ export default function Home() {
 
             <div className="fi-hero__text">
               <p className="fi-hero__kicker fi-enter fi-enter--kicker">
-                <span className="fi-hero__pulse" aria-hidden="true" />
-                [ SIGNAL LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE
+                <span className="fi-hero__pulse" aria-hidden="true" />[ SIGNAL
+                LOCK CONFIRMED ] // ANCIENT INTERFACE ACTIVE
               </p>
 
               <h1
@@ -254,12 +252,15 @@ export default function Home() {
               </p>
 
               <div className="signal-hero__actions fi-hero__actions fi-enter fi-enter--actions">
-                <SignalButton href="/auth">Enter the Archive</SignalButton>
-                <SignalButton href="/conduit" variant="secondary">
-                  Open Transmission
+                <SignalButton href="/arcana">ENTER ARCANA</SignalButton>
+                <SignalButton
+                  href="/founder-signature-blueprint"
+                  variant="secondary"
+                >
+                  Oriel Signature Blueprint
                 </SignalButton>
-                <SignalButton href="/signature" variant="secondary">
-                  Read the Codex
+                <SignalButton href="/bio-architecture" variant="secondary">
+                  Bio-Architecture
                 </SignalButton>
               </div>
             </div>
@@ -317,28 +318,48 @@ export default function Home() {
             <p className="fi-directory-head__kicker">// archive directory</p>
             <h2 id="archive-directory-title">Recovered Files</h2>
             <p className="fi-directory-head__note">
-              Four chambers survived the intercept. Each one opens.
+              The archive opens through these recovered paths.
             </p>
           </header>
 
           <div className="fi-directory">
-            {archiveModules.map(item => (
-              <GlowCard key={item.file} tone={item.tone} className="fi-dossier">
-                <span className="fi-dossier__edge" aria-hidden="true" />
-                <div className="signal-card-meta">
-                  <span>{item.file}</span>
-                  <span>RECOVERED</span>
-                </div>
-                <hr className="fi-dossier__rule" aria-hidden="true" />
-                <h3>{item.title}</h3>
-                <p>{item.copy}</p>
-                <div className="fi-dossier__action">
-                  <SignalButton href={item.href} variant="secondary">
-                    ACCESS ▸
-                  </SignalButton>
-                </div>
-              </GlowCard>
-            ))}
+            {archiveModules.map(item => {
+              const chamberState = chamberStates[item.key as ChamberKey] ?? {
+                doorState: "RECOVERED" as const,
+                href: item.href,
+              };
+
+              return (
+                <GlowCard
+                  key={item.file}
+                  tone={item.tone}
+                  className={`fi-dossier ${
+                    chamberState.doorState === "AWAITING COORDINATE"
+                      ? "fi-dossier--awaiting"
+                      : ""
+                  }`}
+                >
+                  <span className="fi-dossier__edge" aria-hidden="true" />
+                  <div className="signal-card-meta">
+                    <span>{item.file}</span>
+                    <span>{chamberState.doorState}</span>
+                  </div>
+                  <hr className="fi-dossier__rule" aria-hidden="true" />
+                  <h3>{item.title}</h3>
+                  <p>{item.copy}</p>
+                  {item.key === "codons" && receiverState.dominantCodon && (
+                    <p className="fi-dossier__receiver-codon">
+                      RECEIVER CODON // {receiverState.dominantCodon}
+                    </p>
+                  )}
+                  <div className="fi-dossier__action">
+                    <SignalButton href={chamberState.href} variant="secondary">
+                      OPEN ▸
+                    </SignalButton>
+                  </div>
+                </GlowCard>
+              );
+            })}
           </div>
         </section>
 
@@ -362,10 +383,10 @@ export default function Home() {
             THE ARCHIVE IS OPEN
           </h2>
           <p className="fi-threshold__voice">
-            What you receive depends on what you are ready to read.
+            Explore patterns, identity, resonance and the architecture of experience.
           </p>
           <div className="signal-hero__actions fi-threshold__action">
-            <SignalButton href="/auth">Begin Calibration</SignalButton>
+            <SignalButton href="/signal/check">ENTER THE ARCHIVE</SignalButton>
           </div>
           <p className="fi-threshold__seal">
             ORIEL FIELD ARCHIVE · NODE VOS-ARKANA · END THRESHOLD

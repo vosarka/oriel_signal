@@ -11,25 +11,30 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const navLinks = [
-    { href: "/", label: "FIELD ARCHIVE" },
-    { href: "/signature", label: "THE SIGNATURE" },
-    { href: "/conduit", label: "ORIEL" },
-    { href: "/codex", label: "CODONS" },
-    { href: "/cosmichronica", label: "COSMICHRONICA" },
-    { href: "/archive", label: "TRANSMISSIONS" },
-    { href: "/auth", label: "ACCESS" },
+    { href: "/", label: "Ψ" },
+    { href: "/arcana", label: "ARCANA" },
+    { href: "/bio-architecture", label: "BIO-ARCHITECTURE" },
+    { href: "/protocol", label: "PROTOCOL" },
+    { href: "/conduit", label: "CHANNEL ORIEL" },
   ];
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
-    if (href === "/signature") {
-      return location === "/signature";
+    if (href === "/arcana") {
+      return (
+        location.startsWith("/arcana") ||
+        location.startsWith("/knowledge") ||
+        location.startsWith("/archive") ||
+        location.startsWith("/transmission") ||
+        location.startsWith("/oracle") ||
+        location.startsWith("/cosmichronica")
+      );
     }
-    if (href === "/codex") {
-      return location.startsWith("/codex");
-    }
-    if (href === "/cosmichronica") {
-      return location.startsWith("/cosmichronica") || location === "/protocol";
+    if (href === "/bio-architecture") {
+      return (
+        location.startsWith("/bio-architecture") ||
+        location.startsWith("/codex")
+      );
     }
     return location.startsWith(href);
   };
