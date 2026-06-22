@@ -733,9 +733,58 @@ function MandalaWheel({
   );
 }
 
+function signatureDiagnosticsEnabled() {
+  return typeof window !== "undefined" && import.meta.env.DEV;
+}
+
+function describeSignatureDiagnosticTarget(target: EventTarget | null) {
+  if (typeof Element === "undefined" || !(target instanceof Element)) {
+    return String(target);
+  }
+
+  const tag = target.tagName.toLowerCase();
+  const id = target.id ? `#${target.id}` : "";
+  const classes =
+    typeof target.className === "string"
+      ? target.className
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 4)
+          .map(className => `.${className}`)
+          .join("")
+      : "";
+  const text =
+    target.textContent?.replace(/\s+/g, " ").trim().slice(0, 80) || "";
+
+  return `${tag}${id}${classes}${text ? ` "${text}"` : ""}`;
+}
+
+function getSignatureScrollSnapshot() {
+  if (typeof document === "undefined") return {};
+
+  return {
+    windowY: window.scrollY,
+    htmlTop: document.documentElement.scrollTop,
+    bodyTop: document.body.scrollTop,
+    activeElement: describeSignatureDiagnosticTarget(document.activeElement),
+  };
+}
+
+function logSignatureDiagnostic(
+  label: string,
+  payload: Record<string, unknown>
+) {
+  if (!signatureDiagnosticsEnabled()) return;
+  console.info("[Signature diagnostic]", label, {
+    ...payload,
+    scroll: getSignatureScrollSnapshot(),
+  });
+}
+
 export default function StaticReading() {
   const { user, isAuthenticated, loading } = useAuth();
   const [selectedCodon, setSelectedCodon] = useState<number | null>(null);
+  const previousSelectedCodonRef = useRef<number | null>(null);
 
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -821,9 +870,55 @@ export default function StaticReading() {
 
   useEffect(() => {
     if (!selectedCodon && primeStack[0]?.codon) {
+      logSignatureDiagnostic("auto-select first prime-stack codon", {
+        codon: primeStack[0].codon,
+        position: primeStack[0].position,
+        primeStackCount: primeStack.length,
+      });
       setSelectedCodon(primeStack[0].codon);
     }
   }, [primeStack, selectedCodon]);
+
+  useEffect(() => {
+    const previous = previousSelectedCodonRef.current;
+    if (previous === selectedCodon) return;
+
+    logSignatureDiagnostic("selectedCodon changed", {
+      previous,
+      current: selectedCodon,
+      primeStackCount: primeStack.length,
+    });
+    previousSelectedCodonRef.current = selectedCodon;
+  }, [selectedCodon, primeStack.length]);
+
+  useEffect(() => {
+    if (!signatureDiagnosticsEnabled()) return;
+
+    const logEvent = (event: Event) => {
+      logSignatureDiagnostic(event.type, {
+        target: describeSignatureDiagnosticTarget(event.target),
+        selectedCodon,
+      });
+    };
+
+    let lastScrollLog = 0;
+    const logScroll = () => {
+      const now = Date.now();
+      if (now - lastScrollLog < 250) return;
+      lastScrollLog = now;
+      logSignatureDiagnostic("window scroll", { selectedCodon });
+    };
+
+    document.addEventListener("click", logEvent, true);
+    document.addEventListener("focusin", logEvent, true);
+    window.addEventListener("scroll", logScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener("click", logEvent, true);
+      document.removeEventListener("focusin", logEvent, true);
+      window.removeEventListener("scroll", logScroll);
+    };
+  }, [selectedCodon]);
 
   const selectedRootCodon = selectedCodon
     ? rootCodonMap.get(selectedCodon)
@@ -1142,7 +1237,7 @@ export default function StaticReading() {
                   PROFILE
                 </span>
               </Link>
-              <Link href="/signature">
+              <Link href="/signal/check">
                 <span
                   style={{
                     display: "inline-flex",
@@ -1157,7 +1252,7 @@ export default function StaticReading() {
                     cursor: "pointer",
                   }}
                 >
-                  RUN CALIBRATION
+                  RUN SIGNAL CHECK
                 </span>
               </Link>
               <Link href="/signature">

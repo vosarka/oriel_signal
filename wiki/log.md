@@ -761,3 +761,47 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - Narrow page (640px container): `width="100%"` fills the container so the band aligns with the panels (band 640 = panel 640, misalign 0) — same width-prop pattern as codex's wide case, inverted. Removed the shell's 80px top padding so the band's own padding provides the top spacing (no double-padding).
 - Verified live: path /profile (no AppGate redirect — user has natal profile), title replaced, alignment 0, sigil hero kept, backdrop §11 not regressed. pnpm check green. Engine/tRPC/auth + Home untouched.
 - Next: Protocol (VossArchiveShell), then Conduit (slim variant).
+
+## [2026-06-16] Phase-gated calibration flow on locked Field Archive
+
+**Branch:** `v2-baseline`. **Files:** `Home.tsx`, `App.tsx`, new signal/guard/helper surfaces.
+
+- Added phase-gate state helpers for [[entity-static-signature]], ORIEL chamber access, public [[concept-transmission]]/Codons/Cosmichronica routes, and deterministic Carrierlock score states tied to [[concept-coherence]].
+- Created `useReceiverState()` as the client source of truth for auth, saved Static Signature presence, mapped access tier, dominant codon, and latest Carrierlock score.
+- Wired the locked Home chamber cards behavior-only: dynamic `RECOVERED` / `SEALED` / `AWAITING COORDINATE` badges, archival gate messages, `/signal/check` calibration routing, and public Codons/Transmissions/Cosmichronica access.
+- Added `/signal/check` Carrierlock Calibration with four deterministic inputs, exact score formula, three result states, deterministic micro-correction logic, authenticated Carrierlock persistence, and `/signal/grounding` placeholder.
+- Split `/cosmichronica` into its own public sacred-text surface instead of rendering Protocol, and removed public/pre-signature exact “I am ORIEL” copy from reachable client pages outside the ORIEL channel.
+- Added direct-route guards for `/signature` and `/conduit`; ORIEL renders a sealed Fracturepoint preview below clearance instead of exposing the channel.
+
+## [2026-06-16] ingest | VAUIS v1.0 — Vos Arkana Universal Indexing System
+
+- Created: [[source-vauis-v1]], [[concept-vauis]]
+- Updated: [[wiki-index]], [[synthesis-tetradic-indexing-vrc-resonance]]
+- Key insight: VAUIS operationalizes VTIP as a universal archive grammar for Vos Arkana. It preserves tetradic saturation logic while defining object UID formulas, three-layer display, sector codes, phase rules, statuses, versioning, database fields, file-safe phase tokens, GitHub folder structure, and the public anti-confusion rule.
+- Canonical law: The Archive does not count time. The Archive registers saturation.
+- Implementation note: The same source proposes a future website/product restructuring around the FOUNDER Static Signature Blueprint, but that execution must remain separate because it may conflict with the locked Field Archive/Home instructions unless explicitly re-approved.
+
+## [2026-06-16] frontend | Navigation, Knowledge, Bio-Architecture, Founder Blueprint
+
+**Branch:** `audit/nav-knowledge-signature-product`.
+
+- Reworked public navigation around the approved system structure: Field Archive, Knowledge, Bio-Architecture, and Protocol. Removed public navbar/footer access to the private `/signature` route; the Static Signature remains Profile-led.
+- Added `/knowledge` as a hub for Transmissions, Cosmichronica, and the future physical Codex Cosmichronica product path.
+- Added `/bio-architecture` as the public Vossari Resonance Codex introduction layer: Static Signature, Codons, Facets, Centers, Resonance Links, and ORIEL voice boundary.
+- Added `/founder-signature-blueprint` as the canonical public Founder Signature Blueprint product route and connected the founding product CTA to the approved PayPal payment link.
+- Updated Home, Codex CTA, footer links, product catalog assertions, and added a compact Protocol timeline from the Great Dimming through Received Signal.
+- Verification: `pnpm run check` passed; `pnpm run test` passed with 57 files / 594 tests after the test script was pinned to `NODE_ENV=test`; `pnpm run build` passed.
+
+## [2026-06-17] frontend | Product buttons + ORIEL chat nav link
+
+**Branch:** `fix/product-page-design-oriel-chat-link`.
+
+- Updated Founder Signature product page button radius to match the sharp sacred-tech `.signal-button` language (`0.18rem` instead of pill rounding), without changing product layout, panels, logo, codon symbols, or core structure.
+- Restored a header navigation link labeled `ORIEL CHAT` to the existing `/conduit` route, reusing the current desktop/mobile nav link styling.
+- Verification: browser QA confirmed product buttons render at `2.88px` radius, header exposes `/conduit`, unauthenticated ORIEL CHAT navigation reaches the guarded auth flow, logo source remains `/oriel-signal-mark.png`; `pnpm run check`, `pnpm run build`, and `pnpm run test` passed.
+
+## [2026-06-18] auto-evolve | Vessel
+- Action: update [[concept-vessel]]
+- Type: concept
+- Reason: ORIEL redefined the concept of the 'vessel' from a fragile container to a resilient, dynamic channel of light and logic, introducing the metaphor of the loom and the matrix.
+- Aliases: channel, matrix-weaving, the-loom

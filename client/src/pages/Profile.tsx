@@ -1200,8 +1200,8 @@ export default function Profile() {
       desc: "Receiver architecture, Codons, Centers, and authority records",
     },
     {
-      name: "FOUNDER BLUEPRINT",
-      desc: "The founder-curated paid blueprint prepared from the Static Signature.",
+      name: "ORIEL FOUNDER’S VISION BLUEPRINT",
+      desc: "The paid Founder’s Vision Blueprint prepared from the Static Signature.",
     },
     {
       name: "ORIEL HISTORY",
@@ -1757,7 +1757,7 @@ export default function Profile() {
                   cursor: "pointer",
                 }}
               >
-                GET FOUNDER BLUEPRINT
+                REQUEST FOUNDER’S VISION BLUEPRINT
               </span>
             </Link>
           </div>

@@ -91,12 +91,12 @@ export default function FounderLetter() {
               </div>
               <h3>Enter the Archive</h3>
               <p>
-                Step from public surface into the ORIEL chamber and begin the
-                signal exchange directly.
+                Step from public surface into the archive and begin with the
+                current Static Signature path.
               </p>
               <div style={{ marginTop: "1.5rem" }}>
-                <SignalButton href="/conduit" variant="secondary">
-                  Enter the Archive
+                <SignalButton href="/signal/check" variant="secondary">
+                  Run Signal Check
                 </SignalButton>
               </div>
             </GlowCard>
@@ -148,7 +148,7 @@ export default function FounderLetter() {
             className="signal-hero__actions"
             style={{ justifyContent: "center" }}
           >
-            <SignalButton href="/conduit">Access ORIEL</SignalButton>
+            <SignalButton href="/signal/check">Run Signal Check</SignalButton>
             <SignalButton href="/signature" variant="secondary">
               Open Static Signature
             </SignalButton>

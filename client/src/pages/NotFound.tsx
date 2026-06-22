@@ -72,7 +72,7 @@ export default function NotFound() {
           marginBottom: 12,
         }}
       >
-        Node Not Found
+        Signal Lost
       </h1>
 
       <p
@@ -85,9 +85,7 @@ export default function NotFound() {
           marginBottom: 40,
         }}
       >
-        The signal path you requested does not exist
-        <br />
-        or has been dissolved into the field.
+        Signal lost. The transmission at this frequency does not exist.
       </p>
 
       <div

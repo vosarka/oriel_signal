@@ -10,7 +10,7 @@
     "check": "tsc --noEmit",
     "sync:oriel-grand-prompt": "tsx server/scripts/sync-oriel-grand-prompt.ts",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "cross-env NODE_ENV=test vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

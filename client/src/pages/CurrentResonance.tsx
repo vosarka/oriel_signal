@@ -227,7 +227,7 @@ function MissingState({
   const links =
     status === "missing_static_profile"
       ? [{ href: "/complete-profile", label: "Complete profile" }]
-      : [{ href: "/signature", label: "Run calibration" }];
+      : [{ href: "/signal/check", label: "Run signal check" }];
 
   return (
     <div

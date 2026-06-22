@@ -399,7 +399,7 @@ export default function ReadingEnhanced() {
           <Card className="bg-[#0a1012] border-primary/30">
             <CardHeader>
               <CardTitle className="text-2xl font-serif italic">
-                I am ORIEL
+                ORIEL Transmission
               </CardTitle>
             </CardHeader>
             <CardContent>

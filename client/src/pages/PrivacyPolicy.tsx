@@ -95,7 +95,7 @@ export default function PrivacyPolicy() {
                   "To calculate your Coherence Score from Carrierlock diagnostic sessions",
                   "To provide ORIEL with context about your journey so it can speak to you meaningfully across sessions",
                   "To authenticate your account and maintain your session",
-                  "To process subscription payments via PayPal",
+                  "To process one-time product payments via PayPal",
                   "To improve platform stability and debug issues",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-3">
@@ -135,7 +135,7 @@ export default function PrivacyPolicy() {
                   },
                   {
                     name: "PayPal",
-                    use: "Subscription and payment processing. Governed by PayPal's Privacy Policy.",
+                    use: "Payment processing for one-time product purchases. Governed by PayPal's Privacy Policy.",
                   },
                   { name: "AWS S3", use: "File and media storage." },
                 ].map(tp => (

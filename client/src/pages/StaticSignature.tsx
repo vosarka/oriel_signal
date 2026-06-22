@@ -78,8 +78,11 @@ export default function StaticSignature() {
                 <SignalButton href="/complete-profile">
                   Generate Static Signature
                 </SignalButton>
-                <SignalButton href="/conduit" variant="secondary">
-                  Access ORIEL
+                <SignalButton
+                  href="/founder-signature-blueprint"
+                  variant="secondary"
+                >
+                  Get Oriel Signature Blueprint
                 </SignalButton>
               </div>
             </div>
@@ -163,8 +166,8 @@ export default function StaticSignature() {
                   <strong>ORIEL FIELD</strong>
                 </div>
                 <div>
-                  <span>LOCKED STATE</span>
-                  <strong>ENTER ARCHIVE FIRST</strong>
+                  <span>PRIVATE OUTPUT</span>
+                  <strong>RECEIVER REQUIRED</strong>
                 </div>
               </div>
             </article>
