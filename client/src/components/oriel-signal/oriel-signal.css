@@ -468,7 +468,9 @@
 .signal-page-shell
   > div:not(.signal-archive-texture):not(.signal-ambient-grid):not(
     .signal-sacred-geometry
-  ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry) {
+  ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry):not(
+    .cz-spiral-layer
+  ):not(.cz-story):not(.cz-memory) {
   position: relative;
   z-index: 2;
 }

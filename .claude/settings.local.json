@@ -107,7 +107,17 @@
       "Bash(sed -n '255,260p' client/src/index.css)",
       "Bash(git rm *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('nav:', d.get\\('data',{}\\).get\\('success'\\)\\)\")",
-      "Bash(npx skills *)"
+      "Bash(npx skills *)",
+      "Bash(ls -la .design-sync/)",
+      "Bash(ls -la design-sync.config.json)",
+      "Bash(ls package.json client/package.json)",
+      "Bash(ls client/src/)",
+      "Bash(cat .nvmrc)",
+      "Read(//home/vos/.claude/skills/**)",
+      "Read(//home/vos/.claude/plugins/**)",
+      "Bash(grep -iA30 \"install\")",
+      "Bash(echo \"=== TSC EXIT: $? ===\")",
+      "Bash(npm i *)"
     ]
   },
   "prefersReducedMotion": false

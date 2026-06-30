@@ -49,3 +49,4 @@ The CANON MASTER in `00_CANON/` treats this hierarchy as fundamental structural 
 ---
 
 _This page captures the clean, non-Human-Design VRC Type system as defined in the master structural canon._
+> **Note for agents:** Do not confuse the old 4 VRC Fractal Roles (Resonator/Catalyst/Harmonizer/Reflector) with the 16 **Resonance Roles** defined in [[concept-resonance-role-system]]. The Resonance Role System is the newer identity layer for Profile.

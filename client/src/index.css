@@ -66,6 +66,7 @@
   --font-ritual:
     "IBM Plex Mono", "Red Hat Mono", ui-monospace, SFMono-Regular,
     "Cascadia Code", "Liberation Mono", monospace;
+  --font-voice: "Cormorant Garamond", Georgia, serif;
   --oriel-border: rgba(189, 163, 107, 0.2);
   --oriel-glass: rgba(20, 20, 28, 0.72);
   --oriel-glow: rgba(246, 176, 94, 0.18);

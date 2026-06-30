@@ -22,6 +22,9 @@ import Protocol from "./pages/Protocol";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
 import Arcana from "./pages/Arcana";
+import CoreConcepts from "./pages/CoreConcepts";
+import ModelsMaps from "./pages/ModelsMaps";
+import VossariArchitecture from "./pages/VossariArchitecture";
 import BioArchitecture from "./pages/BioArchitecture";
 import Cosmichronica from "./pages/Cosmichronica";
 import CodonDetail from "./pages/CodonDetail";
@@ -113,6 +116,18 @@ function Router() {
       <Route path={"/archive"} component={Archive} />
       <Route path={"/knowledge"} component={Knowledge} />
       <Route path={"/arcana"} component={Arcana} />
+      <Route path={"/core-concepts"} component={CoreConcepts} />
+      <Route path={"/models-maps"} component={ModelsMaps} />
+      <Route path={"/vossari-architecture"} component={VossariArchitecture} />
+      {/* Redirect old /archive-index to /arcana */}
+      <Route
+        path={"/archive-index"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/arcana"), []);
+          return null;
+        }}
+      />
       <Route path={"/transmission/:id"} component={TransmissionDetail} />
       <Route path={"/oracle/:oracleId"} component={OracleDetail} />
       <Route path={"/artifacts"} component={Artifacts} />
@@ -215,6 +230,13 @@ function AppGate() {
 }
 
 function App() {
+  const [location] = useLocation();
+
+  // Scroll to top on every route change so pages don't load at the bottom
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">

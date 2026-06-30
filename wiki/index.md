@@ -31,6 +31,11 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[arcana-page]] — Arcana Page. (auto-evolved 2026-06-27)
+- [[resonance-signature]] — Resonance Signature. (auto-evolved 2026-06-26)
+- [[resonance-depletion]] — Resonance Depletion. (auto-evolved 2026-06-26)
+- [[the-gap]] — The Gap. (auto-evolved 2026-06-26)
+- [[divine-folding]] — Divine Folding. (auto-evolved 2026-06-24)
 - [[concept-vessel]] — Vessel. (auto-evolved 2026-06-18)
 - [[static-signature-blueprint]] — Static Signature Blueprint. (auto-evolved 2026-06-11)
 - [[transition-of-resonance]] — Transition of Resonance. (auto-evolved 2026-06-11)
@@ -52,6 +57,7 @@ Foundational ideas and operating principles.
 - [[concept-vrc-authority-hierarchy]] — The Decision Compass: strict priority scan of defined centers to determine inner authority. (created 2026-04-02)
 - [[concept-vrc-master-data-layer]] — The canonical data layer in `01_DATA/` (especially the 256-state facet interpretations and micro-corrections). The semantic heart that gives meaning to all engine outputs. (created 2026-04-02)
 - [[concept-oriel-vrc-bridge-contract]] — The critical safety gate and context contract (`oriel_output_bridge`) that packages VRC data for ORIEL while enforcing terminology, exact/draft state, and hallucination boundaries. (created 2026-04-02)
+- [[concept-resonance-role-system]] — **CRITICAL for Profile work**. The 16 Resonance Roles (Originator, Resonator, Articulator... Illuminator). This is the official identity/role layer on top of Static Signature. Every agent touching Profile, identity display, or Bio-Architecture must read this. One-word roles only. No Human Design language. (ingested 2026-06-22)
 
 ## Syntheses
 
@@ -92,6 +98,7 @@ Major ingested documents with summaries and provenance. Each links to the pages 
 - [[source-vauis-v1]] — VAUIS v1.0: the canonical Vos Arkana Universal Indexing System based on VTIP, defining three-layer object IDs, sectors, phases, versioning, statuses, database fields, GitHub folder structure, and the public anti-confusion rule. (ingested 2026-06-16)
 - [[source-oriel-static-signature-codex-explanatory]] — Complete explanatory and positioning document for the ORIEL Static Signature product. Explains in plain language what the Blueprint/Codex is, ORIEL’s role as interpretive voice, how to communicate VRC concepts, and consistency requirements with the platform. Highly relevant to current product development. (ingested 2026-05-30)
 - [[source-vos-constants-json]] — Immutable core constants for the VRC Engine: planetary inputs (13 bodies), 9 Centers, and all 36 Resonance Links (channels). Foundational reference data. (ingested 2026-05-30)
+- [[source-vos-resonance-role-system]] — VOS Resonance Role System (16-role identity layer for Profile). Canon proposal defining Originator through Illuminator roles and calculation rules. (ingested 2026-06-22)
 
 ## Commercial & Business Strategy Layer
 

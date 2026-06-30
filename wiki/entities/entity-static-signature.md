@@ -65,6 +65,21 @@ The file `vos_codons_64x4facets.json` (ingested as [[source-vos-codons-64x4facet
 - Each facet carries somatic/relational/cognitive/transpersonal descriptions, shadow expressions, and specific micro-corrections
 - This data turns raw engine activations into precise, actionable human language
 
+
+
+## Resonance Role System (Identity Layer)
+
+The **Resonance Role System** (see [[concept-resonance-role-system]]) is the official identity layer built on top of the Static Signature.
+
+- It maps the dominant codon cluster to one of **16 Resonance Roles** (Originator, Resonator, Articulator, Cultivator, Clarifier, Sovereign, Guardian, Devotee, Transformer, Catalyst, Oracle, Steward, Reformer, Ascendant, Navigator, Illuminator).
+- Each role represents a 4-codon family.
+- Roles are the primary "what kind of resonance pattern does this person carry?" marker for the Profile.
+- Must be expressed using Vossari-native language only (no Human Design terms).
+- Primary Role + optional Secondary Pattern.
+- Modified by the active Facet.
+
+**Important for agents:** The Resonance Role System is **derivative** of the Static Signature data. Do not treat roles as replacing Prime Stack or codon-level data.
+
 ## Current Development Focus (2026)
 
 - Full ephemeris integration (largely complete)
