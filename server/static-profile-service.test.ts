@@ -133,7 +133,7 @@ describe("buildUserStaticProfile", () => {
       timezoneOffsetHours: -5,
     });
     expect(profile.activations).toHaveLength(26);
-    expect(profile.channelStatuses).toHaveLength(36);
+    expect(profile.channelStatuses).toHaveLength(32);
     expect(profile.legacyCircuitLinks).toEqual(profile.circuitLinks);
     expect(
       (profile.coreCodonEngine as Record<string, any>).lattice.activations
@@ -168,13 +168,13 @@ describe("buildUserStaticProfile", () => {
           gateA: 25,
           gateB: 51,
           active: true,
-          centerA: "G-Self",
-          centerB: "Heart",
+          centerA: "Bridge",
+          centerB: "Omega",
         },
       ],
       legacyCircuitLinks: ["1-2"],
       primeStack: [],
-      ninecenters: {},
+      centerStatuses: {},
     });
 
     expect(summary).toContain("ACTIVE RESONANCE LINKS:");
@@ -201,7 +201,7 @@ describe("buildUserStaticProfile", () => {
       timezoneOffset: -5,
       calculationStatus: "fallback",
       primeStack: [],
-      ninecenters: {},
+      centerStatuses: {},
     });
 
     expect(summary).toContain("CALCULATION TRUST CONTRACT:");
@@ -236,7 +236,7 @@ describe("buildUserStaticProfile", () => {
         missingPrecision: [],
       },
       primeStack: [],
-      ninecenters: {},
+      centerStatuses: {},
     });
 
     expect(summary).toContain("Status: missing_precision");
@@ -256,7 +256,7 @@ describe("buildUserStaticProfile", () => {
       birthCountry: "US",
       calculationStatus: "fallback",
       primeStack: [],
-      ninecenters: {},
+      centerStatuses: {},
     });
 
     expect(summary).toContain(

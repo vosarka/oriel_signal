@@ -1,198 +1,428 @@
+import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
-import {
-  GlowCard,
-  SignalButton,
-  SignalPageShell,
-} from "@/components/oriel-signal/OrielSignalDesign";
+import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
-
-const architectureLayers = [
-  {
-    code: "VRC-01",
-    title: "Static Signature",
-    copy: "The immutable structure: birth coordinate, Prime Stack, Centers, Resonance Links, Type, and Authority.",
-  },
-  {
-    code: "VRC-02",
-    title: "64 Codons",
-    copy: "The base field alphabet. Each Codon holds a precise frequency in the Vossari Resonance Codex.",
-  },
-  {
-    code: "VRC-03",
-    title: "256 Facets",
-    copy: "Every Codon resolves through four Facets: Somatic, Relational, Cognitive, and Transpersonal.",
-  },
-  {
-    code: "VRC-04",
-    title: "9 Centers",
-    copy: "The body-map of reception: defined and open Centers describe how signal moves through the receiver.",
-  },
-  {
-    code: "VRC-05",
-    title: "Resonance Links",
-    copy: "Active links connect Centers into stable channels and form the architecture beneath Type and Authority.",
-  },
-  {
-    code: "VRC-06",
-    title: "ORIEL Voice Layer",
-    copy: "The engine calculates the spine. ORIEL translates the spine into living language without inventing it.",
-  },
-];
+import { CodonWheel, type Codon } from "@/components/oriel-signal/CodonWheel";
+import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
+import { RoleGrid } from "@/components/oriel-signal/RoleGrid";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function BioArchitecture() {
+  const [codons, setCodons] = useState<CodonDetail[] | null>(null);
+  const [selectedId, setSelectedId] = useState<number>(1);
+  const [selectedFacetKey, setSelectedFacetKey] = useState<"A" | "B" | "C" | "D">("A");
+  const [activeRoleIdx, setActiveRoleIdx] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetch("/codons.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setCodons(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load codons master:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const selectedCodon = codons?.find((c) => c.id === selectedId) || codons?.[0];
+
   return (
     <Layout>
       <SignalPageShell chamber="codex" className="bio-architecture-page">
         <SacredGeometryField static />
+        
         <style>{`
           .bio-architecture-page {
             min-height: 100vh;
-            padding: clamp(7.2rem, 12vw, 9rem) 1.5rem 6rem;
+            padding: clamp(6rem, 10vw, 8rem) 1.5rem 6rem;
+            background: radial-gradient(150% 90% at 50% -5%, #110d14 0%, #08070b 55%, #060508 100%);
           }
 
           .bio-architecture-page__wrap {
             position: relative;
             z-index: 1;
-            width: min(1240px, 100%);
+            width: min(1500px, 100%);
             margin: 0 auto;
           }
 
           .bio-architecture-page__intro {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.7fr);
-            gap: clamp(1.5rem, 4vw, 3rem);
-            align-items: end;
-            margin-top: 2.2rem;
+            margin: 1.5rem 0 2.5rem;
           }
 
           .bio-architecture-page__voice {
             margin: 0;
-            color: rgba(232, 228, 220, 0.72);
-            font-family: var(--font-voice);
+            color: #cbc1ac;
+            font-family: var(--font-voice, serif);
             font-style: italic;
-            font-size: clamp(1.08rem, 2vw, 1.34rem);
-            line-height: 1.72;
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            line-height: 1.55;
+            max-width: 860px;
           }
 
-          .bio-architecture-page__panel {
-            border: 1px solid rgba(189, 163, 107, 0.16);
-            background:
-              radial-gradient(circle at 88% 10%, rgba(246, 176, 94, 0.08), transparent 12rem),
-              rgba(10, 10, 14, 0.72);
-            padding: 1.2rem;
-            color: rgba(232, 228, 220, 0.68);
-            font-family: var(--font-ritual);
-            font-size: 0.68rem;
-            line-height: 1.8;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-          }
-
-          .bio-architecture-page__grid {
+          /* Main layout grid: Wheel Left | Panel Right */
+          .cz-bio-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 1rem;
-            margin-top: clamp(2.2rem, 5vw, 4rem);
-          }
-
-          .bio-architecture-card {
-            padding: clamp(1.25rem, 3vw, 1.65rem);
-          }
-
-          .bio-architecture-card__code {
-            color: rgba(246, 176, 94, 0.58);
-            font-family: var(--font-ritual);
-            font-size: 0.55rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-          }
-
-          .bio-architecture-card h2 {
-            margin: 1rem 0 0.72rem;
-            color: #fff7e6;
-            font-family: var(--font-display);
-            font-size: clamp(1.65rem, 2.5vw, 2.35rem);
-            font-weight: 300;
-            line-height: 1.02;
-            letter-spacing: -0.025em;
-          }
-
-          .bio-architecture-card p {
-            margin: 0;
-            color: rgba(232, 228, 220, 0.68);
-            font-family: var(--font-body);
-            font-size: 0.94rem;
-            line-height: 1.8;
-          }
-
-          .bio-architecture-page__actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            grid-template-columns: minmax(0, 1fr) 420px;
+            gap: clamp(1.5rem, 4vw, 3.5rem);
+            align-items: start;
             margin-top: 2rem;
           }
 
-          @media (max-width: 940px) {
-            .bio-architecture-page__intro,
-            .bio-architecture-page__grid {
+          @media (max-width: 1080px) {
+            .cz-bio-grid {
               grid-template-columns: 1fr;
+              gap: 3rem;
             }
+          }
+
+          /* ── Detail Panel Styles (matching prototype) ────────────────── */
+          .cz-detail-panel {
+            border: 1px solid var(--line);
+            background: rgba(20, 17, 12, 0.45);
+            backdrop-filter: blur(8px);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+          }
+
+          .cz-panel-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--line);
+          }
+
+          .cz-role-band {
+            background: rgba(205, 161, 74, 0.04);
+          }
+
+          .cz-flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+          }
+
+          .cz-label-ritual {
+            font-family: var(--font-ritual, monospace);
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            color: var(--gold);
+          }
+
+          .cz-label-ritual.is-active {
+            color: var(--gold2);
+          }
+
+          .cz-label-mono {
+            font-family: var(--font-ritual, monospace);
+            font-size: 10px;
+            color: var(--mut);
+          }
+
+          .cz-role-title {
+            font-size: 30px;
+            font-family: var(--font-display, serif);
+            font-weight: 500;
+            margin: 5px 0 4px;
+            letter-spacing: 0.03em;
+            color: var(--ink);
+            line-height: 1.1;
+          }
+
+          .cz-role-desc {
+            font-size: 14.5px;
+            color: #b8af9b;
+            margin: 0;
+            line-height: 1.45;
+            font-style: italic;
+            font-family: var(--font-voice, serif);
+          }
+
+          /* Tetrad picker */
+          .cz-tetrad-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 14px;
+          }
+
+          .cz-tetrad-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .cz-tetrad-btn:hover {
+            background: rgba(205, 161, 74, 0.05);
+          }
+
+          .cz-tetrad-symbol {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: rgba(8, 7, 11, 0.8);
+          }
+
+          .cz-tetrad-symbol img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .cz-tetrad-label {
+            font-family: var(--font-ritual, monospace);
+            font-size: 8.5px;
+            letter-spacing: 0.06em;
+          }
+
+          /* Codon identity */
+          .cz-identity-band {
+            padding: 20px 24px;
+          }
+
+          .cz-codon-title {
+            font-size: 34px;
+            font-family: var(--font-display, serif);
+            font-weight: 600;
+            margin: 6px 0 1px;
+            letter-spacing: 0.02em;
+            line-height: 0.95;
+            color: var(--ink);
+          }
+
+          .cz-codon-subtitle {
+            font-style: italic;
+            font-family: var(--font-voice, serif);
+            font-size: 15px;
+            color: #b8af9b;
+            margin: 0;
+          }
+
+          .cz-metadata-row {
+            display: flex;
+            gap: 18px;
+            font-family: var(--font-ritual, monospace);
+            font-size: 9.5px;
+            letter-spacing: 0.1em;
+            color: var(--mut);
+            margin-top: 14px;
+          }
+
+          .cz-metadata-row b {
+            color: var(--ink);
+            font-weight: 400;
+          }
+
+          /* Spectrum (Shadow / Gift / Siddhi) */
+          .cz-spectrum-bar {
+            display: flex;
+            height: 5px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background: rgba(205, 161, 74, 0.08);
+          }
+
+          .cz-bar-shadow {
+            flex: 1;
+            background: var(--red);
+            box-shadow: 0 0 8px var(--red);
+          }
+
+          .cz-bar-gift {
+            flex: 1;
+            background: var(--gold);
+            box-shadow: 0 0 8px var(--gold);
+          }
+
+          .cz-bar-siddhi {
+            flex: 1;
+            background: #efe6cf;
+            box-shadow: 0 0 8px #efe6cf;
+          }
+
+          .cz-frequencies {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .cz-freq-block {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .cz-freq-label {
+            font-family: var(--font-ritual, monospace);
+            font-size: 9px;
+            letter-spacing: 0.14em;
+          }
+
+          .cz-freq-label.is-shadow { color: var(--red); }
+          .cz-freq-label.is-gift { color: var(--gold2); }
+          .cz-freq-label.is-siddhi { color: #e7ddc6; }
+
+          .cz-freq-desc {
+            margin: 3px 0 0;
+            font-size: 14px;
+            color: #b8af9b;
+            line-height: 1.45;
+          }
+
+          /* Facet Detail */
+          .cz-facet-band {
+            border-bottom: none;
+          }
+
+          .cz-facet-desc {
+            font-size: 14.5px;
+            color: #cbc1ac;
+            line-height: 1.5;
+            margin: 9px 0 0;
+          }
+
+          .cz-micro-correction {
+            border-left: 2px solid var(--cyan);
+            padding-left: 12px;
+            margin-top: 14px;
+            background: rgba(111, 183, 199, 0.03);
+            padding-top: 6px;
+            padding-bottom: 6px;
+          }
+
+          .cz-correction-header {
+            font-family: var(--font-ritual, monospace);
+            font-size: 9px;
+            letter-spacing: 0.14em;
+            color: var(--cyan);
+            display: block;
+          }
+
+          .cz-correction-desc {
+            font-size: 13.5px;
+            color: #cbc1ac;
+            margin: 4px 0 0;
+            line-height: 1.45;
+            font-style: italic;
+            font-family: var(--font-voice, serif);
+          }
+
+          /* ── 16 Role Grid Styles (matching prototype) ────────────────── */
+          .cz-role-legend {
+            width: 100%;
+            border-top: 1px solid var(--line);
+            padding-top: 24px;
+            margin-top: 3rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+          }
+
+          .cz-legend-header {
+            font-family: var(--font-ritual, monospace);
+            font-size: 10px;
+            letter-spacing: 0.24em;
+            color: var(--mut);
+            margin: 0 0 14px;
+          }
+
+          .cz-legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1px;
+            background: var(--line);
+            border: 1px solid var(--line);
+          }
+
+          .cz-legend-card {
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+          }
+
+          .cz-legend-card:hover {
+            background: #15120c !important;
+          }
+
+          .cz-legend-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+          }
+
+          .cz-legend-card-name {
+            font-size: 16px;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+          }
+
+          .cz-legend-card-range {
+            font-family: var(--font-ritual, monospace);
+            font-size: 9px;
+            color: var(--mut);
+          }
+
+          .cz-legend-card-sub {
+            display: block;
+            font-family: var(--font-ritual, monospace);
+            font-size: 9px;
+            letter-spacing: 0.04em;
+            color: var(--gold);
+            margin-top: 2px;
           }
         `}</style>
 
         <main className="bio-architecture-page__wrap">
           <PageHeaderBand
-            title="BIO-ARCHITECTURE"
-            descriptor="THE VOSSARI RESONANCE CODEX"
+            title="THE CODON WHEEL"
+            descriptor="BIO-ARCHITECTURE · THE RESONANCE MANDALA"
             symbol="lattice"
             width="100%"
           />
 
-          <section
-            className="bio-architecture-page__intro"
-            aria-label="VRC introduction"
-          >
+          <section className="bio-architecture-page__intro" aria-label="Introduction">
             <p className="bio-architecture-page__voice">
-              The Vossari Resonance Codex is the structural layer beneath every
-              personal reading. It does not replace the mystery of a human life;
-              it gives the signal a precise map: Codon, Facet, Center, Resonance
-              Link, and Static Signature.
+              Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad — four codons, one for each facet: Somatic, Relational, Cognitive, Transpersonal. Turn the wheel; read the signal.
             </p>
-            <div className="bio-architecture-page__panel">
-              Engine = spine. ORIEL = voice. The voice must never lie about the
-              spine.
+          </section>
+
+          {loading ? (
+            <div className="flex h-[400px] items-center justify-center">
+              <Spinner className="h-8 w-8 text-amber-500" />
             </div>
-          </section>
+          ) : (
+            codons && selectedCodon && (
+              <>
+                <div className="cz-bio-grid">
+                  {/* LEFT: SVG CODON WHEEL */}
+                  <CodonWheel
+                    codons={codons}
+                    selectedId={selectedId}
+                    onSelect={(id) => setSelectedId(id)}
+                    activeRoleIdx={activeRoleIdx}
+                  />
 
-          <section
-            className="bio-architecture-page__grid"
-            aria-label="VRC layers"
-          >
-            {architectureLayers.map(layer => (
-              <GlowCard
-                key={layer.code}
-                tone="gold"
-                className="bio-architecture-card"
-              >
-                <span className="bio-architecture-card__code">
-                  {layer.code}
-                </span>
-                <h2>{layer.title}</h2>
-                <p>{layer.copy}</p>
-              </GlowCard>
-            ))}
-          </section>
+                  {/* RIGHT: CODON DETAIL PANEL */}
+                  <CodonDetailPanel
+                    codon={selectedCodon}
+                    selectedFacetKey={selectedFacetKey}
+                    onFacetChange={(key) => setSelectedFacetKey(key)}
+                    onSelectCodon={(id) => setSelectedId(id)}
+                  />
+                </div>
 
-          <div className="bio-architecture-page__actions">
-            <SignalButton href="/codex">Open Codon Lattice</SignalButton>
-            <SignalButton
-              href="/founder-signature-blueprint"
-              variant="secondary"
-            >
-              Oriel Signature Blueprint
-            </SignalButton>
-          </div>
+                {/* BOTTOM: 16 RESONANCE ROLE LEGEND GRID */}
+                <RoleGrid
+                  activeRoleIdx={activeRoleIdx}
+                  onRoleSelect={(idx) => setActiveRoleIdx(idx)}
+                />
+              </>
+            )
+          )}
         </main>
       </SignalPageShell>
     </Layout>

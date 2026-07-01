@@ -1,290 +1,258 @@
 [
   {
-    "id": "64-47",
-    "name": "Abstraction",
-    "center_a": "HEAD",
-    "center_b": "AJNA",
-    "codon_a": 64,
-    "codon_b": 47
-  },
-  {
     "id": "61-24",
-    "name": "Awareness",
-    "center_a": "HEAD",
-    "center_b": "AJNA",
+    "name": "Link L01",
+    "center_a": "I",
+    "center_b": "II",
     "codon_a": 61,
     "codon_b": 24
   },
   {
-    "id": "63-4",
-    "name": "Logic",
-    "center_a": "HEAD",
-    "center_b": "AJNA",
-    "codon_a": 63,
-    "codon_b": 4
+    "id": "03-60",
+    "name": "Link L02",
+    "center_a": "I",
+    "center_b": "IV",
+    "codon_a": 3,
+    "codon_b": 60
   },
   {
-    "id": "17-62",
-    "name": "Acceptance",
-    "center_a": "AJNA",
-    "center_b": "THROAT",
-    "codon_a": 17,
-    "codon_b": 62
+    "id": "09-52",
+    "name": "Link L03",
+    "center_a": "I",
+    "center_b": "IV",
+    "codon_a": 9,
+    "codon_b": 52
+  },
+  {
+    "id": "19-49",
+    "name": "Link L04",
+    "center_a": "I",
+    "center_b": "VII",
+    "codon_a": 19,
+    "codon_b": 49
   },
   {
     "id": "43-23",
-    "name": "Structuring",
-    "center_a": "AJNA",
-    "center_b": "THROAT",
+    "name": "Link L05",
+    "center_a": "II",
+    "center_b": "III",
     "codon_a": 43,
     "codon_b": 23
   },
   {
     "id": "11-56",
-    "name": "Curiosity",
-    "center_a": "AJNA",
-    "center_b": "THROAT",
+    "name": "Link L06",
+    "center_a": "II",
+    "center_b": "III",
     "codon_a": 11,
     "codon_b": 56
   },
   {
-    "id": "35-36",
-    "name": "Transience",
-    "center_a": "THROAT",
-    "center_b": "SOLAR",
-    "codon_a": 35,
-    "codon_b": 36
+    "id": "17-62",
+    "name": "Link L07",
+    "center_a": "II",
+    "center_b": "III",
+    "codon_a": 17,
+    "codon_b": 62
   },
   {
-    "id": "12-22",
-    "name": "Openness",
-    "center_a": "THROAT",
-    "center_b": "SOLAR",
-    "codon_a": 12,
-    "codon_b": 22
-  },
-  {
-    "id": "45-21",
-    "name": "Money Line",
-    "center_a": "THROAT",
-    "center_b": "HEART",
-    "codon_a": 45,
-    "codon_b": 21
+    "id": "64-47",
+    "name": "Link L08",
+    "center_a": "II",
+    "center_b": "VIII",
+    "codon_a": 64,
+    "codon_b": 47
   },
   {
     "id": "33-13",
-    "name": "The Prodigal",
-    "center_a": "THROAT",
-    "center_b": "G",
+    "name": "Link L09",
+    "center_a": "III",
+    "center_b": "V",
     "codon_a": 33,
     "codon_b": 13
   },
   {
-    "id": "8-1",
-    "name": "Inspiration",
-    "center_a": "THROAT",
-    "center_b": "G",
+    "id": "08-01",
+    "name": "Link L10",
+    "center_a": "III",
+    "center_b": "V",
     "codon_a": 8,
     "codon_b": 1
   },
   {
-    "id": "31-7",
-    "name": "The Alpha",
-    "center_a": "THROAT",
-    "center_b": "G",
+    "id": "31-07",
+    "name": "Link L11",
+    "center_a": "III",
+    "center_b": "V",
     "codon_a": 31,
     "codon_b": 7
   },
   {
     "id": "20-10",
-    "name": "Awakening",
-    "center_a": "THROAT",
-    "center_b": "G",
+    "name": "Link L12",
+    "center_a": "III",
+    "center_b": "V",
     "codon_a": 20,
     "codon_b": 10
   },
   {
-    "id": "20-57",
-    "name": "The Brainwave",
-    "center_a": "THROAT",
-    "center_b": "SPLEEN",
-    "codon_a": 20,
-    "codon_b": 57
+    "id": "35-36",
+    "name": "Link L13",
+    "center_a": "III",
+    "center_b": "VI",
+    "codon_a": 35,
+    "codon_b": 36
   },
   {
-    "id": "20-34",
-    "name": "Charisma",
-    "center_a": "THROAT",
-    "center_b": "SACRAL",
-    "codon_a": 20,
-    "codon_b": 34
+    "id": "12-22",
+    "name": "Link L14",
+    "center_a": "III",
+    "center_b": "VI",
+    "codon_a": 12,
+    "codon_b": 22
   },
   {
     "id": "16-48",
-    "name": "The Wave",
-    "center_a": "THROAT",
-    "center_b": "SPLEEN",
+    "name": "Link L15",
+    "center_a": "III",
+    "center_b": "VII",
     "codon_a": 16,
     "codon_b": 48
   },
   {
-    "id": "25-51",
-    "name": "Initiation",
-    "center_a": "G",
-    "center_b": "HEART",
-    "codon_a": 25,
-    "codon_b": 51
+    "id": "45-21",
+    "name": "Link L16",
+    "center_a": "III",
+    "center_b": "VIII",
+    "codon_a": 45,
+    "codon_b": 21
   },
   {
-    "id": "10-57",
-    "name": "Perfect Form",
-    "center_a": "G",
-    "center_b": "SPLEEN",
-    "codon_a": 10,
-    "codon_b": 57
-  },
-  {
-    "id": "10-34",
-    "name": "Exploration",
-    "center_a": "G",
-    "center_b": "SACRAL",
-    "codon_a": 10,
-    "codon_b": 34
-  },
-  {
-    "id": "15-5",
-    "name": "Rhythm",
-    "center_a": "G",
-    "center_b": "SACRAL",
+    "id": "15-05",
+    "name": "Link L17",
+    "center_a": "IV",
+    "center_b": "V",
     "codon_a": 15,
     "codon_b": 5
   },
   {
-    "id": "2-14",
-    "name": "The Beat",
-    "center_a": "G",
-    "center_b": "SACRAL",
+    "id": "02-14",
+    "name": "Link L18",
+    "center_a": "IV",
+    "center_b": "V",
     "codon_a": 2,
     "codon_b": 14
   },
   {
     "id": "46-29",
-    "name": "Discovery",
-    "center_a": "G",
-    "center_b": "SACRAL",
+    "name": "Link L19",
+    "center_a": "IV",
+    "center_b": "V",
     "codon_a": 46,
     "codon_b": 29
   },
   {
-    "id": "26-44",
-    "name": "Surrender",
-    "center_a": "HEART",
-    "center_b": "SPLEEN",
-    "codon_a": 26,
-    "codon_b": 44
-  },
-  {
-    "id": "40-37",
-    "name": "Community",
-    "center_a": "HEART",
-    "center_b": "SOLAR",
-    "codon_a": 40,
-    "codon_b": 37
-  },
-  {
-    "id": "57-34",
-    "name": "Power",
-    "center_a": "SPLEEN",
-    "center_b": "SACRAL",
-    "codon_a": 57,
+    "id": "10-34",
+    "name": "Link L20",
+    "center_a": "IV",
+    "center_b": "V",
+    "codon_a": 10,
     "codon_b": 34
   },
   {
-    "id": "28-38",
-    "name": "Struggle",
-    "center_a": "SPLEEN",
-    "center_b": "ROOT",
-    "codon_a": 28,
-    "codon_b": 38
-  },
-  {
-    "id": "18-58",
-    "name": "Judgment",
-    "center_a": "SPLEEN",
-    "center_b": "ROOT",
-    "codon_a": 18,
-    "codon_b": 58
-  },
-  {
-    "id": "32-54",
-    "name": "Transformation",
-    "center_a": "SPLEEN",
-    "center_b": "ROOT",
-    "codon_a": 32,
-    "codon_b": 54
-  },
-  {
     "id": "50-27",
-    "name": "Preservation",
-    "center_a": "SPLEEN",
-    "center_b": "SACRAL",
+    "name": "Link L21",
+    "center_a": "IV",
+    "center_b": "VII",
     "codon_a": 50,
     "codon_b": 27
   },
   {
-    "id": "59-6",
-    "name": "Intimacy",
-    "center_a": "SACRAL",
-    "center_b": "SOLAR",
+    "id": "57-34",
+    "name": "Link L22",
+    "center_a": "IV",
+    "center_b": "VII",
+    "codon_a": 57,
+    "codon_b": 34
+  },
+  {
+    "id": "10-57",
+    "name": "Link L23",
+    "center_a": "V",
+    "center_b": "VII",
+    "codon_a": 10,
+    "codon_b": 57
+  },
+  {
+    "id": "25-51",
+    "name": "Link L24",
+    "center_a": "V",
+    "center_b": "VIII",
+    "codon_a": 25,
+    "codon_b": 51
+  },
+  {
+    "id": "59-06",
+    "name": "Link L25",
+    "center_a": "VI",
+    "center_b": "V",
     "codon_a": 59,
     "codon_b": 6
   },
   {
-    "id": "9-52",
-    "name": "Concentration",
-    "center_a": "SACRAL",
-    "center_b": "ROOT",
-    "codon_a": 9,
-    "codon_b": 52
-  },
-  {
-    "id": "3-60",
-    "name": "Mutation",
-    "center_a": "SACRAL",
-    "center_b": "ROOT",
-    "codon_a": 3,
-    "codon_b": 60
-  },
-  {
-    "id": "42-53",
-    "name": "Maturation",
-    "center_a": "SACRAL",
-    "center_b": "ROOT",
-    "codon_a": 42,
-    "codon_b": 53
-  },
-  {
-    "id": "19-49",
-    "name": "Synthesis",
-    "center_a": "ROOT",
-    "center_b": "SOLAR",
-    "codon_a": 19,
-    "codon_b": 49
+    "id": "40-37",
+    "name": "Link L26",
+    "center_a": "VI",
+    "center_b": "VII",
+    "codon_a": 40,
+    "codon_b": 37
   },
   {
     "id": "39-55",
-    "name": "Emoting",
-    "center_a": "ROOT",
-    "center_b": "SOLAR",
+    "name": "Link L27",
+    "center_a": "VI",
+    "center_b": "I",
     "codon_a": 39,
     "codon_b": 55
   },
   {
     "id": "41-30",
-    "name": "Recognition",
-    "center_a": "ROOT",
-    "center_b": "SOLAR",
+    "name": "Link L28",
+    "center_a": "VI",
+    "center_b": "I",
     "codon_a": 41,
     "codon_b": 30
+  },
+  {
+    "id": "26-44",
+    "name": "Link L29",
+    "center_a": "VII",
+    "center_b": "VIII",
+    "codon_a": 26,
+    "codon_b": 44
+  },
+  {
+    "id": "28-38",
+    "name": "Link L30",
+    "center_a": "VII",
+    "center_b": "I",
+    "codon_a": 28,
+    "codon_b": 38
+  },
+  {
+    "id": "18-58",
+    "name": "Link L31",
+    "center_a": "VII",
+    "center_b": "I",
+    "codon_a": 18,
+    "codon_b": 58
+  },
+  {
+    "id": "32-54",
+    "name": "Link L32",
+    "center_a": "VII",
+    "center_b": "I",
+    "codon_a": 32,
+    "codon_b": 54
   }
 ]

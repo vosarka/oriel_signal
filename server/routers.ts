@@ -2634,26 +2634,24 @@ export const appRouter = router({
     getCenters: publicProcedure.query(async () => {
       const { CODON_CENTER_MAP } = await import("./vrc-mandala");
       const centerOrder = [
-        "Crown",
-        "Ajna",
-        "Throat",
-        "G-Self",
-        "Heart",
-        "Solar Plexus",
-        "Sacral",
-        "Spleen",
-        "Root",
+        "Origin",
+        "Mental",
+        "Collapse",
+        "Saturation",
+        "Bridge",
+        "Becoming",
+        "Return",
+        "Omega",
       ] as const;
       const centerTypes: Record<(typeof centerOrder)[number], string> = {
-        Crown: "Pressure",
-        Ajna: "Awareness",
-        Throat: "Expression",
-        "G-Self": "Identity",
-        Heart: "Motor",
-        "Solar Plexus": "Motor/Awareness",
-        Sacral: "Motor",
-        Spleen: "Awareness",
-        Root: "Pressure/Motor",
+        Origin: "Pressure",
+        Mental: "Awareness",
+        Collapse: "Expression",
+        Saturation: "Motor",
+        Bridge: "Identity",
+        Becoming: "Motor/Awareness",
+        Return: "Awareness",
+        Omega: "Motor",
       };
 
       return centerOrder.map(center => ({

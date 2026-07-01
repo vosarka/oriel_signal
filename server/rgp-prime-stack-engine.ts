@@ -459,17 +459,16 @@ export function calculate9CenterMap(primeStack: PrimeStackMap): Record<
     }
   > = {};
 
-  // Initialise all 9 centers
+  // Initialise all 8 Tetradic centers
   const allCenters: CenterName[] = [
-    "Crown",
-    "Ajna",
-    "Throat",
-    "G-Self",
-    "Heart",
-    "Solar Plexus",
-    "Sacral",
-    "Spleen",
-    "Root",
+    "Origin",
+    "Mental",
+    "Collapse",
+    "Saturation",
+    "Bridge",
+    "Becoming",
+    "Return",
+    "Omega",
   ];
   for (const c of allCenters) {
     result[c] = {

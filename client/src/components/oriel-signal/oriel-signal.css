@@ -470,7 +470,7 @@
     .signal-sacred-geometry
   ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry):not(
     .cz-spiral-layer
-  ):not(.cz-story):not(.cz-memory) {
+  ):not(.cz-story):not(.cz-memory):not(.cz-chapter-view) {
   position: relative;
   z-index: 2;
 }

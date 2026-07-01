@@ -5,8 +5,8 @@
  *   - Canon source: docs/VRC_ENGINE_CANON.md
  *   - Two-chart system (Conscious + Design charts)
  *   - calculateDesignOffset: Design Sun = Conscious Sun - 88° (NOT +88°)
- *   - ninecenters keyed by center name string (not position number)
- *   - authorityNode returns VRC Authority string (e.g. "Environment", "Solar Plexus")
+ *   - centerStatuses keyed by center name string (not position number)
+ *   - authorityNode returns VRC Authority string (e.g. "Environment", "Becoming")
  *   - version = 2 (VRC v1.0 implementation)
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -126,7 +126,7 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       expect(reading.primeStack[8].position).toBe(9);
     });
 
-    it("should include 9-Center Resonance Map (keyed by center name)", async () => {
+    it("should include 8-Center Resonance Map (keyed by center name)", async () => {
       const reading = await generateStaticSignature(
         "user-789",
         sampleBirthChart,
@@ -134,18 +134,18 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       );
 
       expect(reading.ninecenters).toBeDefined();
-      expect(Object.keys(reading.ninecenters).length).toBe(9);
+      expect(Object.keys(reading.ninecenters).length).toBe(8);
 
       const validCenters = [
-        "Crown",
-        "Ajna",
-        "Throat",
-        "G-Self",
-        "Heart",
-        "Solar Plexus",
-        "Sacral",
-        "Spleen",
-        "Root",
+        "Origin",
+        "Mental",
+        "Collapse",
+        "Bridge",
+        "Omega",
+        "Becoming",
+        "Saturation",
+        "Return",
+        "Origin",
       ];
       for (const [name, center] of Object.entries(reading.ninecenters)) {
         expect(validCenters).toContain(name);
@@ -177,14 +177,14 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       );
 
       expect(reading.authorityNode).toBeDefined();
-      // VRC authority values (not position-based names)
+      // VTRS v2 authority values
       const validAuthorities = [
-        "Solar Plexus",
-        "Sacral",
-        "Spleen",
-        "Ego/Heart",
-        "G-Center",
-        "None/Outer",
+        "Emotional",
+        "Somatic",
+        "Instinctive",
+        "Ego",
+        "Self-Projected",
+        "Lunar",
         "Environment",
       ];
       expect(validAuthorities).toContain(reading.authorityNode);
@@ -202,7 +202,7 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       expect(reading.legacyCircuitLinks).toEqual(reading.circuitLinks);
     });
 
-    it("should expose canonical activations and 36 channel statuses", async () => {
+    it("should expose canonical activations and 32 channel statuses", async () => {
       const reading = await generateStaticSignature(
         "user-lattice",
         sampleBirthChart,
@@ -210,14 +210,14 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       );
 
       expect(reading.activations).toHaveLength(26);
-      expect(reading.channelStatuses).toHaveLength(36);
+      expect(reading.channelStatuses).toHaveLength(32);
       expect(
         reading.channelStatuses.every(
           channel => typeof channel.active === "boolean"
         )
       ).toBe(true);
       expect(reading.coreCodonEngine.lattice.activations).toHaveLength(26);
-      expect(reading.coreCodonEngine.lattice.channelStatuses).toHaveLength(36);
+      expect(reading.coreCodonEngine.lattice.channelStatuses).toHaveLength(32);
       expect(reading.coreCodonEngine.lattice.legacyCircuitLinks).toEqual(
         reading.legacyCircuitLinks
       );

@@ -156,24 +156,24 @@ describe("Codex Router", () => {
       expect(result[0]).toHaveProperty("arcDegrees");
     });
 
-    it("should expose all nine centers with codon memberships", async () => {
+    it("should expose all eight centers with codon memberships", async () => {
       const caller = appRouter.createCaller(mockPublicContext as Context);
       const result = await caller.codex.getCenters();
 
-      expect(result).toHaveLength(9);
-      expect(result.find(center => center.id === "G-Self")?.codons).toEqual(
-        expect.arrayContaining([1, 2, 7, 10, 13, 15, 25, 46])
+      expect(result).toHaveLength(8);
+      expect(result.find(center => center.id === "Bridge")?.codons).toEqual(
+        expect.arrayContaining([7, 10, 13, 15, 25, 46, 57, 59])
       );
-      expect(result.find(center => center.id === "Sacral")?.codons).toContain(
+      expect(result.find(center => center.id === "Return")?.codons).toContain(
         50
       );
     });
 
-    it("should expose the canonical 36 channels", async () => {
+    it("should expose the canonical 32 Resonance Links", async () => {
       const caller = appRouter.createCaller(mockPublicContext as Context);
       const result = await caller.codex.getChannels();
 
-      expect(result).toHaveLength(36);
+      expect(result).toHaveLength(32);
       expect(result[0]).toMatchObject({
         gateA: expect.any(Number),
         gateB: expect.any(Number),

@@ -158,7 +158,8 @@ export default function CosmichronicaChapter1({ onClose }: Chapter1Props) {
           position: fixed;
           inset: 0;
           z-index: 1000;
-          background: #050508;
+          background: rgba(5, 5, 8, 0.65);
+          backdrop-filter: blur(12px);
           color: #e8e4dc;
           display: flex;
           flex-direction: column;
@@ -389,25 +390,20 @@ function ViscosityPerspective() {
       </div>
 
       <div className="cz-pane__sidebar">
-        <span className="cz-pane__kicker">Vossari Physics Core</span>
+        <span className="cz-pane__kicker">Vossari Codex Core</span>
         <h3 className="cz-pane__title">The Viscosity of Empty Space</h3>
 
         <div className="cz-pane__card">
-          <h4>The Higgs Field</h4>
+          <h4>Maximum Potential Coherence</h4>
           <p>
-            A non-zero field permeating space, providing the "drag" (inertia)
-            that gives particles mass. Without this "empty" field, atoms could
-            not form. Empty space is viscous.
+            The Void is not an absence, but a plenum—an infinite data pool before the first bit is selected. It is a state of maximum potential coherence, where all possible universes exist without distinction. The cosmos begins not from poverty, but from excess.
           </p>
         </div>
 
         <div className="cz-pane__card" style={{ borderStyle: "dashed" }}>
-          <h4>Metastability & False Vacuum</h4>
+          <h4>The Metastable Ground State</h4>
           <p>
-            We may live in a "False Vacuum" — a local energy minimum. A "True
-            Vacuum" bubble could theoretically form via quantum tunneling,
-            expanding at light speed and rewriting the laws of physics. Our
-            existence relies on the precarious stability of the Void.
+            This 'empty' space is highly viscous, providing the drag that manifests as mass. If this fundamental field were to undergo quantum tunneling into a 'True Vacuum', the laws of physics would be instantly overwritten. Our existence relies entirely on the precarious, metastable tension of the Void.
           </p>
         </div>
       </div>

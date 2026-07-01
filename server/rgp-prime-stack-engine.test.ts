@@ -217,32 +217,32 @@ describe("RGP Prime Stack Calculation Engine", () => {
     });
   });
 
-  describe("9-Center Resonance Map", () => {
-    it("should calculate 9-Center map", () => {
+  describe("8-Center Resonance Map", () => {
+    it("should calculate 8-Center map", () => {
       const primeStack = calculatePrimeStack(sampleConscious, sampleDesign);
       const nineCenter = calculate9CenterMap(primeStack);
       expect(nineCenter).toBeDefined();
     });
 
-    it("should have all 9 VRC centers", () => {
+    it("should have all 8 Tetradic centers", () => {
       const primeStack = calculatePrimeStack(sampleConscious, sampleDesign);
       const nineCenter = calculate9CenterMap(primeStack);
-      expect(Object.keys(nineCenter).length).toBe(9);
+      expect(Object.keys(nineCenter).length).toBe(8);
     });
 
     it("should include valid VRC center names", () => {
       const primeStack = calculatePrimeStack(sampleConscious, sampleDesign);
       const nineCenter = calculate9CenterMap(primeStack);
       const validCenters = [
-        "Crown",
-        "Ajna",
-        "Throat",
-        "G-Self",
-        "Heart",
-        "Solar Plexus",
-        "Sacral",
-        "Spleen",
-        "Root",
+        "Origin",
+        "Mental",
+        "Collapse",
+        "Bridge",
+        "Omega",
+        "Becoming",
+        "Saturation",
+        "Return",
+        "Origin",
       ];
       for (const [name] of Object.entries(nineCenter)) {
         expect(validCenters).toContain(name);
@@ -407,7 +407,7 @@ describe("RGP Prime Stack Calculation Engine", () => {
       const summary = generatePrimeStackSummary(primeStack);
 
       expect(primeStack.positions.length).toBe(9);
-      expect(Object.keys(nineCenter).length).toBe(9);
+      expect(Object.keys(nineCenter).length).toBe(8);
       expect(role.role).toBeDefined();
       expect(authority.node).toBeDefined();
       expect(summary.length).toBeGreaterThan(0);

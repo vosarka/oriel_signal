@@ -132,167 +132,163 @@ export const CODON_NAMES: Record<number, string> = {
 };
 
 /**
- * 9-Center names used in the VRC / ROS system.
+ * 8 Tetradic Center names (VTRS v2.0 — supersedes legacy 9-Center model).
+ * Source of truth: Consciousness Lattice Unified Specification v2, Part VI.
  */
 export type CenterName =
-  | "Crown"
-  | "Ajna"
-  | "Throat"
-  | "G-Self"
-  | "Heart"
-  | "Solar Plexus"
-  | "Sacral"
-  | "Spleen"
-  | "Root";
+  | "Origin"
+  | "Mental"
+  | "Collapse"
+  | "Saturation"
+  | "Bridge"
+  | "Becoming"
+  | "Return"
+  | "Omega";
 
 /**
- * Maps each of the 64 Codon numbers to its Center.
- * Source of truth: Consciousness Lattice Unified Specification v1, Part VI.
+ * Maps each of the 64 Codon numbers to its Tetradic Center.
+ * Perfect symmetry: 8 centers × 8 codons = 64.
+ * Source of truth: Consciousness Lattice Unified Specification v2, Part VI.
  */
 export const CODON_CENTER_MAP: Record<number, CenterName> = {
-  // Crown (Head)
-  64: "Crown",
-  61: "Crown",
-  63: "Crown",
+  // Center I — The Origin (Phase I)
+  1: "Origin",
+  2: "Origin",
+  3: "Origin",
+  5: "Origin",
+  9: "Origin",
+  19: "Origin",
+  38: "Origin",
+  51: "Origin",
 
-  // Ajna
-  47: "Ajna",
-  24: "Ajna",
-  4: "Ajna",
-  17: "Ajna",
-  43: "Ajna",
-  11: "Ajna",
+  // Center II — The Mental (Phase II)
+  4: "Mental",
+  11: "Mental",
+  17: "Mental",
+  23: "Mental",
+  24: "Mental",
+  43: "Mental",
+  61: "Mental",
+  63: "Mental",
 
-  // Throat
-  62: "Throat",
-  23: "Throat",
-  56: "Throat",
-  35: "Throat",
-  12: "Throat",
-  45: "Throat",
-  16: "Throat",
-  31: "Throat",
-  8: "Throat",
-  33: "Throat",
-  20: "Throat",
+  // Center III — The Collapse (Phase III)
+  8: "Collapse",
+  12: "Collapse",
+  16: "Collapse",
+  20: "Collapse",
+  31: "Collapse",
+  33: "Collapse",
+  35: "Collapse",
+  56: "Collapse",
 
-  // G-Self
-  25: "G-Self",
-  46: "G-Self",
-  15: "G-Self",
-  10: "G-Self",
-  2: "G-Self",
-  1: "G-Self",
-  7: "G-Self",
-  13: "G-Self",
+  // Center IV — The Saturation (Phase IIII)
+  14: "Saturation",
+  27: "Saturation",
+  29: "Saturation",
+  34: "Saturation",
+  42: "Saturation",
+  52: "Saturation",
+  53: "Saturation",
+  60: "Saturation",
 
-  // Heart / Ego
-  21: "Heart",
-  40: "Heart",
-  26: "Heart",
-  51: "Heart",
+  // Center V — The Bridge (Phase IIII'I)
+  7: "Bridge",
+  10: "Bridge",
+  13: "Bridge",
+  15: "Bridge",
+  25: "Bridge",
+  46: "Bridge",
+  57: "Bridge",
+  59: "Bridge",
 
-  // Solar Plexus
-  36: "Solar Plexus",
-  22: "Solar Plexus",
-  37: "Solar Plexus",
-  49: "Solar Plexus",
-  55: "Solar Plexus",
-  30: "Solar Plexus",
-  6: "Solar Plexus",
+  // Center VI — The Becoming (Phase IIII'II)
+  6: "Becoming",
+  22: "Becoming",
+  30: "Becoming",
+  36: "Becoming",
+  37: "Becoming",
+  39: "Becoming",
+  41: "Becoming",
+  55: "Becoming",
 
-  // Sacral
-  34: "Sacral",
-  5: "Sacral",
-  14: "Sacral",
-  29: "Sacral",
-  59: "Sacral",
-  9: "Sacral",
-  3: "Sacral",
-  42: "Sacral",
-  27: "Sacral",
-  50: "Sacral",
+  // Center VII — The Return (Phase IIII'III)
+  18: "Return",
+  28: "Return",
+  32: "Return",
+  44: "Return",
+  48: "Return",
+  49: "Return",
+  50: "Return",
+  58: "Return",
 
-  // Spleen
-  48: "Spleen",
-  57: "Spleen",
-  44: "Spleen",
-  32: "Spleen",
-  28: "Spleen",
-  18: "Spleen",
-
-  // Root
-  58: "Root",
-  38: "Root",
-  54: "Root",
-  53: "Root",
-  60: "Root",
-  52: "Root",
-  19: "Root",
-  39: "Root",
-  41: "Root",
+  // Center VIII — The Omega (Phase IIII'IIII)
+  21: "Omega",
+  26: "Omega",
+  40: "Omega",
+  45: "Omega",
+  47: "Omega",
+  54: "Omega",
+  62: "Omega",
+  64: "Omega",
 };
 
 /**
- * The 36 Bio-Circuitry channels — each channel is a pair [gateA, gateB].
- * A channel is ACTIVE when both gates are defined (one from each chart, or both from same).
- * NOTE: Verify against VRC Bio-Circuitry diagram image when available.
+ * The 32 Resonance Links (VTRS v2.0 — supersedes legacy 36-Channel model).
+ * Each link is a pair [codonA, codonB] connecting two Tetradic Centers.
+ * A link is ACTIVE when both endpoint codons are defined in the Receiver's chart.
+ * Source of truth: Consciousness Lattice Unified Specification v2, Part VII.
  */
 export const VRC_CHANNELS: readonly [number, number][] = [
-  // Crown–Ajna
-  [64, 47],
+  // I–II
   [61, 24],
-  [63, 4],
-  // Ajna–Throat
-  [17, 62],
+  // I–IV
+  [3, 60],
+  [9, 52],
+  // I–VII
+  [19, 49],
+  // II–III
   [43, 23],
   [11, 56],
-  // Throat–G-Self
-  [31, 7],
-  [8, 1],
+  [17, 62],
+  // II–VIII
+  [64, 47],
+  // III–V
   [33, 13],
+  [8, 1],
+  [31, 7],
   [20, 10],
-  // Throat–Heart
-  [45, 21],
-  // Throat–Solar Plexus
+  // III–VI
   [35, 36],
   [12, 22],
-  // Throat–Spleen
+  // III–VII
   [16, 48],
-  [20, 57],
-  // Throat–Sacral
-  [20, 34],
-  // G-Self–Heart
-  [25, 51],
-  // G-Self–Sacral
-  [2, 14],
+  // III–VIII
+  [45, 21],
+  // IV–V
   [15, 5],
+  [2, 14],
   [46, 29],
   [10, 34],
-  // Spleen–Sacral
+  // IV–VII
   [50, 27],
-  // G-Self–Spleen
+  [57, 34],
+  // V–VII
   [10, 57],
-  // Heart–Solar Plexus
+  // V–VIII
+  [25, 51],
+  // VI–V
+  [59, 6],
+  // VI–VII
   [40, 37],
-  // Heart–Spleen
+  // VI–I
+  [39, 55],
+  [41, 30],
+  // VII–VIII
   [26, 44],
-  // Solar Plexus–Root
-  [30, 41],
-  [49, 19],
-  [55, 39],
-  // Solar Plexus–Sacral
-  [6, 59],
-  // Sacral–Spleen
-  [34, 57],
-  // Sacral–Root
-  [9, 52],
-  [3, 60],
-  [42, 53],
-  // Root–Spleen
-  [38, 28],
-  [54, 32],
-  [58, 18],
+  // VII–I
+  [28, 38],
+  [18, 58],
+  [32, 54],
 ];
 
 // ─── Core mapping functions ──────────────────────────────────────────────────
@@ -390,15 +386,14 @@ export function evaluateCenters(
   }
 
   const ALL_CENTERS: CenterName[] = [
-    "Crown",
-    "Ajna",
-    "Throat",
-    "G-Self",
-    "Heart",
-    "Solar Plexus",
-    "Sacral",
-    "Spleen",
-    "Root",
+    "Origin",
+    "Mental",
+    "Collapse",
+    "Saturation",
+    "Bridge",
+    "Becoming",
+    "Return",
+    "Omega",
   ];
   const result = {} as Record<CenterName, "defined" | "open">;
   for (const center of ALL_CENTERS) {
@@ -411,35 +406,36 @@ export function evaluateCenters(
 
 export type VrcType = "Reflector" | "Resonator" | "Catalyst" | "Harmonizer";
 export type VrcAuthority =
-  | "Solar Plexus"
-  | "Sacral"
-  | "Spleen"
-  | "Ego/Heart"
-  | "G-Center"
-  | "None/Outer"
+  | "Emotional"
+  | "Somatic"
+  | "Instinctive"
+  | "Ego"
+  | "Self-Projected"
+  | "Lunar"
   | "Environment";
 
 /**
- * Motor-to-Throat channel pairs (VRC § 5A — Catalyst determination).
- * A Catalyst requires Sacral OPEN and at least one of these channels ACTIVE.
- * Motors: Solar Plexus (gates 35→36, 12→22) and Heart/Ego (45→21).
+ * Motor-to-Collapse link pairs (VTRS v2 — Catalyst determination).
+ * A Catalyst requires Saturation (IV) OPEN and at least one of these links ACTIVE,
+ * where a motor center (VI Becoming or VIII Omega) connects directly to Collapse (III).
+ * Motor links to Collapse: III–VI (35-36, 12-22) and III–VIII (45-21).
  */
-const MOTOR_TO_THROAT_CHANNELS: ReadonlyArray<readonly [number, number]> = [
-  [35, 36], // Transience   — Throat ↔ Solar Plexus
-  [12, 22], // Openness     — Throat ↔ Solar Plexus
-  [45, 21], // Money Line   — Throat ↔ Heart
+const MOTOR_TO_COLLAPSE_LINKS: ReadonlyArray<readonly [number, number]> = [
+  [35, 36], // Collapse ↔ Becoming
+  [12, 22], // Collapse ↔ Becoming
+  [45, 21], // Collapse ↔ Omega
 ] as const;
 
 /**
- * Determine VRC Type from defined centers (VRC § 5A).
+ * Determine VRC Type from defined centers (VTRS v2, Part VIII).
  *
- *   Reflector  = all 9 centers open
- *   Resonator  = Sacral defined
- *   Catalyst   = Sacral open AND a motor center has an active channel to Throat
- *   Harmonizer = everything else (includes Throat defined via non-motor path)
+ *   Reflector  = all 8 centers open (The Mirror)
+ *   Resonator  = Center IV (Saturation) defined
+ *   Catalyst   = Center IV open AND a motor center (VI or VIII) has an active link to Collapse (III)
+ *   Harmonizer = Center IV open AND Collapse is NOT fed by any direct motor link
  *
  * Pass channelStatuses for spec-accurate Catalyst detection.
- * Falls back to "Throat defined" heuristic when channelStatuses is omitted.
+ * Falls back to "Collapse defined" heuristic when channelStatuses is omitted.
  */
 export function determineType(
   centers: Record<CenterName, "defined" | "open">,
@@ -447,21 +443,21 @@ export function determineType(
 ): VrcType {
   const allOpen = Object.values(centers).every(s => s === "open");
   if (allOpen) return "Reflector";
-  if (centers["Sacral"] === "defined") return "Resonator";
+  if (centers["Saturation"] === "defined") return "Resonator";
 
-  // Catalyst: Sacral is open (confirmed above) + motor drives Throat
+  // Catalyst: Saturation is open (confirmed above) + motor drives Collapse
   if (channelStatuses) {
-    const motorToThroatActive = channelStatuses.some(
+    const motorToCollapseActive = channelStatuses.some(
       ch =>
         ch.active &&
-        MOTOR_TO_THROAT_CHANNELS.some(
+        MOTOR_TO_COLLAPSE_LINKS.some(
           ([a, b]) =>
             (ch.gateA === a && ch.gateB === b) ||
             (ch.gateA === b && ch.gateB === a)
         )
     );
-    if (motorToThroatActive) return "Catalyst";
-  } else if (centers["Throat"] === "defined") {
+    if (motorToCollapseActive) return "Catalyst";
+  } else if (centers["Collapse"] === "defined") {
     // Legacy fallback when channel data is unavailable
     return "Catalyst";
   }
@@ -470,24 +466,24 @@ export function determineType(
 }
 
 /**
- * Determine VRC Authority using priority hierarchy (VRC § 7).
+ * Determine VRC Authority using priority hierarchy (VTRS v2, Part VIII).
  *
- *   Priority: Solar Plexus > Sacral > Spleen > Ego/Heart > G-Center
- *             > None/Outer for Reflectors
- *             > Environment for mental/no-inner cases
+ *   Priority: VI (Becoming/Emotional) > IV (Saturation/Somatic) > VII (Return/Instinctive)
+ *             > VIII (Omega/Ego) > V (Bridge/Self-Projected)
+ *             > Lunar for Reflectors > Environment for mental/no-inner cases
  */
 export function determineAuthority(
   centers: Record<CenterName, "defined" | "open">,
   vrcType?: VrcType
 ): VrcAuthority {
-  if (centers["Solar Plexus"] === "defined") return "Solar Plexus";
-  if (centers["Sacral"] === "defined") return "Sacral";
-  if (centers["Spleen"] === "defined") return "Spleen";
-  if (centers["Heart"] === "defined") return "Ego/Heart";
-  if (centers["G-Self"] === "defined") return "G-Center";
+  if (centers["Becoming"] === "defined") return "Emotional";
+  if (centers["Saturation"] === "defined") return "Somatic";
+  if (centers["Return"] === "defined") return "Instinctive";
+  if (centers["Omega"] === "defined") return "Ego";
+  if (centers["Bridge"] === "defined") return "Self-Projected";
   const allCentersOpen = Object.values(centers).every(s => s === "open");
   if (vrcType === "Reflector" || allCentersOpen) {
-    return "None/Outer";
+    return "Lunar";
   }
   return "Environment";
 }

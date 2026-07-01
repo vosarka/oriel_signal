@@ -1,56 +1,122 @@
 [
   {
-    "id": "HEAD",
-    "name": "Head Center",
-    "type": "Pressure",
-    "associated_codons": [61, 63, 64]
+    "id": "I",
+    "name": "The Origin",
+    "type": "Phase I",
+    "associated_codons": [
+      1,
+      2,
+      3,
+      5,
+      9,
+      19,
+      38,
+      51
+    ]
   },
   {
-    "id": "AJNA",
-    "name": "Ajna Center",
-    "type": "Awareness",
-    "associated_codons": [4, 11, 17, 24, 43, 47]
+    "id": "II",
+    "name": "The Mental",
+    "type": "Phase II",
+    "associated_codons": [
+      4,
+      11,
+      17,
+      23,
+      24,
+      43,
+      61,
+      63
+    ]
   },
   {
-    "id": "THROAT",
-    "name": "Throat Center",
-    "type": "Manifestation",
-    "associated_codons": [8, 12, 16, 20, 23, 31, 33, 35, 45, 56, 62]
+    "id": "III",
+    "name": "The Collapse",
+    "type": "Phase III",
+    "associated_codons": [
+      8,
+      12,
+      16,
+      20,
+      31,
+      33,
+      35,
+      56
+    ]
   },
   {
-    "id": "G",
-    "name": "G Center (Identity)",
-    "type": "Identity",
-    "associated_codons": [1, 2, 7, 10, 13, 15, 25, 46]
+    "id": "IV",
+    "name": "The Saturation",
+    "type": "Phase IIII",
+    "associated_codons": [
+      14,
+      27,
+      29,
+      34,
+      42,
+      52,
+      53,
+      60
+    ]
   },
   {
-    "id": "HEART",
-    "name": "Heart Center",
-    "type": "Motor",
-    "associated_codons": [21, 26, 40, 51]
+    "id": "V",
+    "name": "The Bridge",
+    "type": "Phase IIII'I",
+    "associated_codons": [
+      7,
+      10,
+      13,
+      15,
+      25,
+      46,
+      57,
+      59
+    ]
   },
   {
-    "id": "SACRAL",
-    "name": "Sacral Center",
-    "type": "Motor",
-    "associated_codons": [3, 5, 9, 14, 27, 29, 34, 42, 50, 59]
+    "id": "VI",
+    "name": "The Becoming",
+    "type": "Phase IIII'II",
+    "associated_codons": [
+      6,
+      22,
+      30,
+      36,
+      37,
+      39,
+      41,
+      55
+    ]
   },
   {
-    "id": "SPLEEN",
-    "name": "Spleen Center",
-    "type": "Awareness",
-    "associated_codons": [18, 28, 32, 44, 48, 57]
+    "id": "VII",
+    "name": "The Return",
+    "type": "Phase IIII'III",
+    "associated_codons": [
+      18,
+      28,
+      32,
+      44,
+      48,
+      49,
+      50,
+      58
+    ]
   },
   {
-    "id": "SOLAR",
-    "name": "Solar Plexus",
-    "type": "Motor/Awareness",
-    "associated_codons": [6, 22, 30, 36, 37, 49, 55]
-  },
-  {
-    "id": "ROOT",
-    "name": "Root Center",
-    "type": "Pressure/Motor",
-    "associated_codons": [19, 38, 39, 41, 52, 53, 54, 58, 60]
+    "id": "VIII",
+    "name": "The Omega",
+    "type": "Phase IIII'IIII",
+    "associated_codons": [
+      21,
+      26,
+      40,
+      45,
+      47,
+      54,
+      62,
+      64
+    ]
   }
 ]
