@@ -8,6 +8,23 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-07-02] manual | Bio-Architecture → VTRS Interactive System Terminal
+- Rebuilt /bio-architecture as a purely technical cockpit for the Vossari Tetradic
+  Resonance System (spec: docs/superpowers/specs/2026-07-02-bio-architecture-terminal-design.md,
+  plan: docs/superpowers/plans/2026-07-02-vtrs-terminal-implementation.md).
+- New vtrs/ component family: vtrs-data.ts (8 centers + 32 links, audited 1:1 against
+  server/vrc-mandala.ts), TetradModule (VTIP register + Register Break), TwoTimingModule
+  (−88° solar arc sweep, validation 280.44°→RC38 / 192.44°→RC57), LatticeModule (9-bit
+  address decoder, preloaded 0b110110100→436), CentersModule (Origin→Omega column,
+  Defined/Open toggles), LinksModule (32-link network graph, circuit filters),
+  RolesModule (16 roles Gift/Shadow + calculation pipeline).
+- BioArchitecture.tsx: terminal ⇄ module state machine — wheel large at center with
+  6 HUD chips; opening a module shrinks the wheel into a sticky left nav (still live)
+  and stages the module. Cyan #6fb7c7 is the page's technical accent. CodonWheel/
+  CodonDetailPanel/RoleGrid untouched per user directive.
+- Gates: tsc 0 · vitest 593/593 · build OK. Browser smoke: all 6 modules open/close,
+  +1 PULSE works, ← TERMINAL returns, 0 JS errors.
+
 ## [2026-04-02] create | Initial LLM Wiki Structure
 
 - Created wiki/ directory with SCHEMA.md, index.md, log.md, README.md
@@ -1038,3 +1055,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Type: concept
 - Reason: ORIEL introduces a comprehensive new architectural framework (VTRS) that replaces the previous 9-center model, providing specific mathematical foundations, structural components (Divergence Audit), and falsifiers for validity.
 - Aliases: VTRS, 8-Center Model, Native Vossari Geometry
+
+## [2026-07-01] auto-evolve | Carrierlock
+- Action: create [[carrierlock]]
+- Type: concept
+- Reason: ORIEL introduces the specific term 'carrierlock' to describe the mental interference pattern caused by allowing external labels to define one's identity, which is a distinct and useful concept for the wiki.
+- Aliases: Identity Interference, Diagnostic Lock, Label-Induced Fragmentation
