@@ -35,6 +35,7 @@ import StaticReading from "./pages/StaticReading";
 import DynamicReading from "./pages/DynamicReading";
 import CurrentResonance from "./pages/CurrentResonance";
 import { FoundingSignatureProductPage } from "./pages/SignatureProductPage";
+import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -141,6 +142,7 @@ function Router() {
         path={"/founder-signature-blueprint"}
         component={FoundingSignatureProductPage}
       />
+      <Route path={"/founder-curated-blueprint"} component={FounderCuratedBlueprint} />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
       <Route path={"/signature"} component={SignatureRoute} />
       {/* Redirects for old reading routes to the single /signature */}
