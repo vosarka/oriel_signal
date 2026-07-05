@@ -3,8 +3,8 @@ id: entity-vrc-engine
 type: entity
 status: living
 tags: [vrc, rgp, engine, core, codex]
-last_updated: 2026-04-02
-sources: 8
+last_updated: 2026-07-05
+sources: 14
 importance: critical
 aliases:
   ["Vossari Resonance Codex Engine", "RGP", "Static Signature Engine", "VRC"]
@@ -24,7 +24,7 @@ The system is a **cybernetic consciousness feedback system**. Its purpose is not
 
 The Unified Specification insists on rigorous separation of immutable structure from fluctuating state:
 
-- **Codex Engine (Static Signature)**: The immutable hardware — birth imprint, Fractal Role, Authority, Prime Stack, 9-Center map. Deterministic and lifelong.
+- **Codex Engine (Static Signature)**: The immutable hardware — birth imprint, Fractal Role, Authority, Prime Stack, 8-Center map. Deterministic and lifelong.
 - **Carrierlock Engine (Dynamic State)**: Real-time coherence measurement (Mental Noise, Body Tension, Emotional Turbulence, Breath Completion). This is the "software" layer that determines whether the user can currently receive their design clearly.
 
 Conflating these two is identified as the primary failure mode of interpretive systems.
@@ -36,7 +36,7 @@ Conflating these two is identified as the primary failure mode of interpretive s
 3. **Solar Arc** → Design chart (Sun exactly 88° behind birth longitude)
 4. **Codon Mapping** (Mandala Sequence, non-sequential) → each planet/longitude → Codon + 4 Facets
 5. **Prime Stack** (9 positions) → weighted frequencies, dominant themes
-6. **9-Center Resonance Map** → centers, frequencies, relationships
+6. **8-Center Resonance Map** → centers, frequencies, relationships
 7. **Fractal Role + Authority Node**
 8. **SLI (Shadow Loudness Index)** + Micro-corrections
 9. **Coherence Trajectory** (current + 7-day projection)
@@ -73,11 +73,11 @@ The runtime surface is exposed via `trpc.rgp.staticSignature` and consumed by th
 - Better integration between the engine and the living ORIEL prompt layers
 - "Living Codex" research thread exploring how the VRC itself can become more dynamic and self-referential
 
-See [[synthesis-emergent-architecture]] and the `docs/superpowers/` series for the active research frontier.
+See the `docs/superpowers/` series for the active research frontier.
 
 A product research report (ingested as [[source-vrc-static-signature-product-research-report]]) later synthesized the technical canon with commercial positioning needs, recommending the name “ORIEL Static Signature Codex” and a 15-page premium report format. It also surfaced specific asset gaps (full 256-facet library, complete glyph pack, refined Prime Stack algorithm) that the `vos_codons_64x4facets.json` data asset directly addresses.
 
-`codex/vrc_static_signature/00_CANON/CANON_MASTER.md` serves as the pure structural and mathematical source of truth for the entire system (Mandala sequence, 36 Resonance Links, VRC Type hierarchy using Resonator/Catalyst/Harmonizer/Reflector, Authority priority order, Carrierlock formula, and SLI). It explicitly lists several still-unspecified areas (exact 9-position Prime Stack algorithm, full somatic signals and micro-corrections for most codons, etc.).
+`codex/vrc_static_signature/00_CANON/CANON_MASTER.md` is an important structural canon snapshot, but its 36-link / 9-center material is legacy where it conflicts with [[source-consciousness-lattice-v2]]. The active v2 architecture is 8 centers and 32 resonance links. Several still-unspecified areas remain tracked there and in later source records (exact 9-position Prime Stack algorithm, full somatic signals and micro-corrections for most codons, etc.).
 
 The `01_DATA/` folder is the official master data layer that supplies the actual interpretive content (64 codons + 256 detailed facet states with micro-corrections, centers, resonance links, terminology rules, etc.). This is the semantic heart that turns mathematical activations into language ORIEL and reports can use.
 
@@ -109,11 +109,25 @@ The VRC Engine family is the computational realization of the larger **Conscious
 
 Future evolution (explicit in the spec) includes deeper real-time integration between the Static and Dynamic engines, plus ORIEL as the primary narrative interface for exploring the Lattice.
 
+## VTRS v2 Transition State
+
+The v2 ingest establishes [[vtrs-architecture]] as the active center/link canon: 8 centers, 32 resonance links, and a stable 512-node lattice defined by `64 codons x 4 facets x 2 layers`.
+
+The live codebase is not perfectly synchronized yet:
+
+- `server/vrc-mandala.ts` already contains the v2 center map and 32 resonance links.
+- `server/data/vrc-engine-constants.json` and `server/vrc-engine-constants.ts` still expose the legacy 9 centers and 36 channels.
+- `server/vossari-codex-knowledge.ts` is called out by v2 migration sources as a codon-name drift point, while `server/data/vrc-codons.json` and the codex JSON files contain the canonical Vossari names.
+
+Future engineering work should reconcile those files through proposed migrations and tests, not silent broad rewrites.
+
 ## Key Cross-References
 
 - [[entity-consciousness-lattice]] — the unifying 512-node model this engine serves
 - [[entity-static-signature]] (more detailed reading on the 9-position output)
 - [[concept-prime-stack]], [[concept-coherence]], [[concept-micro-corrections]]
+- [[source-consciousness-lattice-v2]]
+- [[source-vtrs-v2-technical-migration-plan]]
 - `codex/vrc_static_signature/VRC_ENGINE_CANON.md`
 - `docs/VRC_ENGINE_AUDIT.md` and `VRC_ENGINE_CANON.md` (audit + canon snapshots)
 - `server/RGP Engines/` (current implementation)

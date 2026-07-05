@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
-import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
 import { CodonWheel } from "@/components/oriel-signal/CodonWheel";
 import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
 import { RoleGrid } from "@/components/oriel-signal/RoleGrid";
+import { CenterGrid } from "@/components/oriel-signal/CenterGrid";
 import { Spinner } from "@/components/ui/spinner";
 import { TetradModule } from "@/components/oriel-signal/vtrs/TetradModule";
 import { TwoTimingModule } from "@/components/oriel-signal/vtrs/TwoTimingModule";
@@ -33,6 +33,7 @@ export default function BioArchitecture() {
   const [selectedId, setSelectedId] = useState<number>(1);
   const [selectedFacetKey, setSelectedFacetKey] = useState<"A" | "B" | "C" | "D">("A");
   const [activeRoleIdx, setActiveRoleIdx] = useState<number | null>(null);
+  const [activeCenter, setActiveCenter] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeModule, setActiveModule] = useState<ModuleId | null>(null);
 
@@ -56,13 +57,14 @@ export default function BioArchitecture() {
   return (
     <Layout>
       <SignalPageShell chamber="codex" className="bio-architecture-page">
-        <SacredGeometryField static />
-        
+
         <style>{`
           .bio-architecture-page {
             min-height: 100vh;
             padding: clamp(6rem, 10vw, 8rem) 1.5rem 6rem;
-            background: radial-gradient(150% 90% at 50% -5%, #110d14 0%, #08070b 55%, #060508 100%);
+            /* Transparent so the shared SignalBackdrop (obsidian void + gold
+               bloom + starfield, same as Home) shows through. No flower-of-life. */
+            background: transparent;
             /* VTRS terminal design tokens */
             --ink: #f2ead7;
             --gold: #cda14a;
@@ -94,19 +96,81 @@ export default function BioArchitecture() {
             max-width: 860px;
           }
 
-          /* Main layout grid: Wheel Left | Panel Right */
+          /* Main layout grid: Centers | Wheel | Panel */
           .cz-bio-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 420px;
+            grid-template-columns: 200px minmax(0, 1fr) 420px;
             gap: clamp(1.5rem, 4vw, 3.5rem);
             align-items: start;
             margin-top: 2rem;
+          }
+
+          @media (max-width: 1400px) {
+            .cz-bio-grid {
+              grid-template-columns: 180px minmax(0, 1fr) 380px;
+            }
           }
 
           @media (max-width: 1080px) {
             .cz-bio-grid {
               grid-template-columns: 1fr;
               gap: 3rem;
+            }
+          }
+
+          /* ── Center Sidebar (left of the wheel) ───────────────────────── */
+          .cz-center-sidebar {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+          }
+
+          .cz-center-sidebar-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--line);
+            border: 1px solid var(--line);
+          }
+
+          .cz-center-card {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(20, 17, 12, 0.35);
+          }
+
+          .cz-center-card:hover {
+            background: #15120c !important;
+          }
+
+          .cz-center-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .cz-center-card-name {
+            font-size: 14px;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+          }
+
+          .cz-center-card-sub {
+            display: block;
+            margin-top: 4px;
+            font-family: var(--font-ritual, monospace);
+            font-size: 8.5px;
+            letter-spacing: 0.02em;
+            line-height: 1.4;
+            color: var(--mut);
+          }
+
+          @media (max-width: 1080px) {
+            .cz-center-sidebar-list {
+              flex-direction: row;
+              flex-wrap: wrap;
+            }
+            .cz-center-card {
+              flex: 1 1 160px;
             }
           }
 
@@ -1208,11 +1272,23 @@ export default function BioArchitecture() {
                     </div>
 
                     <div className="cz-bio-grid">
+                      <CenterGrid
+                        activeCenter={activeCenter}
+                        onCenterSelect={name => {
+                          setActiveCenter(name);
+                          if (name !== null) setActiveRoleIdx(null);
+                        }}
+                      />
                       <CodonWheel
                         codons={codons}
                         selectedId={selectedId}
                         onSelect={id => setSelectedId(id)}
                         activeRoleIdx={activeRoleIdx}
+                        activeCenter={activeCenter}
+                        onDeselect={() => {
+                          setActiveCenter(null);
+                          setActiveRoleIdx(null);
+                        }}
                       />
                       <CodonDetailPanel
                         codon={selectedCodon}
@@ -1224,7 +1300,10 @@ export default function BioArchitecture() {
 
                     <RoleGrid
                       activeRoleIdx={activeRoleIdx}
-                      onRoleSelect={idx => setActiveRoleIdx(idx)}
+                      onRoleSelect={idx => {
+                        setActiveRoleIdx(idx);
+                        if (idx !== null) setActiveCenter(null);
+                      }}
                     />
                   </motion.div>
                 ) : (
@@ -1252,6 +1331,11 @@ export default function BioArchitecture() {
                           selectedId={selectedId}
                           onSelect={id => setSelectedId(id)}
                           activeRoleIdx={activeRoleIdx}
+                          activeCenter={activeCenter}
+                          onDeselect={() => {
+                            setActiveCenter(null);
+                            setActiveRoleIdx(null);
+                          }}
                         />
                       </div>
 

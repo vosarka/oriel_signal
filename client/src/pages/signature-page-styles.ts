@@ -979,4 +979,105 @@ export const signaturePageStyles = `
       grid-template-columns: repeat(3, 1fr);
     }
   }
+
+  /* ─── 10. WHY DIFFERENT — SPLIT CONTRAST ──────────────────── */
+
+  .fp-contrast {
+    display: grid;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .fp-contrast-noise {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .fp-contrast-noise-item {
+    color: rgba(154,150,142,0.42);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 300;
+    text-decoration: line-through;
+    text-decoration-color: rgba(154,150,142,0.28);
+    text-underline-offset: 2px;
+  }
+
+  .fp-contrast-signal {
+    border-left: 1px solid rgba(var(--oriel-amber-rgb), 0.22);
+    padding-left: 1.8rem;
+  }
+
+  .fp-contrast-signal-label {
+    display: block;
+    color: rgba(var(--oriel-amber-rgb), 0.72);
+    font-family: var(--font-ritual);
+    font-size: 0.58rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    margin-bottom: 0.9rem;
+  }
+
+  .fp-contrast-signal-body {
+    color: rgba(232,228,220,0.8);
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+    font-weight: 300;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+
+  /* ─── 11. THE TRANSFORMATION ───────────────────────────────── */
+
+  .fp-transform {
+    display: grid;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .fp-transform-visual {
+    display: flex;
+    justify-content: center;
+  }
+
+  .fp-transform-svg {
+    width: min(100%, 20rem);
+    height: auto;
+    overflow: visible;
+  }
+
+  .fp-transform-list {
+    margin-top: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .fp-transform-list-item {
+    display: flex;
+    gap: 0.7rem;
+    color: rgba(232,228,220,0.66);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  .fp-transform-list-item::before {
+    content: "→";
+    flex-shrink: 0;
+    color: rgba(var(--oriel-amber-rgb), 0.6);
+  }
+
+  @media (min-width: 900px) {
+    .fp-contrast {
+      grid-template-columns: 0.85fr 1.15fr;
+    }
+
+    .fp-transform {
+      grid-template-columns: 0.9fr 1.1fr;
+    }
+  }
 `;

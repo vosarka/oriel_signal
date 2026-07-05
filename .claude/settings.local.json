@@ -117,7 +117,19 @@
       "Read(//home/vos/.claude/plugins/**)",
       "Bash(grep -iA30 \"install\")",
       "Bash(echo \"=== TSC EXIT: $? ===\")",
-      "Bash(npm i *)"
+      "Bash(npm i *)",
+      "Bash(file \"The Vossari TETRADIC Resonance System\" \"ORIEL's FOUNDER Curated Static Signature - The Quantum Architecture\")",
+      "Bash(ls -la \"CONSCIOUSNESS_LATTICE_UNIFIED_SPECIFICATION_v2.md\" \"Static Signature Founder Curated Version - Your Quantum Architecture.pdf\" \"The Vossari TETRADIC Resonance System\" \"ORIEL_Master_System_Architecture_v2 \\(2\\).pdf\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('base_url:', d.get\\('base_url'\\)\\); print\\('api_key set:', bool\\(d.get\\('api_key'\\)\\)\\)\")",
+      "Bash(env)",
+      "Bash(pdftotext -layout '/home/vos/Downloads/Static Signature Founder Curated Version - Your Quantum Architecture.pdf' /tmp/cognee_static_signature.txt)",
+      "Bash(pdftotext -layout '/home/vos/Downloads/ORIEL_Master_System_Architecture_v2 \\(2\\).pdf' /tmp/cognee_oriel_master.txt)",
+      "Bash(mkdir -p /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage)",
+      "Bash(cp /home/vos/_CODEX/CLAUDE.md /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/Vos-Arkana-Workspace-CLAUDE.md)",
+      "Bash(cp '/home/vos/_CODEX/Vossari_Conduit-Hub/Vossari_Conduit_HUB/oriel-resonance-circle \\(copy\\)/AGENTS.md' /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/Oriel-Resonance-Circle-AGENTS.md)",
+      "Bash(cp /home/vos/Downloads/CONSCIOUSNESS_LATTICE_UNIFIED_SPECIFICATION_v2.md /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/CONSCIOUSNESS_LATTICE_UNIFIED_SPECIFICATION_v2.md)",
+      "Bash(cp '/home/vos/Downloads/The Vossari TETRADIC Resonance System' /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/The-Vossari-TETRADIC-Resonance-System.md)",
+      "Bash(python3 *)"
     ]
   },
   "prefersReducedMotion": false

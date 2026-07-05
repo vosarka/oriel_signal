@@ -1,9 +1,9 @@
 ---
 id: source-consciousness-lattice-unified-spec-v1
 type: source
-status: living
+status: deprecated
 tags: [consciousness-lattice, specification, vrc, rgp, architecture, 2026]
-last_updated: 2026-04-02
+last_updated: 2026-07-05
 sources: 1
 importance: critical
 aliases:
@@ -11,6 +11,7 @@ aliases:
     "Consciousness Lattice Unified Spec v1",
     "Unified System Specification",
     "CL Spec",
+    "Legacy Consciousness Lattice v1",
   ]
 ---
 
@@ -23,15 +24,17 @@ aliases:
 
 ## What This Document Is
 
-This is the **unifying master specification** for the entire Vossari diagnostic and consciousness modeling system. It integrates:
+This is the legacy v1 **unifying master specification** for the Vossari diagnostic and consciousness modeling system. [[source-consciousness-lattice-v2]] supersedes its center/link architecture, but v1 remains important historical context for the dual-engine model, Mandala Sequence, 512-node lattice, visualization ambition, and ORIEL narration roadmap.
+
+It integrates:
 
 - Vossari Resonance Codex (VRC)
 - Resonance Genetics Protocol (RGP)
 - Static Signature (Codex Engine)
 - Carrierlock / Dynamic State (Coherence measurement)
 - Cosmic Mapping Layer (Mandala Sequence, codon wheel)
-- Nine Centers of Photonic Resonance
-- 36 Resonance Links (Channels)
+- Nine Centers of Photonic Resonance (legacy; superseded by v2's 8 centers)
+- 36 Resonance Links / Channels (legacy; superseded by v2's 32 links)
 - Shadow Loudness Index + Micro-Corrections
 - The 512-node Consciousness Lattice model
 - Visualization & Interface Architecture (including 3D Lattice)
@@ -47,12 +50,12 @@ It is the most comprehensive single document describing _how the whole system fi
 ### 1. The 512-Node Consciousness Lattice
 
 - 64 Codons × 4 Facets (Somatic / Relational / Cognitive / Transpersonal) × 2 Layers (Personality/Conscious + Design/Body) = **512 expression nodes**.
-- 512 = 2⁹, mapping to the nine regulatory centers.
-- This is the mathematical heart of the "Consciousness Lattice" concept.
+- v1 explains 512 as `2^9`, mapping to the nine regulatory centers.
+- v2 preserves the 512-node lattice but rejects the center-count dependency: 512 is now treated as `64 x 4 x 2`, independent of the 8-center architecture.
 
 ### 2. Mandatory Dual-Engine Architecture
 
-- **Engine A — Codex Engine (Static Signature)**: Immutable birth imprint (Fractal Role, Authority, 9-Center Map). Deterministic.
+- **Engine A — Codex Engine (Static Signature)**: Immutable birth imprint (Fractal Role, Authority, legacy 9-Center Map). Deterministic.
 - **Engine B — Carrierlock Engine (Dynamic State)**: Real-time coherence measurement (Mental Noise, Body Tension, Emotional Turbulence, Breath Completion). Fluctuating.
 - Explicit warning against conflating transient state with structural blueprint.
 
@@ -63,7 +66,7 @@ It is the most comprehensive single document describing _how the whole system fi
 - Detailed planetary weight table (Sun 100, Earth 100, Moon 70...).
 - Precise conversion algorithm for longitude → codon + facet.
 
-### 4. Nine Centers of Photonic Resonance
+### 4. Nine Centers of Photonic Resonance (Legacy)
 
 Complete table with Center ID, Name, Type (Pressure/Awareness/Motor), and associated codons. Centers can be Defined (colored) or Open (white/amplifying).
 
@@ -100,8 +103,8 @@ It is **not** the runtime code (that lives in `server/RGP Engines/` and the code
 - [[entity-consciousness-lattice]] (new major entity — primary home)
 - [[entity-vrc-engine]] (significant update to Dual-Engine and Lattice model)
 - [[entity-static-signature]] (to be created/expanded)
-- [[synthesis-emergent-architecture]] (this spec is a core pillar of the 2026 research direction)
-- [[synthesis-living-codex]] (potential future integration point)
+- Synthesis: emergent architecture (this spec is a core pillar of the 2026 research direction; page not yet present)
+- Synthesis: living codex (potential future integration point; page not yet present)
 - Multiple concepts (Mandala Sequence, 512-node lattice, Photonic Centers, Dual-Engine Architecture, etc.)
 
 ## Notes from Ingest (2026-04-02)
@@ -115,6 +118,7 @@ It is **not** the runtime code (that lives in `server/RGP Engines/` and the code
 ## Cross-Links
 
 - [[entity-consciousness-lattice]]
+- [[source-consciousness-lattice-v2]]
 - [[entity-vrc-engine]]
 - `codex/vrc_static_signature/` (detailed engine implementation that realizes parts of this spec)
 - `docs/superpowers/` series (2026-05 research that builds on or responds to this spec)

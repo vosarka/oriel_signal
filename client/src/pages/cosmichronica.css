@@ -89,13 +89,47 @@
 }
 
 .cz-preface__line:last-child {
-  margin-top: 0.4rem;
-  font-style: normal;
+  max-width: 58ch;
+}
+
+.cz-threshold__actions {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 1s ease, transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cz-threshold__actions.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cz-threshold__begin {
+  min-height: 2.65rem;
+  padding: 0.76rem 1.15rem;
+  border: 1px solid rgba(246, 176, 94, 0.42);
+  border-radius: 999px;
+  background: rgba(246, 176, 94, 0.065);
+  color: #f8f1e3;
   font-family: var(--font-ritual);
-  font-size: 11px;
-  letter-spacing: 0.3em;
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(246, 176, 94, 0.72);
+  cursor: pointer;
+  transition: border-color 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+}
+
+.cz-threshold__begin:hover,
+.cz-threshold__begin:focus-visible {
+  border-color: rgba(246, 176, 94, 0.82);
+  background: rgba(246, 176, 94, 0.12);
+  box-shadow: 0 0 28px rgba(246, 176, 94, 0.16);
+  outline: none;
 }
 
 .cz-scrollcue {
@@ -396,6 +430,61 @@
   align-items: flex-start;
   gap: 1rem;
   max-width: 30rem;
+}
+
+.cz-story__phase,
+.cz-story__archive {
+  font-family: var(--font-ritual, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  line-height: 1.55;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--story-accent) 74%, #fff 26%);
+}
+
+.cz-story__archive {
+  margin: 0.35rem 0 0;
+  color: rgba(232, 228, 220, 0.46);
+}
+
+.cz-story__symbolic {
+  margin: 0;
+  font-family: var(--font-voice, "Cormorant Garamond", Georgia, serif);
+  font-style: italic;
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--story-accent) 74%, #f8f1e3 26%);
+}
+
+.cz-micro {
+  width: 5.7rem;
+  height: 5.7rem;
+  margin-bottom: 0.15rem;
+  overflow: visible;
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--story-accent) 20%, transparent));
+}
+
+.cz-micro__ring,
+.cz-micro__path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--story-accent) 70%, transparent);
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cz-micro__path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cz-micro__path--dim {
+  opacity: 0.38;
+}
+
+.cz-micro__core,
+.cz-micro__dot {
+  fill: color-mix(in srgb, var(--story-accent) 76%, #fff 24%);
+  filter: drop-shadow(0 0 6px var(--story-accent));
 }
 
 .cz-story__question {
@@ -1317,14 +1406,27 @@
   text-shadow: 0 0 40px rgba(246, 176, 94, 0.4);
 }
 
+.cz-seal__title {
+  max-width: 13ch;
+  margin: 0.7rem auto 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.7rem, 7vw, 6.3rem);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  color: #f8f1e3;
+  text-shadow: 0 0 56px rgba(246, 176, 94, 0.18);
+}
+
 .cz-seal__text {
   font-family: var(--font-voice, "Cormorant Garamond", Georgia, serif);
   font-style: italic;
-  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+  font-size: clamp(1.1rem, 2.1vw, 1.45rem);
   color: rgba(232, 228, 220, 0.78);
-  margin: 1.2rem auto 2rem;
-  max-width: 36ch;
-  line-height: 1.55;
+  margin: 1.5rem auto 2rem;
+  max-width: 48ch;
+  line-height: 1.58;
 }
 
 .cz-seal__actions {
@@ -1332,6 +1434,15 @@
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.cz-seal__closing {
+  margin: 2rem 0 0;
+  font-family: var(--font-ritual);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(246, 176, 94, 0.72);
 }
 
 /* ── Cosmic Atmosphere (behind everything) ──────────────────────────────────── */

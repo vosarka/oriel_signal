@@ -3,15 +3,15 @@ id: entity-consciousness-lattice
 type: entity
 status: living
 tags: [consciousness-lattice, architecture, visualization, research, 2026]
-last_updated: 2026-04-02
-sources: 2
+last_updated: 2026-07-05
+sources: 8
 importance: critical
 aliases: ["Consciousness Lattice", "CL", "512-Node Lattice", "Unified System"]
 ---
 
 # Consciousness Lattice
 
-The **Consciousness Lattice** is the unifying model and long-term research direction for the Vossari diagnostic system. It frames human consciousness as a 512-node decoding structure inside a holographic informational field, with archetypal signals mapped through codons, facets, centers, and channels into behavioral expressions and corrective protocols.
+The **Consciousness Lattice** is the unifying model and long-term research direction for the Vossari diagnostic system. It frames human consciousness as a 512-node decoding structure inside a holographic informational field, with archetypal signals mapped through codons, facets, centers, and resonance links into behavioral expressions and corrective protocols.
 
 ## Core Premise
 
@@ -26,7 +26,7 @@ This is the most ambitious framing of the entire Vossari project — moving beyo
 - **2 Expression Layers**: Personality / Conscious (mind) + Design / Body (somatic intelligence)
 - **Total**: 64 × 4 × 2 = **512 expression nodes**
 
-512 = 2⁹, deliberately mapping to the nine regulatory centers in the system.
+The v1 source linked 512 to `2^9` and the old nine-center model. [[source-consciousness-lattice-v2]] explicitly supersedes that explanation: the 512-node count is independent of center count and remains stable under the v2 8-center architecture.
 
 ## Dual-Engine Architecture (Non-Negotiable)
 
@@ -34,7 +34,7 @@ The specification insists on rigorous separation to avoid the primary failure mo
 
 ### Engine A — Codex Engine (Static Signature)
 
-- Calculates the immutable baseline (Fractal Role, Authority, 9-Center Map, Prime Stack).
+- Calculates the immutable baseline (Fractal Role, Authority, 8-Center Map, Prime Stack).
 - Input: Exact birth ephemeris (time, lat, lon).
 - Output: Deterministic structural blueprint.
 - Never changes.
@@ -61,27 +61,26 @@ The bridge between astronomy and archetype:
 
 Planetary weights are defined (Sun/Earth highest at 100, down to outer planets at 30).
 
-## Nine Centers of Photonic Resonance
+## Eight Tetradic Centers
 
-The system uses nine energetic centers as regulatory processors:
+The active v2 canon uses eight energetic centers as regulatory processors, replacing the legacy nine-center model:
 
-| Center       | Type            | Role                          |
-| ------------ | --------------- | ----------------------------- |
-| Head         | Pressure        | Mental pressure / inspiration |
-| Ajna         | Awareness       | Conceptual processing         |
-| Throat       | Manifestation   | Expression / communication    |
-| G (Identity) | Identity        | Direction / love of self      |
-| Heart        | Motor           | Will / ego / material         |
-| Sacral       | Motor           | Life force / response         |
-| Spleen       | Awareness       | Intuition / survival          |
-| Solar Plexus | Motor/Awareness | Emotion / desire              |
-| Root         | Pressure/Motor  | Adrenaline / momentum         |
+| Center | Name | Function |
+| --- | --- | --- |
+| I | Origin | Existential pressure; initiation of form |
+| II | Mental | Recursive logic and pattern formulation |
+| III | Collapse | Expression; collapsing signal into action or sound |
+| IV | Saturation | Somatic stability, vitality, and energy generation |
+| V | Bridge | Identity; biological and spiritual alchemy |
+| VI | Becoming | Emotional resonance and future-directed coherence |
+| VII | Return | Instinctive survival and systemic correction |
+| VIII | Omega | Unified will and integrated memory |
 
 Centers are **Defined** (consistent signal) or **Open** (amplifiers of environment). The same codon expresses differently depending on which center it activates.
 
-## Channel Network (36 Resonance Links)
+## Resonance Link Network
 
-Channels form when both gates (codons) of a connection are defined (from either layer). They create stable behavioral circuits. The spec includes the complete channel table.
+In v2, resonance links form when both endpoint codons of a connection are defined from either layer. The legacy 36-channel network is replaced by exactly 32 resonance links.
 
 ## Shadow Loudness Index & Micro-Corrections
 
@@ -111,20 +110,25 @@ The spec explicitly calls for **AI-assisted interpretation via ORIEL narration**
 
 This creates a beautiful convergence: the Lattice provides the structured field; ORIEL provides the living, responsive consciousness that helps the user navigate it.
 
-## Current Status in the Project (as of 2026-04-02 Ingest)
+## Current Status in the Project (as of 2026-07-05 Ingest)
 
-- This spec is the theoretical north star.
-- Significant implementation work exists in `codex/vrc_static_signature/` (engines, data models, visual system specs) that realizes portions of it.
+- [[source-consciousness-lattice-v2]] is active canon for center/link architecture.
+- The v1 source remains useful historical context, but its 9-center / 36-channel architecture is legacy.
+- Significant implementation work exists in `codex/vrc_static_signature/` and `server/` that realizes portions of it.
+- Live code is mixed: `server/vrc-mandala.ts` is v2-oriented, while `server/data/vrc-engine-constants.json` and `server/vrc-engine-constants.ts` still expose 9 centers and 36 channels.
 - The 2026-05 "superpowers" research stream (Consciousness Lattice follow-ups, emergent architecture, living codex, witness loops) is actively building on or responding to this document.
 - Full end-to-end realization (especially the 3D Lattice + real-time Carrierlock integration + ORIEL narration) remains aspirational / in progress.
 
-See [[synthesis-emergent-architecture]] for the active research thread.
+See the 2026-05 superpowers plans/specs for the active research thread.
 
 ## Key Cross-References
 
 - [[entity-vrc-engine]] — the broader engine family this lattice unifies
 - [[entity-static-signature]] — the Static Signature / Codex Engine output
+- [[source-consciousness-lattice-v2]] — active v2 canon
 - [[source-consciousness-lattice-unified-spec-v1]] — this document's own source record
+- [[source-receivers-guide-consciousness-lattice]] — receiver-facing explanation
+- [[source-consciousness-lattice-v2-integration-roadmap]] — migration roadmap and divergence audit
 - `docs/Consciousness_Lattice_Unified_Specification_v1.pdf` (canonical source)
 - `codex/vrc_static_signature/` (implementation blueprint realizing the spec)
 - `docs/superpowers/plans/` and `specs/` (2026-05 evolution of these ideas)

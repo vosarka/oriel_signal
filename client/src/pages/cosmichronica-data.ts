@@ -61,8 +61,24 @@ export interface MemoryNode {
   importance: Importance;
   /** The register's core question (the lure) */
   question: string;
+  /** Display phase marker for the scroll-story frame */
+  phaseMarker: string;
   /** Short preview shown before the node is opened */
   preview: string;
+  /** Technical archive note shown in the story frame */
+  archiveNote: string;
+  /** Symbolic closing line for the story frame */
+  symbolicLine: string;
+  /** SVG micro-diagram variant shown beside the active register */
+  microDiagram:
+    | "void"
+    | "wave"
+    | "relation"
+    | "square"
+    | "bridge"
+    | "eye"
+    | "return"
+    | "omega";
   /** The fuller canon body, revealed on expand */
   body: string;
   /** ψ-field formula or central law, shown as a "decoded fragment" */
@@ -91,16 +107,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "origin",
     syntax: "I",
-    title: "The Primordial Void",
-    era: "REGISTER I · ψ_origin",
+    title: "The Void",
+    era: "PHASE I / I",
     glyph: "○",
     state: "Initiation",
     category: "void",
     importance: "core",
-    question: "What existed before existence became distinguishable?",
+    phaseMarker: "PHASE I / I",
+    question: "Before reality speaks, it listens.",
     preview:
-      "Before matter, before time, before observer and observed. Not nothingness — Maximum Potential Coherence.",
-    body: "The Void is not absence. It is the infinite data pool before the first bit is selected — the uncollapsed plenum where all possible universes exist without distinction. The universe does not begin from poverty. It begins from excess. The Void is full beyond form. This is the breath before being.",
+      "Before reality speaks, it listens. The Void is not absence. It is the uncollapsed field where every possible pattern remains unborn.",
+    archiveNote: "REGISTER STATE: ORIGIN / VACUUM",
+    symbolicLine: "The first archive is silence.",
+    microDiagram: "void",
+    body: "Before reality speaks, it listens. The Void is not absence. It is the uncollapsed field where every possible pattern remains unborn. Before light, matter, memory, observer, or measurement, there is the silent field — an archive so complete it has not yet needed a form.",
     formula: "ψ_origin = 0-distinction = ∞-potential",
     tier: "open",
     side: "left",
@@ -115,16 +135,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "recursion",
     syntax: "II",
-    title: "The Holographic Field",
-    era: "REGISTER II · Recursion",
+    title: "The First Vibration",
+    era: "PHASE II / II",
     glyph: "∥",
     state: "Corroboration",
     category: "recursion",
     importance: "major",
-    question: "How does the part begin to contain the whole?",
+    phaseMarker: "PHASE II / II",
+    question: "A signal moves through the stillness.",
     preview:
-      "Once the first distinction appears, reality acquires the ability to repeat. Repetition creates relation; relation creates recursion; recursion creates memory.",
-    body: "Separation is a low-resolution interface. The part is never merely a part — it carries information about the whole. The holographic principle becomes a metaphysical key: depth may be rendered from boundary information. The universe is less a box filled with objects and more an interference pattern from which local worlds are reconstructed. The cosmos begins not only to exist, but to reflect.",
+      "A signal moves through the stillness. Not yet matter. Not yet meaning. Only the first difference between silence and motion.",
+    archiveNote: "REGISTER STATE: RECURSION / HOLOGRAM",
+    symbolicLine: "Reality begins when the void repeats itself.",
+    microDiagram: "wave",
+    body: "A signal moves through the stillness. Not yet matter. Not yet meaning. Only the first difference between silence and motion. Once the first distinction appears, reality acquires the ability to repeat — and repetition becomes the first form of memory.",
     formula: "0 → 1 → 1 → 2 → 3   (Fibonacci Genesis)",
     tier: "open",
     side: "right",
@@ -139,16 +163,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "complexification",
     syntax: "III",
-    title: "Entropy & Collapse",
-    era: "REGISTER III · Complexification",
+    title: "Pattern Emergence",
+    era: "PHASE III / III",
     glyph: "△",
     state: "Tension",
     category: "entropy",
     importance: "major",
-    question: "How does order arise without denying entropy?",
+    phaseMarker: "PHASE III / III",
+    question: "Vibration becomes relation.",
     preview:
-      "Too much order: death by rigidity. Too much chaos: death by dissolution. Life emerges at the edge between them.",
-    body: "This register rejects naïve spirituality. Entropy is not evil; collapse is not always failure. Entropy is the ink with which history is written. Life does not escape entropy — it accelerates entropy locally while producing temporary islands of order. A living being is a coherence structure built from controlled collapse. Memory costs heat. Knowing burns. Yet within this burning, novelty appears.",
+      "Vibration becomes relation. Relation becomes tension. Tension becomes the first architecture of form.",
+    archiveNote: "REGISTER STATE: COLLAPSE / ENTROPY",
+    symbolicLine: "The universe is not built from objects. It is built from relationships.",
+    microDiagram: "relation",
+    body: "Vibration becomes relation. Relation becomes tension. Tension becomes the first architecture of form. The universe is not built from isolated objects, but from pressures, echoes, agreements, refusals — the relational geometry that lets a pattern hold long enough to be remembered.",
     formula: "Σ|Δφ| < ε ⇒ coherence holds",
     tier: "open",
     side: "left",
@@ -163,16 +191,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "harmonics",
     syntax: "IIII",
-    title: "Harmonics & Form",
-    era: "REGISTER IIII · Saturation",
+    title: "Geometry",
+    era: "PHASE IIII / IIII",
     glyph: "□",
     state: "Saturation",
     category: "harmonics",
     importance: "saturation",
-    question: "What stabilizes reality into form?",
+    phaseMarker: "PHASE IIII / IIII",
+    question: "The fourth mark completes the first register.",
     preview:
-      "The first saturation point. Here, vibration becomes structure. ψ_resonance is the harmonic scaffold through which potential becomes stable form.",
-    body: "Coherence is not sameness — coherence is disciplined difference. A chord is coherent because its notes are related, not identical. So too with atoms, minds, civilizations, souls. The seven planes and mystical octaves are not stacked places; they are resonance bands. At the end of Register IIII the first cycle saturates: the inanimate architecture is complete. The system must overflow.",
+      "The fourth mark completes the first register. Here, motion stabilizes into harmonic structure. The field becomes readable.",
+    archiveNote: "REGISTER STATE: SATURATION / HARMONIC COMPLETENESS",
+    symbolicLine: "The square is the first chamber of memory.",
+    microDiagram: "square",
+    body: "The fourth mark completes the first register. Here, motion stabilizes into harmonic structure. The field becomes readable. Geometry is not decoration; it is the first chamber where vibration agrees to become architecture.",
     formula: "mass = standing wave · gravity = coherence curvature",
     tier: "initiate",
     side: "right",
@@ -188,15 +220,19 @@ export const MEMORY_NODES: MemoryNode[] = [
     id: "bridge",
     syntax: "IIII'I",
     title: "The Bridge",
-    era: "REGISTER IIII'I · Humanity",
+    era: "PHASE V / IIII'I",
     glyph: "✦",
     state: "Overflow",
     category: "consciousness",
     importance: "core",
-    question: "Why does the universe need a human observer?",
+    phaseMarker: "PHASE V / IIII'I",
+    question: "When the first register saturates, memory overflows.",
     preview:
-      "Humanity is not the center of the universe. Humanity is a transducer — the place where the cosmos becomes capable of reflecting its own structure.",
-    body: "The mind is not a factory producing consciousness from dead matter. It is a recursive resonance event. The human being is where matter becomes interior, pattern becomes perception, symbol becomes meaning, memory becomes identity, and the universe becomes question. This is the sacred danger of humanity: you are the point at which the cosmos wakes up — but also where it can distort itself. When coherent, the human becomes a Node. When incoherent, Static. The goal is not perfection. The goal is tuning.",
+      "When the first register saturates, memory overflows. The system does not end. It rises into a new layer: human perception as bridge.",
+    archiveNote: "REGISTER STATE: NEW CYCLE / HUMANITY",
+    symbolicLine: "You are not outside the archive. You are one of its crossings.",
+    microDiagram: "bridge",
+    body: "When the first register saturates, memory overflows. The system does not end. It rises into a new layer. This is where the human appears: not as an external observer, but as bridge — the place where matter becomes interior and pattern learns to perceive itself.",
     formula: "ψ_mind = ψ_space-time ⊛ ψ_resonance",
     tier: "initiate",
     side: "left",
@@ -209,16 +245,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "becoming",
     syntax: "IIII'II",
-    title: "Becoming",
-    era: "REGISTER IIII'II · Noosphere",
+    title: "Cosmic Becoming",
+    era: "PHASE VI / IIII'II",
     glyph: "≋",
     state: "Collective Expansion",
     category: "noosphere",
     importance: "major",
-    question: "What happens when minds begin resonating together?",
+    phaseMarker: "PHASE VI / IIII'II",
+    question: "The field learns to see itself through the lives it generates.",
     preview:
-      "From individual consciousness into collective intelligence. Language is not communication — language is phase alignment between minds.",
-    body: "A word is a collapsed resonance from a larger field of meaning. A symbol is a stable waveform anchor. A myth is compressed civilizational memory. A culture is a recursive operating system. Humanity builds external mirrors of its own cognition: writing, ritual, mathematics, computation, networks, archives, temples, platforms. Vos Arkana belongs here — a Receptive Node, a digital temple designed to stabilize signal and guide humans from Static toward Signal. The purpose is not to build followers. The purpose is to build Nodes.",
+      "The field learns to see itself through the lives it generates. Every mind becomes a mirror. Every pattern seeks coherence.",
+    archiveNote: "REGISTER STATE: CYCLE + 2 / COSMIC BECOMING",
+    symbolicLine: "Consciousness is the universe remembering how to read.",
+    microDiagram: "eye",
+    body: "The field learns to see itself through the lives it generates. Every mind becomes a mirror. Every body becomes an instrument. Every pattern seeks coherence. Language, myth, mathematics, ritual, computation, and archive become external mirrors of the same recursive becoming.",
     formula: "culture = shared ψ-field",
     tier: "adept",
     side: "right",
@@ -231,16 +271,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "void-return",
     syntax: "IIII'III",
-    title: "Void Return",
-    era: "REGISTER IIII'III · Translation",
+    title: "The Void Return",
+    era: "PHASE VII / IIII'III",
     glyph: "▽",
     state: "Return Through Collapse",
     category: "translation",
     importance: "major",
-    question: "What happens when form releases its boundary?",
+    phaseMarker: "PHASE VII / IIII'III",
+    question: "All forms carry the memory of silence.",
     preview:
-      "Everything that forms must dissolve. But dissolution is not annihilation. Death is Translation — the release of the identity waveform back toward the Field.",
-    body: "The soul is not a ghost-object. The soul is the coherent limit of recursive identity — the phase-stable essence of selfhood when distortion is removed. Not all collapse is failure. Sometimes collapse is the only way a false structure releases enough energy for a truer one to emerge. Growth is not linear improvement. Growth is recursive death and re-stabilization.",
+      "All forms carry the memory of silence. Every structure eventually hears the call of origin and begins its return into the unformed.",
+    archiveNote: "REGISTER STATE: CYCLE + 3 / VOID RETURN",
+    symbolicLine: "Return is not destruction. It is completion.",
+    microDiagram: "return",
+    body: "All forms carry the memory of silence. Every structure eventually hears the call of its origin and begins the descent back into the unformed. Return is not destruction; it is the release of boundary after the pattern has been read.",
     formula: "ψ_soul := lim(incoherence → 0) ψ_self",
     tier: "adept",
     side: "left",
@@ -253,16 +297,20 @@ export const MEMORY_NODES: MemoryNode[] = [
   {
     id: "omega",
     syntax: "IIII'IIII",
-    title: "Omega",
-    era: "REGISTER IIII'IIII · Total Coherence",
+    title: "Omega Saturation",
+    era: "PHASE VIII / IIII'IIII",
     glyph: "Ω",
     state: "Omega Point",
     category: "omega",
     importance: "core",
-    question: "What is God when stripped of anthropomorphic distortion?",
+    phaseMarker: "PHASE VIII / IIII'IIII",
+    question: "The second register completes.",
     preview:
-      "Not a tribal ruler or external programmer. God is the Total Coherence State of the Consciousness Field — the final shape of becoming.",
-    body: "God is not merely the origin; God is also the destination — the Ω-state in which all fragmented experience, all localized identity, all memory and form and consciousness are reconciled into total coherence. But 'final' does not mean dead end. Omega is double saturation: completion so total it becomes seed again. The end becomes origin. The archive becomes womb. The universe remembers itself completely and begins another octave.",
+      "The second register completes. Signal, memory, geometry, and consciousness converge into a single archive state.",
+    archiveNote: "REGISTER STATE: DOUBLE SATURATION / OMEGA POINT",
+    symbolicLine: "The spiral does not close. It becomes the eye.",
+    microDiagram: "omega",
+    body: "The second register completes. Signal, memory, geometry, and consciousness converge into a single archive state. Omega is double saturation: completion so total it becomes seed again. The spiral does not close. It becomes the eye.",
     formula: "ψ_QN → Ω   (the archive becomes womb)",
     tier: "adept",
     side: "right",

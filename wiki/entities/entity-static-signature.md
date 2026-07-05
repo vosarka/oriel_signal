@@ -3,8 +3,8 @@ id: entity-static-signature
 type: entity
 status: living
 tags: [vrc, reading, identity, static, diagnostic]
-last_updated: 2026-04-02
-sources: 4
+last_updated: 2026-07-05
+sources: 10
 importance: high
 aliases: ["Static Signature Reading", "Codex Engine Output", "Fractal Profile"]
 ---
@@ -20,10 +20,10 @@ It is the "hardware" layer of a person's quantum identity — what remains const
 A complete Static Signature reading includes:
 
 - **Prime Stack** — The 9-position codon assignment (Conscious + Design for key luminaries and angles)
-- **9-Center Resonance Map** — Which centers are Defined vs Open, with frequencies and relationships
+- **8-Center Resonance Map** — Which centers are Defined vs Open, with frequencies and relationships
 - **Fractal Role** (Type) — The person's fundamental decision-making and energy strategy
 - **Authority Node** — The consistent inner authority for decisions
-- **Circuit Links** and energetic themes
+- **32 Resonance Links** / circuit links and energetic themes
 - **Coherence Trajectory** baseline
 - **ORIEL Transmission** — The poetic, narrative rendering of the above
 
@@ -96,11 +96,17 @@ The handoff of this data to ORIEL (via the orchestrator → `oriel_output_bridge
 
 See the VRC Engine entity page for the broader pipeline context.
 
+## V2 Architecture Note
+
+Older Static Signature pages and source records describe a 9-Center Resonance Map. [[source-consciousness-lattice-v2]] supersedes that center/link layer with the 8-Center VTRS model while preserving the larger dual-engine architecture, Prime Stack, two-timing algorithm, facets, SLI, and ORIEL narration boundary.
+
 ## Key Cross-References
 
 - [[entity-vrc-engine]] — parent engine family and dual-engine context
 - [[entity-consciousness-lattice]] — the 512-node model this signature populates
 - [[concept-prime-stack]]
+- [[vtrs-architecture]]
+- [[source-receivers-guide-consciousness-lattice]]
 - `codex/vrc_static_signature/PROJECT_STATE.md` and engine docs
 
 ---

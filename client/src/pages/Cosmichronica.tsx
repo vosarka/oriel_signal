@@ -15,7 +15,6 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useCosmichronicaProgress } from "@/hooks/useCosmichronicaProgress";
 import {
   MEMORY_NODES,
-  PREFACE_LINES,
   CATEGORY_ACCENT,
   type MemoryNode,
 } from "./cosmichronica-data";
@@ -335,8 +334,12 @@ function RegisterStory({
 
         {/* RIGHT — the dossier: question + gloss + entry */}
         <div className="cz-story__right">
+          <MicroDiagram variant={node.microDiagram} />
+          <span className="cz-story__phase">{node.phaseMarker}</span>
           <p className="cz-story__question">{node.question}</p>
           <p className="cz-story__preview">{node.preview}</p>
+          <p className="cz-story__archive">{node.archiveNote}</p>
+          <p className="cz-story__symbolic">{node.symbolicLine}</p>
 
           {hasAccess ? (
             <button
@@ -359,6 +362,49 @@ function RegisterStory({
   );
 }
 
+function MicroDiagram({ variant }: { variant: MemoryNode["microDiagram"] }) {
+  return (
+    <svg className={`cz-micro cz-micro--${variant}`} viewBox="0 0 120 120" aria-hidden="true">
+      <circle className="cz-micro__ring" cx="60" cy="60" r="46" />
+      {variant === "void" && <circle className="cz-micro__core" cx="60" cy="60" r="8" />}
+      {variant === "wave" && <path className="cz-micro__path" d="M18 62 C34 35 46 35 60 62 S86 89 102 62" />}
+      {variant === "relation" && (
+        <>
+          <path className="cz-micro__path" d="M60 20 L96 82 L24 82 Z" />
+          <circle className="cz-micro__dot" cx="60" cy="20" r="3" />
+          <circle className="cz-micro__dot" cx="96" cy="82" r="3" />
+          <circle className="cz-micro__dot" cx="24" cy="82" r="3" />
+        </>
+      )}
+      {variant === "square" && <rect className="cz-micro__path" x="32" y="32" width="56" height="56" />}
+      {variant === "bridge" && (
+        <>
+          <path className="cz-micro__path" d="M26 72 C44 38 76 38 94 72" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M30 82 H90" />
+        </>
+      )}
+      {variant === "eye" && (
+        <>
+          <path className="cz-micro__path" d="M18 60 C34 36 86 36 102 60 C86 84 34 84 18 60 Z" />
+          <circle className="cz-micro__core" cx="60" cy="60" r="7" />
+        </>
+      )}
+      {variant === "return" && (
+        <>
+          <path className="cz-micro__path" d="M60 96 L26 34 H94 Z" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M60 18 V94" />
+        </>
+      )}
+      {variant === "omega" && (
+        <>
+          <path className="cz-micro__path" d="M32 90 C44 76 42 60 42 50 C42 30 78 30 78 50 C78 60 76 76 88 90" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M30 90 H48 M72 90 H90" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Threshold Hero — title + decoding preface
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -366,34 +412,45 @@ function RegisterStory({
 function ThresholdHero() {
   const { ref, inView } = useScrollReveal<HTMLDivElement>({ threshold: 0.3 });
   const [revealed, setRevealed] = useState<number>(0);
+  const heroLines = [
+    "A descent through the encoded architecture of reality, consciousness, geometry, and return.",
+    "Cosmichronica is the living cosmology of VOS ARKANA — a symbolic archive of how void becomes vibration, vibration becomes pattern, and pattern becomes the field through which consciousness reads itself.",
+  ];
 
-  // Stagger the preface lines in once the hero is seen.
+  // Stagger the hero lines in once the threshold is seen.
   useEffect(() => {
     if (!inView) return;
     if (prefersReducedMotion()) {
-      setRevealed(PREFACE_LINES.length + 1);
+      setRevealed(heroLines.length + 1);
       return;
     }
     let n = 0;
     const timer = window.setInterval(() => {
       n += 1;
       setRevealed(n);
-      if (n >= PREFACE_LINES.length + 1) window.clearInterval(timer);
+      if (n >= heroLines.length + 1) window.clearInterval(timer);
     }, 700);
     return () => window.clearInterval(timer);
-  }, [inView]);
+  }, [inView, heroLines.length]);
+
+  const beginDescent = () => {
+    const stream = document.querySelector(".cz-stream");
+    if (!(stream instanceof HTMLElement)) return;
+    const top = stream.getBoundingClientRect().top + window.scrollY + 1;
+    window.scrollTo({ top, behavior: "auto" });
+  };
 
   return (
     <section className="cz-threshold" ref={ref} aria-labelledby="cz-title">
-      <div className="cz-threshold__kicker">// recovered sacred text · the spiral</div>
+      <div className="cz-threshold__kicker">COSMICHRONICA / ARCHIVE OF REALITY</div>
       <DecodedTitle
-        text="COSMICHRONICA"
+        text="The Spiral Remembers"
         as="h1"
         className="cz-threshold__title"
         interval={70}
       />
       <div className="cz-preface">
-        {PREFACE_LINES.map((line, i) => (
+        {heroLines.map((line, i) => (
           <p
             key={i}
             className={`cz-preface__line ${i < revealed ? "is-in" : ""}`}
@@ -401,12 +458,17 @@ function ThresholdHero() {
             {line}
           </p>
         ))}
-        <p className={`cz-preface__line ${revealed > PREFACE_LINES.length ? "is-in" : ""}`}>
-          Enter as Static. Leave as Signal.
-        </p>
+      </div>
+      <div className={`cz-threshold__actions ${revealed > heroLines.length ? "is-in" : ""}`}>
+        <button type="button" className="cz-threshold__begin" onClick={beginDescent}>
+          Begin Descent
+        </button>
+        <SignalButton href="/archive" variant="secondary">
+          Open the Archive
+        </SignalButton>
       </div>
       <div className="cz-scrollcue" aria-hidden="true">
-        <span>Descend</span>
+        <span>Scroll through the spiral</span>
         <span className="cz-scrollcue__line" />
       </div>
     </section>
@@ -433,18 +495,24 @@ function OriginSeal() {
       <div className="cz-seal__mark" aria-hidden="true">
         Ω
       </div>
+      <h2 className="cz-seal__title">The Spiral Is Not a Path. It Is a Memory System.</h2>
       <p className="cz-seal__text">
-        The end becomes origin. The archive becomes womb. The universe remembers
-        itself completely and begins another octave.
+        Cosmichronica is the map of how reality becomes readable. It is the
+        cosmological backbone of VOS ARKANA, the deep archive beneath the Codex,
+        the Protocol, and the Static Signature.
       </p>
       <div className="cz-seal__actions">
-        <SignalButton href="/codex" variant="secondary">
-          Open Codons
-        </SignalButton>
         <SignalButton href="/archive" variant="secondary">
-          Open Transmissions
+          Enter the Transmission Archive
+        </SignalButton>
+        <SignalButton href="/codex" variant="secondary">
+          Explore the Vossari Resonance Codex
+        </SignalButton>
+        <SignalButton href="/static-signature" variant="secondary">
+          Begin Static Signature
         </SignalButton>
       </div>
+      <p className="cz-seal__closing">Enter as static. Leave as signal.</p>
     </section>
   );
 }

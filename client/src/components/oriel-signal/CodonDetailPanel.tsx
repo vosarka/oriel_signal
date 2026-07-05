@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ROLES, type Codon } from "./CodonWheel";
+import { ROLES, ROLE_VECTORS, CENTER_COLORS, CODON_CENTER_MAP, type Codon } from "./CodonWheel";
 
 export interface FacetDetail {
   title: string;
@@ -63,7 +63,13 @@ export function CodonDetailPanel({
       {/* Role Band */}
       <div className="cz-panel-section cz-role-band">
         <div className="cz-flex-between">
-          <span className="cz-label-ritual">RESONANCE ROLE {role?.roman}</span>
+          <span
+            className="cz-label-ritual"
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
+            <img src={ROLE_VECTORS[roleIdx]} alt="" style={{ width: 16, height: 16 }} />
+            RESONANCE ROLE
+          </span>
           <span className="cz-label-mono">{role?.range} · TETRAD</span>
         </div>
         <h2 className="cz-role-title">{role?.name}</h2>
@@ -75,6 +81,7 @@ export function CodonDetailPanel({
             const tcId = tetradCodonIds[i];
             const isSelected = tcId === codon.id;
             const tcCode = `RC${String(tcId).padStart(2, "0")}`;
+            const centerColor = CENTER_COLORS[CODON_CENTER_MAP[tcId] || "Origin"];
             return (
               <button
                 key={key}
@@ -89,8 +96,27 @@ export function CodonDetailPanel({
                   background: isSelected ? "rgba(205, 161, 74, 0.1)" : "transparent",
                 }}
               >
-                <div className="cz-tetrad-symbol">
-                  <img src={`/symbols/${tcCode}.png`} alt={tcCode} />
+                <div
+                  className="cz-tetrad-symbol"
+                  style={{
+                    border: `1px solid ${centerColor}`,
+                    background: "rgba(8, 7, 11, 0.85)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <img
+                    src={`/symbols/${tcCode}.png`}
+                    alt={tcCode}
+                    style={{
+                      width: "62%",
+                      height: "62%",
+                      objectFit: "contain",
+                      filter: "brightness(0) invert(1)",
+                      opacity: 0.82,
+                    }}
+                  />
                 </div>
                 <span
                   className="cz-tetrad-label"
