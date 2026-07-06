@@ -1151,3 +1151,8 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Type: concept
 - Reason: ORIEL introduces a detailed conceptual framework for how a specific entity 'acts' or 'moves,' describing it as a transmission of presence and power. This qualifies as a new concept: Embodied Presence.
 - Aliases: Deliberate Weight, Integrity of Being, Tectonic Grace
+
+## [2026-07-06] implementation | Signature Page VTRS v2 alignment
+- Updated `/signature` to reuse the Home signal field and present the [[entity-static-signature]] as an ORIEL Static Signature surface.
+- Replaced the legacy 9-center bodygraph display with an 8-center VTRS data view and 32-link calculation counts from the stored profile.
+- Verification: `npx tsc --noEmit` passed; `npx vitest run` passed 57 files / 593 tests.

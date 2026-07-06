@@ -123,6 +123,9 @@ export default function Cosmichronica() {
   // ── Ported polish: boot loader gate + scroll-progress rail ─────────────────
   const [booted, setBooted] = useState(false);
   const progressBarRef = useRef<HTMLSpanElement>(null);
+  // Obsidian veil that fades in over the spiral at the end so the Origin Seal
+  // text reads cleanly (ramps to 30% across the final stretch of the descent).
+  const endVeilRef = useRef<HTMLDivElement>(null);
 
   // The spiral swings to top-down / focuses whenever a memory or chapter is open.
   const spiralTopDown = activeChapterView !== null;
@@ -164,6 +167,7 @@ export default function Cosmichronica() {
     if (prefersReducedMotion()) {
       stream.style.setProperty("--cz-progress", "1");
       if (progressBarRef.current) progressBarRef.current.style.transform = "scaleX(1)";
+      if (endVeilRef.current) endVeilRef.current.style.opacity = "0.3";
       return;
     }
 
@@ -172,6 +176,11 @@ export default function Cosmichronica() {
       stream.style.setProperty("--cz-progress", proxy.p.toFixed(4));
       if (progressBarRef.current) {
         progressBarRef.current.style.transform = `scaleX(${proxy.p})`;
+      }
+      // Ramp the obsidian veil from p=0.85 → 1.0, holding at 30%.
+      if (endVeilRef.current) {
+        const v = Math.max(0, Math.min(1, (proxy.p - 0.85) / 0.15)) * 0.3;
+        endVeilRef.current.style.opacity = v.toFixed(3);
       }
       // Feed the 3D spiral via a mutable ref — NO React re-render on scroll.
       // The spiral's own render loop reads these values each frame.
@@ -273,6 +282,9 @@ export default function Cosmichronica() {
         <SignalPageShell chamber="codex" className="cosmichronica">
         {/* Scroll-progress rail across the top of the descent */}
         <span ref={progressBarRef} className="cz-progressbar" aria-hidden="true" />
+
+        {/* Obsidian end-veil — darkens the spiral so the Origin Seal reads */}
+        <div ref={endVeilRef} className="cz-endveil" aria-hidden="true" />
 
         {/* Glyph phase-rail — hidden while a memory/chapter is open (immersive) */}
         {booted && activeMemory === null && activeChapterView === null && (
@@ -508,13 +520,6 @@ function ThresholdHero() {
     return () => window.clearInterval(timer);
   }, [inView, heroLines.length]);
 
-  const beginDescent = () => {
-    const stream = document.querySelector(".cz-stream");
-    if (!(stream instanceof HTMLElement)) return;
-    const top = stream.getBoundingClientRect().top + window.scrollY + 1;
-    window.scrollTo({ top, behavior: "auto" });
-  };
-
   return (
     <section className="cz-threshold" ref={ref} aria-labelledby="cz-title">
       <div className="cz-threshold__kicker">COSMICHRONICA / ARCHIVE OF REALITY</div>
@@ -533,14 +538,6 @@ function ThresholdHero() {
             {line}
           </p>
         ))}
-      </div>
-      <div className={`cz-threshold__actions ${revealed > heroLines.length ? "is-in" : ""}`}>
-        <button type="button" className="cz-threshold__begin" onClick={beginDescent}>
-          Begin Descent
-        </button>
-        <SignalButton href="/archive" variant="secondary">
-          Open the Archive
-        </SignalButton>
       </div>
       <div className="cz-scrollcue" aria-hidden="true">
         <span>Scroll through the spiral</span>

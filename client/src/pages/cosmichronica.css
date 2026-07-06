@@ -1634,6 +1634,19 @@
   pointer-events: none;
 }
 
+/* Obsidian veil — fades in over the spiral (z:1) but under the seal (z:5) so the
+   Origin Seal text stays legible at the bottom of the descent. Opacity is driven
+   per-frame from the scroll progress; caps at 0.3 (30% obsidian black). */
+.cz-endveil {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: #050505;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
 .cz-rail {
   position: fixed;
   left: 1.4rem;
