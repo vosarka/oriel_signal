@@ -222,7 +222,8 @@
   position: relative;
   z-index: 0;
   width: 100%;
-  height: 720vh;
+  /* Longer descent → forms hold longer AND the Point→Line fly-through gets room. */
+  height: 1300vh;
   pointer-events: none;
 }
 
@@ -1679,5 +1680,122 @@
 @media (prefers-reduced-motion: reduce) {
   .cz-rail__glyph {
     transition: none;
+  }
+}
+
+/* ── Register story stage: per-phase title + framed, centered text box ───────── */
+/* Title and box are absolutely placed (per STORY_LAYOUTS) so they compose with
+   each phase's form instead of a fixed left/right split. */
+.cz-story__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.cz-story__titlewrap {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: min(42vw, 34rem);
+  animation: cz-story-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Reset the eyebrow's old grid margin now that it sits in the title stack. */
+.cz-story__titlewrap .cz-story__era {
+  margin-bottom: 0;
+}
+
+.cz-story__box {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+}
+
+/* SVG frame drawn around the text box once the form settles (no leader line). */
+.cz-story__draw {
+  position: absolute;
+  inset: -0.8rem -1rem;
+  width: calc(100% + 2rem);
+  height: calc(100% + 1.6rem);
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cz-draw__box {
+  fill: none;
+  stroke: var(--story-accent, #bda36b);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.cz-story.is-visible .cz-draw__box {
+  animation: cz-draw-in 0.95s 0.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cz-draw-in {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The text inside the box — CENTERED, and it writes in AFTER the frame is drawn. */
+.cz-story__written {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1.7rem 1.5rem;
+}
+
+.cz-story.is-visible .cz-story__written {
+  animation: cz-write-in 0.7s 1s both cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cz-write-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* Mobile: drop the per-phase composition; stack title over box, centered. */
+@media (max-width: 820px) {
+  .cz-story__titlewrap {
+    left: 50% !important;
+    top: 21% !important;
+    transform: translate(-50%, -50%) !important;
+    align-items: center !important;
+    text-align: center !important;
+    max-width: 88vw;
+  }
+  .cz-story__box {
+    left: 50% !important;
+    top: 68% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 86vw !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-draw__box {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .cz-story.is-visible .cz-story__written,
+  .cz-story__titlewrap {
+    animation: none;
   }
 }

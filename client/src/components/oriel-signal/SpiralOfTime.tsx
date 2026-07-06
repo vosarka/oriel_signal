@@ -2,6 +2,17 @@ import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import {
+  buildForms,
+  buildGenesisHelix,
+  FORM_PARTICLE_COUNT,
+  dwellForm,
+} from "@/lib/cosmichronica-forms";
+
+// PROTOTYPE FLAG — when true, the Spiral is a point cloud that MORPHS through the
+// eight Register forms (form #0 = the DNA helix, morphing away and back). When
+// false, the original GLB instanced helix + descent camera render instead.
+const MORPH_SPIRAL = true;
 
 /**
  * SpiralOfTime — the cosmic helix spine of the Cosmichronica.
@@ -41,6 +52,26 @@ const REGISTER_COLORS = [
 // Dim "dormant" tone for not-yet-reached pairs.
 const DORMANT = new THREE.Color("#1a150d");
 
+// Soft radial sprite so each morph particle glows as a mote (additive), not a
+// hard square. Built once in memory — no external asset.
+function makeGlowTexture(): THREE.Texture {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.25, "rgba(255,255,255,0.85)");
+  g.addColorStop(0.55, "rgba(255,255,255,0.25)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
 interface SpiralState {
   progress: number;
   activeRegister: number;
@@ -48,6 +79,9 @@ interface SpiralState {
   /** When set, the camera zooms INTO this register's segment on the helix
    *  (like clicking a DNA base pair). null = free descent. */
   focusRegister: number | null;
+  /** Dwelled form index (0..7) written by the morph each frame so the camera can
+   *  read the EXACT same value — keeps the fly-through and the dots in lockstep. */
+  formValue?: number;
 }
 
 interface SpiralProps {
@@ -289,6 +323,200 @@ function TravelerDot({ stateRef }: { stateRef: React.MutableRefObject<SpiralStat
   );
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// MorphSpiral — the flagged prototype: one glowing point cloud that lerps through
+// the eight Register forms. Form #0 is the DNA helix; scrolling morphs it away
+// through the phase shapes and back. Colors cross-fade through REGISTER_COLORS.
+// ════════════════════════════════════════════════════════════════════════════
+function MorphSpiral({ stateRef, reducedMotion }: SpiralProps) {
+  const pointsRef = useRef<THREE.Points>(null!);
+  const eased = useRef(0);
+
+  const forms = useMemo(() => buildForms(FORM_PARTICLE_COUNT), []);
+  const helix = useMemo(() => buildGenesisHelix(FORM_PARTICLE_COUNT), []);
+  const initial = useMemo(() => helix.slice(), [helix]); // open on the spiral
+  const colors = useMemo(() => REGISTER_COLORS.map((c) => new THREE.Color(c)), []);
+  const glow = useMemo(() => makeGlowTexture(), []);
+  const tmp = useMemo(() => new THREE.Color(), []);
+
+  useEffect(() => () => glow.dispose(), [glow]);
+
+  useFrame((state, delta) => {
+    if (!pointsRef.current) return;
+    const live = stateRef.current;
+    const last = REGISTER_COUNT - 1;
+    const raw = Math.max(0, Math.min(live.progress * last, last));
+    const target = dwellForm(raw, last); // rest on each form, then transition
+    // Internal easing → the "liquid" follow behind the scrubbed scroll.
+    const k = reducedMotion ? 1 : Math.min(1, delta * 3.2);
+    eased.current += (target - eased.current) * k;
+
+    const p = eased.current;
+    live.formValue = p; // publish for the camera — perfect fly-through sync
+    const a = Math.floor(p);
+    const b = Math.min(a + 1, last);
+    const t = p - a;
+
+    // Genesis: at the very top the cloud is the SPIRAL (helix); it collapses into
+    // the first point over the first sliver of scroll (driven by raw progress, so
+    // it happens DURING Phase I's rest — not during the fly-through). g: 1 = helix.
+    const gr = 1 - Math.min(1, Math.max(0, (live.progress - 0.01) / 0.04));
+    const g = gr * gr * (3 - 2 * gr);
+
+    const attr = pointsRef.current.geometry.attributes
+      .position as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    const fa = forms[a];
+    const fb = forms[b];
+    for (let i = 0; i < arr.length; i++) {
+      let v = fa[i] + (fb[i] - fa[i]) * t;
+      if (g > 0.001) v += (helix[i] - v) * g;
+      arr[i] = v;
+    }
+    attr.needsUpdate = true;
+
+    const mat = pointsRef.current.material as THREE.PointsMaterial;
+    tmp.copy(colors[a]).lerp(colors[b], t);
+    mat.color.copy(tmp);
+
+    // Fade the dots down while the camera is INSIDE the point (mid fly-through),
+    // so streaming past them reads as a whoosh rather than a white-out.
+    if (!reducedMotion && a === 0) {
+      const inside = Math.max(0, 1 - Math.abs(p - 0.5) / 0.4);
+      mat.opacity = 0.9 - inside * 0.55;
+    } else {
+      mat.opacity = 0.9;
+    }
+
+    // No group rotation through the reveal chain (0 Point → 1 Line → 2 Triangle):
+    // those depend on exact orientation. A gentle spin eases in for later phases.
+    if (!reducedMotion) {
+      const spin = Math.max(0, Math.min(1, p - 2.2));
+      pointsRef.current.rotation.y =
+        Math.max(0, p - 2.2) * 0.35 +
+        Math.sin(state.clock.elapsedTime * 0.05) * 0.05 * spin;
+      pointsRef.current.rotation.x =
+        Math.sin(state.clock.elapsedTime * 0.1) * 0.05 * spin;
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[initial, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        map={glow}
+        color={colors[0]}
+        size={0.05}
+        transparent
+        opacity={0.9}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </points>
+  );
+}
+
+// Per-form camera pose for phases 1..7 — azimuth (orbit), elevation (tilt),
+// radius (zoom). Phase 0→1 is NOT here; it is the bespoke fly-through below.
+//   1 Line     — side (+X): where the fly-through ends, the line seen from the side.
+//   2 Triangle — overhead (+Y): the line (X-Z plane, edge-on) unfolds into a face.
+// The rest are framed for character (mandala tilt-down, bridge low, vortex funnel…).
+const CAM_POSES: { az: number; el: number; r: number }[] = [
+  { az: 0.0, el: 0.05, r: 7.0 }, // 0 Point   — unused (fly-through special-cased)
+  { az: 1.5708, el: 0.05, r: 6.2 }, // 1 Line  — side (+X)
+  { az: 0.1, el: 1.4, r: 7.0 }, // 2 Triangle  — overhead
+  { az: 0.0, el: 0.25, r: 7.4 }, // 3 Mandala  — tilt down over the rings
+  { az: 0.0, el: -0.14, r: 6.7 }, // 4 Bridge  — low, looking up at the arch
+  { az: 0.5, el: 0.32, r: 7.6 }, // 5 Vortex   — look down into the funnel
+  { az: 0.25, el: 0.12, r: 8.4 }, // 6 Scatter — pull back, see the dispersal
+  { az: 0.0, el: 0.05, r: 5.6 }, // 7 Omega    — push in on the double point
+];
+
+// The Point→Line fly-through, keyframed by the segment fraction f (0→1): frame the
+// point, dive in through the dots, stream out the far side, then arc around and
+// turn back — revealing that the tunnel of dots was a line all along.
+const FLY: { f: number; p: [number, number, number]; l: [number, number, number] }[] = [
+  { f: 0.0, p: [0, 0.25, 7.0], l: [0, 0, 0] }, // frame the point / collapsing spiral
+  { f: 0.26, p: [0, 0.06, 1.3], l: [0, 0, -3] }, // zoom in, entering the dots
+  { f: 0.5, p: [0, 0, -1.6], l: [0, 0, -6] }, // inside, streaming through
+  { f: 0.64, p: [0, 0, -4.4], l: [0, 0, -7.5] }, // out the far side
+  { f: 0.82, p: [4.6, 0.28, -3.0], l: [0, 0, -1.2] }, // arc out, begin turning back
+  { f: 1.0, p: [6.19, 0.31, 0.02], l: [0, 0, 0] }, // side view — the LINE revealed
+];
+
+function sampleFly(f: number, outP: THREE.Vector3, outL: THREE.Vector3) {
+  let i = 0;
+  while (i < FLY.length - 2 && f > FLY[i + 1].f) i++;
+  const A = FLY[i];
+  const B = FLY[i + 1];
+  const raw = (f - A.f) / (B.f - A.f || 1);
+  const u = Math.max(0, Math.min(1, raw));
+  const s = u * u * (3 - 2 * u); // smoothstep between keyframes
+  outP.set(
+    A.p[0] + (B.p[0] - A.p[0]) * s,
+    A.p[1] + (B.p[1] - A.p[1]) * s,
+    A.p[2] + (B.p[2] - A.p[2]) * s
+  );
+  outL.set(
+    A.l[0] + (B.l[0] - A.l[0]) * s,
+    A.l[1] + (B.l[1] - A.l[1]) * s,
+    A.l[2] + (B.l[2] - A.l[2]) * s
+  );
+}
+
+/** Cinematic camera for MORPH mode. Phase 0→1 flies THROUGH the point (keyframed);
+ *  every other phase orbits to a hand-tuned pose. Both feed one smoothed
+ *  position/look-target so the hand-off is seamless. */
+function MorphCamera({ stateRef }: { stateRef: React.MutableRefObject<SpiralState> }) {
+  const { camera } = useThree();
+  const pos = useRef(new THREE.Vector3(0, 0.25, 7));
+  const look = useRef(new THREE.Vector3(0, 0, 0));
+  const tP = useMemo(() => new THREE.Vector3(), []);
+  const tL = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame((state, delta) => {
+    const live = stateRef.current;
+    const last = REGISTER_COUNT - 1;
+    const d =
+      live.formValue ??
+      dwellForm(Math.max(0, Math.min(live.progress * last, last)), last);
+    const a = Math.floor(d);
+    const b = Math.min(a + 1, last);
+    const f = d - a;
+
+    if (a === 0) {
+      // Point → Line: the fly-through.
+      sampleFly(f, tP, tL);
+    } else {
+      // Orbit to the phase's pose.
+      const pa = CAM_POSES[a];
+      const pb = CAM_POSES[b];
+      const nearest = Math.min(f, 1 - f);
+      const arrival = 1 - Math.min(1, nearest / 0.5);
+      const focus = live.focusRegister !== null || live.topDown ? 1 : 0;
+      const sway = Math.sin(state.clock.elapsedTime * 0.16) * 0.04;
+      const az = pa.az + (pb.az - pa.az) * f + sway;
+      const el = pa.el + (pb.el - pa.el) * f;
+      const r = pa.r + (pb.r - pa.r) * f - arrival * 0.6 - focus * 1.2;
+      const ce = Math.cos(el);
+      tP.set(Math.sin(az) * ce * r, Math.sin(el) * r, Math.cos(az) * ce * r);
+      tL.set(0, 0, 0);
+    }
+
+    const k = Math.min(1, delta * 3.0);
+    pos.current.lerp(tP, k);
+    look.current.lerp(tL, k);
+    camera.position.copy(pos.current);
+    camera.lookAt(look.current);
+  });
+
+  return null;
+}
+
 export default function SpiralOfTime(props: SpiralProps) {
   return (
     <Canvas
@@ -300,9 +528,18 @@ export default function SpiralOfTime(props: SpiralProps) {
     >
       <fog attach="fog" args={["#08070c", 7, 16]} />
       <ambientLight intensity={0.4} />
-      <HelixModel {...props} />
-      <TravelerDot stateRef={props.stateRef} />
-      <SpiralCamera stateRef={props.stateRef} />
+      {MORPH_SPIRAL ? (
+        <>
+          <MorphSpiral {...props} />
+          <MorphCamera stateRef={props.stateRef} />
+        </>
+      ) : (
+        <>
+          <HelixModel {...props} />
+          <TravelerDot stateRef={props.stateRef} />
+          <SpiralCamera stateRef={props.stateRef} />
+        </>
+      )}
     </Canvas>
   );
 }

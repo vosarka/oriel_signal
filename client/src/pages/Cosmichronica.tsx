@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, useMemo, Suspense, lazy } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  Suspense,
+  lazy,
+  type CSSProperties,
+} from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReactLenis, useLenis } from "lenis/react";
@@ -20,6 +28,7 @@ import {
   type MemoryNode,
 } from "./cosmichronica-data";
 import { CosmichronicaLoader } from "@/components/cosmichronica/CosmichronicaLoader";
+import { phaseState } from "@/lib/cosmichronica-forms";
 import "./cosmichronica.css";
 
 // Lazy-load the 3D Spiral of Time (the optimized helix spine).
@@ -185,23 +194,26 @@ export default function Cosmichronica() {
       // Feed the 3D spiral via a mutable ref — NO React re-render on scroll.
       // The spiral's own render loop reads these values each frame.
       spiralStateRef.current.progress = proxy.p;
-      const reg = Math.min(7, Math.max(0, Math.floor(proxy.p * 8)));
-      spiralStateRef.current.activeRegister = reg;
+      // Dwelled form state — the SAME mapping the spiral morph uses, so the text
+      // tracks the shape exactly (settled register, and whether it's fully formed).
+      const ps = phaseState(proxy.p);
+      spiralStateRef.current.activeRegister = ps.index;
 
-      // Drive the centered story text — React state, but only flipped on change
-      // (≤ 8 register changes + 2 visibility flips over the whole descent).
-      if (reg !== lastRegRef.current) {
-        lastRegRef.current = reg;
-        setActiveRegister(reg);
+      // Drive the centered story text — React state, only flipped on change.
+      if (ps.index !== lastRegRef.current) {
+        lastRegRef.current = ps.index;
+        setActiveRegister(ps.index);
       }
-      const vis = proxy.p > 0.045 && proxy.p < 0.965;
+      // Text appears ONLY when the form has finished forming (settled on its
+      // plateau), after the genesis collapse, and before the closing seal.
+      const vis = ps.settled && proxy.p > 0.045 && proxy.p < 0.99;
       if (vis !== lastVisRef.current) {
         lastVisRef.current = vis;
         setStoryVisible(vis);
       }
 
-      // The helix emerges once the descent truly begins, leaving the hero clean.
-      const sVis = proxy.p > 0.015;
+      // The spiral emerges as the descent begins, leaving the hero clean.
+      const sVis = proxy.p > 0.005;
       if (sVis !== lastSpiralVisRef.current) {
         lastSpiralVisRef.current = sVis;
         setSpiralVisible(sVis);
@@ -370,6 +382,37 @@ export default function Cosmichronica() {
 // Register Story — the fixed, centered cinematic text (cryptowl-style)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+type StoryAnchor = { x: number; y: number; align: "left" | "center" | "right" };
+
+// Per-phase placement for the title and the text box. Each phase's FORM sits in a
+// different screen region as the camera reveals it, so the text is composed to
+// RELATE to that form: centered/symmetric forms (point, line, omega) get the text
+// stacked top & bottom around them; asymmetric forms get the title on one side and
+// the box in the opposite negative space. x/y are viewport %, align = anchor edge.
+const STORY_LAYOUTS: { title: StoryAnchor; box: StoryAnchor & { w: number } }[] = [
+  { title: { x: 50, y: 23, align: "center" }, box: { x: 50, y: 67, align: "center", w: 26 } }, // 0 Point — around the centered dot
+  { title: { x: 50, y: 16, align: "center" }, box: { x: 50, y: 80, align: "center", w: 34 } }, // 1 Line — above & below the horizontal line
+  { title: { x: 19, y: 72, align: "left" },   box: { x: 82, y: 30, align: "right",  w: 24 } }, // 2 Triangle — opposite the apex
+  { title: { x: 17, y: 34, align: "left" },   box: { x: 83, y: 60, align: "right",  w: 24 } }, // 3 Mandala — flanking the rings
+  { title: { x: 17, y: 62, align: "left" },   box: { x: 83, y: 32, align: "right",  w: 24 } }, // 4 Bridge — under & over the arch
+  { title: { x: 18, y: 26, align: "left" },   box: { x: 82, y: 68, align: "right",  w: 24 } }, // 5 Vortex — across the funnel
+  { title: { x: 16, y: 22, align: "left" },   box: { x: 84, y: 74, align: "right",  w: 24 } }, // 6 Scatter — opposite corners
+  { title: { x: 50, y: 21, align: "center" }, box: { x: 50, y: 75, align: "center", w: 28 } }, // 7 Omega — around the twin points
+];
+
+function storyAnchor(a: StoryAnchor): CSSProperties {
+  const tx = a.align === "center" ? "-50%" : a.align === "right" ? "-100%" : "0%";
+  const alignItems =
+    a.align === "center" ? "center" : a.align === "right" ? "flex-end" : "flex-start";
+  return {
+    left: `${a.x}%`,
+    top: `${a.y}%`,
+    transform: `translate(${tx}, -50%)`,
+    textAlign: a.align,
+    alignItems,
+  };
+}
+
 function RegisterStory({
   node,
   visible,
@@ -384,65 +427,73 @@ function RegisterStory({
   if (!node) return null;
 
   const accent = CATEGORY_ACCENT[node.category];
-  // Every register can open its Memory; the entry chapter is its first chapter.
   const entryChapter = node.chapters[0];
+  const idx = Math.max(0, MEMORY_NODES.findIndex((n) => n.id === node.id));
+  const layout = STORY_LAYOUTS[idx] ?? STORY_LAYOUTS[0];
 
   return (
     <div
       className={`cz-story ${visible ? "is-visible" : ""}`}
       style={{ ["--story-accent" as string]: accent }}
     >
-      {/* Keyed by register id: React unmounts the previous register instantly
-          (no exit pile-up during fast scrubs) and the new one fades in via CSS.
-          Split layout: huge title left, helix breathes through the center gap,
-          dossier text right — inspired by Synapser / SON motion design. */}
-      <div key={node.id} className="cz-story__grid">
-        {/* The frame draws itself in — a dossier cadre materializing around the
-            register text (top/bottom rules sweep out, 4 corner brackets snap in). */}
-        <div className="cz-story__frame" aria-hidden="true">
-          <span className="cz-story__rule cz-story__rule--top" />
-          <span className="cz-story__rule cz-story__rule--bottom" />
-          <span className="cz-story__corner cz-story__corner--tl" />
-          <span className="cz-story__corner cz-story__corner--tr" />
-          <span className="cz-story__corner cz-story__corner--bl" />
-          <span className="cz-story__corner cz-story__corner--br" />
-        </div>
-
-        {/* top eyebrow spanning the full width */}
-        <span className="cz-story__era">{node.era}</span>
-
-        {/* LEFT — the monumental title */}
-        <div className="cz-story__left">
+      {/* Keyed by register id so each phase mounts fresh and replays its reveal.
+          Title and text box are placed per-phase to compose with the form. */}
+      <div key={node.id} className="cz-story__stage">
+        {/* Title — positioned to relate to this phase's form. */}
+        <div className="cz-story__titlewrap" style={storyAnchor(layout.title)}>
+          <span className="cz-story__era">{node.era}</span>
           <h2 className="cz-story__title">{node.title}</h2>
           <span className="cz-story__state">
             {node.syntax} · {node.state}
           </span>
         </div>
 
-        {/* RIGHT — the dossier: question + gloss + entry */}
-        <div className="cz-story__right">
-          <MicroDiagram variant={node.microDiagram} />
-          <span className="cz-story__phase">{node.phaseMarker}</span>
-          <p className="cz-story__question">{node.question}</p>
-          <p className="cz-story__preview">{node.preview}</p>
-          <p className="cz-story__archive">{node.archiveNote}</p>
-          <p className="cz-story__symbolic">{node.symbolicLine}</p>
+        {/* Text box — a frame is drawn around it (when the form settles), then the
+            centered text writes in. Placed in the form's negative space. */}
+        <div
+          className="cz-story__box"
+          style={{ ...storyAnchor(layout.box), width: `min(${layout.box.w}rem, 86vw)` }}
+        >
+          <svg
+            className="cz-story__draw"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect
+              className="cz-draw__box"
+              x={1.5}
+              y={1.5}
+              width={97}
+              height={97}
+              pathLength={100}
+            />
+          </svg>
 
-          {hasAccess ? (
-            <button
-              type="button"
-              className="cz-story__open"
-              onClick={() => onOpen(entryChapter.index, entryChapter.title)}
-            >
-              <span className="cz-story__open-line" />
-              Open Memory
-              <span className="cz-story__open-icon">→</span>
-            </button>
-          ) : (
-            <span className="cz-story__locked">
-              Deeper memory requires {node.tier} access
-            </span>
-          )}
+          <div className="cz-story__written">
+            <MicroDiagram variant={node.microDiagram} />
+            <span className="cz-story__phase">{node.phaseMarker}</span>
+            <p className="cz-story__question">{node.question}</p>
+            <p className="cz-story__preview">{node.preview}</p>
+            <p className="cz-story__archive">{node.archiveNote}</p>
+            <p className="cz-story__symbolic">{node.symbolicLine}</p>
+
+            {hasAccess ? (
+              <button
+                type="button"
+                className="cz-story__open"
+                onClick={() => onOpen(entryChapter.index, entryChapter.title)}
+              >
+                <span className="cz-story__open-line" />
+                Open Memory
+                <span className="cz-story__open-icon">→</span>
+              </button>
+            ) : (
+              <span className="cz-story__locked">
+                Deeper memory requires {node.tier} access
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
