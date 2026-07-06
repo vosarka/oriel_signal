@@ -106,19 +106,18 @@ export default function TermsOfService() {
             <Divider />
 
             <section>
-              <SectionTitle>4. Subscriptions and Payments</SectionTitle>
+              <SectionTitle>4. Payments</SectionTitle>
               <div className="space-y-3 text-gray-400">
                 <p>
-                  Certain features of the platform may require a paid
-                  subscription. Payments are processed by PayPal. By
-                  subscribing, you agree to PayPal's terms and our current
-                  pricing.
+                  The current deployment offers a one-time Founder Static
+                  Signature Blueprint purchase. Payments are processed by
+                  PayPal. By purchasing, you agree to PayPal's terms and the
+                  current product price shown at checkout.
                 </p>
                 <p>
-                  Subscriptions renew automatically unless cancelled. You may
-                  cancel your subscription at any time through your account
-                  settings or by contacting us. Refunds are not provided for
-                  partial subscription periods except where required by law.
+                  This MVP product does not create recurring billing. Refund
+                  handling is reviewed case by case except where a different
+                  rule is required by law.
                 </p>
               </div>
             </section>

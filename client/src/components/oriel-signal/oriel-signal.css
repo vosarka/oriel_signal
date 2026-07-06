@@ -468,7 +468,9 @@
 .signal-page-shell
   > div:not(.signal-archive-texture):not(.signal-ambient-grid):not(
     .signal-sacred-geometry
-  ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry) {
+  ):not(.signal-page-geometry):not(.signal-starfield):not(.fi-geometry):not(
+    .cz-spiral-layer
+  ):not(.cz-story):not(.cz-memory):not(.cz-chapter-view) {
   position: relative;
   z-index: 2;
 }
@@ -2914,6 +2916,22 @@
   flex-direction: column;
 }
 
+.fi-dossier--sealed {
+  box-shadow:
+    inset 0 0 0 1px rgba(189, 163, 107, 0.08),
+    0 0 42px rgba(0, 0, 0, 0.18);
+}
+
+.fi-dossier--sealed h3,
+.fi-dossier--sealed p:not(.fi-dossier__receiver-codon) {
+  filter: blur(0.7px);
+  opacity: 0.76;
+}
+
+.fi-dossier--awaiting {
+  border-color: rgba(216, 181, 109, 0.22);
+}
+
 .fi-dossier .signal-card-meta {
   font-family: var(--fi-font-mono);
 }
@@ -2943,6 +2961,27 @@
 .fi-dossier__action {
   margin-top: auto;
   padding-top: 1.5rem;
+}
+
+.fi-dossier__lock {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  color: rgba(216, 181, 109, 0.42);
+  font-family: var(--fi-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+}
+
+.fi-dossier__receiver-codon {
+  margin-top: 0.9rem !important;
+  color: rgba(246, 176, 94, 0.86) !important;
+  font-family: var(--fi-font-mono) !important;
+  font-size: 0.58rem !important;
+  font-style: normal !important;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
 /* Iridescent hairline edge — appears only on hover, only as light */
@@ -3644,6 +3683,11 @@
      64 + 32 + (100vh - 96) = 100vh exactly: still no window scroll. */
   margin-top: 32px;
   height: calc(100vh - 96px);
+}
+
+.fi-conduit-shell .oriel-chamber-stage::before,
+.fi-conduit-shell .oriel-chamber-stage::after {
+  display: none;
 }
 
 /* overflow:hidden boxes are still scrollable by script — the chat's

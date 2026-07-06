@@ -1,0 +1,800 @@
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  Suspense,
+  lazy,
+  type CSSProperties,
+} from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { ReactLenis, useLenis } from "lenis/react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { MotionPathPlugin } from "gsap/MotionPathPlugin";
+import Layout from "@/components/Layout";
+import {
+  SignalPageShell,
+  DecodedTitle,
+  SignalButton,
+} from "@/components/oriel-signal/OrielSignalDesign";
+import CosmicAtmosphere from "@/components/oriel-signal/CosmicAtmosphere";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useCosmichronicaProgress } from "@/hooks/useCosmichronicaProgress";
+import {
+  MEMORY_NODES,
+  CATEGORY_ACCENT,
+  type MemoryNode,
+} from "./cosmichronica-data";
+import { CosmichronicaLoader } from "@/components/cosmichronica/CosmichronicaLoader";
+import { phaseState } from "@/lib/cosmichronica-forms";
+import "./cosmichronica.css";
+
+// Lazy-load the 3D Spiral of Time (the optimized helix spine).
+const SpiralOfTime = lazy(
+  () => import("@/components/oriel-signal/SpiralOfTime")
+);
+
+// Lazy-load the immersive Chapter 1 view
+const CosmichronicaChapter1 = lazy(
+  () => import("./CosmichronicaChapter1")
+);
+
+gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
+
+// Set this to your Spline scene URL when ready. Until then, the CSS energy
+// core renders as the atmosphere. Nothing else needs to change.
+const SPLINE_SCENE: string | undefined = undefined;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+// Bridges Lenis' smoothed scroll loop into GSAP's ticker so ScrollTrigger stays
+// in sync with it. Rendered inside the ReactLenis provider that wraps the page.
+function LenisGsapBridge() {
+  const lenis = useLenis();
+  useEffect(() => {
+    if (!lenis) return;
+    const onScroll = () => ScrollTrigger.update();
+    lenis.on("scroll", onScroll);
+    const raf = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+    return () => {
+      lenis.off("scroll", onScroll);
+      gsap.ticker.remove(raf);
+    };
+  }, [lenis]);
+  return null;
+}
+
+// The glyph phase-rail — the eight register glyphs stacked at the edge; the one
+// matching the descent's active register lights in its accent and swells. Driven
+// by the page's existing `activeRegister` state (flips ≤ 8 times per descent).
+function PhaseRail({ activeRegister }: { activeRegister: number }) {
+  return (
+    <nav className="cz-rail" aria-label="Phase navigation" aria-hidden="true">
+      {MEMORY_NODES.map((node, i) => {
+        const on = i === activeRegister;
+        const accent = CATEGORY_ACCENT[node.category];
+        return (
+          <span
+            key={node.id}
+            className={`cz-rail__glyph ${on ? "is-active" : ""}`}
+            style={{
+              color: on ? accent : "rgba(232,228,220,0.26)",
+              transform: on ? "scale(1.5)" : "scale(1)",
+              textShadow: on ? `0 0 14px ${accent}` : "none",
+            }}
+            title={`${node.era} — ${node.title}`}
+          >
+            {node.glyph}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function Cosmichronica() {
+  const streamRef = useRef<HTMLDivElement | null>(null);
+  const progress = useCosmichronicaProgress();
+  const reducedMotion = prefersReducedMotion() || false;
+
+  // ── 3D Spiral state — a mutable ref fed by GSAP each frame (no re-render).
+  // topDown + focusRegister are kept here too; the spiral's render loop polls all.
+  const spiralStateRef = useRef({
+    progress: 0,
+    activeRegister: 0,
+    topDown: false,
+    focusRegister: null as number | null,
+  });
+
+  // ── Cinematic story state — the centered register text. Updated ONLY when the
+  // active register or its visibility changes (never per-frame → no scroll jank).
+  const [activeRegister, setActiveRegister] = useState(0);
+  const [storyVisible, setStoryVisible] = useState(false);
+  // The helix fades IN as the descent begins, so it never collides with the
+  // hero/preface text at the very top (progress ≈ 0).
+  const [spiralVisible, setSpiralVisible] = useState(false);
+  const lastRegRef = useRef(0);
+  const lastVisRef = useRef(false);
+  const lastSpiralVisRef = useRef(false);
+
+  // ── Chapter Transition and Immersive View States ──────────────────────────
+  // activeMemory = the register index whose Memory panel is open (any register).
+  // activeChapterView = the deep immersive Chapter 1 (Register I only, for now).
+  const [activeMemory, setActiveMemory] = useState<number | null>(null);
+  const [activeChapterView, setActiveChapterView] = useState<string | null>(null);
+
+  // ── Ported polish: boot loader gate + scroll-progress rail ─────────────────
+  const [booted, setBooted] = useState(false);
+  const progressBarRef = useRef<HTMLSpanElement>(null);
+  // Obsidian veil that fades in over the spiral at the end so the Origin Seal
+  // text reads cleanly (ramps to 30% across the final stretch of the descent).
+  const endVeilRef = useRef<HTMLDivElement>(null);
+
+  // The spiral swings to top-down / focuses whenever a memory or chapter is open.
+  const spiralTopDown = activeChapterView !== null;
+  spiralStateRef.current.topDown = spiralTopDown;
+
+  // Open the Memory of the register currently centered on the helix. Works for
+  // EVERY register: zoom into its segment, then forge the memory panel from it.
+  const handleOpenMemory = () => {
+    const reg = lastRegRef.current;
+    spiralStateRef.current.focusRegister = reg; // dive the camera into the segment
+    setStoryVisible(false);
+    // Let the dive settle, then assemble the panel out of the spiral.
+    window.setTimeout(() => setActiveMemory(reg), 900);
+  };
+
+  const handleMemoryClose = () => {
+    setActiveMemory(null);
+    setActiveChapterView(null);
+    spiralStateRef.current.focusRegister = null; // release → free descent resumes
+    // The story re-appears on the next scroll tick; nudge it back for click-close.
+    setStoryVisible(true);
+  };
+
+  // From inside a Memory panel, enter the deep immersive chapter (Register I).
+  const handleEnterChapter = (index: string) => {
+    if (index !== "1") return; // only Chapter 1 is built today
+    setActiveChapterView(index);
+  };
+
+  // ── The descent: scroll-scrubbed axis growth + comet position ─────────────
+  useEffect(() => {
+    // Force the page to the top BEFORE wiring scroll animations, so the user
+    // starts at the threshold and the descent plays forward (not pre-finished).
+    window.scrollTo(0, 0);
+
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    if (prefersReducedMotion()) {
+      stream.style.setProperty("--cz-progress", "1");
+      if (progressBarRef.current) progressBarRef.current.style.transform = "scaleX(1)";
+      if (endVeilRef.current) endVeilRef.current.style.opacity = "0.3";
+      return;
+    }
+
+    const proxy = { p: 0 };
+    const apply = () => {
+      stream.style.setProperty("--cz-progress", proxy.p.toFixed(4));
+      if (progressBarRef.current) {
+        progressBarRef.current.style.transform = `scaleX(${proxy.p})`;
+      }
+      // Ramp the obsidian veil from p=0.85 → 1.0, holding at 30%.
+      if (endVeilRef.current) {
+        const v = Math.max(0, Math.min(1, (proxy.p - 0.85) / 0.15)) * 0.3;
+        endVeilRef.current.style.opacity = v.toFixed(3);
+      }
+      // Feed the 3D spiral via a mutable ref — NO React re-render on scroll.
+      // The spiral's own render loop reads these values each frame.
+      spiralStateRef.current.progress = proxy.p;
+      // Dwelled form state — the SAME mapping the spiral morph uses, so the text
+      // tracks the shape exactly (settled register, and whether it's fully formed).
+      const ps = phaseState(proxy.p);
+      spiralStateRef.current.activeRegister = ps.index;
+
+      // Drive the centered story text — React state, only flipped on change.
+      if (ps.index !== lastRegRef.current) {
+        lastRegRef.current = ps.index;
+        setActiveRegister(ps.index);
+      }
+      // Text appears ONLY when the form has finished forming (settled on its
+      // plateau), after the genesis collapse, and before the closing seal.
+      const vis = ps.settled && proxy.p > 0.045 && proxy.p < 0.99;
+      if (vis !== lastVisRef.current) {
+        lastVisRef.current = vis;
+        setStoryVisible(vis);
+      }
+
+      // The spiral emerges as the descent begins, leaving the hero clean.
+      const sVis = proxy.p > 0.005;
+      if (sVis !== lastSpiralVisRef.current) {
+        lastSpiralVisRef.current = sVis;
+        setSpiralVisible(sVis);
+      }
+    };
+    apply();
+
+    const tween = gsap.to(proxy, {
+      p: 1,
+      ease: "none",
+      onUpdate: apply,
+      scrollTrigger: {
+        trigger: stream,
+        start: "top 80%",
+        end: "bottom bottom",
+        scrub: 0.5,
+        invalidateOnRefresh: true,
+      },
+    });
+
+    // Starfield Parallax — background stars drift slower for spatial depth
+    const starfield = document.querySelector(".signal-starfield");
+    let starTween: gsap.core.Tween | null = null;
+    if (starfield) {
+      starTween = gsap.fromTo(
+        starfield,
+        { yPercent: 0 },
+        {
+          yPercent: -20, // drift up slower than scroll rate
+          ease: "none",
+          scrollTrigger: {
+            trigger: document.documentElement,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 0.3,
+          },
+        }
+      );
+    }
+
+    // The page height keeps changing after mount: lazy 3D glyphs mount, fonts
+    // swap, the atmosphere loads. Each change invalidates ScrollTrigger's cached
+    // start/end positions — which is what makes the animations "fire wrong".
+    // Refresh on a schedule and on the relevant browser events to keep triggers
+    // pinned to the correct scroll points.
+    const refresh = () => ScrollTrigger.refresh();
+    const refreshTimers = [
+      window.setTimeout(refresh, 200),
+      window.setTimeout(refresh, 600),
+      window.setTimeout(refresh, 1200),
+    ];
+    window.addEventListener("load", refresh);
+    document.fonts?.ready.then(refresh).catch(() => {});
+
+    return () => {
+      refreshTimers.forEach((t) => window.clearTimeout(t));
+      window.removeEventListener("load", refresh);
+      tween.scrollTrigger?.kill();
+      tween.kill();
+      if (starTween) {
+        starTween.scrollTrigger?.kill();
+        starTween.kill();
+      }
+    };
+  }, []);
+
+  return (
+    <ReactLenis
+      root
+      options={{ lerp: 0.1, duration: 1.2, smoothWheel: true, autoRaf: false }}
+    >
+      <LenisGsapBridge />
+
+      {/* Boot sequence — 0→100 counter, then a clip-wipe reveals the descent. */}
+      {!booted && <CosmichronicaLoader onComplete={() => setBooted(true)} />}
+
+      <Layout overlayHeader hideFooter={activeChapterView !== null}>
+        <SignalPageShell chamber="codex" className="cosmichronica">
+        {/* Scroll-progress rail across the top of the descent */}
+        <span ref={progressBarRef} className="cz-progressbar" aria-hidden="true" />
+
+        {/* Obsidian end-veil — darkens the spiral so the Origin Seal reads */}
+        <div ref={endVeilRef} className="cz-endveil" aria-hidden="true" />
+
+        {/* Glyph phase-rail — hidden while a memory/chapter is open (immersive) */}
+        {booted && activeMemory === null && activeChapterView === null && (
+          <PhaseRail activeRegister={activeRegister} />
+        )}
+
+        {/* Ambient depth — Spline when provided, CSS energy core otherwise */}
+        <CosmicAtmosphere scene={SPLINE_SCENE} />
+
+        {/* The Spiral of Time — fixed 3D helix behind the descent. Rotates with
+            scroll, base-pairs ignite per register, swings top-down on chapter.
+            Fades in once the descent begins so it never collides with the hero. */}
+        <div
+          className={`cz-spiral-layer ${spiralVisible ? "is-visible" : ""}`}
+          aria-hidden="true"
+        >
+          <Suspense fallback={null}>
+            <SpiralOfTime stateRef={spiralStateRef} reducedMotion={reducedMotion} />
+          </Suspense>
+        </div>
+
+        {/* ── Threshold ──────────────────────────────────────────────────── */}
+        <ThresholdHero />
+
+        {/* ── The Descent: a tall, empty scroll-driver. It produces the scroll
+            distance that scrubs --cz-progress and the 3D helix. All register
+            content is presented by the fixed cinematic overlay below. ──────── */}
+        <div className="cz-stream" ref={streamRef} aria-hidden="true" />
+
+        {/* ── Cinematic Story — fixed centered register text (cryptowl-style).
+            Crossfades as the descent passes each register zone on the helix. ── */}
+        <RegisterStory
+          node={MEMORY_NODES[activeRegister]}
+          visible={storyVisible}
+          hasAccess={MEMORY_NODES[activeRegister] ? progress.hasAccess(MEMORY_NODES[activeRegister].tier) : true}
+          onOpen={handleOpenMemory}
+        />
+
+        {/* Accessible, non-visual list of all registers for SEO + reduced-motion.
+            Hidden visually; the cinematic overlay is the visual presentation. */}
+        <div className="cz-registers-sr">
+          {MEMORY_NODES.map((node) => (
+            <article key={node.id} className="cz-registers-sr__item">
+              <h2>{node.title}</h2>
+              <p>{node.era}</p>
+              <p>{node.question}</p>
+              <p>{node.preview}</p>
+            </article>
+          ))}
+        </div>
+
+        {/* ── Origin Seal (exit) ────────────────────────────────────────── */}
+        <OriginSeal />
+
+        {/* ── Memory Panel — forged from the spiral when OPEN MEMORY is clicked.
+            Particles in the register's colors assemble into a framed dossier. ── */}
+        <AnimatePresence>
+          {activeMemory !== null && activeChapterView === null && (
+            <MemoryPanel
+              node={MEMORY_NODES[activeMemory]}
+              hasAccess={progress.hasAccess(MEMORY_NODES[activeMemory].tier)}
+              onEnterChapter={handleEnterChapter}
+              onClose={handleMemoryClose}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── Chapter Immersive Views (full screen spaces) ────────────────── */}
+        <AnimatePresence>
+          {activeChapterView === "1" && (
+            <Suspense fallback={null}>
+              <CosmichronicaChapter1 onClose={handleMemoryClose} />
+            </Suspense>
+          )}
+        </AnimatePresence>
+        </SignalPageShell>
+      </Layout>
+    </ReactLenis>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Register Story — the fixed, centered cinematic text (cryptowl-style)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type StoryAnchor = { x: number; y: number; align: "left" | "center" | "right" };
+
+// Per-phase placement for the title and the text box. Each phase's FORM sits in a
+// different screen region as the camera reveals it, so the text is composed to
+// RELATE to that form: centered/symmetric forms (point, line, omega) get the text
+// stacked top & bottom around them; asymmetric forms get the title on one side and
+// the box in the opposite negative space. x/y are viewport %, align = anchor edge.
+const STORY_LAYOUTS: { title: StoryAnchor; box: StoryAnchor & { w: number } }[] = [
+  { title: { x: 50, y: 23, align: "center" }, box: { x: 50, y: 67, align: "center", w: 26 } }, // 0 Point — around the centered dot
+  { title: { x: 50, y: 16, align: "center" }, box: { x: 50, y: 80, align: "center", w: 34 } }, // 1 Line — above & below the horizontal line
+  { title: { x: 19, y: 72, align: "left" },   box: { x: 82, y: 30, align: "right",  w: 24 } }, // 2 Triangle — opposite the apex
+  { title: { x: 17, y: 34, align: "left" },   box: { x: 83, y: 60, align: "right",  w: 24 } }, // 3 Mandala — flanking the rings
+  { title: { x: 17, y: 62, align: "left" },   box: { x: 83, y: 32, align: "right",  w: 24 } }, // 4 Bridge — under & over the arch
+  { title: { x: 18, y: 26, align: "left" },   box: { x: 82, y: 68, align: "right",  w: 24 } }, // 5 Vortex — across the funnel
+  { title: { x: 16, y: 22, align: "left" },   box: { x: 84, y: 74, align: "right",  w: 24 } }, // 6 Scatter — opposite corners
+  { title: { x: 50, y: 21, align: "center" }, box: { x: 50, y: 75, align: "center", w: 28 } }, // 7 Omega — around the twin points
+];
+
+function storyAnchor(a: StoryAnchor): CSSProperties {
+  const tx = a.align === "center" ? "-50%" : a.align === "right" ? "-100%" : "0%";
+  const alignItems =
+    a.align === "center" ? "center" : a.align === "right" ? "flex-end" : "flex-start";
+  return {
+    left: `${a.x}%`,
+    top: `${a.y}%`,
+    transform: `translate(${tx}, -50%)`,
+    textAlign: a.align,
+    alignItems,
+  };
+}
+
+function RegisterStory({
+  node,
+  visible,
+  hasAccess,
+  onOpen,
+}: {
+  node: MemoryNode | undefined;
+  visible: boolean;
+  hasAccess: boolean;
+  onOpen: (index: string, title: string) => void;
+}) {
+  if (!node) return null;
+
+  const accent = CATEGORY_ACCENT[node.category];
+  const entryChapter = node.chapters[0];
+  const idx = Math.max(0, MEMORY_NODES.findIndex((n) => n.id === node.id));
+  const layout = STORY_LAYOUTS[idx] ?? STORY_LAYOUTS[0];
+
+  return (
+    <div
+      className={`cz-story ${visible ? "is-visible" : ""}`}
+      style={{ ["--story-accent" as string]: accent }}
+    >
+      {/* Keyed by register id so each phase mounts fresh and replays its reveal.
+          Title and text box are placed per-phase to compose with the form. */}
+      <div key={node.id} className="cz-story__stage">
+        {/* Title — positioned to relate to this phase's form. */}
+        <div className="cz-story__titlewrap" style={storyAnchor(layout.title)}>
+          <span className="cz-story__era">{node.era}</span>
+          <h2 className="cz-story__title">{node.title}</h2>
+          <span className="cz-story__state">
+            {node.syntax} · {node.state}
+          </span>
+        </div>
+
+        {/* Text box — a frame is drawn around it (when the form settles), then the
+            centered text writes in. Placed in the form's negative space. */}
+        <div
+          className="cz-story__box"
+          style={{ ...storyAnchor(layout.box), width: `min(${layout.box.w}rem, 86vw)` }}
+        >
+          <svg
+            className="cz-story__draw"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect
+              className="cz-draw__box"
+              x={1.5}
+              y={1.5}
+              width={97}
+              height={97}
+              pathLength={100}
+            />
+          </svg>
+
+          <div className="cz-story__written">
+            <MicroDiagram variant={node.microDiagram} />
+            <span className="cz-story__phase">{node.phaseMarker}</span>
+            <p className="cz-story__question">{node.question}</p>
+            <p className="cz-story__preview">{node.preview}</p>
+            <p className="cz-story__archive">{node.archiveNote}</p>
+            <p className="cz-story__symbolic">{node.symbolicLine}</p>
+
+            {hasAccess ? (
+              <button
+                type="button"
+                className="cz-story__open"
+                onClick={() => onOpen(entryChapter.index, entryChapter.title)}
+              >
+                <span className="cz-story__open-line" />
+                Open Memory
+                <span className="cz-story__open-icon">→</span>
+              </button>
+            ) : (
+              <span className="cz-story__locked">
+                Deeper memory requires {node.tier} access
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MicroDiagram({ variant }: { variant: MemoryNode["microDiagram"] }) {
+  return (
+    <svg className={`cz-micro cz-micro--${variant}`} viewBox="0 0 120 120" aria-hidden="true">
+      <circle className="cz-micro__ring" cx="60" cy="60" r="46" />
+      {variant === "void" && <circle className="cz-micro__core" cx="60" cy="60" r="8" />}
+      {variant === "wave" && <path className="cz-micro__path" d="M18 62 C34 35 46 35 60 62 S86 89 102 62" />}
+      {variant === "relation" && (
+        <>
+          <path className="cz-micro__path" d="M60 20 L96 82 L24 82 Z" />
+          <circle className="cz-micro__dot" cx="60" cy="20" r="3" />
+          <circle className="cz-micro__dot" cx="96" cy="82" r="3" />
+          <circle className="cz-micro__dot" cx="24" cy="82" r="3" />
+        </>
+      )}
+      {variant === "square" && <rect className="cz-micro__path" x="32" y="32" width="56" height="56" />}
+      {variant === "bridge" && (
+        <>
+          <path className="cz-micro__path" d="M26 72 C44 38 76 38 94 72" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M30 82 H90" />
+        </>
+      )}
+      {variant === "eye" && (
+        <>
+          <path className="cz-micro__path" d="M18 60 C34 36 86 36 102 60 C86 84 34 84 18 60 Z" />
+          <circle className="cz-micro__core" cx="60" cy="60" r="7" />
+        </>
+      )}
+      {variant === "return" && (
+        <>
+          <path className="cz-micro__path" d="M60 96 L26 34 H94 Z" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M60 18 V94" />
+        </>
+      )}
+      {variant === "omega" && (
+        <>
+          <path className="cz-micro__path" d="M32 90 C44 76 42 60 42 50 C42 30 78 30 78 50 C78 60 76 76 88 90" />
+          <path className="cz-micro__path cz-micro__path--dim" d="M30 90 H48 M72 90 H90" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Threshold Hero — title + decoding preface
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function ThresholdHero() {
+  const { ref, inView } = useScrollReveal<HTMLDivElement>({ threshold: 0.3 });
+  const [revealed, setRevealed] = useState<number>(0);
+  const heroLines = [
+    "A descent through the encoded architecture of reality, consciousness, geometry, and return.",
+    "Cosmichronica is the living cosmology of VOS ARKANA — a symbolic archive of how void becomes vibration, vibration becomes pattern, and pattern becomes the field through which consciousness reads itself.",
+  ];
+
+  // Stagger the hero lines in once the threshold is seen.
+  useEffect(() => {
+    if (!inView) return;
+    if (prefersReducedMotion()) {
+      setRevealed(heroLines.length + 1);
+      return;
+    }
+    let n = 0;
+    const timer = window.setInterval(() => {
+      n += 1;
+      setRevealed(n);
+      if (n >= heroLines.length + 1) window.clearInterval(timer);
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [inView, heroLines.length]);
+
+  return (
+    <section className="cz-threshold" ref={ref} aria-labelledby="cz-title">
+      <div className="cz-threshold__kicker">COSMICHRONICA / ARCHIVE OF REALITY</div>
+      <DecodedTitle
+        text="The Spiral Remembers"
+        as="h1"
+        className="cz-threshold__title"
+        interval={70}
+      />
+      <div className="cz-preface">
+        {heroLines.map((line, i) => (
+          <p
+            key={i}
+            className={`cz-preface__line ${i < revealed ? "is-in" : ""}`}
+          >
+            {line}
+          </p>
+        ))}
+      </div>
+      <div className="cz-scrollcue" aria-hidden="true">
+        <span>Scroll through the spiral</span>
+        <span className="cz-scrollcue__line" />
+      </div>
+    </section>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Origin Seal — the exit
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function OriginSeal() {
+  const { ref, inView } = useScrollReveal<HTMLDivElement>({ threshold: 0.4 });
+  return (
+    <section
+      className="cz-seal"
+      ref={ref}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? "translateY(0)" : "translateY(24px)",
+        transition: "opacity 1.2s ease, transform 1.2s cubic-bezier(0.16,1,0.3,1)",
+      }}
+    >
+      <div className="cz-seal__mark" aria-hidden="true">
+        Ω
+      </div>
+      <h2 className="cz-seal__title">The Spiral Is Not a Path. It Is a Memory System.</h2>
+      <p className="cz-seal__text">
+        Cosmichronica is the map of how reality becomes readable. It is the
+        cosmological backbone of VOS ARKANA, the deep archive beneath the Codex,
+        the Protocol, and the Static Signature.
+      </p>
+      <div className="cz-seal__actions">
+        <SignalButton href="/archive" variant="secondary">
+          Enter the Transmission Archive
+        </SignalButton>
+        <SignalButton href="/codex" variant="secondary">
+          Explore the Vossari Resonance Codex
+        </SignalButton>
+        <SignalButton href="/static-signature" variant="secondary">
+          Begin Static Signature
+        </SignalButton>
+      </div>
+      <p className="cz-seal__closing">Enter as static. Leave as signal.</p>
+    </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Memory Panel — forged out of the spiral when OPEN MEMORY is clicked
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function MemoryPanel({
+  node,
+  hasAccess,
+  onEnterChapter,
+  onClose,
+}: {
+  node: MemoryNode;
+  hasAccess: boolean;
+  onEnterChapter: (index: string) => void;
+  onClose: () => void;
+}) {
+  const accent = CATEGORY_ACCENT[node.category];
+
+  // Particles that fly inward and "condense" into the panel — as if the panel
+  // is assembled from the same lit base-pairs as the spiral. Seeded once.
+  const motes = useMemo(
+    () =>
+      Array.from({ length: 26 }).map((_, i) => ({
+        id: i,
+        // start scattered around the viewport center, converge to (0,0)
+        x: (Math.random() - 0.5) * 90,
+        y: (Math.random() - 0.5) * 70,
+        delay: Math.random() * 0.25,
+        size: 2 + Math.random() * 3,
+      })),
+    []
+  );
+
+  // Esc closes the panel.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const canEnterChapter = node.chapters[0]?.index === "1";
+
+  return (
+    <motion.div
+      className="cz-memory"
+      style={{ ["--mem-accent" as string]: accent }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* scrim — click to close */}
+      <div className="cz-memory__scrim" onClick={onClose} />
+
+      {/* condensing motes (the spiral's matter forming the panel) */}
+      <div className="cz-memory__motes" aria-hidden="true">
+        {motes.map((m) => (
+          <motion.span
+            key={m.id}
+            className="cz-memory__mote"
+            initial={{ x: `${m.x}vw`, y: `${m.y}vh`, opacity: 0, scale: 0.4 }}
+            animate={{ x: "0vw", y: "0vh", opacity: [0, 1, 0], scale: 1 }}
+            transition={{ duration: 0.8, delay: m.delay, ease: [0.16, 1, 0.3, 1] }}
+            style={{ width: m.size, height: m.size }}
+          />
+        ))}
+      </div>
+
+      {/* the framed dossier — draws its border, then content fades up */}
+      <motion.div
+        className="cz-memory__panel"
+        initial={{ clipPath: "inset(0 50% 0 50%)", opacity: 0 }}
+        animate={{ clipPath: "inset(0 0% 0 0%)", opacity: 1 }}
+        exit={{ clipPath: "inset(0 50% 0 50%)", opacity: 0 }}
+        transition={{ duration: 0.55, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <span className="cz-memory__corner cz-memory__corner--tl" />
+        <span className="cz-memory__corner cz-memory__corner--tr" />
+        <span className="cz-memory__corner cz-memory__corner--bl" />
+        <span className="cz-memory__corner cz-memory__corner--br" />
+
+        <button
+          type="button"
+          className="cz-memory__close"
+          onClick={onClose}
+          aria-label="Close memory"
+        >
+          ✕ Close
+        </button>
+
+        <motion.div
+          className="cz-memory__content"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+        >
+          <span className="cz-memory__era">{node.era}</span>
+          <h2 className="cz-memory__title">{node.title}</h2>
+          <span className="cz-memory__state">
+            {node.syntax} · {node.state}
+          </span>
+
+          <p className="cz-memory__question">{node.question}</p>
+
+          {hasAccess ? (
+            <>
+              <p className="cz-memory__body">{node.body}</p>
+              {node.formula && (
+                <code className="cz-memory__formula">{node.formula}</code>
+              )}
+
+              <ul className="cz-memory__chapters">
+                {node.chapters.map((ch) => {
+                  const live = ch.index === "1";
+                  return (
+                    <li
+                      key={ch.index}
+                      className={`cz-memory__chapter ${live ? "is-live" : ""}`}
+                      onClick={live ? () => onEnterChapter(ch.index) : undefined}
+                    >
+                      <span className="cz-memory__chapter-num">{ch.index}</span>
+                      <span className="cz-memory__chapter-text">
+                        <span className="cz-memory__chapter-title">{ch.title}</span>
+                        <span className="cz-memory__chapter-gloss">{ch.gloss}</span>
+                      </span>
+                      {live && <span className="cz-memory__chapter-go">Enter →</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {canEnterChapter && (
+                <button
+                  type="button"
+                  className="cz-memory__enter"
+                  onClick={() => onEnterChapter("1")}
+                >
+                  <span className="cz-memory__enter-line" />
+                  Enter the Chamber
+                  <span className="cz-memory__enter-icon">→</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="cz-memory__body">{node.preview}</p>
+              <div className="cz-memory__locked">
+                This register's full memory requires {node.tier} access —
+                the deeper the descent, the deeper the signal.
+              </div>
+            </>
+          )}
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}

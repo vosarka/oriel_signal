@@ -77,11 +77,12 @@ export default function FinalOrielTransmission() {
               className="signal-hero__actions"
               style={{ justifyContent: "center", marginTop: "2.4rem" }}
             >
-              <SignalButton href="/signature">
-                Open Static Codex
-              </SignalButton>
-              <SignalButton href="/conduit" variant="secondary">
-                Return to ORIEL
+              <SignalButton href="/signature">Open Static Codex</SignalButton>
+              <SignalButton
+                href="/founder-signature-blueprint"
+                variant="secondary"
+              >
+                Get Oriel Signature Blueprint
               </SignalButton>
             </div>
           </article>

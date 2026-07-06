@@ -9,6 +9,15 @@ import { installAnalytics } from "./analytics";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
+// Disable the browser's automatic scroll restoration. Otherwise reloading or
+// navigating to a tall scroll-driven page (e.g. Cosmichronica) can restore a
+// previous scroll position AFTER React mounts — landing the user at the bottom
+// with all scroll-triggered animations already "complete". We control scroll
+// position explicitly in App.tsx on every route change.
+if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+  window.history.scrollRestoration = "manual";
+}
+
 installAnalytics();
 
 const queryClient = new QueryClient();

@@ -4,6 +4,10 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import {
+  OrielRouteGuard,
+  SignatureRouteGuard,
+} from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import StaticSignature from "./pages/StaticSignature";
@@ -16,19 +20,21 @@ import Artifacts from "./pages/Artifacts";
 import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Codex from "./pages/Codex";
+import Knowledge from "./pages/Knowledge";
+import Arcana from "./pages/Arcana";
+import CoreConcepts from "./pages/CoreConcepts";
+import ModelsMaps from "./pages/ModelsMaps";
+import VossariArchitecture from "./pages/VossariArchitecture";
+import BioArchitecture from "./pages/BioArchitecture";
+import Cosmichronica from "./pages/Cosmichronica";
 import CodonDetail from "./pages/CodonDetail";
 import Carrierlock from "./pages/Carrierlock";
 import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 import StaticReading from "./pages/StaticReading";
 import DynamicReading from "./pages/DynamicReading";
-import Tiers from "./pages/Tiers";
 import CurrentResonance from "./pages/CurrentResonance";
-import FoundingSignatureLetter from "./pages/FoundingSignatureLetter";
-import {
-  FoundingSignatureProductPage,
-  SignatureGlimpseProductPage,
-} from "./pages/SignatureProductPage";
+import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -39,7 +45,25 @@ import OrbPreview from "./pages/OrbPreview";
 import ResonanceBodyLab from "./pages/ResonanceBodyLab";
 import OracleDetail from "./pages/OracleDetail";
 import NatalProfile from "./pages/NatalProfile";
+import SignalCheck from "./pages/SignalCheck";
+import SignalGrounding from "./pages/SignalGrounding";
 import { useAuth } from "@/_core/hooks/useAuth";
+
+function ConduitRoute() {
+  return (
+    <OrielRouteGuard>
+      <Conduit />
+    </OrielRouteGuard>
+  );
+}
+
+function SignatureRoute() {
+  return (
+    <SignatureRouteGuard>
+      <StaticReading />
+    </SignatureRouteGuard>
+  );
+}
 
 function Router() {
   return (
@@ -53,19 +77,33 @@ function Router() {
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />
+      <Route path={"/signal/check"} component={SignalCheck} />
+      <Route path={"/signal/grounding"} component={SignalGrounding} />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/terms"} component={TermsOfService} />
       <Route
         path={"/founding-signature-letter"}
-        component={FoundingSignatureLetter}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          return null;
+        }}
       />
       <Route
         path={"/oriel-signature-glimpse"}
-        component={SignatureGlimpseProductPage}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          return null;
+        }}
       />
       <Route
         path={"/oriel-founding-signature-letter"}
-        component={FoundingSignatureProductPage}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          return null;
+        }}
       />
       <Route path={"/signature-intake/:orderId"} component={SignatureIntake} />
       <Route path={"/"} component={Home} />
@@ -76,26 +114,92 @@ function Router() {
         component={FinalOrielTransmission}
       />
       <Route path={"/archive"} component={Archive} />
+      <Route path={"/knowledge"} component={Knowledge} />
+      <Route path={"/arcana"} component={Arcana} />
+      <Route path={"/core-concepts"} component={CoreConcepts} />
+      <Route path={"/models-maps"} component={ModelsMaps} />
+      <Route path={"/vossari-architecture"} component={VossariArchitecture} />
+      {/* Redirect old /archive-index to /arcana */}
+      <Route
+        path={"/archive-index"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/arcana"), []);
+          return null;
+        }}
+      />
       <Route path={"/transmission/:id"} component={TransmissionDetail} />
       <Route path={"/oracle/:oracleId"} component={OracleDetail} />
       <Route path={"/artifacts"} component={Artifacts} />
       <Route path={"/protocol"} component={Protocol} />
-      <Route path={"/conduit"} component={Conduit} />
+      <Route path={"/conduit"} component={ConduitRoute} />
+      <Route path={"/bio-architecture"} component={BioArchitecture} />
       <Route path={"/codex"} component={Codex} />
       <Route path={"/codex/:id"} component={CodonDetail} />
-      {/* Cosmichronica: the sacred cosmological text (separate from /codex codon library per structure) */}
-      <Route path={"/cosmichronica"} component={Protocol} />
+      <Route path={"/cosmichronica"} component={Cosmichronica} />
+      <Route
+        path={"/founder-signature-blueprint"}
+        component={FounderCuratedBlueprint}
+      />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
-      <Route path={"/signature"} component={StaticReading} />
+      <Route path={"/signature"} component={SignatureRoute} />
       {/* Redirects for old reading routes to the single /signature */}
-      <Route path={"/blueprint"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/carrierlock"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/resonance"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/readings"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/reading/static/:readingId"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/reading/dynamic/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/reading/:id"} component={() => { const [, setLoc] = useLocation(); useEffect(() => setLoc("/signature"), []); return null; }} />
-      <Route path={"/tiers"} component={Tiers} />
+      <Route
+        path={"/blueprint"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/carrierlock"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/resonance"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/readings"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/reading/static/:readingId"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/reading/dynamic/:id"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
+      <Route
+        path={"/reading/:id"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -111,9 +215,7 @@ function AppGate() {
   useEffect(() => {
     if (loading || !user || user.hasNatalProfile) return;
 
-    const requiresNatalProfile =
-      location === "/profile" ||
-      location === "/signature";
+    const requiresNatalProfile = location === "/profile";
 
     // requiresNatalProfile is only true on /profile or /signature, so it is
     // already never /complete-profile (and redirecting there clears it, no
@@ -128,6 +230,13 @@ function AppGate() {
 }
 
 function App() {
+  const [location] = useLocation();
+
+  // Scroll to top on every route change so pages don't load at the bottom
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">

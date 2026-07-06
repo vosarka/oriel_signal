@@ -1,0 +1,9 @@
+{
+  "projectId": "4034c1b0-45fa-4d2c-bbe2-9af249994eb8",
+  "shape": "package",
+  "pkg": "oriel-resonance-circle",
+  "globalName": "VossariUI",
+  "srcDir": "client/src/components/ui",
+  "tsconfig": "./tsconfig.json",
+  "cssEntry": "dist/public/assets/index-DVBvd1n5.css"
+}

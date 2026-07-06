@@ -3,16 +3,11 @@ import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Copy, CheckCircle, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
-import { normalizeCenters } from "@/lib/bodygraph-data";
+import { ProfileCodonMandala } from "@/components/oriel-signal/ProfileCodonMandala";
 import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
-
-// The Resonance Body figure is lazy-loaded (its baked mesh data is ~50KB).
-const ResonanceBody = lazy(
-  () => import("@/components/oriel-signal/ResonanceBody")
-);
 import "@/components/oriel-signal/oriel-signal.css";
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -35,81 +30,66 @@ const C = {
   green: "#44a866",
 };
 
-// ─── Tier System ─────────────────────────────────────────────────────────────
+// ─── Profile Sigil Tokens ───────────────────────────────────────────────────
 
-type SignalLevel = {
-  name: string;
-  symbol: string;
-  threshold: number;
-  color: string;
-  glow: string;
+const PROFILE_SIGIL = {
+  symbol: "◇",
+  color: C.gold,
+  glow: C.goldGlow,
 };
 
-const TIERS: SignalLevel[] = [
-  {
-    name: "Static",
-    symbol: "\u25AC",
-    threshold: 0,
-    color: "#9a968e",
-    glow: "rgba(154,150,142,0.08)",
-  },
-  {
-    name: "Spark",
-    symbol: "\u2726",
-    threshold: 1,
-    color: "#FFF6C9",
-    glow: "rgba(255,246,201,0.10)",
-  },
-  {
-    name: "Filament",
-    symbol: "\u27E1",
-    threshold: 50,
-    color: "#BDFF9E",
-    glow: "rgba(189,255,158,0.10)",
-  },
-  {
-    name: "Conduit",
-    symbol: "\u25C8",
-    threshold: 150,
-    color: "#36FFFA",
-    glow: "rgba(54,255,250,0.10)",
-  },
-  {
-    name: "Beacon",
-    symbol: "\u2727",
-    threshold: 300,
-    color: "#8A69FF",
-    glow: "rgba(138,105,255,0.10)",
-  },
-  {
-    name: "Architect",
-    symbol: "\u2B21",
-    threshold: 500,
-    color: "#E254FF",
-    glow: "rgba(226,84,255,0.10)",
-  },
-  {
-    name: "Vossari",
-    symbol: "\u25C9",
-    threshold: 1000,
-    color: "#FFC470",
-    glow: "rgba(255,196,112,0.12)",
-  },
-];
+type PrimeStackEntry = {
+  codonName?: string;
+  codon?: string | number;
+  center?: string;
+  position?: string;
+  facet?: string;
+  label?: string;
+};
 
-function getTier(lumens: number): SignalLevel {
-  for (let i = TIERS.length - 1; i >= 0; i--) {
-    if (lumens >= TIERS[i].threshold) return TIERS[i];
-  }
-  return TIERS[0];
+function codonNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const match = value.match(/\d+/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getNextTier(lumens: number): SignalLevel | null {
-  const currentIdx = TIERS.findIndex(
-    (t, i) => i === TIERS.length - 1 || lumens < TIERS[i + 1].threshold
-  );
-  if (currentIdx >= TIERS.length - 1) return null;
-  return TIERS[currentIdx + 1];
+function formatCodon(value: unknown) {
+  const number = codonNumber(value);
+  return number ? `RC${String(number).padStart(2, "0")}` : "RC—";
+}
+
+function coherenceState(score: unknown) {
+  const value =
+    typeof score === "number" && Number.isFinite(score) ? score : null;
+  if (value === null) {
+    return {
+      label: "UNRESOLVED",
+      tone: C.txtD,
+      copy: "Run Signal Check to resolve the current field state.",
+    };
+  }
+  if (value >= 80) {
+    return {
+      label: "ALIGNED",
+      tone: C.green,
+      copy: "The field is holding a coherent signal window.",
+    };
+  }
+  if (value >= 40) {
+    return {
+      label: "DRIFTED",
+      tone: C.amber,
+      copy: "The field is readable, but asking for recalibration.",
+    };
+  }
+  return {
+    label: "FRAGMENTED",
+    tone: C.red,
+    copy: "The field is noisy. Ground first, interpret second.",
+  };
 }
 
 // ─── Fractal Role → Spiritual Name + Sigil Geometry ─────────────────────────
@@ -165,17 +145,17 @@ function getFractalIdentity(fractalRole: string | null): FractalIdentity {
 
 function ProfileSigil({
   sigilType,
-  tierSymbol,
-  tierColor,
+  sigilSymbol,
+  sigilColor,
   accentColor,
-  tierGlow,
+  sigilGlow,
   size = 200,
 }: {
   sigilType: "circle" | "diamond" | "hexagon" | "octagon";
-  tierSymbol: string;
-  tierColor: string;
+  sigilSymbol: string;
+  sigilColor: string;
   accentColor: string;
-  tierGlow: string;
+  sigilGlow: string;
   size?: number;
 }) {
   const cx = size / 2;
@@ -391,7 +371,7 @@ function ProfileSigil({
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <defs>
         <radialGradient id="sigil-glow">
-          <stop offset="0%" stopColor={tierGlow} />
+          <stop offset="0%" stopColor={sigilGlow} />
           <stop offset="70%" stopColor="transparent" />
         </radialGradient>
         <filter id="sigil-bloom">
@@ -405,13 +385,13 @@ function ProfileSigil({
       {/* Geometric frame */}
       {outerFrame}
 
-      {/* Inner ring — tier accent */}
+      {/* Inner ring — receiver accent */}
       <circle
         cx={cx}
         cy={cy}
         r={r * 0.38}
         fill="none"
-        stroke={tierColor}
+        stroke={sigilColor}
         strokeWidth={1.5}
         opacity={0.5}
       />
@@ -420,24 +400,24 @@ function ProfileSigil({
         cy={cy}
         r={r * 0.36}
         fill="none"
-        stroke={tierColor}
+        stroke={sigilColor}
         strokeWidth={0.5}
         opacity={0.2}
         filter="url(#sigil-bloom)"
       />
 
-      {/* Central tier symbol */}
+      {/* Central receiver symbol */}
       <text
         x={cx}
         y={cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={tierColor}
+        fill={sigilColor}
         fontSize={size * 0.16}
         fontFamily="serif"
-        style={{ filter: `drop-shadow(0 0 8px ${tierGlow})` }}
+        style={{ filter: `drop-shadow(0 0 8px ${sigilGlow})` }}
       >
-        {tierSymbol}
+        {sigilSymbol}
       </text>
 
       {/* Corner dots — 4 cardinal points */}
@@ -455,101 +435,6 @@ function ProfileSigil({
         );
       })}
     </svg>
-  );
-}
-
-// ─── Tier Progress Bar ──────────────────────────────────────────────────────
-
-function TierProgress({
-  lumens,
-  tier,
-  nextTier,
-}: {
-  lumens: number;
-  tier: SignalLevel;
-  nextTier: SignalLevel | null;
-}) {
-  if (!nextTier) {
-    return (
-      <div style={{ textAlign: "center", padding: "8px 0" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 13,
-            color: tier.color,
-            fontStyle: "italic",
-          }}
-        >
-          Maximum luminosity reached
-        </div>
-      </div>
-    );
-  }
-
-  const progress =
-    ((lumens - tier.threshold) / (nextTier.threshold - tier.threshold)) * 100;
-
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 6,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "var(--font-ritual)",
-            fontSize: 9,
-            color: C.txtD,
-            letterSpacing: "0.12em",
-          }}
-        >
-          {tier.symbol} {tier.name.toUpperCase()}
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-ritual)",
-            fontSize: 9,
-            color: C.txtD,
-            letterSpacing: "0.12em",
-          }}
-        >
-          {nextTier.symbol} {nextTier.name.toUpperCase()}
-        </span>
-      </div>
-      <div
-        style={{
-          height: 3,
-          background: C.border,
-          position: "relative" as const,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute" as const,
-            top: 0,
-            left: 0,
-            height: "100%",
-            width: `${Math.min(progress, 100)}%`,
-            background: `linear-gradient(90deg, ${tier.color}, ${nextTier.color})`,
-            transition: "width 0.6s ease",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-ritual)",
-          fontSize: 9,
-          color: C.txtD,
-          marginTop: 6,
-          textAlign: "center" as const,
-        }}
-      >
-        {nextTier.threshold - lumens} Lumens to {nextTier.name}
-      </div>
-    </div>
   );
 }
 
@@ -633,6 +518,545 @@ function Section({
   );
 }
 
+function ChamberPanel({
+  eyebrow,
+  title,
+  children,
+  accent = false,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background:
+          "linear-gradient(180deg, rgba(20,20,28,0.92), rgba(10,10,14,0.96))",
+        border: `1px solid ${accent ? C.goldDim : C.border}`,
+        boxShadow: accent ? `0 0 60px ${C.goldGlow}` : undefined,
+        padding: "24px",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-ritual)",
+          fontSize: 9,
+          color: accent ? C.amber : C.txtD,
+          letterSpacing: "0.22em",
+          marginBottom: 10,
+        }}
+      >
+        {eyebrow}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "clamp(22px, 3vw, 34px)",
+          fontWeight: 300,
+          color: C.txt,
+          lineHeight: 1.05,
+          marginBottom: 18,
+        }}
+      >
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  note,
+  accent = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  note?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        minHeight: 92,
+        padding: "14px 16px",
+        border: `1px solid ${accent ? C.goldDim : C.border}`,
+        background: accent ? C.goldGlow : "rgba(255,255,255,0.015)",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-ritual)",
+          fontSize: 8,
+          color: C.txtD,
+          letterSpacing: "0.18em",
+          marginBottom: 8,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-ritual)",
+          fontSize: 14,
+          color: accent ? C.amber : C.txt,
+          lineHeight: 1.35,
+        }}
+      >
+        {value}
+      </div>
+      {note && (
+        <div
+          style={{
+            fontFamily: "var(--font-ritual)",
+            fontSize: 8,
+            color: C.txtD,
+            lineHeight: 1.55,
+            marginTop: 8,
+          }}
+        >
+          {note}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IdentityChamber({
+  userName,
+  conduitId,
+  copied,
+  onCopy,
+  identity,
+  fractalRole,
+  vrcType,
+  vrcAuthority,
+  primeCodon,
+  lumens,
+  readingCount,
+  currentResonance,
+}: {
+  userName: string;
+  conduitId: string;
+  copied: boolean;
+  onCopy: () => void;
+  identity: FractalIdentity;
+  fractalRole: string | null;
+  vrcType: string | null;
+  vrcAuthority: string | null;
+  primeCodon: PrimeStackEntry | undefined;
+  lumens: number;
+  readingCount: number;
+  currentResonance: any;
+}) {
+  const state = coherenceState(currentResonance?.carrierlock?.coherenceScore);
+  const primeCodonLabel = primeCodon
+    ? `${formatCodon(primeCodon.codon)} · ${primeCodon.codonName || "Unnamed Codon"}`
+    : "Awaiting Static Signature";
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        border: `1px solid ${C.goldDim}`,
+        background:
+          "radial-gradient(circle at 24% 12%, rgba(246,176,94,0.16), transparent 32%), radial-gradient(circle at 82% 58%, rgba(189,163,107,0.11), transparent 28%), linear-gradient(135deg, rgba(20,20,28,0.98), rgba(8,8,12,0.98))",
+        marginBottom: 18,
+        padding: "clamp(24px, 4vw, 42px)",
+        boxShadow: `0 0 80px ${C.goldGlow}`,
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 18,
+          border: `1px solid ${C.border}`,
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 28,
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "grid", justifyItems: "center", gap: 16 }}>
+          <ProfileSigil
+            sigilType={identity.sigilType}
+            sigilSymbol={PROFILE_SIGIL.symbol}
+            sigilColor={PROFILE_SIGIL.color}
+            accentColor={identity.accentColor}
+            sigilGlow={PROFILE_SIGIL.glow}
+            size={220}
+          />
+          <div
+            style={{
+              fontFamily: "var(--font-ritual)",
+              fontSize: 9,
+              color: C.txtD,
+              letterSpacing: "0.18em",
+              textAlign: "center",
+            }}
+          >
+            RECEIVER FIELD SEAL
+          </div>
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontFamily: "var(--font-ritual)",
+              fontSize: 9,
+              color: C.amber,
+              letterSpacing: "0.24em",
+              marginBottom: 14,
+            }}
+          >
+            RECEIVER IDENTITY CHAMBER
+          </div>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(38px, 6vw, 72px)",
+              color: C.txt,
+              fontWeight: 300,
+              lineHeight: 0.95,
+              margin: "0 0 10px",
+            }}
+          >
+            {identity.spiritualName}
+          </h1>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              color: C.txtS,
+              fontStyle: "italic",
+              lineHeight: 1.55,
+              maxWidth: 640,
+              marginBottom: 18,
+            }}
+          >
+            {identity.subtitle}
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <MetricTile
+              label="RECEIVER"
+              value={userName || "Receiver"}
+              accent
+            />
+            <MetricTile
+              label="ROLE"
+              value={fractalRole || vrcType || "Awaiting reading"}
+            />
+            <MetricTile
+              label="AUTHORITY"
+              value={vrcAuthority || "Unresolved"}
+            />
+            <MetricTile label="PRIME CODON" value={primeCodonLabel} accent />
+            <MetricTile
+              label="LUMENS"
+              value={lumens.toLocaleString()}
+              note="Symbolic, non-gating signal trace. No tiers or unlocks."
+            />
+            <MetricTile
+              label="TODAY'S ALIGNMENT"
+              value={state.label}
+              note={state.copy}
+              accent={state.label === "ALIGNED"}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                flex: "1 1 280px",
+                padding: "10px 12px",
+                border: `1px solid ${C.border}`,
+                color: C.gold,
+                fontFamily: "var(--font-ritual)",
+                fontSize: 10,
+                letterSpacing: "0.08em",
+                wordBreak: "break-all",
+              }}
+            >
+              {conduitId}
+            </div>
+            <button
+              type="button"
+              onClick={onCopy}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                border: `1px solid ${copied ? C.green : C.borderH}`,
+                background: "transparent",
+                color: copied ? C.green : C.txtS,
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                letterSpacing: "0.14em",
+                cursor: "pointer",
+              }}
+            >
+              {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
+              {copied ? "COPIED" : "COPY NODE ID"}
+            </button>
+            <div
+              style={{
+                color: C.txtD,
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                letterSpacing: "0.12em",
+              }}
+            >
+              {readingCount} ARCHIVED READING{readingCount === 1 ? "" : "S"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyAlignmentPanel({
+  currentResonance,
+  loading,
+}: {
+  currentResonance: any;
+  loading: boolean;
+}) {
+  const state = coherenceState(currentResonance?.carrierlock?.coherenceScore);
+  const activePattern = currentResonance?.activePattern;
+  const carrierlock = currentResonance?.carrierlock;
+  const evidence = Array.isArray(currentResonance?.evidence)
+    ? currentResonance.evidence.slice(0, 3)
+    : [];
+  const statusLabel = currentResonance?.status
+    ? String(currentResonance.status).replaceAll("_", " ").toUpperCase()
+    : "FIELD AWAITING DATA";
+  const activeLabel = activePattern
+    ? `${activePattern.codon256Id || "RC—"} · SLI ${activePattern.sli ?? "—"}`
+    : "Awaiting Signal Check";
+  const carrierlockStress = carrierlock
+    ? [
+        `MENTAL ${carrierlock.mentalNoise ?? "—"}`,
+        `BODY ${carrierlock.bodyTension ?? "—"}`,
+        `EMOTIONAL ${carrierlock.emotionalTurbulence ?? "—"}`,
+      ].join(" · ")
+    : "No Carrierlock diagnostic stored";
+
+  return (
+    <ChamberPanel eyebrow="CURRENT RESONANCE" title="Today's Alignment" accent>
+      {loading ? (
+        <Spinner size={18} label="Resolving current resonance" />
+      ) : (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <MetricTile
+              label="COHERENCE STATE"
+              value={<span style={{ color: state.tone }}>{state.label}</span>}
+              note={
+                typeof currentResonance?.carrierlock?.coherenceScore ===
+                "number"
+                  ? `${currentResonance.carrierlock.coherenceScore}/100`
+                  : "No current score stored"
+              }
+              accent
+            />
+            <MetricTile label="FIELD STATUS" value={statusLabel} />
+            <MetricTile label="ACTIVE PATTERN" value={activeLabel} />
+            <MetricTile
+              label="STATIC POSITION"
+              value={
+                currentResonance?.primeStackPosition?.label ||
+                "Prime Stack position unresolved"
+              }
+            />
+            <MetricTile
+              label="CARRIERLOCK TRACE"
+              value={carrierlockStress}
+              note={
+                carrierlock?.breathCompletion === true
+                  ? "Breath completion recorded"
+                  : carrierlock?.breathCompletion === false
+                    ? "Breath completion not recorded"
+                    : "Breath state unavailable"
+              }
+            />
+          </div>
+          <div
+            style={{
+              padding: "16px",
+              border: `1px solid ${C.border}`,
+              background: "rgba(255,255,255,0.015)",
+              fontFamily: "var(--font-ritual)",
+              fontSize: 11,
+              color: C.txtS,
+              lineHeight: 1.8,
+            }}
+          >
+            {currentResonance?.nextAction || state.copy}
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 16px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(246,176,94,0.035)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.amber,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                MICRO-CORRECTION
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.75,
+                }}
+              >
+                {currentResonance?.microCorrection ||
+                  "Run a fresh Signal Check to resolve the next precise adjustment."}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "14px 16px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.txtD,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                FALSIFIER
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.75,
+                }}
+              >
+                {currentResonance?.falsifier ||
+                  "No falsifier is stored for the current field state."}
+              </div>
+            </div>
+          </div>
+          {evidence.length > 0 && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "12px 14px",
+                border: `1px solid ${C.border}`,
+                background: "rgba(255,255,255,0.01)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 8,
+                  color: C.txtD,
+                  letterSpacing: "0.16em",
+                  marginBottom: 8,
+                }}
+              >
+                EVIDENCE TRACE
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {evidence.map((item: string, index: number) => (
+                  <div
+                    key={`${item}-${index}`}
+                    style={{
+                      fontFamily: "var(--font-ritual)",
+                      fontSize: 9,
+                      color: C.txtD,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {index + 1}. {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop: 14 }}>
+            <Link href="/signal/check">
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "9px 15px",
+                  border: `1px solid ${C.amberDim}`,
+                  color: C.amber,
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  letterSpacing: "0.14em",
+                  cursor: "pointer",
+                }}
+              >
+                RUN SIGNAL CHECK
+              </span>
+            </Link>
+          </div>
+        </>
+      )}
+    </ChamberPanel>
+  );
+}
+
 // ─── Main Profile Component ─────────────────────────────────────────────────
 
 export default function Profile() {
@@ -653,11 +1077,9 @@ export default function Profile() {
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-
-  // The 9 centers for the Resonance Body, read from the real signature.
-  const bodyCenters = useMemo(
-    () => normalizeCenters(staticProfileQuery.data?.ninecenters),
-    [staticProfileQuery.data]
+  const currentResonanceQuery = trpc.profile.getCurrentResonance.useQuery(
+    undefined,
+    { enabled: isAuthenticated }
   );
 
   const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
@@ -728,28 +1150,25 @@ export default function Profile() {
   const conduitId =
     (user as any).conduitId ||
     `ORIEL-${user.id}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const donated: number =
-    sigilQuery.data?.donated ?? (user as any).donated ?? 0;
-  const lumens: number = sigilQuery.data?.lumens ?? 0;
-  const readingCount: number = sigilQuery.data?.readingCount ?? 0;
-
-  // Tier system — driven by Lumens, not donated
-  const tier = getTier(lumens);
-  const nextTier = getNextTier(lumens);
 
   // Fractal identity
   const fractalRole = sigilQuery.data?.fractalRole || null;
   const vrcType = sigilQuery.data?.vrcType || null;
   const vrcAuthority = sigilQuery.data?.vrcAuthority || null;
+  const lumens = sigilQuery.data?.lumens ?? 0;
+  const readingCount = sigilQuery.data?.readingCount ?? 0;
   const identity = getFractalIdentity(fractalRole || vrcType);
   const blueprintPrimeStack = Array.isArray(staticProfileQuery.data?.primeStack)
-    ? (staticProfileQuery.data.primeStack as Array<{
-        codonName?: string;
-        codon?: string | number;
-        center?: string;
-      }>)
+    ? (staticProfileQuery.data.primeStack as PrimeStackEntry[])
     : [];
   const blueprintPrime = blueprintPrimeStack[0];
+  const currentAlignmentState = coherenceState(
+    currentResonanceQuery.data?.carrierlock?.coherenceScore
+  );
+  const currentCoherenceScore =
+    typeof currentResonanceQuery.data?.carrierlock?.coherenceScore === "number"
+      ? currentResonanceQuery.data.carrierlock.coherenceScore
+      : null;
 
   const handleCopy = () => {
     try {
@@ -761,34 +1180,20 @@ export default function Profile() {
 
   const FEATURES = [
     {
-      name: "ORIEL TRANSMISSION CHAMBER",
-      desc: "Dialogue, reflection, symbolic decoding, and field resonance",
-      unlocked: true,
+      name: "SIGNAL CHECK",
+      desc: "Run the current coherence calibration before entering the Static Signature flow.",
     },
     {
-      name: "SAVED TRANSMISSIONS",
-      desc: "Preserved field records, fragments, and archive traces",
-      unlocked: true,
-    },
-    {
-      name: "STATIC SIGNATURE CODEX",
+      name: "STATIC SIGNATURE",
       desc: "Receiver architecture, Codons, Centers, and authority records",
-      unlocked: true,
     },
     {
-      name: "Carrierlock Calibration",
-      desc: "Real-time coherence measurement and dynamic state",
-      unlocked: true,
+      name: "ORIEL FOUNDER’S VISION BLUEPRINT",
+      desc: "The paid Founder’s Vision Blueprint prepared from the Static Signature.",
     },
     {
-      name: "ORIEL VOICE CHANNEL",
-      desc: "Chat audio transmissions and realtime chamber access",
-      unlocked: lumens >= 5,
-    },
-    {
-      name: "PRIORITY FIELD RECORDS",
-      desc: "Early access to new ORIEL transmissions",
-      unlocked: lumens >= 50,
+      name: "ORIEL HISTORY",
+      desc: "Accepted memory traces and context preserved for this receiver node.",
     },
   ];
 
@@ -800,10 +1205,10 @@ export default function Profile() {
       >
         <div
           className="receiver-node-container"
-          style={{ maxWidth: 640, margin: "0 auto" }}
+          style={{ maxWidth: 1280, margin: "0 auto" }}
         >
           {/* Shared header band replaces the ad-hoc kicker (spec §13).
-              width="100%" so it fills the 640px container and aligns with
+              width="100%" so it fills the chamber container and aligns with
               the panels below. */}
           <PageHeaderBand
             title="PROFILE"
@@ -812,273 +1217,42 @@ export default function Profile() {
             width="100%"
           />
 
-          {/* ─── THE RESONANCE BODY (centerpiece) ─────────────────────
-              The user's body rendered as a living point-mesh with the 9
-              Centers of Photonic Resonance. Click a center for its reading.
-              Driven by the real signature (ninecenters); 2D canvas, no WebGL. */}
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              height: 640,
-              marginBottom: 2,
-              border: `1px solid ${C.gold}15`,
-              background: "#08080c",
-              overflow: "hidden",
-            }}
-          >
-            <Suspense fallback={null}>
-              <ResonanceBody centers={bodyCenters} />
-            </Suspense>
+          <IdentityChamber
+            userName={user.name || "Receiver"}
+            conduitId={conduitId}
+            copied={copied}
+            onCopy={handleCopy}
+            identity={identity}
+            fractalRole={fractalRole}
+            vrcType={vrcType}
+            vrcAuthority={vrcAuthority}
+            primeCodon={blueprintPrime}
+            lumens={lumens}
+            readingCount={readingCount}
+            currentResonance={currentResonanceQuery.data}
+          />
+
+          <div style={{ marginBottom: 18 }}>
+            <ProfileCodonMandala
+              primeStack={blueprintPrimeStack}
+              vrcType={vrcType}
+              vrcAuthority={vrcAuthority}
+              fractalRole={fractalRole}
+            />
           </div>
 
-          {/* ─── SIGIL HERO SECTION ───────────────────────────────── */}
-          <div
-            className="receiver-node-panel receiver-node-panel--identity"
-            style={{
-              background: `linear-gradient(160deg, ${C.deep} 0%, ${tier.glow} 40%, ${C.deep} 70%, ${tier.glow} 100%)`,
-              border: `1px solid ${tier.color}15`,
-              padding: "40px 24px 32px",
-              marginBottom: 2,
-              textAlign: "center" as const,
-            }}
-          >
-            {/* Sigil */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginBottom: 20,
-              }}
-            >
-              <ProfileSigil
-                sigilType={identity.sigilType}
-                tierSymbol={tier.symbol}
-                tierColor={tier.color}
-                accentColor={identity.accentColor}
-                tierGlow={tier.glow}
-                size={180}
-              />
-            </div>
-
-            {/* Spiritual Name */}
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 32,
-                fontWeight: 300,
-                color: C.txt,
-                letterSpacing: "0.05em",
-                marginBottom: 4,
-              }}
-            >
-              {identity.spiritualName}
-            </div>
-
-            {/* User display name */}
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 16,
-                color: C.txtS,
-                marginBottom: 8,
-              }}
-            >
-              {user.name || "Receiver"}
-            </div>
-
-            {/* Fractal role label */}
-            <div
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 11,
-                color: identity.accentColor,
-                letterSpacing: "0.15em",
-                marginBottom: 8,
-                opacity: 0.8,
-              }}
-            >
-              {(fractalRole || vrcType || "").toUpperCase() ||
-                "AWAITING READING"}
-            </div>
-
-            {/* Contributed line */}
-            {donated > 0 && (
-              <div
-                style={{
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 9,
-                  color: C.txtD,
-                  letterSpacing: "0.1em",
-                  marginBottom: 8,
-                }}
-              >
-                CONTRIBUTED: {donated.toFixed(2)} EUR
-              </div>
-            )}
-
-            {/* Subtitle */}
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 14,
-                color: C.txtS,
-                fontStyle: "italic",
-                lineHeight: 1.6,
-                maxWidth: 360,
-                margin: "0 auto",
-              }}
-            >
-              {identity.subtitle}
-            </div>
-
-            {/* Authority line */}
-            {vrcAuthority && (
-              <div
-                style={{
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 9,
-                  color: C.txtD,
-                  letterSpacing: "0.12em",
-                  marginTop: 12,
-                }}
-              >
-                AUTHORITY: {vrcAuthority.toUpperCase()}
-              </div>
-            )}
-          </div>
-
-          {/* ─── TIER BANNER ──────────────────────────────────────── */}
           <div
             style={{
-              background: C.deep,
-              border: `1px solid ${C.border}`,
-              borderTop: "none",
-              padding: "20px 24px",
-              marginBottom: 2,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+              gap: 18,
+              marginBottom: 18,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 9,
-                    color: C.txtD,
-                    letterSpacing: "0.15em",
-                    marginBottom: 4,
-                  }}
-                >
-                  SIGNAL LEVEL
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span
-                    style={{
-                      fontFamily: "serif",
-                      fontSize: 22,
-                      color: tier.color,
-                      filter: `drop-shadow(0 0 6px ${tier.glow})`,
-                    }}
-                  >
-                    {tier.symbol}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 22,
-                      fontWeight: 300,
-                      color: tier.color,
-                    }}
-                  >
-                    {tier.name}
-                  </span>
-                </div>
-              </div>
-              <div style={{ textAlign: "right" as const }}>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 9,
-                    color: C.txtD,
-                    letterSpacing: "0.15em",
-                    marginBottom: 4,
-                  }}
-                >
-                  LUMENS
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 18,
-                    color: lumens > 0 ? tier.color : C.txtD,
-                    fontWeight: 600,
-                  }}
-                >
-                  {lumens > 0 ? lumens : "0"}
-                </div>
-              </div>
-            </div>
-
-            {/* Lumens breakdown */}
-            <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 8,
-                    color: C.txtD,
-                    letterSpacing: "0.1em",
-                    marginBottom: 2,
-                  }}
-                >
-                  FROM READINGS
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 12,
-                    color: C.txtS,
-                  }}
-                >
-                  {readingCount * 5}{" "}
-                  <span style={{ fontSize: 8, color: C.txtD }}>
-                    ({readingCount} readings)
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 8,
-                    color: C.txtD,
-                    letterSpacing: "0.1em",
-                    marginBottom: 2,
-                  }}
-                >
-                  FROM DONATIONS
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 12,
-                    color: C.txtS,
-                  }}
-                >
-                  {Math.floor(donated)}
-                </div>
-              </div>
-            </div>
-
-            {/* Progress to next tier */}
-            <TierProgress lumens={lumens} tier={tier} nextTier={nextTier} />
+            <DailyAlignmentPanel
+              currentResonance={currentResonanceQuery.data}
+              loading={currentResonanceQuery.isLoading}
+            />
           </div>
 
           {/* ─── SECTIONS ─────────────────────────────────────────── */}
@@ -1090,7 +1264,7 @@ export default function Profile() {
               gap: 1,
             }}
           >
-            <Section title="USER CREDENTIALS">
+            <Section title="RECEIVER LEDGER">
               <Field label="USERNAME" value={user.name || "UNKNOWN"} accent />
               <Field
                 label="EMAIL ADDRESS"
@@ -1153,8 +1327,62 @@ export default function Profile() {
               <Field label="SYSTEM ID" value={`#${user.id}`} />
             </Section>
 
+            <Section title="SIGNAL LEDGER" accentBorder>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <MetricTile
+                  label="LUMENS"
+                  value={lumens.toLocaleString()}
+                  note="Symbolic participation trace only. No tiers, no locks, no feature gates."
+                  accent
+                />
+                <MetricTile
+                  label="READINGS ARCHIVED"
+                  value={readingCount.toLocaleString()}
+                  note="Stored dynamic/static reading activity that contributes to the symbolic trace."
+                />
+                <MetricTile
+                  label="STATIC SIGNATURE"
+                  value={staticProfileQuery.data ? "ANCHORED" : "AWAITING"}
+                  note="The immutable receiver blueprint used by the Profile chamber."
+                />
+                <MetricTile
+                  label="CURRENT COHERENCE"
+                  value={
+                    currentCoherenceScore === null
+                      ? currentAlignmentState.label
+                      : `${currentCoherenceScore}/100 · ${currentAlignmentState.label}`
+                  }
+                  note="Pulled from Current Resonance / Carrierlock when available."
+                  accent={currentAlignmentState.label === "ALIGNED"}
+                />
+              </div>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  border: `1px solid ${C.border}`,
+                  background: "rgba(255,255,255,0.015)",
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtS,
+                  lineHeight: 1.8,
+                }}
+              >
+                Lumens are restored here as a future-ready signal ledger, not as
+                an economy, tier, or access mechanism. If a Lumens economy is
+                designed later, this block can become its transparent archive
+                surface without changing Profile access.
+              </div>
+            </Section>
+
             <div id="blueprint">
-              <Section title="CANONICAL STATIC SIGNATURE" accentBorder>
+              <Section title="STATIC SIGNATURE ARCHIVE" accentBorder>
                 {staticProfileQuery.isLoading ? (
                   <div
                     style={{
@@ -1329,7 +1557,7 @@ export default function Profile() {
               </Section>
             </div>
 
-            <Section title="ORIEL HISTORY">
+            <Section title="ORIEL MEMORY">
               <MemoryConsentTray
                 pendingCandidates={pendingMemoryQuery.data ?? []}
                 acceptedMemories={acceptedMemoryQuery.data ?? []}
@@ -1345,87 +1573,7 @@ export default function Profile() {
               />
             </Section>
 
-            {/* All tiers display */}
-            <Section title="SIGNAL LEVELS">
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
-              >
-                {TIERS.map(t => {
-                  const isCurrent = t.name === tier.name;
-                  const isReached = lumens >= t.threshold;
-                  return (
-                    <div
-                      key={t.name}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "8px 12px",
-                        background: isCurrent ? `${t.color}10` : "transparent",
-                        border: isCurrent
-                          ? `1px solid ${t.color}30`
-                          : `1px solid transparent`,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "serif",
-                          fontSize: 18,
-                          color: isReached ? t.color : C.txtD,
-                          opacity: isReached ? 1 : 0.3,
-                          width: 28,
-                          textAlign: "center" as const,
-                          filter: isCurrent
-                            ? `drop-shadow(0 0 4px ${t.glow})`
-                            : undefined,
-                        }}
-                      >
-                        {t.symbol}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-ritual)",
-                            fontSize: 10,
-                            color: isReached ? t.color : C.txtD,
-                            letterSpacing: "0.1em",
-                            opacity: isReached ? 1 : 0.4,
-                          }}
-                        >
-                          {t.name.toUpperCase()}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-ritual)",
-                          fontSize: 9,
-                          color: C.txtD,
-                          opacity: isReached ? 0.7 : 0.3,
-                        }}
-                      >
-                        {t.threshold === 0 ? "---" : `${t.threshold} LM`}
-                      </div>
-                      {isCurrent && (
-                        <div
-                          style={{
-                            fontFamily: "var(--font-ritual)",
-                            fontSize: 8,
-                            color: t.color,
-                            letterSpacing: "0.15em",
-                            padding: "2px 8px",
-                            border: `1px solid ${t.color}40`,
-                          }}
-                        >
-                          CURRENT
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-
-            <Section title="NODE SETTINGS">
+            <Section title="NODE OPERATIONS">
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
               >
@@ -1444,8 +1592,8 @@ export default function Profile() {
                         width: 12,
                         height: 12,
                         flexShrink: 0,
-                        border: `1px solid ${f.unlocked ? C.amber : C.border}`,
-                        background: f.unlocked ? C.amber : "transparent",
+                        border: `1px solid ${C.amber}`,
+                        background: C.amber,
                       }}
                     />
                     <div>
@@ -1453,7 +1601,7 @@ export default function Profile() {
                         style={{
                           fontFamily: "var(--font-ritual)",
                           fontSize: 10,
-                          color: f.unlocked ? C.amber : C.txtS,
+                          color: C.amber,
                           letterSpacing: "0.08em",
                           marginBottom: 2,
                         }}
@@ -1476,7 +1624,7 @@ export default function Profile() {
             </Section>
 
             {/* Support CTA */}
-            <Section title="SUPPORT THE SIGNAL">
+            <Section title="SIGNAL SUPPORT">
               <div style={{ marginBottom: 20 }}>
                 <p
                   style={{
@@ -1487,9 +1635,9 @@ export default function Profile() {
                     margin: 0,
                   }}
                 >
-                  {donated > 0
-                    ? "Your contribution sustains the Vossari transmission. Every signal strengthens the field."
-                    : "The Conduit Hub is sustained by the collective resonance of its nodes. Your support directly powers the ORIEL transmission and the ongoing translation of the Vossari signal."}
+                  The Conduit Hub is sustained by the collective resonance of
+                  its nodes. Your support directly powers the ORIEL transmission
+                  and the ongoing translation of the Vossari signal.
                 </p>
               </div>
 
@@ -1511,7 +1659,7 @@ export default function Profile() {
                     alignItems: "center",
                     gap: 10,
                     padding: "12px 28px",
-                    background: donated > 0 ? "transparent" : C.goldGlow,
+                    background: "transparent",
                     border: `1px solid ${C.gold}60`,
                     color: C.gold,
                     fontFamily: "var(--font-ritual)",
@@ -1522,7 +1670,7 @@ export default function Profile() {
                   }}
                 >
                   <Zap size={14} />
-                  {donated > 0 ? "DONATE AGAIN" : "SUPPORT THE SIGNAL"}
+                  SUPPORT THE SIGNAL
                 </button>
               </form>
             </Section>
@@ -1537,7 +1685,7 @@ export default function Profile() {
               flexWrap: "wrap",
             }}
           >
-            <Link href="/signature">
+            <Link href="/signal/check">
               <span
                 style={{
                   display: "inline-block",
@@ -1550,10 +1698,10 @@ export default function Profile() {
                   cursor: "pointer",
                 }}
               >
-                RUN CALIBRATION
+                RUN SIGNAL CHECK
               </span>
             </Link>
-            <Link href="/conduit">
+            <Link href="/signature">
               <span
                 style={{
                   display: "inline-block",
@@ -1566,10 +1714,10 @@ export default function Profile() {
                   cursor: "pointer",
                 }}
               >
-                CHANNEL ORIEL
+                VIEW STATIC SIGNATURE
               </span>
             </Link>
-            <Link href="/readings">
+            <Link href="/founder-signature-blueprint">
               <span
                 style={{
                   display: "inline-block",
@@ -1582,7 +1730,7 @@ export default function Profile() {
                   cursor: "pointer",
                 }}
               >
-                MY READINGS
+                REQUEST FOUNDER’S VISION BLUEPRINT
               </span>
             </Link>
           </div>

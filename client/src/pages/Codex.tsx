@@ -225,10 +225,10 @@ export default function Codex() {
                 />
               </div>
               <button
-                onClick={() => setLocation("/signature")}
+                onClick={() => setLocation("/founder-signature-blueprint")}
                 className="codex-reading-button"
               >
-                GET READING
+                REQUEST BLUEPRINT
               </button>
             </div>
           </div>

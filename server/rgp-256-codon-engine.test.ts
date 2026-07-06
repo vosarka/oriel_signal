@@ -30,121 +30,117 @@ import {
 } from "./rgp-256-codon-engine";
 
 const EXPECTED_CODON_CENTERS: Record<number, string> = {
-  1: "G-Self",
-  2: "G-Self",
-  3: "Sacral",
-  4: "Ajna",
-  5: "Sacral",
-  6: "Solar Plexus",
-  7: "G-Self",
-  8: "Throat",
-  9: "Sacral",
-  10: "G-Self",
-  11: "Ajna",
-  12: "Throat",
-  13: "G-Self",
-  14: "Sacral",
-  15: "G-Self",
-  16: "Throat",
-  17: "Ajna",
-  18: "Spleen",
-  19: "Root",
-  20: "Throat",
-  21: "Heart",
-  22: "Solar Plexus",
-  23: "Throat",
-  24: "Ajna",
-  25: "G-Self",
-  26: "Heart",
-  27: "Sacral",
-  28: "Spleen",
-  29: "Sacral",
-  30: "Solar Plexus",
-  31: "Throat",
-  32: "Spleen",
-  33: "Throat",
-  34: "Sacral",
-  35: "Throat",
-  36: "Solar Plexus",
-  37: "Solar Plexus",
-  38: "Root",
-  39: "Root",
-  40: "Heart",
-  41: "Root",
-  42: "Sacral",
-  43: "Ajna",
-  44: "Spleen",
-  45: "Throat",
-  46: "G-Self",
-  47: "Ajna",
-  48: "Spleen",
-  49: "Solar Plexus",
-  50: "Sacral",
-  51: "Heart",
-  52: "Root",
-  53: "Root",
-  54: "Root",
-  55: "Solar Plexus",
-  56: "Throat",
-  57: "Spleen",
-  58: "Root",
-  59: "Sacral",
-  60: "Root",
-  61: "Crown",
-  62: "Throat",
-  63: "Crown",
-  64: "Crown",
+  1: "Origin",
+  2: "Origin",
+  3: "Origin",
+  4: "Mental",
+  5: "Origin",
+  6: "Becoming",
+  7: "Bridge",
+  8: "Collapse",
+  9: "Origin",
+  10: "Bridge",
+  11: "Mental",
+  12: "Collapse",
+  13: "Bridge",
+  14: "Saturation",
+  15: "Bridge",
+  16: "Collapse",
+  17: "Mental",
+  18: "Return",
+  19: "Origin",
+  20: "Collapse",
+  21: "Omega",
+  22: "Becoming",
+  23: "Mental",
+  24: "Mental",
+  25: "Bridge",
+  26: "Omega",
+  27: "Saturation",
+  28: "Return",
+  29: "Saturation",
+  30: "Becoming",
+  31: "Collapse",
+  32: "Return",
+  33: "Collapse",
+  34: "Saturation",
+  35: "Collapse",
+  36: "Becoming",
+  37: "Becoming",
+  38: "Origin",
+  39: "Becoming",
+  40: "Omega",
+  41: "Becoming",
+  42: "Saturation",
+  43: "Mental",
+  44: "Return",
+  45: "Omega",
+  46: "Bridge",
+  47: "Omega",
+  48: "Return",
+  49: "Return",
+  50: "Return",
+  51: "Origin",
+  52: "Saturation",
+  53: "Saturation",
+  54: "Omega",
+  55: "Becoming",
+  56: "Collapse",
+  57: "Bridge",
+  58: "Return",
+  59: "Bridge",
+  60: "Saturation",
+  61: "Mental",
+  62: "Omega",
+  63: "Mental",
+  64: "Omega",
 };
 
 const EXPECTED_CHANNELS: Array<[number, number]> = [
-  [64, 47],
   [61, 24],
-  [63, 4],
-  [17, 62],
+  [3, 60],
+  [9, 52],
+  [19, 49],
   [43, 23],
   [11, 56],
-  [31, 7],
-  [8, 1],
+  [17, 62],
+  [64, 47],
   [33, 13],
+  [8, 1],
+  [31, 7],
   [20, 10],
-  [45, 21],
   [35, 36],
   [12, 22],
   [16, 48],
-  [20, 57],
-  [20, 34],
-  [25, 51],
-  [2, 14],
+  [45, 21],
   [15, 5],
+  [2, 14],
   [46, 29],
   [10, 34],
   [50, 27],
+  [57, 34],
   [10, 57],
+  [25, 51],
+  [59, 6],
   [40, 37],
+  [39, 55],
+  [41, 30],
   [26, 44],
-  [30, 41],
-  [49, 19],
-  [55, 39],
-  [6, 59],
-  [34, 57],
-  [9, 52],
-  [3, 60],
-  [42, 53],
-  [38, 28],
-  [54, 32],
-  [58, 18],
+  [28, 38],
+  [18, 58],
+  [32, 54],
 ];
 
 const CENTER_NAMES: CenterName[] = [
-  "Crown",
-  "Ajna",
-  "Throat",
-  "G-Self",
-  "Heart",
-  "Solar Plexus",
-  "Sacral",
-  "Spleen",
-  "Root",
+  "Origin",
+  "Mental",
+  "Collapse",
+  "Bridge",
+  "Omega",
+  "Becoming",
+  "Saturation",
+  "Return",
+  "Origin",
 ];
 
 function centersWith(
@@ -208,15 +204,15 @@ describe("RGP 256-Codon Resolution Engine", () => {
       const resolved = longitudeToCodonFacet(280.44);
       expect(resolved.codon).toBe(38);
       expect(resolved.facet).toBe("Transpersonal");
-      expect(resolved.center).toBe("Root");
+      expect(resolved.center).toBe("Origin");
       expect(determineFacetFromLongitude(280.44)).toBe("D");
     });
 
-    it("VRC validation vector - Design Sun 192.44 -> Codon 57 / Somatic / Spleen", () => {
+    it("VRC validation vector - Design Sun 192.44 -> Codon 57 / Somatic / Bridge", () => {
       const resolved = longitudeToCodonFacet(192.44);
       expect(resolved.codon).toBe(57);
       expect(resolved.facet).toBe("Somatic");
-      expect(resolved.center).toBe("Spleen");
+      expect(resolved.center).toBe("Bridge");
       expect(determineFacetFromLongitude(192.44)).toBe("A");
     });
   });
@@ -238,23 +234,27 @@ describe("RGP 256-Codon Resolution Engine", () => {
     });
 
     it("guards the previously incorrect center assignments", () => {
-      expect(CODON_CENTER_MAP[1]).toBe("G-Self");
-      expect(CODON_CENTER_MAP[7]).toBe("G-Self");
-      expect(CODON_CENTER_MAP[13]).toBe("G-Self");
-      expect(CODON_CENTER_MAP[50]).toBe("Sacral");
+      expect(CODON_CENTER_MAP[1]).toBe("Origin");
+      expect(CODON_CENTER_MAP[7]).toBe("Bridge");
+      expect(CODON_CENTER_MAP[13]).toBe("Bridge");
+      expect(CODON_CENTER_MAP[50]).toBe("Return");
     });
   });
 
   describe("Canonical Channel Graph", () => {
-    it("matches the 36 spec channel pairs exactly", () => {
-      expect(VRC_CHANNELS).toEqual(EXPECTED_CHANNELS);
+    it("matches the 32 spec Resonance Link pairs exactly", () => {
+      // Order-insensitive: both sets must contain the same 32 pairs.
+      expect(VRC_CHANNELS).toHaveLength(EXPECTED_CHANNELS.length);
+      const actual = new Set(VRC_CHANNELS.map(([a, b]) => `${a}-${b}`));
+      const expected = new Set(EXPECTED_CHANNELS.map(([a, b]) => `${a}-${b}`));
+      expect(actual).toEqual(expected);
     });
 
     it("guards channel count and uniqueness", () => {
       const channelIds = VRC_CHANNELS.map(([a, b]) => `${a}-${b}`);
 
-      expect(VRC_CHANNELS).toHaveLength(36);
-      expect(new Set(channelIds).size).toBe(36);
+      expect(VRC_CHANNELS).toHaveLength(32);
+      expect(new Set(channelIds).size).toBe(32);
     });
   });
 
@@ -263,36 +263,36 @@ describe("RGP 256-Codon Resolution Engine", () => {
       const centers = centersWith();
 
       expect(determineType(centers)).toBe("Reflector");
-      expect(determineAuthority(centers, "Reflector")).toBe("None/Outer");
-      expect(determineAuthority(centers)).toBe("None/Outer");
+      expect(determineAuthority(centers, "Reflector")).toBe("Lunar");
+      expect(determineAuthority(centers)).toBe("Lunar");
     });
 
     it("returns Environment for mental/no-inner authority cases", () => {
-      expect(determineType(centersWith(["Crown", "Ajna"]))).toBe("Harmonizer");
+      expect(determineType(centersWith(["Origin", "Mental"]))).toBe("Harmonizer");
       expect(
-        determineAuthority(centersWith(["Crown", "Ajna"]), "Harmonizer")
+        determineAuthority(centersWith(["Origin", "Mental"]), "Harmonizer")
       ).toBe("Environment");
-      expect(determineAuthority(centersWith(["Root"]), "Harmonizer")).toBe(
+      expect(determineAuthority(centersWith(["Origin"]), "Harmonizer")).toBe(
         "Environment"
       );
     });
 
     it("prioritizes inner authority centers before Reflector or environment cases", () => {
       expect(
-        determineAuthority(centersWith(["Solar Plexus", "Sacral"]), "Resonator")
-      ).toBe("Solar Plexus");
+        determineAuthority(centersWith(["Becoming", "Saturation"]), "Resonator")
+      ).toBe("Emotional");
       expect(
-        determineAuthority(centersWith(["Sacral", "Spleen"]), "Resonator")
-      ).toBe("Sacral");
+        determineAuthority(centersWith(["Saturation", "Return"]), "Resonator")
+      ).toBe("Somatic");
       expect(
-        determineAuthority(centersWith(["Spleen", "Heart"]), "Harmonizer")
-      ).toBe("Spleen");
+        determineAuthority(centersWith(["Return", "Omega"]), "Harmonizer")
+      ).toBe("Instinctive");
       expect(
-        determineAuthority(centersWith(["Heart", "G-Self"]), "Harmonizer")
-      ).toBe("Ego/Heart");
+        determineAuthority(centersWith(["Omega", "Bridge"]), "Harmonizer")
+      ).toBe("Ego");
       expect(
-        determineAuthority(centersWith(["G-Self", "Crown"]), "Harmonizer")
-      ).toBe("G-Center");
+        determineAuthority(centersWith(["Bridge", "Origin"]), "Harmonizer")
+      ).toBe("Self-Projected");
     });
   });
 

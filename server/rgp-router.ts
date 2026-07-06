@@ -195,7 +195,7 @@ function buildPrimeStackMapForDynamic(
     channelStatuses: [],
     centerStatuses: {} as PrimeStackMap["centerStatuses"],
     vrcType: "Reflector",
-    vrcAuthority: "None/Outer",
+    vrcAuthority: "Lunar",
   };
 }
 

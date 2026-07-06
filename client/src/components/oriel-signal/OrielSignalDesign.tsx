@@ -256,14 +256,19 @@ export function SignalButton({
   href,
   children,
   variant = "primary",
+  onClick,
 }: {
   href: string;
   children: ReactNode;
   variant?: "primary" | "secondary";
+  onClick?: () => void;
 }) {
   return (
     <Link href={href}>
-      <span className={`signal-button signal-button--${variant}`}>
+      <span
+        className={`signal-button signal-button--${variant}`}
+        onClick={onClick}
+      >
         <span className="signal-button__seal" aria-hidden="true" />
         {children}
         <ArrowRight size={15} strokeWidth={1.4} aria-hidden="true" />

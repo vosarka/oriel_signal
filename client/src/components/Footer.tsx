@@ -1,21 +1,6 @@
-import { useEffect } from "react";
 import DonateButton from "./DonateButton";
 
 export default function Footer() {
-  useEffect(() => {
-    const paypal = (window as any).paypal;
-    if (!paypal || typeof paypal.HostedButtons !== "function") return;
-    const container = document.getElementById("paypal-container-3CUYAWGL4XBEA");
-    if (!container || container.children.length > 0) return;
-    try {
-      paypal
-        .HostedButtons({ hostedButtonId: "3CUYAWGL4XBEA" })
-        .render("#paypal-container-3CUYAWGL4XBEA");
-    } catch {
-      // PayPal SDK not ready or container already rendered
-    }
-  }, []);
-
   return (
     <footer className="oriel-archive-footer">
       <div className="oriel-archive-footer__inner">
@@ -35,17 +20,15 @@ export default function Footer() {
           className="oriel-archive-footer__nav"
           aria-label="Footer navigation"
         >
-          <a href="/">FIELD ARCHIVE</a>
-          <a href="/conduit">ORIEL</a>
-          <a href="/signature">THE SIGNATURE</a>
-          <a href="/archive">TRANSMISSIONS</a>
-          <a href="/founder-letter">FOUNDER</a>
-          <a href="/auth">ACCESS</a>
+          <a href="/">Ψ</a>
+          <a href="/knowledge">ARCHIVA</a>
+          <a href="/bio-architecture">BIO-ARCHITECTURE</a>
+          <a href="/protocol">PROTOCOL</a>
+          <a href="/founder-signature-blueprint">ORIEL Founder’s Vision Blueprint</a>
         </nav>
 
         <div className="oriel-archive-footer__support">
           <DonateButton />
-          <div id="paypal-container-3CUYAWGL4XBEA"></div>
         </div>
       </div>
     </footer>

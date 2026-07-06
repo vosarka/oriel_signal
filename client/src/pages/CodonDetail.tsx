@@ -846,7 +846,7 @@ export default function CodonDetail() {
           {/* Related Archetypes */}
           <section className="border-t border-[#D4AF37]/15 pt-8 pb-16">
             <h3 className="text-white font-mono text-xs uppercase tracking-[0.2em] mb-6 pl-1 opacity-80">
-              Related Archetypes (Harmonic & Proximity partners)
+              Related Resonance Links (Harmonic & Proximity partners)
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {relatedCodons.map(related => {
@@ -918,11 +918,11 @@ export default function CodonDetail() {
                 Diagnostics
               </Link>
               <Link
-                href="/conduit"
+                href="/founder-signature-blueprint"
                 className="hover:opacity-80 transition-opacity"
                 style={{ color: "#f6b05e" }}
               >
-                Neural Link
+                Oriel Signature Blueprint
               </Link>
             </div>
             <div className="text-xs font-mono" style={{ color: "#6a665e" }}>

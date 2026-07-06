@@ -548,8 +548,60 @@ function AssistantMessageView({ msg }: { msg: ChatMessage }) {
   );
 }
 
+function conduitDiagnosticsEnabled() {
+  return typeof window !== "undefined" && import.meta.env.DEV;
+}
+
+function describeConduitDiagnosticTarget(target: EventTarget | null) {
+  if (typeof Element === "undefined" || !(target instanceof Element)) {
+    return String(target);
+  }
+
+  const tag = target.tagName.toLowerCase();
+  const id = target.id ? `#${target.id}` : "";
+  const classes =
+    typeof target.className === "string"
+      ? target.className
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 4)
+          .map(className => `.${className}`)
+          .join("")
+      : "";
+  const text =
+    target.textContent?.replace(/\s+/g, " ").trim().slice(0, 80) || "";
+
+  return `${tag}${id}${classes}${text ? ` "${text}"` : ""}`;
+}
+
+function getConduitScrollSnapshot(viewport: HTMLElement | null) {
+  if (typeof document === "undefined") return {};
+
+  return {
+    windowY: window.scrollY,
+    htmlTop: document.documentElement.scrollTop,
+    bodyTop: document.body.scrollTop,
+    viewportTop: viewport?.scrollTop ?? null,
+    viewportHeight: viewport?.clientHeight ?? null,
+    viewportScrollHeight: viewport?.scrollHeight ?? null,
+    activeElement: describeConduitDiagnosticTarget(document.activeElement),
+  };
+}
+
+function logConduitDiagnostic(
+  label: string,
+  payload: Record<string, unknown>,
+  viewport: HTMLElement | null
+) {
+  if (!conduitDiagnosticsEnabled()) return;
+  console.info("[Conduit diagnostic]", label, {
+    ...payload,
+    scroll: getConduitScrollSnapshot(viewport),
+  });
+}
+
 export default function Conduit() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
@@ -568,6 +620,10 @@ export default function Conduit() {
   );
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesViewportDebugRef = useRef<HTMLDivElement>(null);
+  const previousActiveConversationIdRef = useRef<number | null>(null);
+  const previousLocalMessagesLengthRef = useRef<number | null>(null);
+  const previousMessageLengthRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<ChatAttachment[]>([]);
@@ -575,7 +631,7 @@ export default function Conduit() {
   const [activeConversationId, setActiveConversationId] = useState<
     number | null
   >(null);
-  const [isNewConversation, setIsNewConversation] = useState(false);
+  const [isNewConversation, setIsNewConversation] = useState(true);
   const [sessionTransmissionAttachments, setSessionTransmissionAttachments] =
     useState<SessionTransmissionAttachment[]>([]);
   const transmissionGate = useTransmissionTrigger({ duration: 1200 });
@@ -584,6 +640,158 @@ export default function Conduit() {
     void trpcUtils.oriel.memory.listPendingCandidates.invalidate();
     void trpcUtils.oriel.memory.listAccepted.invalidate();
   };
+
+  useEffect(() => {
+    logConduitDiagnostic(
+      "mount",
+      {
+        activeConversationId,
+        isNewConversation,
+        localMessages: localMessages.length,
+        messageLength: message.length,
+      },
+      messagesViewportDebugRef.current
+    );
+
+    return () => {
+      logConduitDiagnostic(
+        "unmount",
+        {
+          activeConversationId,
+          isNewConversation,
+          localMessages: localMessages.length,
+          messageLength: message.length,
+        },
+        messagesViewportDebugRef.current
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const previous = previousActiveConversationIdRef.current;
+    if (previous === activeConversationId) return;
+
+    logConduitDiagnostic(
+      "activeConversationId changed",
+      {
+        previous,
+        current: activeConversationId,
+        isNewConversation,
+        localMessages: localMessages.length,
+      },
+      messagesViewportDebugRef.current
+    );
+    previousActiveConversationIdRef.current = activeConversationId;
+  }, [activeConversationId, isNewConversation, localMessages.length]);
+
+  useEffect(() => {
+    const previous = previousLocalMessagesLengthRef.current;
+    if (previous === localMessages.length) return;
+
+    logConduitDiagnostic(
+      "localMessages length changed",
+      {
+        previous,
+        current: localMessages.length,
+        activeConversationId,
+        isNewConversation,
+      },
+      messagesViewportDebugRef.current
+    );
+    previousLocalMessagesLengthRef.current = localMessages.length;
+  }, [localMessages.length, activeConversationId, isNewConversation]);
+
+  useEffect(() => {
+    const previous = previousMessageLengthRef.current;
+    if (previous === message.length) return;
+
+    logConduitDiagnostic(
+      "message length changed",
+      {
+        previous,
+        current: message.length,
+        activeConversationId,
+        isNewConversation,
+        localMessages: localMessages.length,
+      },
+      messagesViewportDebugRef.current
+    );
+    previousMessageLengthRef.current = message.length;
+  }, [message.length, activeConversationId, isNewConversation, localMessages.length]);
+
+  useEffect(() => {
+    if (!conduitDiagnosticsEnabled()) return;
+
+    const logEvent = (event: Event) => {
+      logConduitDiagnostic(
+        event.type,
+        {
+          target: describeConduitDiagnosticTarget(event.target),
+          activeConversationId,
+          isNewConversation,
+          localMessages: localMessages.length,
+          messageLength: message.length,
+        },
+        messagesViewportDebugRef.current
+      );
+    };
+
+    let lastWindowScrollLog = 0;
+    const logWindowScroll = () => {
+      const now = Date.now();
+      if (now - lastWindowScrollLog < 250) return;
+      lastWindowScrollLog = now;
+      logConduitDiagnostic(
+        "window scroll",
+        {
+          activeConversationId,
+          isNewConversation,
+          localMessages: localMessages.length,
+          messageLength: message.length,
+        },
+        messagesViewportDebugRef.current
+      );
+    };
+
+    const viewport = messagesViewportDebugRef.current;
+    let lastViewportScrollLog = 0;
+    const logViewportScroll = () => {
+      const now = Date.now();
+      if (now - lastViewportScrollLog < 250) return;
+      lastViewportScrollLog = now;
+      logConduitDiagnostic(
+        "messages viewport scroll",
+        {
+          activeConversationId,
+          isNewConversation,
+          localMessages: localMessages.length,
+          messageLength: message.length,
+        },
+        messagesViewportDebugRef.current
+      );
+    };
+
+    document.addEventListener("click", logEvent, true);
+    document.addEventListener("focusin", logEvent, true);
+    document.addEventListener("input", logEvent, true);
+    document.addEventListener("keydown", logEvent, true);
+    window.addEventListener("scroll", logWindowScroll, { passive: true });
+    viewport?.addEventListener("scroll", logViewportScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener("click", logEvent, true);
+      document.removeEventListener("focusin", logEvent, true);
+      document.removeEventListener("input", logEvent, true);
+      document.removeEventListener("keydown", logEvent, true);
+      window.removeEventListener("scroll", logWindowScroll);
+      viewport?.removeEventListener("scroll", logViewportScroll);
+    };
+  }, [
+    activeConversationId,
+    isNewConversation,
+    localMessages.length,
+    message.length,
+  ]);
 
   // Web Audio API for TTS playback
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -657,17 +865,8 @@ export default function Conduit() {
     setVoiceMode(true);
   };
 
-  // Load local history and voice preference from localStorage on mount
+  // Load voice preference from localStorage on mount.
   useEffect(() => {
-    const savedMessages = localStorage.getItem("oriel_chat_history");
-    if (savedMessages) {
-      try {
-        setLocalMessages(JSON.parse(savedMessages));
-      } catch (error) {
-        console.error("Failed to load chat history:", error);
-      }
-    }
-
     const savedVoice = localStorage.getItem("voicePreference");
     if (savedVoice) {
       const mapped =
@@ -684,6 +883,27 @@ export default function Conduit() {
     }
   }, []);
 
+  // Anonymous chats use local history. Authenticated chats use server history.
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (isAuthenticated) {
+      if (activeConversationId === null && isNewConversation) {
+        setLocalMessages(prev => (prev.length === 0 ? prev : []));
+      }
+      return;
+    }
+
+    const savedMessages = localStorage.getItem("oriel_chat_history");
+    if (savedMessages) {
+      try {
+        setLocalMessages(JSON.parse(savedMessages));
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+      }
+    }
+  }, [activeConversationId, authLoading, isAuthenticated, isNewConversation]);
+
   // Persist image generation mode across reloads (the "persistent mode flag")
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -693,7 +913,9 @@ export default function Conduit() {
 
   // Auto-scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const viewport = messagesViewportDebugRef.current;
+    if (!viewport) return;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
   }, [localMessages]);
 
   const { data: dbHistory, refetch: refetchHistory } =
@@ -737,18 +959,6 @@ export default function Conduit() {
       refetchConversations();
     },
   });
-
-  useEffect(() => {
-    if (!isAuthenticated || isNewConversation || activeConversationId !== null)
-      return;
-    if (!conversationsList || conversationsList.length === 0) return;
-    setActiveConversationId(conversationsList[0].id);
-  }, [
-    isAuthenticated,
-    isNewConversation,
-    activeConversationId,
-    conversationsList,
-  ]);
 
   // Sync localMessages with active conversation or general history
   useEffect(() => {
@@ -1610,8 +1820,6 @@ export default function Conduit() {
         />
       )}
 
-      {/* Flower of Life stays Home-only; the Conduit's world layer is its
-          own living lattice (GeometricBackground). */}
       <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
         <GeometricBackground />
 
@@ -1924,6 +2132,7 @@ export default function Conduit() {
 
           {/* Messages area */}
           <div
+            ref={messagesViewportDebugRef}
             className="flex-1 overflow-y-auto px-4 md:px-6 py-6"
             style={{
               scrollbarWidth: "thin",

@@ -113,3 +113,8 @@ storybook-static
 .claude/settings.local.json
 *.hermes-tmp*
 _tmp_*
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

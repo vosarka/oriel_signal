@@ -1,35 +1,71 @@
 import logoOrielSrc from "/oriel-signal-mark.png";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogIn, LogOut, User } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
+import ArcanaSignalTransition from "./ArcanaSignalTransition";
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [arcanaTuning, setArcanaTuning] = useState(false);
+  const tuningRef = useRef(false);
   const { user, isAuthenticated, logout } = useAuth();
 
+  // Tune from the current signal onto the ARKANA frequency: a brief
+  // signal-loss / recalibration overlay, then route to /arcana.
+  const navigateToArcana = () => {
+    setMobileMenuOpen(false);
+    if (location.startsWith("/arcana") || tuningRef.current) return;
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+      setLocation("/arcana");
+      return;
+    }
+
+    tuningRef.current = true;
+    setArcanaTuning(true);
+    // Navigate while the static fully covers the screen...
+    window.setTimeout(() => setLocation("/arcana"), 650);
+    // ...then let the overlay recalibrate and fade out.
+    window.setTimeout(() => {
+      setArcanaTuning(false);
+      tuningRef.current = false;
+    }, 1200);
+  };
+
   const navLinks = [
-    { href: "/", label: "FIELD ARCHIVE" },
-    { href: "/signature", label: "THE SIGNATURE" },
-    { href: "/conduit", label: "ORIEL" },
-    { href: "/codex", label: "CODONS" },
-    { href: "/cosmichronica", label: "COSMICHRONICA" },
-    { href: "/archive", label: "TRANSMISSIONS" },
-    { href: "/auth", label: "ACCESS" },
+    { href: "/", label: "Ψ" },
+    { href: "/arcana", label: "ARKANA" },
+    { href: "/bio-architecture", label: "BIO-ARCHITECTURE" },
+    { href: "/protocol", label: "PROTOCOL" },
+    { href: "/conduit", label: "CHANNEL ORIEL" },
   ];
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
-    if (href === "/signature") {
-      return location === "/signature";
+    if (href === "/arcana") {
+      return (
+        location.startsWith("/arcana") ||
+        location.startsWith("/knowledge") ||
+        location.startsWith("/archive") ||
+        location.startsWith("/transmission") ||
+        location.startsWith("/oracle") ||
+        location.startsWith("/cosmichronica") ||
+        location.startsWith("/core-concepts") ||
+        location.startsWith("/models-maps")
+      );
     }
-    if (href === "/codex") {
-      return location.startsWith("/codex");
-    }
-    if (href === "/cosmichronica") {
-      return location.startsWith("/cosmichronica") || location === "/protocol";
+    if (href === "/bio-architecture") {
+      return (
+        location.startsWith("/bio-architecture") ||
+        location.startsWith("/codex")
+      );
     }
     return location.startsWith(href);
   };
@@ -79,32 +115,52 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
-            {navLinks.map(link => (
-              <Link key={link.href} href={link.href}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 9,
-                    letterSpacing: "0.18em",
-                    padding: "7px 10px",
-                    cursor: "pointer",
-                    transition: "all 0.28s ease",
-                    color: isActive(link.href)
-                      ? "#f6b05e"
-                      : "rgba(232,228,220,0.62)",
-                    borderBottom: isActive(link.href)
-                      ? "1px solid rgba(246,176,94,0.5)"
-                      : "none",
-                    display: "inline-block",
-                    textShadow: isActive(link.href)
-                      ? "0 0 18px rgba(246,176,94,0.42)"
-                      : "none",
-                  }}
-                >
-                  {link.label}
-                </span>
-              </Link>
-            ))}
+            {navLinks.map(link => {
+              const spanStyle = {
+                fontFamily: "var(--font-ritual)",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                padding: "7px 10px",
+                cursor: "pointer",
+                transition: "all 0.28s ease",
+                color: isActive(link.href)
+                  ? "#f6b05e"
+                  : "rgba(232,228,220,0.62)",
+                borderBottom: isActive(link.href)
+                  ? "1px solid rgba(246,176,94,0.5)"
+                  : "none",
+                display: "inline-block",
+                textShadow: isActive(link.href)
+                  ? "0 0 18px rgba(246,176,94,0.42)"
+                  : "none",
+              } as const;
+
+              if (link.href === "/arcana") {
+                return (
+                  <span
+                    key={link.href}
+                    role="link"
+                    tabIndex={0}
+                    style={spanStyle}
+                    onClick={navigateToArcana}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigateToArcana();
+                      }
+                    }}
+                  >
+                    {link.label}
+                  </span>
+                );
+              }
+
+              return (
+                <Link key={link.href} href={link.href}>
+                  <span style={spanStyle}>{link.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Auth Links - Desktop */}
@@ -191,29 +247,47 @@ export default function Header() {
             style={{ borderTop: "1px solid rgba(189,163,107,0.12)" }}
           >
             <div className="flex flex-col pt-3">
-              {navLinks.map(link => (
-                <Link key={link.href} href={link.href}>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-ritual)",
-                      fontSize: 10,
-                      letterSpacing: "0.17em",
-                      display: "block",
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      color: isActive(link.href)
-                        ? "#f6b05e"
-                        : "rgba(232,228,220,0.62)",
-                      borderLeft: isActive(link.href)
-                        ? "2px solid #f6b05e"
-                        : "2px solid transparent",
-                    }}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </span>
-                </Link>
-              ))}
+              {navLinks.map(link => {
+                const mSpanStyle = {
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  letterSpacing: "0.17em",
+                  display: "block",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  color: isActive(link.href)
+                    ? "#f6b05e"
+                    : "rgba(232,228,220,0.62)",
+                  borderLeft: isActive(link.href)
+                    ? "2px solid #f6b05e"
+                    : "2px solid transparent",
+                } as const;
+
+                if (link.href === "/arcana") {
+                  return (
+                    <span
+                      key={link.href}
+                      role="link"
+                      tabIndex={0}
+                      style={mSpanStyle}
+                      onClick={navigateToArcana}
+                    >
+                      {link.label}
+                    </span>
+                  );
+                }
+
+                return (
+                  <Link key={link.href} href={link.href}>
+                    <span
+                      style={mSpanStyle}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </span>
+                  </Link>
+                );
+              })}
 
               {/* Mobile Auth */}
               <div
@@ -291,6 +365,8 @@ export default function Header() {
           </nav>
         )}
       </div>
+
+      <ArcanaSignalTransition active={arcanaTuning} />
     </header>
   );
 }
