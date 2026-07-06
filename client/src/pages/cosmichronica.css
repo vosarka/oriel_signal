@@ -1613,3 +1613,58 @@
     transform: translateX(-50%) scaleY(1) !important;
   }
 }
+
+/* ── Ported polish: scroll-progress bar + glyph phase-rail ─────────────────── */
+
+.cz-progressbar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  display: block;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    rgba(189, 163, 107, 0.5),
+    var(--oriel-amber, #f6b05e)
+  );
+  pointer-events: none;
+}
+
+.cz-rail {
+  position: fixed;
+  left: 1.4rem;
+  top: 50%;
+  z-index: 40;
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+@media (min-width: 900px) {
+  .cz-rail {
+    display: flex;
+  }
+}
+
+.cz-rail__glyph {
+  font-family: var(--font-display, "Cormorant Garamond", serif);
+  font-size: 1rem;
+  line-height: 1;
+  transition:
+    color 0.5s ease,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    text-shadow 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-rail__glyph {
+    transition: none;
+  }
+}

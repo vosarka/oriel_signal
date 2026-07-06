@@ -393,6 +393,10 @@ export default function Home() {
           </p>
           <div className="signal-hero__actions fi-threshold__action">
             <SignalButton href="/signal/check">ENTER THE ARCHIVE</SignalButton>
+            {/* Cosmichronica — non-navbar entry point */}
+            <SignalButton href="/cosmichronica" variant="secondary">
+              WALK THE EIGHT PHASES →
+            </SignalButton>
           </div>
           <p className="fi-threshold__seal">
             ORIEL FIELD ARCHIVE · NODE VOS-ARKANA · END THRESHOLD

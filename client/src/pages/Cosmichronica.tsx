@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo, Suspense, lazy } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { ReactLenis, useLenis } from "lenis/react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
@@ -18,6 +19,7 @@ import {
   CATEGORY_ACCENT,
   type MemoryNode,
 } from "./cosmichronica-data";
+import { CosmichronicaLoader } from "@/components/cosmichronica/CosmichronicaLoader";
 import "./cosmichronica.css";
 
 // Lazy-load the 3D Spiral of Time (the optimized helix spine).
@@ -39,6 +41,53 @@ const SPLINE_SCENE: string | undefined = undefined;
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+// Bridges Lenis' smoothed scroll loop into GSAP's ticker so ScrollTrigger stays
+// in sync with it. Rendered inside the ReactLenis provider that wraps the page.
+function LenisGsapBridge() {
+  const lenis = useLenis();
+  useEffect(() => {
+    if (!lenis) return;
+    const onScroll = () => ScrollTrigger.update();
+    lenis.on("scroll", onScroll);
+    const raf = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+    return () => {
+      lenis.off("scroll", onScroll);
+      gsap.ticker.remove(raf);
+    };
+  }, [lenis]);
+  return null;
+}
+
+// The glyph phase-rail — the eight register glyphs stacked at the edge; the one
+// matching the descent's active register lights in its accent and swells. Driven
+// by the page's existing `activeRegister` state (flips ≤ 8 times per descent).
+function PhaseRail({ activeRegister }: { activeRegister: number }) {
+  return (
+    <nav className="cz-rail" aria-label="Phase navigation" aria-hidden="true">
+      {MEMORY_NODES.map((node, i) => {
+        const on = i === activeRegister;
+        const accent = CATEGORY_ACCENT[node.category];
+        return (
+          <span
+            key={node.id}
+            className={`cz-rail__glyph ${on ? "is-active" : ""}`}
+            style={{
+              color: on ? accent : "rgba(232,228,220,0.26)",
+              transform: on ? "scale(1.5)" : "scale(1)",
+              textShadow: on ? `0 0 14px ${accent}` : "none",
+            }}
+            title={`${node.era} — ${node.title}`}
+          >
+            {node.glyph}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
 
 export default function Cosmichronica() {
   const streamRef = useRef<HTMLDivElement | null>(null);
@@ -70,6 +119,10 @@ export default function Cosmichronica() {
   // activeChapterView = the deep immersive Chapter 1 (Register I only, for now).
   const [activeMemory, setActiveMemory] = useState<number | null>(null);
   const [activeChapterView, setActiveChapterView] = useState<string | null>(null);
+
+  // ── Ported polish: boot loader gate + scroll-progress rail ─────────────────
+  const [booted, setBooted] = useState(false);
+  const progressBarRef = useRef<HTMLSpanElement>(null);
 
   // The spiral swings to top-down / focuses whenever a memory or chapter is open.
   const spiralTopDown = activeChapterView !== null;
@@ -110,12 +163,16 @@ export default function Cosmichronica() {
 
     if (prefersReducedMotion()) {
       stream.style.setProperty("--cz-progress", "1");
+      if (progressBarRef.current) progressBarRef.current.style.transform = "scaleX(1)";
       return;
     }
 
     const proxy = { p: 0 };
     const apply = () => {
       stream.style.setProperty("--cz-progress", proxy.p.toFixed(4));
+      if (progressBarRef.current) {
+        progressBarRef.current.style.transform = `scaleX(${proxy.p})`;
+      }
       // Feed the 3D spiral via a mutable ref — NO React re-render on scroll.
       // The spiral's own render loop reads these values each frame.
       spiralStateRef.current.progress = proxy.p;
@@ -203,8 +260,25 @@ export default function Cosmichronica() {
   }, []);
 
   return (
-    <Layout overlayHeader hideFooter={activeChapterView !== null}>
-      <SignalPageShell chamber="codex" className="cosmichronica">
+    <ReactLenis
+      root
+      options={{ lerp: 0.1, duration: 1.2, smoothWheel: true, autoRaf: false }}
+    >
+      <LenisGsapBridge />
+
+      {/* Boot sequence — 0→100 counter, then a clip-wipe reveals the descent. */}
+      {!booted && <CosmichronicaLoader onComplete={() => setBooted(true)} />}
+
+      <Layout overlayHeader hideFooter={activeChapterView !== null}>
+        <SignalPageShell chamber="codex" className="cosmichronica">
+        {/* Scroll-progress rail across the top of the descent */}
+        <span ref={progressBarRef} className="cz-progressbar" aria-hidden="true" />
+
+        {/* Glyph phase-rail — hidden while a memory/chapter is open (immersive) */}
+        {booted && activeMemory === null && activeChapterView === null && (
+          <PhaseRail activeRegister={activeRegister} />
+        )}
+
         {/* Ambient depth — Spline when provided, CSS energy core otherwise */}
         <CosmicAtmosphere scene={SPLINE_SCENE} />
 
@@ -274,8 +348,9 @@ export default function Cosmichronica() {
             </Suspense>
           )}
         </AnimatePresence>
-      </SignalPageShell>
-    </Layout>
+        </SignalPageShell>
+      </Layout>
+    </ReactLenis>
   );
 }
 
