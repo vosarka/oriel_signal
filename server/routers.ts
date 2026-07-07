@@ -43,6 +43,7 @@ import {
   longitudeToCodonFacet,
 } from "./rgp-256-codon-engine";
 import { getCurrentResonanceForUser } from "./oriel-current-resonance";
+import { buildProfileConsoleSummary } from "./profile-console-summary";
 import {
   generateOrielChatImage,
   normalizeImageReferences,
@@ -2222,6 +2223,26 @@ export const appRouter = router({
         throw new Error("Authentication required");
       }
       return getCurrentResonanceForUser(ctx.user.id);
+    }),
+
+    getProfileConsoleSummary: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) {
+        throw new Error("Authentication required");
+      }
+
+      const [staticProfile, readingCount, activity] = await Promise.all([
+        db.getLatestStaticSignature(ctx.user.id),
+        db.getReadingCount(ctx.user.id),
+        db.getProfileConsoleActivity(ctx.user.id),
+      ]);
+
+      return buildProfileConsoleSummary({
+        userId: ctx.user.id,
+        donated: Number(ctx.user.donated ?? 0),
+        readingCount,
+        staticProfile,
+        activity,
+      });
     }),
 
     getTransitOverlay: protectedProcedure

@@ -47,7 +47,6 @@ import OracleDetail from "./pages/OracleDetail";
 import NatalProfile from "./pages/NatalProfile";
 import SignalCheck from "./pages/SignalCheck";
 import SignalGrounding from "./pages/SignalGrounding";
-import { useAuth } from "@/_core/hooks/useAuth";
 
 function ConduitRoute() {
   return (
@@ -208,27 +207,6 @@ function Router() {
   );
 }
 
-function AppGate() {
-  const { user, loading } = useAuth();
-  const [location, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (loading || !user || user.hasNatalProfile) return;
-
-    const requiresNatalProfile = location === "/profile";
-
-    // requiresNatalProfile is only true on /profile or /signature, so it is
-    // already never /complete-profile (and redirecting there clears it, no
-    // loop). The old `&& location !== "/complete-profile"` guard was dead and
-    // tripped TS2367 once location became a typed union.
-    if (requiresNatalProfile) {
-      setLocation("/complete-profile");
-    }
-  }, [loading, location, setLocation, user]);
-
-  return <Router />;
-}
-
 function App() {
   const [location] = useLocation();
 
@@ -242,7 +220,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <AppGate />
+          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
