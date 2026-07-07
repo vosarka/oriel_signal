@@ -2238,7 +2238,7 @@ export const appRouter = router({
 
       return buildProfileConsoleSummary({
         userId: ctx.user.id,
-        donated: Number((ctx.user as any).donated ?? 0),
+        donated: Number(ctx.user.donated ?? 0),
         readingCount,
         staticProfile,
         activity,

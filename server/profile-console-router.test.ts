@@ -47,6 +47,7 @@ vi.mock("./db", async importOriginal => {
   };
 });
 
+const db = await import("./db");
 const { appRouter } = await import("./routers");
 
 describe("profile.getProfileConsoleSummary", () => {
@@ -74,6 +75,7 @@ describe("profile.getProfileConsoleSummary", () => {
       interactionCount: 8,
       acceptedMemoryCount: 2,
     });
+    expect(summary.identity.userId).toBe(7);
     expect(summary.identity).toMatchObject({
       resonanceRole: null,
       fractalRole: "Catalyst",
@@ -82,6 +84,9 @@ describe("profile.getProfileConsoleSummary", () => {
       primeCodonName: "Returning",
     });
     expect(summary.recent.latestTransmission?.status).toBe("revealed");
+    expect(db.getLatestStaticSignature).toHaveBeenCalledWith(7);
+    expect(db.getReadingCount).toHaveBeenCalledWith(7);
+    expect(db.getProfileConsoleActivity).toHaveBeenCalledWith(7);
     expect(summary).not.toHaveProperty("tier");
     expect(summary).not.toHaveProperty("subscription");
   });
