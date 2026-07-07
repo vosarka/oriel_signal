@@ -116,7 +116,7 @@ The v2 ingest establishes [[vtrs-architecture]] as the active center/link canon:
 The live codebase is not perfectly synchronized yet:
 
 - `server/vrc-mandala.ts` already contains the v2 center map and 32 resonance links.
-- `server/data/vrc-engine-constants.json` and `server/vrc-engine-constants.ts` still expose the legacy 9 centers and 36 channels.
+- `server/data/vrc-engine-constants.json` regenerated to VTRS v2 (8 centers, 32 links) as of 2026-07-07; `server/vossari-codex-knowledge.ts` remains legacy until ORIEL diagnostic migration.
 - `server/vossari-codex-knowledge.ts` is called out by v2 migration sources as a codon-name drift point, while `server/data/vrc-codons.json` and the codex JSON files contain the canonical Vossari names.
 
 Future engineering work should reconcile those files through proposed migrations and tests, not silent broad rewrites.

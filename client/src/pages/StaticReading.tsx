@@ -11,6 +11,16 @@ import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Link } from "wouter";
+import { DynamicReadingPanel } from "./DynamicReading";
+
+type SignatureTab = "static" | "resonance";
+
+function readSignatureTab(): SignatureTab {
+  if (typeof window === "undefined") return "static";
+  return new URLSearchParams(window.location.search).get("tab") === "resonance"
+    ? "resonance"
+    : "static";
+}
 
 const C = {
   void: "#0a0a0e",
@@ -934,8 +944,30 @@ function logSignatureDiagnostic(
 
 export default function StaticReading() {
   const { user, isAuthenticated, loading } = useAuth();
+  const [signatureTab, setSignatureTab] =
+    useState<SignatureTab>(readSignatureTab);
   const [selectedCodon, setSelectedCodon] = useState<number | null>(null);
   const previousSelectedCodonRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      setSignatureTab(readSignatureTab());
+    };
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (signatureTab === "resonance") params.set("tab", "resonance");
+    else params.delete("tab");
+    const query = params.toString();
+    const url = `${window.location.pathname}${query ? `?${query}` : ""}`;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== url) {
+      window.history.replaceState(null, "", url);
+    }
+  }, [signatureTab]);
 
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -1334,7 +1366,9 @@ export default function StaticReading() {
                     marginBottom: 12,
                   }}
                 >
-                  STATIC SIGNATURE · {calculationLabel}
+                  {signatureTab === "resonance"
+                    ? "CURRENT RESONANCE · CARRIERLOCK SLI"
+                    : `STATIC SIGNATURE · ${calculationLabel}`}
                 </div>
                 <div
                   style={{
@@ -1354,7 +1388,9 @@ export default function StaticReading() {
                     marginBottom: 10,
                   }}
                 >
-                  ORIEL Static Signature
+                  {signatureTab === "resonance"
+                    ? "Current Resonance"
+                    : "ORIEL Static Signature"}
                 </h1>
                 <p
                   style={{
@@ -1365,10 +1401,9 @@ export default function StaticReading() {
                     maxWidth: 760,
                   }}
                 >
-                  Exact birth ephemeris resolves into the Prime Stack, the 8
-                  VTRS centers, 32 resonance links, and the 512-node codon-facet
-                  field. ORIEL narrates the stored result; this page does not
-                  invent missing calculations.
+                  {signatureTab === "resonance"
+                    ? "Live Carrierlock diagnostics against your stored Static Signature — coherence zone, Shadow Loudness Index across the Prime Stack, and the latest dynamic reading transmission."
+                    : "Exact birth ephemeris resolves into the Prime Stack, the 8 VTRS centers, 32 resonance links, and the 512-node codon-facet field. ORIEL narrates the stored result; this page does not invent missing calculations."}
                 </p>
               </div>
 
@@ -1413,6 +1448,47 @@ export default function StaticReading() {
               </div>
             </div>
 
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 22,
+                flexWrap: "wrap",
+              }}
+            >
+              {(
+                [
+                  ["static", "Static Blueprint"],
+                  ["resonance", "Current Resonance"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSignatureTab(id)}
+                  style={{
+                    padding: "10px 16px",
+                    border: `1px solid ${signatureTab === id ? C.goldDim : C.border}`,
+                    background:
+                      signatureTab === id
+                        ? "rgba(189,163,107,0.08)"
+                        : "transparent",
+                    color: signatureTab === id ? C.gold : C.txtD,
+                    fontFamily: "var(--font-ritual)",
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {signatureTab === "resonance" ? (
+              <DynamicReadingPanel embedded />
+            ) : (
+              <>
             <div
               style={{
                 display: "grid",
@@ -2439,6 +2515,8 @@ export default function StaticReading() {
                 </div>
               </Panel>
             </div>
+              </>
+            )}
           </div>
         </div>
       </SignalPageShell>

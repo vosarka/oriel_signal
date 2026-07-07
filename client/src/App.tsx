@@ -32,8 +32,6 @@ import Carrierlock from "./pages/Carrierlock";
 import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 import StaticReading from "./pages/StaticReading";
-import DynamicReading from "./pages/DynamicReading";
-import CurrentResonance from "./pages/CurrentResonance";
 import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
@@ -78,6 +76,14 @@ function Router() {
       <Route path={"/complete-profile"} component={NatalProfile} />
       <Route path={"/signal/check"} component={SignalCheck} />
       <Route path={"/signal/grounding"} component={SignalGrounding} />
+      <Route
+        path={"/current-resonance"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature?tab=resonance"), []);
+          return null;
+        }}
+      />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/terms"} component={TermsOfService} />
       <Route
@@ -163,7 +169,7 @@ function Router() {
         path={"/resonance"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/signature?tab=resonance"), []);
           return null;
         }}
       />
@@ -187,7 +193,7 @@ function Router() {
         path={"/reading/dynamic/:id"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/signature?tab=resonance"), []);
           return null;
         }}
       />

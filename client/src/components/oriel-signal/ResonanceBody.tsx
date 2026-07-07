@@ -31,6 +31,7 @@ const STATUS_TEXT = {
 const CYAN = "0, 217, 255";
 const GOLD = "246, 176, 94";
 
+// Legacy v1 lab visualization — 9 centers (superseded by VTRS v2 BioArchitecture).
 // 9 centers as fractions of the figure bounding box (0,0 = crown/top-left of
 // bbox; 1,1 = feet/bottom-right). Tuned to the baked figure.
 const CENTERS: Record<string, [number, number]> = {

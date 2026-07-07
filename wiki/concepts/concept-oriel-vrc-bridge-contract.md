@@ -29,7 +29,7 @@ It translates the raw, validated `readingPayload` into a clean, hallucination-re
 
 - Status + provenance
 - 26 activations (codon, facet, center, layer, weight)
-- 9 centers + active Resonance Links
+- 8 Tetradic centers (VTRS v2) + 32 active Resonance Links (legacy 9/36 superseded by [[source-consciousness-lattice-v2]])
 - Identity (Type, Subtype, Authority)
 - Optional dynamic state (Coherence + SLI)
 - Audit signature

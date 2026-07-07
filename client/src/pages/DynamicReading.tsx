@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Link, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -376,18 +376,51 @@ function CoherenceSparkline({
 // ══════════════════════════════════════════════════════════════
 // COMPONENT
 // ══════════════════════════════════════════════════════════════
-export default function DynamicReading() {
+export type DynamicReadingPanelProps = {
+  /** When true, renders inside /signature without a full-page Layout shell. */
+  embedded?: boolean;
+  /** Explicit reading id; otherwise uses route param or latest history entry. */
+  readingId?: number;
+};
+
+function ReadingShell({
+  embedded,
+  children,
+}: {
+  embedded: boolean;
+  children: ReactNode;
+}) {
+  if (embedded) return <>{children}</>;
+  return (
+    <Layout>
+      <div style={{ background: C.void, minHeight: "100vh" }}>{children}</div>
+    </Layout>
+  );
+}
+
+export function DynamicReadingPanel({
+  embedded = false,
+  readingId: readingIdProp,
+}: DynamicReadingPanelProps = {}) {
   const { user } = useAuth();
-  // Dormant component (route /reading/dynamic/:id now redirects to
-  // /signature); keep the parameterised pattern so params.id stays valid.
   const [, params] = useRoute("/reading/dynamic/:id");
-  const readingId = params?.id ? parseInt(params.id, 10) : 0;
+  const routeReadingId = params?.id ? parseInt(params.id, 10) : 0;
 
   const [activeView, setActiveView] = useState<
     "field" | "transmission" | "history"
   >("field");
   const [compareReadingId, setCompareReadingId] = useState<number | null>(null);
   const utils = trpc.useUtils();
+
+  const { data: readingHistory, isLoading: historyLoading } =
+    trpc.codex.getReadingHistory.useQuery(undefined, { enabled: !!user });
+
+  const readingId = useMemo(() => {
+    if (readingIdProp && readingIdProp > 0) return readingIdProp;
+    if (routeReadingId > 0) return routeReadingId;
+    const latest = readingHistory?.[0]?.id;
+    return typeof latest === "number" ? latest : 0;
+  }, [readingIdProp, routeReadingId, readingHistory]);
 
   const {
     data: reading,
@@ -396,11 +429,6 @@ export default function DynamicReading() {
   } = trpc.codex.getCodonReading.useQuery(
     { id: readingId },
     { enabled: !!user && readingId > 0, retry: false }
-  );
-
-  const { data: readingHistory } = trpc.codex.getReadingHistory.useQuery(
-    undefined,
-    { enabled: !!user }
   );
 
   const { data: coherenceHistory } = trpc.codex.getCoherenceHistory.useQuery(
@@ -535,11 +563,11 @@ export default function DynamicReading() {
 
   // ── Auth guard ─────────────────────────────────────────────
   if (!user) {
+    if (embedded) return null;
     return (
-      <Layout>
+      <ReadingShell embedded={false}>
         <div
           style={{
-            background: C.void,
             minHeight: "100vh",
             display: "flex",
             alignItems: "center",
@@ -572,17 +600,72 @@ export default function DynamicReading() {
             </a>
           </div>
         </div>
-      </Layout>
+      </ReadingShell>
     );
   }
 
-  if (isLoading) {
+  if (embedded && !historyLoading && readingId === 0) {
     return (
-      <Layout>
+      <div
+        style={{
+          padding: "36px 28px",
+          border: `1px solid ${C.border}`,
+          background: C.deep,
+          textAlign: "center",
+        }}
+      >
         <div
           style={{
-            background: C.void,
-            minHeight: "100vh",
+            fontFamily: "var(--font-ritual)",
+            fontSize: 9,
+            color: C.amber,
+            letterSpacing: "0.2em",
+            marginBottom: 12,
+          }}
+        >
+          NO CARRIERLOCK READING YET
+        </div>
+        <p
+          style={{
+            fontFamily: "var(--font-voice)",
+            fontStyle: "italic",
+            fontSize: 15,
+            color: C.txtS,
+            lineHeight: 1.7,
+            maxWidth: 520,
+            margin: "0 auto 20px",
+          }}
+        >
+          Run a Signal Check while your Static Signature is on file. The system
+          will calculate SLI across your Prime Stack and store the diagnostic
+          here.
+        </p>
+        <Link href="/signal/check">
+          <span
+            style={{
+              display: "inline-block",
+              padding: "10px 18px",
+              border: `1px solid ${C.goldDim}`,
+              color: C.gold,
+              fontFamily: "var(--font-ritual)",
+              fontSize: 10,
+              letterSpacing: "0.14em",
+              cursor: "pointer",
+            }}
+          >
+            RUN SIGNAL CHECK
+          </span>
+        </Link>
+      </div>
+    );
+  }
+
+  if (isLoading || (embedded && historyLoading && readingId === 0)) {
+    return (
+      <ReadingShell embedded={embedded}>
+        <div
+          style={{
+            minHeight: embedded ? 240 : "100vh",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -606,16 +689,51 @@ export default function DynamicReading() {
             </p>
           </div>
         </div>
-      </Layout>
+      </ReadingShell>
     );
   }
 
   if (error || !reading) {
-    return (
-      <Layout>
+    if (embedded) {
+      return (
         <div
           style={{
-            background: C.void,
+            padding: "28px",
+            border: `1px solid ${C.border}`,
+            background: C.deep,
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              color: C.txtS,
+              marginBottom: 14,
+              fontFamily: "var(--font-display)",
+              fontSize: 16,
+            }}
+          >
+            Reading not found
+          </p>
+          <Link href="/signal/check">
+            <span
+              style={{
+                color: C.gold,
+                fontFamily: "var(--font-ritual)",
+                fontSize: 10,
+                letterSpacing: "0.1em",
+                cursor: "pointer",
+              }}
+            >
+              RUN NEW SIGNAL CHECK
+            </span>
+          </Link>
+        </div>
+      );
+    }
+    return (
+      <ReadingShell embedded={false}>
+        <div
+          style={{
             minHeight: "100vh",
             display: "flex",
             alignItems: "center",
@@ -652,7 +770,7 @@ export default function DynamicReading() {
             </Link>
           </div>
         </div>
-      </Layout>
+      </ReadingShell>
     );
   }
 
@@ -1318,7 +1436,7 @@ export default function DynamicReading() {
             Complete more Carrierlock assessments to see your coherence
             trajectory over time.
           </p>
-          <Link href="/signature">
+          <Link href={embedded ? "/signal/check" : "/signature"}>
             <span
               style={{
                 display: "inline-block",
@@ -1332,7 +1450,7 @@ export default function DynamicReading() {
                 cursor: "pointer",
               }}
             >
-              NEW ASSESSMENT
+              {embedded ? "RUN SIGNAL CHECK" : "NEW ASSESSMENT"}
             </span>
           </Link>
         </div>
@@ -1686,35 +1804,36 @@ export default function DynamicReading() {
   ];
 
   return (
-    <Layout>
-      <div style={{ background: C.void, minHeight: "100vh" }}>
-        {/* Zone atmosphere */}
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 300,
-            background: `radial-gradient(ellipse at 50% 0%, ${theme.glow}, transparent 70%)`,
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        />
+    <ReadingShell embedded={embedded}>
+      <>
+        {!embedded && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 300,
+              background: `radial-gradient(ellipse at 50% 0%, ${theme.glow}, transparent 70%)`,
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+        )}
 
-        {/* Sticky Tab Bar */}
         <div
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
+            position: embedded ? "relative" : "sticky",
+            top: embedded ? undefined : 0,
+            zIndex: embedded ? 1 : 50,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "10px 24px",
-            background: "rgba(10,10,14,0.90)",
-            backdropFilter: "blur(20px)",
+            padding: embedded ? "0 0 16px" : "10px 24px",
+            background: embedded ? "transparent" : "rgba(10,10,14,0.90)",
+            backdropFilter: embedded ? undefined : "blur(20px)",
             borderBottom: `1px solid ${C.border}`,
+            marginBottom: embedded ? 20 : 0,
           }}
         >
           {/* Reading timestamp */}
@@ -1761,33 +1880,47 @@ export default function DynamicReading() {
             ))}
           </div>
 
-          {/* Back link */}
-          <Link href="/readings">
-            <span
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 9,
-                color: C.txtD,
-                letterSpacing: "0.1em",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <ArrowLeft style={{ width: 12, height: 12 }} /> HISTORY
-            </span>
-          </Link>
+          {!embedded ? (
+            <Link href="/readings">
+              <span
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.txtD,
+                  letterSpacing: "0.1em",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <ArrowLeft style={{ width: 12, height: 12 }} /> HISTORY
+              </span>
+            </Link>
+          ) : (
+            <Link href="/signal/check">
+              <span
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 9,
+                  color: C.gold,
+                  letterSpacing: "0.1em",
+                  cursor: "pointer",
+                }}
+              >
+                NEW CHECK
+              </span>
+            </Link>
+          )}
         </div>
 
-        {/* Content */}
         <div
           style={{
             position: "relative",
             zIndex: 1,
-            maxWidth: 920,
+            maxWidth: embedded ? "100%" : 920,
             margin: "0 auto",
-            padding: "28px 24px 80px",
+            padding: embedded ? "0 0 24px" : "28px 24px 80px",
           }}
         >
           {activeView === "field" && renderFieldState()}
@@ -1795,51 +1928,51 @@ export default function DynamicReading() {
           {activeView === "history" && renderHistory()}
         </div>
 
-        {/* Footer nav */}
-        <div
-          style={{
-            maxWidth: 920,
-            margin: "0 auto",
-            padding: "0 24px 60px",
-            display: "flex",
-            gap: 8,
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <Link href="/signature">
-            <span
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 10,
-                color: C.gold,
-                letterSpacing: "0.1em",
-                border: `1px solid ${C.goldDim}`,
-                padding: "10px 20px",
-                cursor: "pointer",
-              }}
-            >
-              NEW READING
-            </span>
-          </Link>
-          <Link href="/readings">
-            <span
-              style={{
-                fontFamily: "var(--font-ritual)",
-                fontSize: 10,
-                color: C.txtD,
-                letterSpacing: "0.1em",
-                border: `1px solid ${C.border}`,
-                padding: "10px 20px",
-                cursor: "pointer",
-              }}
-            >
-              ALL READINGS
-            </span>
-          </Link>
-        </div>
+        {!embedded && (
+          <div
+            style={{
+              maxWidth: 920,
+              margin: "0 auto",
+              padding: "0 24px 60px",
+              display: "flex",
+              gap: 8,
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <Link href="/signature">
+              <span
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.gold,
+                  letterSpacing: "0.1em",
+                  border: `1px solid ${C.goldDim}`,
+                  padding: "10px 20px",
+                  cursor: "pointer",
+                }}
+              >
+                NEW READING
+              </span>
+            </Link>
+            <Link href="/readings">
+              <span
+                style={{
+                  fontFamily: "var(--font-ritual)",
+                  fontSize: 10,
+                  color: C.txtD,
+                  letterSpacing: "0.1em",
+                  border: `1px solid ${C.border}`,
+                  padding: "10px 20px",
+                  cursor: "pointer",
+                }}
+              >
+                ALL READINGS
+              </span>
+            </Link>
+          </div>
+        )}
 
-        {/* Keyframes */}
         <style>{`
           @keyframes fadeUp {
             from { opacity: 0; transform: translateY(10px); }
@@ -1850,9 +1983,13 @@ export default function DynamicReading() {
             to   { transform: rotate(360deg); }
           }
         `}</style>
-      </div>
-    </Layout>
+      </>
+    </ReadingShell>
   );
+}
+
+export default function DynamicReading() {
+  return <DynamicReadingPanel />;
 }
 
 // ══════════════════════════════════════════════════════════════

@@ -12,7 +12,7 @@
 
 import {
   calculatePrimeStack,
-  calculate9CenterMap,
+  calculateCenterMap,
   calculateFractalRole,
   calculateAuthorityNode,
   type PrimeStackMap,
@@ -292,7 +292,7 @@ export async function generateStaticSignature(
   const primeStack = primeStackMap.positions;
 
   // ── 9-Center Resonance Map ─────────────────────────────────────────────────
-  const nineCenterRaw = calculate9CenterMap(primeStackMap);
+  const nineCenterRaw = calculateCenterMap(primeStackMap);
   const ninecenters: StaticSignatureReading["ninecenters"] = {};
   for (const [name, data] of Object.entries(nineCenterRaw)) {
     ninecenters[name] = {

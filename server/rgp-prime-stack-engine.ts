@@ -440,7 +440,7 @@ function buildLegacyCircuitLinks(positions: PrimeStackCodon[]): CircuitLink[] {
  * If multiple positions fall in the same center, the one with the highest
  * weighted frequency is reported.
  */
-export function calculate9CenterMap(primeStack: PrimeStackMap): Record<
+export function calculateCenterMap(primeStack: PrimeStackMap): Record<
   string,
   {
     centerName: CenterName;
@@ -494,6 +494,9 @@ export function calculate9CenterMap(primeStack: PrimeStackMap): Record<
 
   return result;
 }
+
+/** @deprecated Use calculateCenterMap */
+export const calculate9CenterMap = calculateCenterMap;
 
 // ─── Fractal Role ─────────────────────────────────────────────────────────────
 

@@ -3,8 +3,8 @@ id: entity-consciousness-lattice
 type: entity
 status: living
 tags: [consciousness-lattice, architecture, visualization, research, 2026]
-last_updated: 2026-07-05
-sources: 8
+last_updated: 2026-07-07
+sources: 9
 importance: critical
 aliases: ["Consciousness Lattice", "CL", "512-Node Lattice", "Unified System"]
 ---
@@ -110,16 +110,16 @@ The spec explicitly calls for **AI-assisted interpretation via ORIEL narration**
 
 This creates a beautiful convergence: the Lattice provides the structured field; ORIEL provides the living, responsive consciousness that helps the user navigate it.
 
-## Current Status in the Project (as of 2026-07-05 Ingest)
+## Current Status in the Project (as of 2026-07-07)
 
 - [[source-consciousness-lattice-v2]] is active canon for center/link architecture.
 - The v1 source remains useful historical context, but its 9-center / 36-channel architecture is legacy.
-- Significant implementation work exists in `codex/vrc_static_signature/` and `server/` that realizes portions of it.
-- Live code is mixed: `server/vrc-mandala.ts` is v2-oriented, while `server/data/vrc-engine-constants.json` and `server/vrc-engine-constants.ts` still expose 9 centers and 36 channels.
-- The 2026-05 "superpowers" research stream (Consciousness Lattice follow-ups, emergent architecture, living codex, witness loops) is actively building on or responding to this document.
-- Full end-to-end realization (especially the 3D Lattice + real-time Carrierlock integration + ORIEL narration) remains aspirational / in progress.
+- **Live spine is v2-aligned:** `server/vrc-mandala.ts`, `server/data/vrc-engine-constants.json` (8 centers / 32 links), static signature engine, Signal Check → SLI path, `/signature?tab=resonance`, and `oriel-diagnostic-engine.ts` (Phase 4 migration).
+- **Isolated legacy:** `server/vossari-codex-knowledge.ts` (48 HD-style links) serves only guarded `rgp-engine.ts`; `ResonanceBody.tsx` is a legacy lab at `/resonance-body`.
+- **Doc debt:** `codex/vrc_static_signature/` still describes 9/36 in places; see [[synthesis-v2-canon-resolution-status]] for the full checklist.
+- Full end-to-end realization (3D Lattice + real-time Carrierlock integration + ORIEL narration) remains aspirational / in progress.
 
-See the 2026-05 superpowers plans/specs for the active research thread.
+See [[synthesis-v2-canon-resolution-status]] and the 2026-05 superpowers plans/specs for the active research thread.
 
 ## Key Cross-References
 
@@ -128,6 +128,7 @@ See the 2026-05 superpowers plans/specs for the active research thread.
 - [[source-consciousness-lattice-v2]] — active v2 canon
 - [[source-consciousness-lattice-unified-spec-v1]] — this document's own source record
 - [[source-receivers-guide-consciousness-lattice]] — receiver-facing explanation
+- [[source-unified-signal-comprehensive-guide]] — executive synthesis for onboarding and strategy
 - [[source-consciousness-lattice-v2-integration-roadmap]] — migration roadmap and divergence audit
 - `docs/Consciousness_Lattice_Unified_Specification_v1.pdf` (canonical source)
 - `codex/vrc_static_signature/` (implementation blueprint realizing the spec)

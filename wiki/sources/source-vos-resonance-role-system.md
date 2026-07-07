@@ -23,7 +23,7 @@ The Resonance Role System is a proposed identity layer that translates a user’
 
 > “What kind of resonance pattern does this user primarily carry?”
 
-The system is designed to remain fully compatible with the existing VRC / Oriel Signal architecture (64 codons, 4 facets, 9 centers, Shadow/Gift/Siddhi spectrum) without copying Human Design terminology or structure.
+The system is designed to remain fully compatible with the existing VRC / Oriel Signal architecture (64 codons, 4 facets, 8 Tetradic centers / VTRS v2, Shadow/Gift/Siddhi spectrum) without copying Human Design terminology or structure. (The source document predates v2; center count updated here to match [[source-consciousness-lattice-v2]].)
 
 
 ## For Agents Reading This Source

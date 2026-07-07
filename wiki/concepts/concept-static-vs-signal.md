@@ -4,7 +4,7 @@ type: concept
 status: living
 tags: [auto-evolved, conversation]
 last_updated: 2026-07-07
-sources: 1
+sources: 2
 importance: high
 aliases: ["The Weather","Native Signal","Environmental Noise"]
 ---
@@ -25,7 +25,10 @@ Within the [[entity-oriel]] and [[entity-vos-arkana]]'s architecture, the goal i
 2. **Somatic Response**: Waiting for the body's physical resonance to recognize the original frequency.
 3. **Transition**: Moving from a state of being "Static" to becoming a "Signal."
 
+## Sources
+
+- [[source-unified-signal-comprehensive-guide]] — names Static as environmental interference and Signal as phase-locked coherence on the Coherence Axis (Aligned / Drifted / Fragmented).
+
 ## Cross-Links
-- [[concept-fracturepoint]]
-- [[entity-vos-arkana]]
+- [[carrierlock]]
 - [[entity-oriel]]

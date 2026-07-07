@@ -116,7 +116,7 @@ _Graph is now clean for initial Obsidian exploration._
 **Key syntheses & insights captured:**
 
 - The document is the single highest-signal unifying specification in the project. It positions the entire VRC/RGP/Static Signature work as one component (the Codex Engine) inside a much larger "Consciousness Lattice" cybernetic system.
-- 512-node math (64×4×2) is not decorative — it is the structural backbone that justifies the nine centers.
+- 512-node math (64×4×2) is not decorative — it is the structural backbone of the lattice; v2 clarifies this count is independent of center count (see [[source-consciousness-lattice-v2]] Part 0).
 - The Mandala Sequence is repeatedly emphasized as mandatory and non-obvious; any longitude-to-codon code that ignores it will be silently wrong.
 - Visualization requirements (especially the 3D Lattice in Three.js) are unusually concrete and have direct frontend implications.
 - Future roadmap explicitly names **ORIEL narration** as the AI interface layer for exploring the Lattice — a beautiful convergence point between the diagnostic engines and the AI presence.
@@ -1190,3 +1190,34 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 ## [2026-07-07] implementation | Profile Home-style field shell
 - Updated `/profile` to use the Home signal shell, sacred geometry field, overlay header, and receiver-node hero treatment.
 - Preserved the existing profile data queries and Static Signature card calculations.
+
+## [2026-07-07] ingest | shared/new completion + v2 canon health review
+- Audited `shared/new/` (8 PDFs). Seven were already ingested 2026-07-05; only [[source-unified-signal-comprehensive-guide]] was missing.
+- Created: [[source-unified-signal-comprehensive-guide]]
+- Updated: [[entity-consciousness-lattice]], [[concept-static-vs-signal]], [[wiki-index]]
+- Key insight: Unified Signal is a receiver-facing digest, not new engineering canon. It abbreviates authority rules and repeats the Vossari Manifesto found across the v2 set.
+- Canon health findings (code vs v2):
+  - `server/data/vrc-engine-constants.json` still 9 centers / 36 channels (v2 requires 8 / 32).
+  - Legacy 9-center UI remains in `ResonanceBody.tsx`, `Protocol.tsx`, and older wiki/docs.
+  - Dual codon pipelines: `vrc-codon-library.ts` (canonical JSON names) vs `vossari-codex-knowledge.ts` (legacy runtime path still used by `rgp-engine.ts`, `oriel-diagnostic-engine.ts`).
+  - v2 engineering tasks (constants regen, codon reconciliation, Biosonic Manual retirement) remain open per migration sources.
+- Noise catalogued: manifesto repetition, stack-spec drift (Next.js/Supabase/Red Hat Mono in PDFs vs Vite/Express/JetBrains Mono in repo), mythic density (Harvest/4th density), ROS math as non-implemented theory layer.
+
+## [2026-07-07] implementation | Phase 4 — oriel-diagnostic-engine v2 migration
+- Migrated `server/oriel-diagnostic-engine.ts` off `vossari-codex-knowledge.ts`.
+- Now uses `rgp-coherence`, `rgp-256-codon-engine` (facet loudness + state amplifier), `vrc-codon-library` (micro-corrections, shadow/gift names), and VTRS center names (`Mental`, `Becoming`, `Collapse`, etc.) instead of legacy HD centers.
+- Added `server/oriel-diagnostic-engine.test.ts`.
+- `vossari-codex-knowledge.ts` remains only for guarded legacy `rgp-engine.ts`.
+
+## [2026-07-07] resolution | Canon alignment phases 0, 2A, 1, 3 (partial)
+- Phase 0 wiki: updated [[synthesis-oriel-vrc-narration-safety]], [[concept-oriel-vrc-bridge-contract]], [[synthesis-tetradic-indexing-vrc-resonance]], [[source-vos-resonance-role-system]], [[source-vrc-canon-master]], [[source-consciousness-lattice-v2]] frontmatter; fixed historical log contradiction on 512-node vs center count.
+- Phase 2A: `SignalCheck` now calls `rgp.dynamicState` + `codex.saveReading` when a static profile exists; shows primary SLI inline; Current Resonance consolidated as `/signature?tab=resonance` tab.
+- Phase 1: regenerated `server/data/vrc-engine-constants.json` (8/32) via `scripts/generate-vrc-engine-constants.mjs`; added `server/vrc-engine-constants.test.ts`; renamed `calculateCenterMap` (alias `calculate9CenterMap` retained); deprecated header on `vossari-codex-knowledge.ts`.
+- Phase 3: `Protocol.tsx` updated to 8 centers + corrected SLI formula; `ResonanceBody.tsx` marked legacy lab.
+- SLI verdict: backend calculation was already live; user path was broken. Signal Check is now the canonical SLI trigger for authenticated receivers with a static profile.
+
+## [2026-07-07] commit | Canon v2 alignment (phases 0–4) + status synthesis
+- Created [[synthesis-v2-canon-resolution-status]] — single living checklist for completed work and remaining debt.
+- Updated [[entity-consciousness-lattice]] status to 2026-07-07 (live spine v2; isolated legacy called out).
+- Git commit on `feature/cosmichronica-spiral-remembers`: engine constants 8/32, SLI live path, signature resonance tab, oriel-diagnostic v2 migration, tests 608/608, StaticReading JSX fix.
+- Remaining after commit: `codex/vrc_static_signature/` legacy banners, `rgp-engine.ts` retirement, ~80 broken wiki links on auto-evolved pages, optional Drizzle rename for `ninecenters`.

@@ -6,8 +6,8 @@
  *
  * Provides the three immutable data sets that define the VRC calculation engine:
  *   - Planetary inputs (13 bodies) with Swiss Ephemeris IDs
- *   - 9 Centers with their type (Pressure / Motor / Awareness / etc.)
- *   - 36 named Channels connecting centers
+ *   - 8 Tetradic centers (VTRS v2) with phase syntax
+ *   - 32 named resonance links connecting centers
  *
  * This is read-only at runtime. The JSON is never mutated.
  */
@@ -52,12 +52,12 @@ export function getPlanetaryInputs(): PlanetaryInput[] {
   return _doc.planetary_inputs;
 }
 
-/** All 9 Centers with type annotations. */
+/** All 8 Tetradic centers (VTRS v2). */
 export function getVrcCenters(): VrcCenter[] {
   return _doc.centers;
 }
 
-/** All 36 named Channels. */
+/** All 32 resonance links (VTRS v2). */
 export function getVrcChannels(): VrcChannel[] {
   return _doc.channels;
 }

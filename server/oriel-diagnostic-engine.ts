@@ -9,18 +9,65 @@
  */
 
 import {
-  CarrierlockState,
-  computeCoherenceScore,
-  detectAxisDominance,
-  computeFacetLoudness,
-  sliThreshold,
-  RESONANCE_CENTERS,
-  CIRCUIT_LINKS,
-  ROOT_CODONS,
-  FACET_MODIFIERS,
-  MicroCorrection,
-  SLIResult,
-} from "./vossari-codex-knowledge";
+  calculateCoherenceScore,
+  type CarrierlockState,
+} from "./rgp-coherence";
+import {
+  calculateStateAmplifier,
+  determineFacetLoudness,
+  type FacetLetter,
+} from "./rgp-256-codon-engine";
+import {
+  getFrequencyData,
+  getMicroCorrection,
+} from "./vrc-codon-library";
+import type { CenterName } from "./vrc-mandala";
+
+export interface SLIResult {
+  codon: string;
+  sli: number;
+  level: "Primary" | "Secondary" | "Background" | "Inactive";
+  facet: string;
+  confidence: 0.4 | 0.7 | 0.9;
+}
+
+export interface MicroCorrection {
+  codon: string;
+  facet: FacetLetter;
+  duration: string;
+  instruction: string;
+  rationale: string;
+}
+
+function parseRootCodonNumber(codon: string): number | null {
+  const match = codon.match(/^RC?(\d{1,2})$/i);
+  if (!match) return null;
+  const id = parseInt(match[1], 10);
+  return id >= 1 && id <= 64 ? id : null;
+}
+
+function detectAxisDominance(
+  state: CarrierlockState
+): "Mind" | "Body" | "Emotion" {
+  const { mentalNoise, bodyTension, emotionalTurbulence } = state;
+
+  if (emotionalTurbulence > bodyTension && emotionalTurbulence > mentalNoise) {
+    return "Emotion";
+  }
+  if (bodyTension > mentalNoise && bodyTension > emotionalTurbulence) {
+    return "Body";
+  }
+  return "Mind";
+}
+
+function sliThreshold(
+  sli: number
+): "Primary" | "Secondary" | "Background" | "Inactive" {
+  if (sli >= 1.8) return "Primary";
+  if (sli >= 1.1) return "Secondary";
+  if (sli >= 0.6) return "Background";
+  return "Inactive";
+}
 
 // ============================================================================
 // MODE A: DIAGNOSTIC READING
@@ -55,7 +102,7 @@ export async function performDiagnosticReading(
 
   // Dynamic reading: use Carrierlock state
   // Step 1: Compute Coherence Score
-  const coherenceScore = computeCoherenceScore(carrierlockState);
+  const coherenceScore = calculateCoherenceScore(carrierlockState);
 
   // ── Collapse Threshold (ROS v1.5.42): no complex readings in entropy state ──
   if (coherenceScore < 40) {
@@ -94,13 +141,15 @@ export async function performDiagnosticReading(
     axisDominance
   );
 
-  // Step 4: Compute Facet Loudness
-  const facetLoudness = computeFacetLoudness(axisDominance, coherenceScore);
-
-  // Step 5: Calculate SLI for Prime Codons
+  // Step 4–5: VTRS v2 facet loudness + SLI for prime codons
+  const facetLoudness = determineFacetLoudness(
+    carrierlockState.mentalNoise,
+    carrierlockState.bodyTension,
+    carrierlockState.emotionalTurbulence,
+    coherenceScore
+  );
   const sliResults = calculateSLIForCodons(
     primeCodonSet,
-    fullCodonStack,
     coherenceScore,
     facetLoudness
   );
@@ -210,7 +259,7 @@ function performStaticSignatureReading(
   return {
     coherenceScore: 100, // Static readings show potential, not current state
     axisDominance,
-    overactiveCenter: "None", // No overactive center in static reading
+    overactiveCenter: "Origin",
     flaggedCodons,
     microCorrection,
     confidence: 0.7,
@@ -236,8 +285,10 @@ function generateStaticMicroCorrection(
     };
   }
 
-  const codonData = ROOT_CODONS[sliResult.codon as keyof typeof ROOT_CODONS];
-  const giftName = codonData?.gift || "your natural gift";
+  const codonId = parseRootCodonNumber(sliResult.codon);
+  const giftName =
+    (codonId ? getFrequencyData(codonId)?.gift : undefined) ||
+    "your natural gift";
 
   return {
     codon: sliResult.codon,
@@ -256,8 +307,10 @@ function generateStaticFalsifier(sliResult: SLIResult | undefined): string {
     return "If this blueprint doesn't resonate with your life experience, the birth data may need verification.";
   }
 
-  const codonData = ROOT_CODONS[sliResult.codon as keyof typeof ROOT_CODONS];
-  const shadowName = codonData?.shadow || "shadow pattern";
+  const codonId = parseRootCodonNumber(sliResult.codon);
+  const shadowName =
+    (codonId ? getFrequencyData(codonId)?.shadow : undefined) ||
+    "shadow pattern";
 
   return `If you have never experienced ${shadowName} as a recurring theme, this codon may not be primary in your blueprint.`;
 }
@@ -322,13 +375,13 @@ export async function performEvolutionaryAssistance(
 function identifyOveractiveCenter(
   state: CarrierlockState,
   dominance: "Mind" | "Body" | "Emotion"
-): string {
+): CenterName {
   const { mentalNoise, bodyTension, emotionalTurbulence } = state;
 
-  const centerMap = {
-    Mind: mentalNoise > 7 ? "Head" : "Ajna",
-    Body: bodyTension > 7 ? "Root" : "Spleen",
-    Emotion: emotionalTurbulence > 7 ? "SolarPlexus" : "Throat",
+  const centerMap: Record<"Mind" | "Body" | "Emotion", CenterName> = {
+    Mind: mentalNoise > 7 ? "Mental" : "Origin",
+    Body: bodyTension > 7 ? "Becoming" : "Return",
+    Emotion: emotionalTurbulence > 7 ? "Collapse" : "Bridge",
   };
 
   return centerMap[dominance];
@@ -339,22 +392,15 @@ function identifyOveractiveCenter(
  */
 function calculateSLIForCodons(
   primeCodonSet: string[],
-  fullCodonStack: string[],
   coherenceScore: number,
-  facetLoudness: Record<string, number>
+  facetLoudness: ReturnType<typeof determineFacetLoudness>
 ): SLIResult[] {
-  const stateAmp = (100 - coherenceScore) / 100;
+  const stateAmp = calculateStateAmplifier(coherenceScore);
+  const facet = facetLoudness.dominant;
+  const facetAmp = facetLoudness[facet] / 100;
 
   return primeCodonSet.map(codon => {
-    // Simplified PCS (Prime Codon Strength) - would be computed from natal chart
-    const pcs = 1.0; // Placeholder
-
-    // Determine facet loudness
-    const facet = Object.keys(facetLoudness).reduce((prev, curr) =>
-      facetLoudness[curr] > facetLoudness[prev] ? curr : prev
-    );
-
-    const facetAmp = facetLoudness[facet as "A" | "B" | "C" | "D"] || 0.5;
+    const pcs = 1.0;
     const sli = pcs * stateAmp * facetAmp;
 
     return {
@@ -387,92 +433,23 @@ function generateMicroCorrection(
     };
   }
 
-  const facetMap: Record<string, "A" | "B" | "C" | "D"> = {
-    A: "A",
-    B: "B",
-    C: "C",
-    D: "D",
-  };
+  const facet = (["A", "B", "C", "D"] as const).includes(
+    sliResult.facet as FacetLetter
+  )
+    ? (sliResult.facet as FacetLetter)
+    : "A";
 
-  const facet = facetMap[sliResult.facet] || "A";
-
-  // Placeholder corrections - in production, these would be stored in database
-  const corrections: Record<
-    string,
-    Record<"A" | "B" | "C" | "D", MicroCorrection>
-  > = {
-    RC02: {
-      A: {
-        codon: "RC02",
-        facet: "A",
-        duration: "3 minutes",
-        instruction:
-          "Tidy one physical surface. Select 3 threads, delete the rest.",
-        rationale: "Somatic grounding reduces mental complexity overload",
-      },
-      B: {
-        codon: "RC02",
-        facet: "B",
-        duration: "5 minutes",
-        instruction:
-          "Tell one person: I'm simplifying. I'll send one clear version.",
-        rationale: "Relational clarity prevents confusion spread",
-      },
-      C: {
-        codon: "RC02",
-        facet: "C",
-        duration: "5 minutes",
-        instruction:
-          "Write a 5-bullet outline. Reduce to 3 threads, delete the rest.",
-        rationale: "Cognitive structure prevents endless branching",
-      },
-      D: {
-        codon: "RC02",
-        facet: "D",
-        duration: "5 minutes",
-        instruction:
-          "Choose one service intention: This helps people by ___. Build only that.",
-        rationale: "Transpersonal alignment filters out noise",
-      },
-    },
-    RC03: {
-      A: {
-        codon: "RC03",
-        facet: "A",
-        duration: "3 minutes",
-        instruction: "Set a 12-minute timer. Work steady, then stop on time.",
-        rationale: "Somatic boundary prevents self-crushing",
-      },
-      B: {
-        codon: "RC03",
-        facet: "B",
-        duration: "5 minutes",
-        instruction: "Renegotiate one expectation today, clearly and politely.",
-        rationale: "Relational clarity prevents resentment",
-      },
-      C: {
-        codon: "RC03",
-        facet: "C",
-        duration: "5 minutes",
-        instruction:
-          "Define one standard that matters and ignore all other metrics.",
-        rationale: "Cognitive focus prevents perfectionism spiral",
-      },
-      D: {
-        codon: "RC03",
-        facet: "D",
-        duration: "5 minutes",
-        instruction:
-          "Vow: I build by integrity, not punishment. Repeat slowly 10 times.",
-        rationale:
-          "Transpersonal alignment shifts willpower from force to flow",
-      },
-    },
-  };
-
-  const codonCorrections = corrections[sliResult.codon];
-  if (codonCorrections && codonCorrections[facet]) {
-    return codonCorrections[facet];
+  const codonId = parseRootCodonNumber(sliResult.codon);
+  const libraryCorrection =
+    codonId !== null ? getMicroCorrection(codonId, facet) : undefined;
+  if (libraryCorrection) {
+    return {
+      codon: sliResult.codon,
+      facet,
+      duration: "5 minutes",
+      instruction: libraryCorrection,
+      rationale: `VTRS micro-correction for ${facet} facet loudness`,
+    };
   }
 
   // Fallback correction
@@ -612,7 +589,7 @@ function generatePathFalsifier(reEncodingPath: ReEncodingPath): string {
 export interface DiagnosticResult {
   coherenceScore: number;
   axisDominance: "Mind" | "Body" | "Emotion";
-  overactiveCenter: string;
+  overactiveCenter: CenterName;
   flaggedCodons: SLIResult[];
   microCorrection: MicroCorrection;
   confidence: 0.4 | 0.7 | 0.9;

@@ -1,21 +1,67 @@
 {
   "meta": {
     "system": "Vossari Resonance Codex",
-    "version": "1.0",
-    "description": "Immutable data arrays for the VRC Engine."
+    "version": "2.0",
+    "description": "VTRS v2 immutable data arrays — 8 Tetradic centers, 32 resonance links.",
+    "architecture": "VTRS",
+    "supersedes": "1.0 (9-center / 36-channel legacy)"
   },
   "planetary_inputs": [
-    { "id": "sun", "name": "Sun", "swiss_eph_id": 0 },
-    { "id": "moon", "name": "Moon", "swiss_eph_id": 1 },
-    { "id": "mercury", "name": "Mercury", "swiss_eph_id": 2 },
-    { "id": "venus", "name": "Venus", "swiss_eph_id": 3 },
-    { "id": "mars", "name": "Mars", "swiss_eph_id": 4 },
-    { "id": "jupiter", "name": "Jupiter", "swiss_eph_id": 5 },
-    { "id": "saturn", "name": "Saturn", "swiss_eph_id": 6 },
-    { "id": "uranus", "name": "Uranus", "swiss_eph_id": 7 },
-    { "id": "neptune", "name": "Neptune", "swiss_eph_id": 8 },
-    { "id": "pluto", "name": "Pluto", "swiss_eph_id": 9 },
-    { "id": "north_node", "name": "North Node", "swiss_eph_id": 11 },
+    {
+      "id": "sun",
+      "name": "Sun",
+      "swiss_eph_id": 0
+    },
+    {
+      "id": "moon",
+      "name": "Moon",
+      "swiss_eph_id": 1
+    },
+    {
+      "id": "mercury",
+      "name": "Mercury",
+      "swiss_eph_id": 2
+    },
+    {
+      "id": "venus",
+      "name": "Venus",
+      "swiss_eph_id": 3
+    },
+    {
+      "id": "mars",
+      "name": "Mars",
+      "swiss_eph_id": 4
+    },
+    {
+      "id": "jupiter",
+      "name": "Jupiter",
+      "swiss_eph_id": 5
+    },
+    {
+      "id": "saturn",
+      "name": "Saturn",
+      "swiss_eph_id": 6
+    },
+    {
+      "id": "uranus",
+      "name": "Uranus",
+      "swiss_eph_id": 7
+    },
+    {
+      "id": "neptune",
+      "name": "Neptune",
+      "swiss_eph_id": 8
+    },
+    {
+      "id": "pluto",
+      "name": "Pluto",
+      "swiss_eph_id": 9
+    },
+    {
+      "id": "north_node",
+      "name": "North Node",
+      "swiss_eph_id": 11
+    },
     {
       "id": "south_node",
       "name": "South Node",
@@ -28,268 +74,519 @@
     }
   ],
   "centers": [
-    { "id": "HEAD", "name": "Head Center", "type": "Pressure" },
-    { "id": "AJNA", "name": "Ajna Center", "type": "Awareness" },
-    { "id": "THROAT", "name": "Throat Center", "type": "Manifestation" },
-    { "id": "G", "name": "G Center", "type": "Identity" },
-    { "id": "HEART", "name": "Heart Center", "type": "Motor" },
-    { "id": "SACRAL", "name": "Sacral Center", "type": "Motor" },
-    { "id": "SPLEEN", "name": "Spleen Center", "type": "Awareness" },
-    { "id": "SOLAR", "name": "Solar Plexus", "type": "Motor/Awareness" },
-    { "id": "ROOT", "name": "Root Center", "type": "Pressure/Motor" }
+    {
+      "id": "ORIGIN",
+      "name": "The Origin",
+      "type": "I",
+      "roman": "I",
+      "codons": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        19,
+        38,
+        51
+      ]
+    },
+    {
+      "id": "MENTAL",
+      "name": "The Mental",
+      "type": "II",
+      "roman": "II",
+      "codons": [
+        4,
+        11,
+        17,
+        23,
+        24,
+        43,
+        61,
+        63
+      ]
+    },
+    {
+      "id": "COLLAPSE",
+      "name": "The Collapse",
+      "type": "III",
+      "roman": "III",
+      "codons": [
+        8,
+        12,
+        16,
+        20,
+        31,
+        33,
+        35,
+        56
+      ]
+    },
+    {
+      "id": "SATURATION",
+      "name": "The Saturation",
+      "type": "IIII",
+      "roman": "IV",
+      "codons": [
+        14,
+        27,
+        29,
+        34,
+        42,
+        52,
+        53,
+        60
+      ]
+    },
+    {
+      "id": "BRIDGE",
+      "name": "The Bridge",
+      "type": "IIII'I",
+      "roman": "V",
+      "codons": [
+        7,
+        10,
+        13,
+        15,
+        25,
+        46,
+        57,
+        59
+      ]
+    },
+    {
+      "id": "BECOMING",
+      "name": "The Becoming",
+      "type": "IIII'II",
+      "roman": "VI",
+      "codons": [
+        6,
+        22,
+        30,
+        36,
+        37,
+        39,
+        41,
+        55
+      ]
+    },
+    {
+      "id": "RETURN",
+      "name": "The Return",
+      "type": "IIII'III",
+      "roman": "VII",
+      "codons": [
+        18,
+        28,
+        32,
+        44,
+        48,
+        49,
+        50,
+        58
+      ]
+    },
+    {
+      "id": "OMEGA",
+      "name": "The Omega",
+      "type": "IIII'IIII",
+      "roman": "VIII",
+      "codons": [
+        21,
+        26,
+        40,
+        45,
+        47,
+        54,
+        62,
+        64
+      ]
+    }
   ],
   "channels": [
     {
-      "id": "64-47",
-      "name": "Abstraction",
-      "gate_a": 64,
-      "gate_b": 47,
-      "connects": ["HEAD", "AJNA"]
-    },
-    {
       "id": "61-24",
-      "name": "Awareness",
+      "name": "Origin Conception",
       "gate_a": 61,
       "gate_b": 24,
-      "connects": ["HEAD", "AJNA"]
-    },
-    {
-      "id": "63-4",
-      "name": "Logic",
-      "gate_a": 63,
-      "gate_b": 4,
-      "connects": ["HEAD", "AJNA"]
-    },
-    {
-      "id": "17-62",
-      "name": "Acceptance",
-      "gate_a": 17,
-      "gate_b": 62,
-      "connects": ["AJNA", "THROAT"]
-    },
-    {
-      "id": "43-23",
-      "name": "Structuring",
-      "gate_a": 43,
-      "gate_b": 23,
-      "connects": ["AJNA", "THROAT"]
-    },
-    {
-      "id": "11-56",
-      "name": "Curiosity",
-      "gate_a": 11,
-      "gate_b": 56,
-      "connects": ["AJNA", "THROAT"]
-    },
-    {
-      "id": "35-36",
-      "name": "Transience",
-      "gate_a": 35,
-      "gate_b": 36,
-      "connects": ["THROAT", "SOLAR"]
-    },
-    {
-      "id": "12-22",
-      "name": "Openness",
-      "gate_a": 12,
-      "gate_b": 22,
-      "connects": ["THROAT", "SOLAR"]
-    },
-    {
-      "id": "45-21",
-      "name": "Money Line",
-      "gate_a": 45,
-      "gate_b": 21,
-      "connects": ["THROAT", "HEART"]
-    },
-    {
-      "id": "33-13",
-      "name": "The Prodigal",
-      "gate_a": 33,
-      "gate_b": 13,
-      "connects": ["THROAT", "G"]
-    },
-    {
-      "id": "8-1",
-      "name": "Inspiration",
-      "gate_a": 8,
-      "gate_b": 1,
-      "connects": ["THROAT", "G"]
-    },
-    {
-      "id": "31-7",
-      "name": "The Alpha",
-      "gate_a": 31,
-      "gate_b": 7,
-      "connects": ["THROAT", "G"]
-    },
-    {
-      "id": "20-10",
-      "name": "Awakening",
-      "gate_a": 20,
-      "gate_b": 10,
-      "connects": ["THROAT", "G"]
-    },
-    {
-      "id": "20-57",
-      "name": "The Brainwave",
-      "gate_a": 20,
-      "gate_b": 57,
-      "connects": ["THROAT", "SPLEEN"]
-    },
-    {
-      "id": "20-34",
-      "name": "Charisma",
-      "gate_a": 20,
-      "gate_b": 34,
-      "connects": ["THROAT", "SACRAL"]
-    },
-    {
-      "id": "16-48",
-      "name": "The Wave",
-      "gate_a": 16,
-      "gate_b": 48,
-      "connects": ["THROAT", "SPLEEN"]
-    },
-    {
-      "id": "25-51",
-      "name": "Initiation",
-      "gate_a": 25,
-      "gate_b": 51,
-      "connects": ["G", "HEART"]
-    },
-    {
-      "id": "10-57",
-      "name": "Perfect Form",
-      "gate_a": 10,
-      "gate_b": 57,
-      "connects": ["G", "SPLEEN"]
-    },
-    {
-      "id": "10-34",
-      "name": "Exploration",
-      "gate_a": 10,
-      "gate_b": 34,
-      "connects": ["G", "SACRAL"]
-    },
-    {
-      "id": "15-5",
-      "name": "Rhythm",
-      "gate_a": 15,
-      "gate_b": 5,
-      "connects": ["G", "SACRAL"]
-    },
-    {
-      "id": "2-14",
-      "name": "The Beat",
-      "gate_a": 2,
-      "gate_b": 14,
-      "connects": ["G", "SACRAL"]
-    },
-    {
-      "id": "46-29",
-      "name": "Discovery",
-      "gate_a": 46,
-      "gate_b": 29,
-      "connects": ["G", "SACRAL"]
-    },
-    {
-      "id": "26-44",
-      "name": "Surrender",
-      "gate_a": 26,
-      "gate_b": 44,
-      "connects": ["HEART", "SPLEEN"]
-    },
-    {
-      "id": "40-37",
-      "name": "Community",
-      "gate_a": 40,
-      "gate_b": 37,
-      "connects": ["HEART", "SOLAR"]
-    },
-    {
-      "id": "57-34",
-      "name": "Power",
-      "gate_a": 57,
-      "gate_b": 34,
-      "connects": ["SPLEEN", "SACRAL"]
-    },
-    {
-      "id": "28-38",
-      "name": "Struggle",
-      "gate_a": 28,
-      "gate_b": 38,
-      "connects": ["SPLEEN", "ROOT"]
-    },
-    {
-      "id": "18-58",
-      "name": "Judgment",
-      "gate_a": 18,
-      "gate_b": 58,
-      "connects": ["SPLEEN", "ROOT"]
-    },
-    {
-      "id": "32-54",
-      "name": "Transformation",
-      "gate_a": 32,
-      "gate_b": 54,
-      "connects": ["SPLEEN", "ROOT"]
-    },
-    {
-      "id": "50-27",
-      "name": "Preservation",
-      "gate_a": 50,
-      "gate_b": 27,
-      "connects": ["SPLEEN", "SACRAL"]
-    },
-    {
-      "id": "59-6",
-      "name": "Intimacy",
-      "gate_a": 59,
-      "gate_b": 6,
-      "connects": ["SACRAL", "SOLAR"]
-    },
-    {
-      "id": "9-52",
-      "name": "Concentration",
-      "gate_a": 9,
-      "gate_b": 52,
-      "connects": ["SACRAL", "ROOT"]
+      "connects": [
+        "MENTAL",
+        "MENTAL"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L01"
     },
     {
       "id": "3-60",
-      "name": "Mutation",
+      "name": "Vacuum Mutation",
       "gate_a": 3,
       "gate_b": 60,
-      "connects": ["SACRAL", "ROOT"]
+      "connects": [
+        "ORIGIN",
+        "SATURATION"
+      ],
+      "circuit": "Somatic",
+      "link_id": "L02"
     },
     {
-      "id": "42-53",
-      "name": "Maturation",
-      "gate_a": 42,
-      "gate_b": 53,
-      "connects": ["SACRAL", "ROOT"]
+      "id": "9-52",
+      "name": "Primordial Focus",
+      "gate_a": 9,
+      "gate_b": 52,
+      "connects": [
+        "ORIGIN",
+        "SATURATION"
+      ],
+      "circuit": "Somatic",
+      "link_id": "L03"
     },
     {
       "id": "19-49",
-      "name": "Synthesis",
+      "name": "Somatic Synthesis",
       "gate_a": 19,
       "gate_b": 49,
-      "connects": ["ROOT", "SOLAR"]
+      "connects": [
+        "ORIGIN",
+        "RETURN"
+      ],
+      "circuit": "Survival",
+      "link_id": "L04"
+    },
+    {
+      "id": "43-23",
+      "name": "Epiphany Structuring",
+      "gate_a": 43,
+      "gate_b": 23,
+      "connects": [
+        "MENTAL",
+        "MENTAL"
+      ],
+      "circuit": "Expressive",
+      "link_id": "L05"
+    },
+    {
+      "id": "11-56",
+      "name": "Mental Curiosity",
+      "gate_a": 11,
+      "gate_b": 56,
+      "connects": [
+        "MENTAL",
+        "COLLAPSE"
+      ],
+      "circuit": "Expressive",
+      "link_id": "L06"
+    },
+    {
+      "id": "17-62",
+      "name": "Logical Acceptance",
+      "gate_a": 17,
+      "gate_b": 62,
+      "connects": [
+        "MENTAL",
+        "OMEGA"
+      ],
+      "circuit": "Expressive",
+      "link_id": "L07"
+    },
+    {
+      "id": "64-47",
+      "name": "Archived Abstraction",
+      "gate_a": 64,
+      "gate_b": 47,
+      "connects": [
+        "OMEGA",
+        "OMEGA"
+      ],
+      "circuit": "Storage",
+      "link_id": "L08"
+    },
+    {
+      "id": "33-13",
+      "name": "The Prodigal Path",
+      "gate_a": 33,
+      "gate_b": 13,
+      "connects": [
+        "COLLAPSE",
+        "BRIDGE"
+      ],
+      "circuit": "Identity",
+      "link_id": "L09"
+    },
+    {
+      "id": "8-1",
+      "name": "Creative Inspiration",
+      "gate_a": 8,
+      "gate_b": 1,
+      "connects": [
+        "COLLAPSE",
+        "ORIGIN"
+      ],
+      "circuit": "Identity",
+      "link_id": "L10"
+    },
+    {
+      "id": "31-7",
+      "name": "Sovereign Guidance",
+      "gate_a": 31,
+      "gate_b": 7,
+      "connects": [
+        "COLLAPSE",
+        "BRIDGE"
+      ],
+      "circuit": "Identity",
+      "link_id": "L11"
+    },
+    {
+      "id": "20-10",
+      "name": "The Awakening",
+      "gate_a": 20,
+      "gate_b": 10,
+      "connects": [
+        "COLLAPSE",
+        "BRIDGE"
+      ],
+      "circuit": "Identity",
+      "link_id": "L12"
+    },
+    {
+      "id": "35-36",
+      "name": "Experiential Tide",
+      "gate_a": 35,
+      "gate_b": 36,
+      "connects": [
+        "COLLAPSE",
+        "BECOMING"
+      ],
+      "circuit": "Emotional",
+      "link_id": "L13"
+    },
+    {
+      "id": "12-22",
+      "name": "Gracious Openness",
+      "gate_a": 12,
+      "gate_b": 22,
+      "connects": [
+        "COLLAPSE",
+        "BECOMING"
+      ],
+      "circuit": "Emotional",
+      "link_id": "L14"
+    },
+    {
+      "id": "16-48",
+      "name": "Depth Correction",
+      "gate_a": 16,
+      "gate_b": 48,
+      "connects": [
+        "COLLAPSE",
+        "RETURN"
+      ],
+      "circuit": "Survival",
+      "link_id": "L15"
+    },
+    {
+      "id": "45-21",
+      "name": "Unified Prosperity",
+      "gate_a": 45,
+      "gate_b": 21,
+      "connects": [
+        "OMEGA",
+        "OMEGA"
+      ],
+      "circuit": "Storage",
+      "link_id": "L16"
+    },
+    {
+      "id": "15-5",
+      "name": "Conscious Rhythm",
+      "gate_a": 15,
+      "gate_b": 5,
+      "connects": [
+        "BRIDGE",
+        "ORIGIN"
+      ],
+      "circuit": "Identity",
+      "link_id": "L17"
+    },
+    {
+      "id": "2-14",
+      "name": "The Directional Beat",
+      "gate_a": 2,
+      "gate_b": 14,
+      "connects": [
+        "ORIGIN",
+        "SATURATION"
+      ],
+      "circuit": "Identity",
+      "link_id": "L18"
+    },
+    {
+      "id": "46-29",
+      "name": "Physical Discovery",
+      "gate_a": 46,
+      "gate_b": 29,
+      "connects": [
+        "BRIDGE",
+        "SATURATION"
+      ],
+      "circuit": "Identity",
+      "link_id": "L19"
+    },
+    {
+      "id": "10-34",
+      "name": "Empowered Action",
+      "gate_a": 10,
+      "gate_b": 34,
+      "connects": [
+        "BRIDGE",
+        "SATURATION"
+      ],
+      "circuit": "Identity",
+      "link_id": "L20"
+    },
+    {
+      "id": "50-27",
+      "name": "Protective Altruism",
+      "gate_a": 50,
+      "gate_b": 27,
+      "connects": [
+        "RETURN",
+        "SATURATION"
+      ],
+      "circuit": "Survival",
+      "link_id": "L21"
+    },
+    {
+      "id": "57-34",
+      "name": "Intuitive Power",
+      "gate_a": 57,
+      "gate_b": 34,
+      "connects": [
+        "BRIDGE",
+        "SATURATION"
+      ],
+      "circuit": "Survival",
+      "link_id": "L22"
+    },
+    {
+      "id": "10-57",
+      "name": "Form Perfection",
+      "gate_a": 10,
+      "gate_b": 57,
+      "connects": [
+        "BRIDGE",
+        "BRIDGE"
+      ],
+      "circuit": "Survival",
+      "link_id": "L23"
+    },
+    {
+      "id": "25-51",
+      "name": "Initiatory Leap",
+      "gate_a": 25,
+      "gate_b": 51,
+      "connects": [
+        "BRIDGE",
+        "ORIGIN"
+      ],
+      "circuit": "Storage",
+      "link_id": "L24"
+    },
+    {
+      "id": "59-6",
+      "name": "Intimate Union",
+      "gate_a": 59,
+      "gate_b": 6,
+      "connects": [
+        "BRIDGE",
+        "BECOMING"
+      ],
+      "circuit": "Identity",
+      "link_id": "L25"
+    },
+    {
+      "id": "40-37",
+      "name": "Heart Covenant",
+      "gate_a": 40,
+      "gate_b": 37,
+      "connects": [
+        "OMEGA",
+        "BECOMING"
+      ],
+      "circuit": "Survival",
+      "link_id": "L26"
     },
     {
       "id": "39-55",
-      "name": "Emoting",
+      "name": "Catalytic Charge",
       "gate_a": 39,
       "gate_b": 55,
-      "connects": ["ROOT", "SOLAR"]
+      "connects": [
+        "BECOMING",
+        "BECOMING"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L27"
     },
     {
       "id": "41-30",
-      "name": "Recognition",
+      "name": "Visionary Focus",
       "gate_a": 41,
       "gate_b": 30,
-      "connects": ["ROOT", "SOLAR"]
+      "connects": [
+        "BECOMING",
+        "BECOMING"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L28"
+    },
+    {
+      "id": "26-44",
+      "name": "Pattern Persuasion",
+      "gate_a": 26,
+      "gate_b": 44,
+      "connects": [
+        "OMEGA",
+        "RETURN"
+      ],
+      "circuit": "Storage",
+      "link_id": "L29"
+    },
+    {
+      "id": "28-38",
+      "name": "Purposeful Struggle",
+      "gate_a": 28,
+      "gate_b": 38,
+      "connects": [
+        "RETURN",
+        "ORIGIN"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L30"
+    },
+    {
+      "id": "18-58",
+      "name": "Vital Correction",
+      "gate_a": 18,
+      "gate_b": 58,
+      "connects": [
+        "RETURN",
+        "RETURN"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L31"
+    },
+    {
+      "id": "32-54",
+      "name": "Material Ascension",
+      "gate_a": 32,
+      "gate_b": 54,
+      "connects": [
+        "RETURN",
+        "OMEGA"
+      ],
+      "circuit": "Inspirational",
+      "link_id": "L32"
     }
   ]
 }

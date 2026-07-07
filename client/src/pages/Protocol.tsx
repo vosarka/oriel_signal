@@ -212,10 +212,10 @@ const sections = [
           "Facet D — Transpersonal: Beyond the individual. Siddhi frequency.",
         ],
       },
-      { type: "h3" as const, text: "9 Centers" },
+      { type: "h3" as const, text: "8 Tetradic Centers" },
       {
         type: "p" as const,
-        text: "Nine energy nexuses define how you process experience: Crown, Ajna, Throat, G-Center, Ego/Heart, Solar Plexus, Sacral, Spleen, and Root. When Centers are connected by active Resonance Links (Channels), they determine your fundamental type.",
+        text: "Eight regulatory centers (Origin, Mental, Collapse, Saturation, Bridge, Becoming, Return, Omega) distribute the 64 codons with perfect symmetry — eight codons per center. When centers are connected by active Resonance Links, they determine your fundamental type.",
       },
       { type: "h3" as const, text: "Four Types" },
       {
@@ -243,7 +243,7 @@ const sections = [
       },
       {
         type: "p" as const,
-        text: "The Shadow Loudness Index (SLI) measures how strongly your shadow frequencies are distorting your signal in real time: SLI = Planet Weight × User Distortion. High SLI means the shadow is loud — severe interference. Low SLI means the channel is clearing.",
+        text: "The Shadow Loudness Index (SLI) measures how loudly shadow frequencies interfere across your Prime Stack in real time: SLI = planetary weight × state amplifier × facet amplitude. High SLI means louder interference. Low SLI means the channel is clearing.",
       },
     ],
   },

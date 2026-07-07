@@ -1,3 +1,22 @@
+---
+id: source-consciousness-lattice-v2
+type: source
+status: stable
+tags: [consciousness-lattice, v2, vtrs, engineering-canon, platform-architecture]
+last_updated: 2026-07-07
+sources: 1
+importance: critical
+aliases: ["Consciousness Lattice v2.0", "Platform Architecture & Design Specification v2.0", "Unified System Specification v2"]
+---
+
+# Source: Consciousness Lattice — Unified System Specification v2.0
+
+**Provenance:** `shared/new/Platform Architecture & Design Specification_ The Consciousness Lattice (v2.0).pdf`  
+**Format:** Full specification export (see body below)  
+**Role:** Active engineering canon for VTRS (8 centers / 32 links). Supersedes v1 center/link architecture only.
+
+---
+
 # VOS ARKANA
 
 # CONSCIOUSNESS LATTICE

@@ -1,6 +1,9 @@
 /**
  * VOSSARI RESONANCE CODEX v1.5 - ORIEL KNOWLEDGE BASE
  *
+ * @deprecated Legacy runtime codon/link tables. Prefer `vrc-codon-library.ts` and
+ * `vrc-mandala.ts` (VTRS v2). Still used only by guarded `rgp-engine.ts` (legacy).
+ *
  * This file contains the complete Vossari Resonance Codex as structured data
  * for ORIEL to reference during diagnostic readings and evolutionary assistance.
  *
