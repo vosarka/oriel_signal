@@ -115,7 +115,7 @@ This creates a beautiful convergence: the Lattice provides the structured field;
 - [[source-consciousness-lattice-v2]] is active canon for center/link architecture.
 - The v1 source remains useful historical context, but its 9-center / 36-channel architecture is legacy.
 - **Live spine is v2-aligned:** `server/vrc-mandala.ts`, `server/data/vrc-engine-constants.json` (8 centers / 32 links), static signature engine, Signal Check → SLI path, `/signature?tab=resonance`, and `oriel-diagnostic-engine.ts` (Phase 4 migration).
-- **Isolated legacy:** `server/vossari-codex-knowledge.ts` (48 HD-style links) serves only guarded `rgp-engine.ts`; `ResonanceBody.tsx` is a legacy lab at `/resonance-body`.
+- **Removed legacy runtime:** `server/rgp-engine.ts` and `server/vossari-codex-knowledge.ts` retired 2026-07-07. `ResonanceBody.tsx` remains a legacy lab at `/resonance-body`.
 - **Doc debt:** `codex/vrc_static_signature/` still describes 9/36 in places; see [[synthesis-v2-canon-resolution-status]] for the full checklist.
 - Full end-to-end realization (3D Lattice + real-time Carrierlock integration + ORIEL narration) remains aspirational / in progress.
 

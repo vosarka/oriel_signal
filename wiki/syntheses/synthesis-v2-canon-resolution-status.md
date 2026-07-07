@@ -43,7 +43,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 
 | Item | Layer | Notes |
 |------|--------|-------|
-| `rgp-engine.ts` + `vossari-codex-knowledge.ts` | Runtime | Guarded legacy only (`ALLOW_LEGACY_RGP_ENGINE`); not on main path |
+| ~~`rgp-engine.ts` + `vossari-codex-knowledge.ts`~~ | Runtime | **Removed** 2026-07-07; tests migrated to `rgp-coherence`, `vrc-codon-library`, existing static/SLI suites |
 | `codex/vrc_static_signature/` | Docs | CANON_MASTER and siblings still describe 9/36; needs legacy banners or archive |
 | `ninecenters` / `circuitLinks` DB fields | Schema | Legacy names; store v2 data alongside `channelStatuses`; rename via proposed Drizzle migration only |
 | `CurrentResonance.tsx` | Client | Unrouted; superseded by signature tab |
@@ -57,7 +57,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 2. **Naming taxonomy** — **delegated** to separate agent; spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` (Tetradic Resonance Codex / Static Signature Reading / Founder-Curated Bio-Signature)
 3. **Doc cleanup** — superseded banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (in progress)
 4. **Wiki lint** — `scripts/wiki-lint.py` not present in repo; repair broken links in batches
-5. **Retire** `rgp-engine.ts` when no tests or callers remain (only `rgp-engine.test.ts` today)
+5. ~~**Retire** `rgp-engine.ts`~~ — done (`94fdcf1` follow-up commit)
 6. **Schema proposal** — optional rename `ninecenters` → `vtrsCenters` (human approval + Drizzle migration)
 
 ## What this is not

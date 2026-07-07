@@ -1221,6 +1221,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Handoff spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` — not mixed with engine cleanup.
 - Updated [[synthesis-v2-canon-resolution-status]] next steps.
 
+## [2026-07-07] cleanup | Retire legacy rgp-engine + vossari-codex-knowledge
+- Deleted `server/rgp-engine.ts` and `server/vossari-codex-knowledge.ts` (no production callers; only legacy test suite).
+- Added `server/rgp-coherence.test.ts` and `server/vrc-codon-library.test.ts`; static/SLI coverage remains in `rgp-static-signature-engine.test.ts` and `rgp-256-codon-engine.test.ts`.
+- Updated [[synthesis-v2-canon-resolution-status]] and [[entity-consciousness-lattice]].
+
 ## [2026-07-07] cleanup | v2 doc debt (partial)
 - Legacy banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (9/36 superseded by VTRS 8/32).
 - `docs/PLATFORM_STRUCTURE_DEFINITIVE.md` Concept 1 updated to 8/32 + `/signature` tabs.
