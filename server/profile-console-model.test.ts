@@ -74,4 +74,27 @@ describe("profile-console-model", () => {
       { id: "signal", label: "Current Signal", value: "Live", tone: "teal" },
     ]);
   });
+
+  it("keeps invalid and missing data quiet", () => {
+    expect(formatProfileDate("bad-date")).toBe("Awaiting signal");
+    expect(buildProfileStats(null).map(stat => stat.value)).toEqual([
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+    ]);
+    expect(
+      buildProfileGraphNodes({
+        identity: { hasStaticSignature: false },
+        counts: {
+          lumens: 0,
+          readingCount: 0,
+          transmissionsReadCount: 0,
+          interactionCount: 0,
+          acceptedMemoryCount: 0,
+        },
+      }).find(node => node.id === "signature")?.value
+    ).toBe("Awaiting");
+  });
 });
