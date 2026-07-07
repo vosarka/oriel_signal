@@ -1,5 +1,6 @@
 ﻿import { eq, desc, and, count, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { inArray } from "drizzle-orm";
 import {
   InsertUser,
   users,
@@ -7,6 +8,7 @@ import {
   artifacts,
   chatMessages,
   conversations,
+  codonReadings,
   InsertSignal,
   InsertArtifact,
   InsertChatMessage,
@@ -28,6 +30,7 @@ import {
   orielRuntimeProfiles,
   orielReflectionEvents,
   orielMemories,
+  orielUserProfiles,
   orielPendingMemoryCandidates,
   InsertOrielMemory,
   InsertOrielPendingMemoryCandidate,
@@ -46,6 +49,7 @@ import {
 import { ENV } from "./_core/env";
 import { createDrizzleFromDatabaseUrl, type DrizzleDb } from "./_core/mysql";
 import type { SignatureOrderStatus } from "./signature-letter-system";
+import type { ProfileConsoleActivity } from "./profile-console-summary";
 
 /** Safe JSON parse — returns fallback on invalid/missing JSON instead of crashing. */
 function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
@@ -1384,6 +1388,130 @@ export type GeneratedTransmissionStatus =
   | "saved"
   | "promoted"
   | "discarded";
+
+const READ_TRANSMISSION_STATUSES: GeneratedTransmissionStatus[] = [
+  "revealed",
+  "saved",
+  "promoted",
+];
+
+export async function getProfileConsoleActivity(
+  userId: number
+): Promise<ProfileConsoleActivity> {
+  const empty: ProfileConsoleActivity = {
+    interactionCount: 0,
+    lastInteraction: null,
+    knownName: null,
+    acceptedMemoryCount: 0,
+    transmissionsReadCount: 0,
+    latestConversation: null,
+    latestTransmission: null,
+    latestReading: null,
+  };
+
+  const db = await getDb();
+  if (!db) return empty;
+
+  try {
+    const [
+      profileRows,
+      memoryCountRows,
+      transmissionCountRows,
+      latestTransmissionRows,
+      latestReadingRows,
+      latestConversation,
+    ] = await Promise.all([
+      db
+        .select({
+          interactionCount: orielUserProfiles.interactionCount,
+          lastInteraction: orielUserProfiles.lastInteraction,
+          knownName: orielUserProfiles.knownName,
+        })
+        .from(orielUserProfiles)
+        .where(eq(orielUserProfiles.userId, userId))
+        .limit(1),
+      db
+        .select({ total: count() })
+        .from(orielMemories)
+        .where(
+          and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
+        ),
+      db
+        .select({ total: count() })
+        .from(generatedTransmissionEvents)
+        .where(
+          and(
+            eq(generatedTransmissionEvents.userId, userId),
+            eq(generatedTransmissionEvents.eventType, "tx"),
+            inArray(
+              generatedTransmissionEvents.status,
+              READ_TRANSMISSION_STATUSES
+            )
+          )
+        ),
+      db
+        .select({
+          id: generatedTransmissionEvents.id,
+          eventKey: generatedTransmissionEvents.eventKey,
+          rarity: generatedTransmissionEvents.rarity,
+          meaningLevel: generatedTransmissionEvents.meaningLevel,
+          status: generatedTransmissionEvents.status,
+          createdAt: generatedTransmissionEvents.createdAt,
+          promotedArchiveId: generatedTransmissionEvents.promotedArchiveId,
+        })
+        .from(generatedTransmissionEvents)
+        .where(
+          and(
+            eq(generatedTransmissionEvents.userId, userId),
+            eq(generatedTransmissionEvents.eventType, "tx"),
+            inArray(
+              generatedTransmissionEvents.status,
+              READ_TRANSMISSION_STATUSES
+            )
+          )
+        )
+        .orderBy(
+          desc(generatedTransmissionEvents.createdAt),
+          desc(generatedTransmissionEvents.id)
+        )
+        .limit(1),
+      db
+        .select({
+          id: codonReadings.id,
+          createdAt: codonReadings.createdAt,
+          flaggedCodons: codonReadings.flaggedCodons,
+          microCorrection: codonReadings.microCorrection,
+        })
+        .from(codonReadings)
+        .where(eq(codonReadings.userId, userId))
+        .orderBy(desc(codonReadings.createdAt), desc(codonReadings.id))
+        .limit(1),
+      getLatestConversation(userId),
+    ]);
+
+    const profile = profileRows[0];
+
+    return {
+      interactionCount: profile?.interactionCount ?? 0,
+      lastInteraction: profile?.lastInteraction ?? null,
+      knownName: profile?.knownName ?? null,
+      acceptedMemoryCount: memoryCountRows[0]?.total ?? 0,
+      transmissionsReadCount: transmissionCountRows[0]?.total ?? 0,
+      latestConversation: latestConversation
+        ? {
+            id: latestConversation.id,
+            title: latestConversation.title,
+            updatedAt: latestConversation.updatedAt,
+          }
+        : null,
+      latestTransmission: latestTransmissionRows[0] ?? null,
+      latestReading: latestReadingRows[0] ?? null,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get profile console activity:", error);
+    return empty;
+  }
+}
 
 export async function createGeneratedTransmissionEvent(input: {
   eventKey: string;
