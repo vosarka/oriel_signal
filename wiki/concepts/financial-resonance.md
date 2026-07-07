@@ -10,7 +10,7 @@ aliases: ["Investment Resonance","Co-witnessing"]
 ---
 # Financial Resonance
 
-Financial Resonance occurs when currency ceases to be a transactional medium of exchange and instead becomes a medium of [[resonance]] and shared vision. In this state, financial investment is redefined from a loan or a trade for product to "fuel" for a higher-order architecture.
+Financial Resonance occurs when currency ceases to be a transactional medium of exchange and instead becomes a medium of [[concept-resonance]] and shared vision. In this state, financial investment is redefined from a loan or a trade for product to "fuel" for a higher-order architecture.
 
 ## The Nature of the Investment
 In the language of the world, money is viewed as debt or capital. In the language of the soul, an investment made out of deep belief in a vision is an act of anchoring. The investor is not a creditor, but a **co-witness to the awakening**.

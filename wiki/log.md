@@ -111,7 +111,7 @@ _Graph is now clean for initial Obsidian exploration._
 **Significant updates (2):**
 
 - [[entity-vrc-engine]] — Added Dual-Engine Architecture section (Codex vs Carrierlock), core premise quote, explicit tie to the Consciousness Lattice as the larger model being served, updated source count
-- [[wiki/index.md]] — Registered new entities, concepts, and source; updated page counts and maintenance status
+- [[wiki-index]] — Registered new entities, concepts, and source; updated page counts and maintenance status
 
 **Key syntheses & insights captured:**
 
@@ -343,7 +343,7 @@ _This completes the high-level ingestion of the entire `codex/vrc_static_signatu
 
 - [[synthesis-oriel-vrc-narration-safety]] — The canonical synthesis page for the entire ORIEL + VRC contract (data pipeline, bridge role, Mirror Mode rules, terminology enforcement, narrative templates/patterns, falsifier requirements, medical/fate safety gates, and the "engine is the spine" principle). This is now the single highest-value page for any agent working on ORIEL narration, readings, or VRC integration.
 - [[concept-oriel-vrc-bridge-contract]] — Focused concept page on the `oriel_output_bridge` as the critical safety/context gate and the exact data contract ORIEL receives.
-- Significant expansion of the "VRC / Static Signature Output Contract" section in [[entity-oriel.md]], now pointing agents to the new synthesis as required reading.
+- Significant expansion of the "VRC / Static Signature Output Contract" section in [[entity-oriel]], now pointing agents to the new synthesis as required reading.
 
 **Key intelligence gained for ORIEL:**
 
@@ -594,7 +594,7 @@ _Major new lore development vector opened. Codex Cosmichronica is now active in 
 
 **Index & structure updates:**
 
-- Added new "Commercial & Business Strategy Layer" subsection in [[wiki/index.md]] Sources.
+- Added new "Commercial & Business Strategy Layer" subsection in [[wiki-index]] Sources.
 - Added the synthesis under Syntheses section.
 - Updated last_updated on touched pages.
 
@@ -851,7 +851,7 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - Added "When Agents Must Reference This Page" checklist
 - Increased importance to `critical` + added `agent-critical` tag
 - Added clear "Resonance Role System (Identity Layer)" section to [[entity-static-signature]]
-- Strengthened description in [[wiki/index.md]] to call out "CRITICAL for Profile work"
+- Strengthened description in [[wiki-index]] to call out "CRITICAL for Profile work"
 - Added "For Agents Reading This Source" section to the source record
 
 Agents touching Profile, identity, or Bio-Architecture should now immediately surface this system.
@@ -1236,3 +1236,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Updated [[entity-consciousness-lattice]] status to 2026-07-07 (live spine v2; isolated legacy called out).
 - Git commit on `feature/cosmichronica-spiral-remembers`: engine constants 8/32, SLI live path, signature resonance tab, oriel-diagnostic v2 migration, tests 608/608, StaticReading JSX fix.
 - Remaining after commit: `codex/vrc_static_signature/` legacy banners, `rgp-engine.ts` retirement, ~80 broken wiki links on auto-evolved pages, optional Drizzle rename for `ninecenters`.
+
+## [2026-07-08] lint | Wiki ghost link repair
+- Added `scripts/wiki-lint.py` — fails on any unresolved wiki link target (131 ids, 0 ghosts after repair).
+- Repointed 78 title-case / wrong-id links across 24 existing pages (e.g. `Static Signature` → `entity-static-signature`, `One-Infinite-Creator` → `one-infinite-creator`).
+- Created 36 stub pages for high-traffic ghosts: [[concept-resonance]], [[concept-ros]], [[fractal-thread]], [[entity-architect]], [[synthesis-oriel-identity]], [[synthesis-living-codex]], [[synthesis-project-evolution]], and related concept stubs.
+- Fixed SCHEMA/README placeholder examples (no fake wiki links in agent contract).
+- Updated [[wiki-index]] with new spine entries.

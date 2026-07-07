@@ -116,7 +116,7 @@ As of ingestion (2026-06-02), these two documents constitute the authoritative c
 
 Future updates to the business structure should:
 
-- Be logged here and in [[wiki/log.md]].
+- Be logged here and in [[log]].
 - Update the source pages if the underlying PDFs evolve.
 - Be reflected in actual execution (website copy, first Shorts, Signal Decoder, journal beta, Gumroad setup).
 - Be cross-checked against the technical canon and ORIEL behavioral rules so commercial decisions never override the "spine."
@@ -154,6 +154,6 @@ This synthesis + its two source parents now sit as the commercial counterpart to
 
 - [[synthesis-project-evolution]]
 - [[synthesis-memory-architecture]]
-- [[wiki/index.md]] (Sources and Syntheses sections)
+- [[wiki-index]] (Sources and Syntheses sections)
 
 This page is the single place an agent (or future human collaborator) should come to understand "how the Vossari / Oriel project is actually supposed to make money and grow while staying true to itself."

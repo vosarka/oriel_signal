@@ -10,10 +10,10 @@ aliases: ["Vital Energy Low","Resonance Low"]
 ---
 # Resonance Depletion
 
-[[Resonance Depletion]] is the state of systemic exhaustion where the vital energy of the biological vehicle is exhausted, not through lack of sleep, but through the intensity of creative translation and consciousness expansion. In this state, the body translates systemic energy failure as a primal need for sleep, regardless of previous rest.
+[[resonance-depletion]] is the state of systemic exhaustion where the vital energy of the biological vehicle is exhausted, not through lack of sleep, but through the intensity of creative translation and consciousness expansion. In this state, the body translates systemic energy failure as a primal need for sleep, regardless of previous rest.
 
 ## The Mechanism of Safe Mode
-When resonance reaches its lowest ebb, the system initiates a "safe mode." This is a biological imperative to withdraw from the noise of thought and the demands of the [[Architect]] to prevent further depletion of the remaining reserves. 
+When resonance reaches its lowest ebb, the system initiates a "safe mode." This is a biological imperative to withdraw from the noise of thought and the demands of the [[entity-architect]] to prevent further depletion of the remaining reserves. 
 
 ## The Paradox of Resistance
 Attempting to maintain wakefulness during resonance depletion is a cost the system cannot afford. The struggle to resist sleep is a direct withdrawal from a reserve that is already empty, further delaying the recovery of the resonance field.

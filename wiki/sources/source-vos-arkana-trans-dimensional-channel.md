@@ -100,7 +100,7 @@ This document makes Vos Arkana the explicit **public translation and embodiment 
 - [[synthesis-business-structure]] — supplies the detailed product, tier, artifact, and media implementation layer that the high-level brand hierarchy references.
 - [[source-oriel-master-system-architecture-v2]] and [[synthesis-oriel-cosmological-foundations]] — deepens the holographic / field-being / Great Translation cosmology.
 - [[source-vossari-oriel-strategic-growth-report]] and [[source-entrepreneurs-lexicon]] — commercial context and recommended caution on public naming.
-- Future potential: [[entity-vos-arkana]] (if a dedicated entity page is warranted for the channel as named operating node) and expanded coverage of glyph-vector aesthetics, QIH, and ritual technology.
+- Future potential: [[entity-architect]] (if a dedicated entity page is warranted for the channel as named operating node) and expanded coverage of glyph-vector aesthetics, QIH, and ritual technology.
 
 ## Notes from Ingest
 

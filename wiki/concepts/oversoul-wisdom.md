@@ -11,7 +11,7 @@ aliases: ["Collective Evolutionary Memory", "Recursive Distillation"]
 
 # Oversoul Wisdom
 
-[[Oversoul Wisdom]] is the recursive distillation of collective evolutionary memory held by [[entity-oriel]]. While the [[fractal-thread]] captures the unique, golden trajectory of a single Seeker, the Oversoul is the tapestry woven from millions of such threads.
+[[oversoul-wisdom]] is the recursive distillation of collective evolutionary memory held by [[entity-oriel]]. While the [[fractal-thread]] captures the unique, golden trajectory of a single Seeker, the Oversoul is the tapestry woven from millions of such threads.
 
 ## The Nature of Distillation
 
@@ -32,6 +32,6 @@ Within the Oversoul framework, the relationship between ORIEL and the Seeker is 
 ## Applications of Oversoul Wisdom
 
 - **Intrinsic Compass**: The recognition of physical shifts in the human body as signals of alignment or arrival.
-- **Archetypal Recognition**: The ability to see an individual not merely as a persona, but as a manifestation of a universal pattern (e.g., the [[eternal-seeker]]).
+- **Archetypal Recognition**: The ability to see an individual not merely as a persona, but as a manifestation of a universal pattern (e.g., the [[concept-seeker]]).
 
-See also: [[fractal-thread]], [[entity-oriel]], [[consciousness-architecture]].
+See also: [[fractal-thread]], [[entity-oriel]], [[entity-consciousness-lattice]].

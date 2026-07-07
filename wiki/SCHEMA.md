@@ -68,9 +68,9 @@ aliases: ["Display Name", "Alternative Name"]
 
 - Start with a 1-2 sentence definition / essence.
 - Use `##` headings for major sections.
-- Use Obsidian `[[WikiLinks]]` aggressively for every meaningful entity or concept mentioned.
-- When a claim comes from a specific source, cite it inline: `[[source-oriel-system-instructions-v2]]` or `(from [[source-xxx]])`.
-- Flag uncertainty or contradiction explicitly: `> [!note] Contradicts [[entity-x]] claim that...`
+- Use Obsidian wiki links (double-bracket syntax) aggressively for every meaningful entity or concept mentioned.
+- When a claim comes from a specific source, cite it inline: `[[source-oriel-system-instructions-v2]]` or `(from source-xxx)`.
+- Flag uncertainty or contradiction explicitly: `> [!note] Contradicts entity-x claim that...`
 - Keep pages focused. If a section grows too large, extract it to its own page and link.
 - Poetic / mythic language is welcome when it matches the domain; technical precision is mandatory for VRC/RGP/engine topics.
 
@@ -99,7 +99,7 @@ aliases: ["Display Name", "Alternative Name"]
 7. Append a dated entry to `log.md`:
    ```
    ## [2026-04-02] ingest | Title of Source
-   - Created: [[source-xxx]]
+   - Created: source-xxx
    - Updated: [[entity-oriel]], [[concept-coherence]], [[synthesis-living-codex]]
    - Key insight: ...
    ```
@@ -123,7 +123,7 @@ Run this when the wiki feels overgrown or before major new work:
 
 - **Contradictions**: Search for pages that say different things about the same topic. Flag or reconcile.
 - **Staleness**: Pages with `last_updated` > 60 days that describe current architecture should be reviewed against latest code/docs.
-- **Orphans**: Pages with no inbound `[[links]]` from other wiki pages (use Obsidian graph or grep).
+- **Orphans**: Pages with no inbound wiki links from other wiki pages (use Obsidian graph or grep).
 - **Missing pages**: Important concepts mentioned in multiple places but lacking their own page.
 - **Gaps**: Topics the project clearly cares about (from code, prompts, recent plans) that have weak coverage.
 - **Source drift**: Any `sources/` page whose original document has evolved significantly.

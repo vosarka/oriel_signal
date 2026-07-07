@@ -48,7 +48,7 @@ This source was foundational for:
 
 ## Relationship to Current Canon Authority
 
-Per [[docs/ORIEL_CANON_REVIEW.md]] (ingested as context):
+Per `docs/ORIEL_CANON_REVIEW.md` (ingested as context):
 
 - This file is now classified as **historical reference**.
 - Active authority lives in the stable core (`shared/oriel/stable-core/*.ts`) + canonical source compiler.

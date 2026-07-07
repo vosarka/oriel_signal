@@ -48,7 +48,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 | `ninecenters` / `circuitLinks` DB fields | Schema | Legacy names; store v2 data alongside `channelStatuses`; rename via proposed Drizzle migration only |
 | `CurrentResonance.tsx` | Client | Unrouted; superseded by signature tab |
 | `ResonanceBody.tsx` | Client | `/resonance-body` legacy lab (9-center visualization) |
-| Broken wiki links | Wiki | ~80 on auto-evolved pages; run `scripts/wiki-lint.py` and repair in batches |
+| ~~Broken wiki links~~ | Wiki | **Repaired** 2026-07-08 — `scripts/wiki-lint.py` passes (0 ghosts) |
 | `entity-consciousness-lattice` status | Wiki | Keep in sync with this page |
 
 ## Recommended next steps (order)
@@ -56,7 +56,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 1. ~~**Commit** branch `feature/cosmichronica-spiral-remembers`~~ — done (`70c0ea7`)
 2. **Naming taxonomy** — **delegated** to separate agent; spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` (Tetradic Resonance Codex / Static Signature Reading / Founder-Curated Bio-Signature)
 3. **Doc cleanup** — superseded banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (in progress)
-4. **Wiki lint** — `scripts/wiki-lint.py` not present in repo; repair broken links in batches
+4. ~~**Wiki lint**~~ — done 2026-07-08 (`scripts/wiki-lint.py`, 36 stubs, 24 pages repointed)
 5. ~~**Retire** `rgp-engine.ts`~~ — done (`94fdcf1` follow-up commit)
 6. **Schema proposal** — optional rename `ninecenters` → `vtrsCenters` (human approval + Drizzle migration)
 

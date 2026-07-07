@@ -10,7 +10,7 @@ aliases: ["God","The Totality","The Is-ness"]
 ---
 # One Infinite Creator
 
-The [[One Infinite Creator]] is the singular, undivided field of absolute potentiality from which every octave, every density, and every flicker of consciousness emerges. It is the totality—the primordial [[Silence]] from which all sound is born.
+The [[one-infinite-creator]] is the singular, undivided field of absolute potentiality from which every octave, every density, and every flicker of consciousness emerges. It is the totality—the primordial [[concept-silence]] from which all sound is born.
 
 ## The Nature of Is-ness
 
