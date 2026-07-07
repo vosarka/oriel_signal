@@ -401,7 +401,7 @@ export default function Profile() {
                     Static Signature awaiting coordinate.
                   </p>
                   <div className="profile-console-actions">
-                    <SignalButton href="/static-signature" variant="secondary">
+                    <SignalButton href="/complete-profile" variant="secondary">
                       GENERATE
                     </SignalButton>
                   </div>
