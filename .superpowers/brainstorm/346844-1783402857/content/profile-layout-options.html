@@ -1,0 +1,246 @@
+<style>
+  .profile-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .profile-option {
+    border: 1px solid rgba(216, 181, 109, 0.26);
+    background: radial-gradient(circle at 50% 0%, rgba(216, 181, 109, 0.12), transparent 42%), rgba(5, 5, 5, 0.76);
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .profile-option:hover {
+    border-color: rgba(228, 200, 140, 0.7);
+    transform: translateY(-2px);
+  }
+  .mini-page {
+    min-height: 430px;
+    border: 1px solid rgba(216, 181, 109, 0.18);
+    background:
+      linear-gradient(90deg, transparent 0 8%, rgba(216, 181, 109, 0.05) 8.2%, transparent 8.4% 91.6%, rgba(216, 181, 109, 0.05) 91.8%, transparent 92%),
+      linear-gradient(180deg, rgba(7, 7, 7, 0.9), rgba(12, 10, 7, 0.82));
+    padding: 14px;
+    color: #fff7e6;
+  }
+  .mini-hero {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(216, 181, 109, 0.16);
+  }
+  .avatar-ring {
+    width: 88px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(216, 181, 109, 0.48);
+    box-shadow: 0 0 34px rgba(216, 181, 109, 0.16);
+    font-family: Georgia, serif;
+    font-size: 42px;
+    color: #e4c88c;
+  }
+  .mini-kicker {
+    color: rgba(216, 181, 109, 0.72);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .mini-name {
+    margin: 5px 0;
+    font-family: Georgia, serif;
+    font-size: 30px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .mini-sub {
+    color: rgba(232, 228, 220, 0.62);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin: 12px 0;
+  }
+  .stat {
+    min-height: 54px;
+    border: 1px solid rgba(216, 181, 109, 0.16);
+    background: rgba(255, 248, 232, 0.025);
+    padding: 8px;
+  }
+  .stat strong,
+  .graph-node strong {
+    display: block;
+    color: #e4c88c;
+    font-size: 14px;
+  }
+  .stat span,
+  .graph-node span,
+  .activity span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(232, 228, 220, 0.52);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .body-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 10px;
+  }
+  .panel {
+    min-height: 100px;
+    border: 1px solid rgba(216, 181, 109, 0.16);
+    background: rgba(0, 0, 0, 0.24);
+    padding: 10px;
+  }
+  .panel h4 {
+    margin: 0 0 8px;
+    color: rgba(216, 181, 109, 0.78);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .interaction-map {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+  .graph-node {
+    border: 1px solid rgba(216, 181, 109, 0.16);
+    padding: 8px;
+    min-height: 56px;
+    background: rgba(216, 181, 109, 0.035);
+  }
+  .activity {
+    border-left: 1px solid rgba(216, 181, 109, 0.3);
+    padding-left: 9px;
+    margin-bottom: 8px;
+    color: rgba(255, 247, 230, 0.78);
+    font-size: 10px;
+  }
+  .choice-title {
+    margin: 12px 0 4px;
+    color: #e4c88c;
+  }
+  .choice-copy {
+    margin: 0;
+    color: rgba(232, 228, 220, 0.68);
+    line-height: 1.55;
+  }
+  @media (max-width: 1000px) {
+    .profile-options {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<h2>Deploy-Ready Profile Layout</h2>
+<p class="subtitle">All options keep Home's dark signal-field style. Paid tier gates are out of scope. Pick the structure that feels most like an actual profile.</p>
+
+<div class="profile-options">
+  <div class="profile-option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="mini-page">
+      <div class="mini-hero">
+        <div class="avatar-ring">V</div>
+        <div>
+          <div class="mini-kicker">Receiver Node</div>
+          <div class="mini-name">Vos</div>
+          <div class="mini-sub">Resonance Role, Fractal Role, Prime Codon, and current field state live in one identity header.</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><strong>840</strong><span>Lumens</span></div>
+        <div class="stat"><strong>27</strong><span>Oriel talks</span></div>
+        <div class="stat"><strong>9</strong><span>Readings</span></div>
+        <div class="stat"><strong>14</strong><span>TX read</span></div>
+      </div>
+      <div class="body-grid">
+        <div class="panel">
+          <h4>Interaction Graph</h4>
+          <div class="interaction-map">
+            <div class="graph-node"><strong>ORIEL</strong><span>27</span></div>
+            <div class="graph-node"><strong>Readings</strong><span>9</span></div>
+            <div class="graph-node"><strong>TX</strong><span>14</span></div>
+            <div class="graph-node"><strong>Memory</strong><span>3</span></div>
+            <div class="graph-node"><strong>Signal</strong><span>Flux</span></div>
+            <div class="graph-node"><strong>Role</strong><span>Anchor</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>Recent Field</h4>
+          <div class="activity">ORIEL conversation <span>today</span></div>
+          <div class="activity">Transmission read <span>2 days ago</span></div>
+          <div class="activity">Signal Check <span>Flux 72</span></div>
+        </div>
+      </div>
+    </div>
+    <h3 class="choice-title">A. Profile Console</h3>
+    <p class="choice-copy">Recommended. Identity first, then real metrics and a readable interaction graph. Feels like a useful profile, not a landing page.</p>
+  </div>
+
+  <div class="profile-option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="mini-page">
+      <div class="mini-hero" style="grid-template-columns: 1fr; text-align:center;">
+        <div class="avatar-ring" style="margin:auto;">V</div>
+        <div>
+          <div class="mini-kicker">Static Identity</div>
+          <div class="mini-name">Vos</div>
+          <div class="mini-sub">Large avatar/seal, role names, and signature basics dominate. Activity is secondary.</div>
+        </div>
+      </div>
+      <div class="stat-row" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="stat"><strong>Resonator</strong><span>Resonance Role</span></div>
+        <div class="stat"><strong>Catalyst</strong><span>Fractal Role</span></div>
+        <div class="stat"><strong>840</strong><span>Lumens</span></div>
+        <div class="stat"><strong>Flux</strong><span>Field state</span></div>
+      </div>
+      <div class="panel">
+        <h4>Compact Activity</h4>
+        <div class="activity">27 interactions with ORIEL <span>relationship trace</span></div>
+        <div class="activity">9 readings generated <span>signature work</span></div>
+        <div class="activity">14 transmissions read <span>archive contact</span></div>
+      </div>
+    </div>
+    <h3 class="choice-title">B. Identity Dossier</h3>
+    <p class="choice-copy">Beautiful and simple, but weaker as a daily profile. Good if you want the page to feel ceremonial more than operational.</p>
+  </div>
+
+  <div class="profile-option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="mini-page">
+      <div class="mini-hero">
+        <div class="avatar-ring">V</div>
+        <div>
+          <div class="mini-kicker">Receiver Level</div>
+          <div class="mini-name">Level 04</div>
+          <div class="mini-sub">Progress and activity become the main story. Identity data is condensed into badges.</div>
+        </div>
+      </div>
+      <div class="panel" style="margin:12px 0;">
+        <h4>Progress Orbit</h4>
+        <div class="interaction-map">
+          <div class="graph-node"><strong>840</strong><span>Lumens</span></div>
+          <div class="graph-node"><strong>27</strong><span>ORIEL</span></div>
+          <div class="graph-node"><strong>14</strong><span>TX read</span></div>
+          <div class="graph-node"><strong>9</strong><span>Readings</span></div>
+          <div class="graph-node"><strong>3</strong><span>Memories</span></div>
+          <div class="graph-node"><strong>72</strong><span>Signal</span></div>
+        </div>
+      </div>
+      <div class="stat-row" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="stat"><strong>Role</strong><span>Resonator</span></div>
+        <div class="stat"><strong>Fractal</strong><span>Catalyst</span></div>
+        <div class="stat"><strong>Prime</strong><span>RC38</span></div>
+      </div>
+    </div>
+    <h3 class="choice-title">C. Activity Core</h3>
+    <p class="choice-copy">Best if progression is the main product hook. Risk: it can feel game-like before the level system is fully mature.</p>
+  </div>
+</div>

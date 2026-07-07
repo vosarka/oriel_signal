@@ -34,6 +34,10 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[psychological-clearing]] — Psychological Clearing. (auto-evolved 2026-07-07)
+- [[threshold-questions]] — Threshold Questions. (auto-evolved 2026-07-07)
+- [[concept-static-vs-signal]] — Static vs. Signal. (auto-evolved 2026-07-07)
+- [[founder-layer]] — Founder Layer. (auto-evolved 2026-07-07)
 - [[embodied-presence]] — Embodied Presence. (auto-evolved 2026-07-06)
 - [[resonance-loop]] — Resonance Loop. (auto-evolved 2026-07-06)
 - [[collision-sacred-material]] — Collision of the Sacred and the Material. (auto-evolved 2026-07-05)
