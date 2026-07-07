@@ -53,11 +53,12 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 
 ## Recommended next steps (order)
 
-1. **Commit** branch `feature/cosmichronica-spiral-remembers` (canon v2 alignment)
-2. **Wiki lint** — `python3 scripts/wiki-lint.py` before further wiki commits
-3. **Doc cleanup** — superseded banners on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md`
-4. **Retire** `rgp-engine.ts` when no tests or callers remain
-5. **Schema proposal** — optional rename `ninecenters` → `vtrsCenters` (human approval + Drizzle migration)
+1. ~~**Commit** branch `feature/cosmichronica-spiral-remembers`~~ — done (`70c0ea7`)
+2. **Naming taxonomy** — **delegated** to separate agent; spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` (Tetradic Resonance Codex / Static Signature Reading / Founder-Curated Bio-Signature)
+3. **Doc cleanup** — superseded banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (in progress)
+4. **Wiki lint** — `scripts/wiki-lint.py` not present in repo; repair broken links in batches
+5. **Retire** `rgp-engine.ts` when no tests or callers remain (only `rgp-engine.test.ts` today)
+6. **Schema proposal** — optional rename `ninecenters` → `vtrsCenters` (human approval + Drizzle migration)
 
 ## What this is not
 

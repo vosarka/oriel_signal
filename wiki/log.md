@@ -1216,6 +1216,16 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Phase 3: `Protocol.tsx` updated to 8 centers + corrected SLI formula; `ResonanceBody.tsx` marked legacy lab.
 - SLI verdict: backend calculation was already live; user path was broken. Signal Check is now the canonical SLI trigger for authenticated receivers with a static profile.
 
+## [2026-07-07] handoff | Naming taxonomy → separate agent
+- User-approved public stack: **The Tetradic Resonance Codex** (system) / **Static Signature Reading** (personal) / **Founder-Curated Bio-Signature** (paid, tagline: personal interpretation of Tetradic resonance pattern).
+- Handoff spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` — not mixed with engine cleanup.
+- Updated [[synthesis-v2-canon-resolution-status]] next steps.
+
+## [2026-07-07] cleanup | v2 doc debt (partial)
+- Legacy banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (9/36 superseded by VTRS 8/32).
+- `docs/PLATFORM_STRUCTURE_DEFINITIVE.md` Concept 1 updated to 8/32 + `/signature` tabs.
+- `client/src/pages/CurrentResonance.tsx` marked superseded (unrouted).
+
 ## [2026-07-07] commit | Canon v2 alignment (phases 0–4) + status synthesis
 - Created [[synthesis-v2-canon-resolution-status]] — single living checklist for completed work and remaining debt.
 - Updated [[entity-consciousness-lattice]] status to 2026-07-07 (live spine v2; isolated legacy called out).
