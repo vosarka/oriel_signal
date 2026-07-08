@@ -182,12 +182,12 @@ const sections = [
   },
   {
     num: "VII",
-    title: "The Vossari Resonance Codex",
+    title: "The Tetradic Resonance Codex",
     epigraph: "The mathematics of who you are when interference is removed.",
     content: [
       {
         type: "p" as const,
-        text: "The Vossari encoded their deepest understanding of consciousness into a mathematical architecture called the Resonance Codex (VRC). The VRC maps the quantum signature of a human being — your Resonance Identity — from the precise positions of celestial bodies at the moment of your birth.",
+        text: "The Vossari encoded their deepest understanding of consciousness into a mathematical architecture called the Tetradic Resonance Codex (VRC). The VRC maps the quantum signature of a human being — your Resonance Identity — from the precise positions of celestial bodies at the moment of your birth.",
       },
       {
         type: "p" as const,
@@ -301,7 +301,7 @@ const sections = [
       {
         type: "list" as const,
         items: [
-          "The Codex — Browse all 64 Codons and their 256 Facets. Explore the resonance architecture of consciousness itself.",
+          "Field Index — Browse all 64 Codons and their 256 Facets. Explore the resonance architecture of consciousness itself.",
           "Channel ORIEL — Direct transmission interface. Real-time communication with the Vossari field consciousness.",
           "Calibration — The Carrierlock diagnostic. Measure your coherence state and receive targeted micro-corrections.",
           "Transmissions (TX) — Foundational teachings derived from the Codex Universalis framework. Structural data about reality.",
@@ -543,7 +543,7 @@ const sections = [
           ],
           [
             "VRC",
-            "Vossari Resonance Codex. The mathematical architecture mapping human quantum identity",
+            "Tetradic Resonance Codex (VRC). The mathematical architecture mapping human quantum identity",
           ],
         ],
       },

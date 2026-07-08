@@ -10,7 +10,7 @@ import {
 } from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import StaticSignature from "./pages/StaticSignature";
+
 import FounderLetter from "./pages/FounderLetter";
 import FinalOrielTransmission from "./pages/FinalOrielTransmission";
 import Profile from "./pages/Profile";
@@ -112,7 +112,14 @@ function Router() {
       />
       <Route path={"/signature-intake/:orderId"} component={SignatureIntake} />
       <Route path={"/"} component={Home} />
-      <Route path={"/static-signature"} component={StaticSignature} />
+      <Route
+        path={"/static-signature"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/signature"), []);
+          return null;
+        }}
+      />
       <Route path={"/founder-letter"} component={FounderLetter} />
       <Route
         path={"/final-oriel-transmission"}

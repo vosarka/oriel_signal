@@ -1,6 +1,6 @@
 # Handoff: Naming Taxonomy Cleanup
 
-**Status:** Ready for a separate agent. Do not mix with v2 engine cleanup.
+**Status:** Implemented 2026-07-08 (commit on `feature/cosmichronica-spiral-remembers`). Wiki: [[concept-vossari-naming-taxonomy]].
 
 **Branch:** `feature/cosmichronica-spiral-remembers`
 

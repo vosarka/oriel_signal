@@ -228,7 +228,7 @@ export default function Codex() {
                 onClick={() => setLocation("/founder-signature-blueprint")}
                 className="codex-reading-button"
               >
-                REQUEST BLUEPRINT
+                FOUNDER-CURATED BIO-SIGNATURE
               </button>
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function Codex() {
                   gap: 12,
                 }}
               >
-                <Spinner size={24} label="Loading Codex" />
+                <Spinner size={24} label="Loading Field Index" />
                 <span
                   style={{
                     fontFamily: "var(--font-ritual)",
@@ -255,7 +255,7 @@ export default function Codex() {
                     letterSpacing: "0.2em",
                   }}
                 >
-                  LOADING CODEX…
+                  LOADING FIELD INDEX…
                 </span>
               </div>
             ) : (

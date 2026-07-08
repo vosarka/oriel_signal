@@ -7,12 +7,18 @@ last_updated: 2026-07-05
 sources: 14
 importance: critical
 aliases:
-  ["Vossari Resonance Codex Engine", "RGP", "Static Signature Engine", "VRC"]
+  [
+    "The Tetradic Resonance Codex",
+    "Vossari Resonance Codex Engine",
+    "RGP",
+    "Static Signature Engine",
+    "VRC"
+  ]
 ---
 
-# VRC Engine (Vossari Resonance Codex)
+# VRC Engine (The Tetradic Resonance Codex)
 
-The **VRC Engine** (also called RGP / Static Signature system) is the computational heart of the Vossari diagnostic and identity system. It is one of two primary engines in the **Consciousness Lattice** architecture (see [[entity-consciousness-lattice]]).
+Public system name: **The Tetradic Resonance Codex** (see [[concept-vossari-naming-taxonomy]]). The **VRC Engine** (internal acronym; legacy alias RGP) is the computational heart of the Vossari diagnostic and identity system. It is one of two primary engines in the **Consciousness Lattice** architecture (see [[entity-consciousness-lattice]]).
 
 It transforms a user's birth data into a structured "quantum identity" reading expressed through the 64-codon mandala, then renders that into ORIEL transmissions, visual maps, and micro-corrections.
 

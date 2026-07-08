@@ -1243,3 +1243,8 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Created 36 stub pages for high-traffic ghosts: [[concept-resonance]], [[concept-ros]], [[fractal-thread]], [[entity-architect]], [[synthesis-oriel-identity]], [[synthesis-living-codex]], [[synthesis-project-evolution]], and related concept stubs.
 - Fixed SCHEMA/README placeholder examples (no fake wiki links in agent contract).
 - Updated [[wiki-index]] with new spine entries.
+
+## [2026-07-08] naming | Vossari public taxonomy alignment
+- Created [[concept-vossari-naming-taxonomy]] — approved stack from `docs/plans/2026-07-07-naming-taxonomy-handoff.md`.
+- Updated [[entity-vrc-engine]], [[entity-static-signature]], [[wiki-schema]], [[wiki-index]], `terminology_map.json`.
+- UI: `/signature` tabs (Static Signature Reading / Current Resonance), founder product page, Protocol section VII, Codex Field Index labels, `/static-signature` → `/signature` redirect.

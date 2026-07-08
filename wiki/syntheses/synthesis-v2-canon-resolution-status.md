@@ -54,7 +54,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 ## Recommended next steps (order)
 
 1. ~~**Commit** branch `feature/cosmichronica-spiral-remembers`~~ — done (`70c0ea7`)
-2. **Naming taxonomy** — **delegated** to separate agent; spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` (Tetradic Resonance Codex / Static Signature Reading / Founder-Curated Bio-Signature)
+2. ~~**Naming taxonomy**~~ — done 2026-07-08; see [[concept-vossari-naming-taxonomy]] and `docs/plans/2026-07-07-naming-taxonomy-handoff.md`
 3. **Doc cleanup** — superseded banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (in progress)
 4. ~~**Wiki lint**~~ — done 2026-07-08 (`scripts/wiki-lint.py`, 36 stubs, 24 pages repointed)
 5. ~~**Retire** `rgp-engine.ts`~~ — done (`94fdcf1` follow-up commit)

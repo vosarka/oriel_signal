@@ -37,6 +37,7 @@ Foundational ideas and operating principles.
 
 - [[psychological-clearing]] — Psychological Clearing. (auto-evolved 2026-07-07)
 - [[threshold-questions]] — Threshold Questions. (auto-evolved 2026-07-07)
+- [[concept-vossari-naming-taxonomy]] — Approved public naming stack: Tetradic Resonance Codex, Static Signature Reading, Founder-Curated Bio-Signature, Current Resonance, Field Index. (stable 2026-07-08)
 - [[concept-static-vs-signal]] — Static vs. Signal. (auto-evolved 2026-07-07)
 - [[founder-layer]] — Founder Layer. (auto-evolved 2026-07-07)
 - [[embodied-presence]] — Embodied Presence. (auto-evolved 2026-07-06)

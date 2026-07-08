@@ -1390,7 +1390,7 @@ export default function StaticReading() {
                 >
                   {signatureTab === "resonance"
                     ? "Current Resonance"
-                    : "ORIEL Static Signature"}
+                    : "Static Signature Reading"}
                 </h1>
                 <p
                   style={{
@@ -1458,7 +1458,7 @@ export default function StaticReading() {
             >
               {(
                 [
-                  ["static", "Static Blueprint"],
+                  ["static", "Static Signature Reading"],
                   ["resonance", "Current Resonance"],
                 ] as const
               ).map(([id, label]) => (

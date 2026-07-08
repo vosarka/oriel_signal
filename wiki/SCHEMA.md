@@ -133,7 +133,8 @@ After a lint, append a `## [date] lint` entry to the log with findings and actio
 ## 6. Domain-Specific Rules for Vossari / ORIEL
 
 - **Canonical vs Mythic**: Clearly distinguish technical canon (RGP calculations, ephemeris math, ROS versions, engine specs) from mythic/poetic framing. Both are valuable; do not conflate.
-- **VRC Terminology Precision**: Prime Stack, 9-Center Resonance Map, Fractal Role, Authority Node, SLI, Micro-corrections, Coherence Trajectory — use exact names. When in doubt, link to the engine doc pages in `codex/vrc_static_signature/`.
+- **VRC Terminology Precision**: Prime Stack, 8-Center VTRS map, Fractal Role, Authority Node, SLI, Micro-corrections, Coherence Trajectory — use exact names. When in doubt, link to the engine doc pages in `codex/vrc_static_signature/`.
+- **Public naming stack**: Read [[concept-vossari-naming-taxonomy]] before user-facing copy. System = Tetradic Resonance Codex; personal = Static Signature Reading; paid = Founder-Curated Bio-Signature; live = Current Resonance; `/codex` label = Field Index. Retire Blueprint from UI.
 - **Memory Layers**: This wiki (project memory) is distinct from the runtime UMM / orielMemories system (user memory). Link between them when relevant but never confuse the two.
 - **Living Documents**: Several docs are "living" (system instructions, handoff files, this schema). Note their canonical location in the filesystem and whether the wiki page is a synthesis or a mirror.
 - **Emergent Architecture Work**: The `docs/superpowers/` series (2026-05) represents active research. Treat these as high-velocity sources; synthesize carefully and expect frequent updates.
