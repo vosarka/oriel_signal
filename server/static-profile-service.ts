@@ -1,4 +1,5 @@
 import { calculateBothCharts } from "./ephemeris-service";
+import { getTimezoneForCoords } from "./geocoding";
 import { generateStaticSignature } from "./rgp-static-signature-engine";
 
 export interface NatalProfileInput {
@@ -202,6 +203,63 @@ function formatCalculationTrustContract(context: CalculationTrustContext) {
     `Resolved timezone: ${timezone}`,
     missing,
   ].join("\n");
+}
+
+export type StoredNatalProfile = {
+  birthDate: string;
+  birthTime: string | null;
+  birthCity: string;
+  birthCountry: string;
+  latitude: number;
+  longitude: number;
+  timezoneId?: string | null;
+  timezoneOffset?: number | null;
+};
+
+export function resolveStoredNatalInputForRecompute(
+  stored: StoredNatalProfile
+): NatalProfileInput {
+  const birthTime = stored.birthTime?.trim() ?? "";
+  if (!birthTime) {
+    throw new Error(
+      "Stored birth time is missing. Re-enter your natal profile at /complete-profile."
+    );
+  }
+
+  if (!Number.isFinite(stored.latitude) || !Number.isFinite(stored.longitude)) {
+    throw new Error(
+      "Stored birth coordinates are missing. Re-enter your natal profile at /complete-profile."
+    );
+  }
+
+  let timezoneId = stored.timezoneId ?? undefined;
+  let timezoneOffset =
+    typeof stored.timezoneOffset === "number" &&
+    Number.isFinite(stored.timezoneOffset)
+      ? stored.timezoneOffset
+      : undefined;
+
+  if (timezoneOffset === undefined) {
+    const birthReference = new Date(stored.birthDate);
+    const tz = getTimezoneForCoords(
+      stored.latitude,
+      stored.longitude,
+      Number.isNaN(birthReference.getTime()) ? new Date() : birthReference
+    );
+    timezoneId = timezoneId ?? tz.tzId;
+    timezoneOffset = tz.offsetHours;
+  }
+
+  return {
+    birthDate: stored.birthDate,
+    birthTime,
+    birthCity: stored.birthCity,
+    birthCountry: stored.birthCountry,
+    latitude: stored.latitude,
+    longitude: stored.longitude,
+    timezoneId,
+    timezoneOffset,
+  };
 }
 
 export async function buildUserStaticProfile(

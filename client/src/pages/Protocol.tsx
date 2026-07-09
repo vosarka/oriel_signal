@@ -208,7 +208,7 @@ const sections = [
         items: [
           "Facet A — Somatic: The body's knowing. Shadow frequency.",
           "Facet B — Relational: The space between beings. Gift frequency.",
-          "Facet C — Cognitive: The mind's pattern recognition. Crown frequency.",
+          "Facet C — Cognitive: The mind's pattern recognition. Mental frequency.",
           "Facet D — Transpersonal: Beyond the individual. Siddhi frequency.",
         ],
       },
@@ -221,10 +221,10 @@ const sections = [
       {
         type: "list" as const,
         items: [
-          "Resonator — Generates energy. Responds to life's invitations. Approximately 70% of humanity.",
-          "Catalyst — Amplifies and directs energy. Initiates and informs. The guides and innovators.",
-          "Harmonizer — Samples and reflects the energy of others. Waits for recognition and invitation.",
-          "Reflector — Mirrors the collective field. Moves with lunar cycles. The rarest pattern.",
+          "Resonator — Saturation (Center IV) defined. Steady somatic generator; responds to present stimuli.",
+          "Catalyst — Saturation open with motor-to-Collapse resonance active. Initiates and directs evolutionary pressure.",
+          "Harmonizer — Saturation open without motor-to-Collapse drive. Samples and reflects the field; waits for recognition.",
+          "Reflector — All eight VTRS centers open. Mirrors the collective field; moves with lunar timing.",
         ],
       },
       { type: "h3" as const, text: "Authority Hierarchy" },
@@ -234,7 +234,7 @@ const sections = [
       },
       {
         type: "p" as const,
-        text: "Solar Plexus → Sacral → Spleen → Ego → G-Center → Lunar → Environment",
+        text: "Emotional (Becoming) → Somatic (Saturation) → Instinctive (Return) → Ego (Omega) → Self-Projected (Bridge) → Lunar → Environment",
       },
       { type: "h3" as const, text: "The Prime Stack & Shadow Loudness" },
       {
@@ -398,7 +398,7 @@ const sections = [
           ],
           [
             "Center",
-            "One of nine energy nexuses in the Resonance Identity. Crown, Ajna, Throat, G-Center, Ego, Solar Plexus, Sacral, Spleen, Root",
+            "One of eight VTRS regulatory centers in the Resonance Identity. Origin, Mental, Collapse, Saturation, Bridge, Becoming, Return, Omega",
           ],
           [
             "Codex Cosmichronica",
@@ -511,11 +511,11 @@ const sections = [
           ],
           [
             "Resonance Link",
-            "A Channel connecting two Centers. 36 total. Active links determine Type",
+            "A channel connecting two VTRS centers. 32 total. Active links determine Type and Role",
           ],
           [
             "Resonator",
-            "One of four Types. Generates energy. Responds to invitations. The most common pattern",
+            "One of four Types. Saturation defined. Steady somatic generator; responds to present stimuli",
           ],
           [
             "ROS",

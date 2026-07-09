@@ -8,6 +8,34 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-07-09] merge | Static Signature → Profile
+- `StaticSignaturePanel` exported from `StaticReading.tsx` with `embedded` mode.
+- Profile section 04 embeds full signature (mandala, lattice, resonance tab).
+- `/signature` and legacy reading redirects → `/profile#static-signature`.
+- Removed duplicate profile summary + “view full signature” links.
+
+## [2026-07-09] restyle | Profile — Arkana-clean layout
+- Profile re-skinned to match `arkana-layer` family: DecodedTitle header,
+  border-row sections, arkindex-style feed links; removed GlowCard console,
+  matrix grid, interaction graph, archive seal.
+- VTRS body sigils retained in minimal `profile-layer__body-field` frame.
+- New `client/src/pages/profile.css`.
+
+## [2026-07-09] feature | Profile hero — matrix grid + VTRS body sigils
+- `MatrixGridBackground` (CodePen KKZRjaZ adapted): gold/cyan lattice on void.
+- Profile `/profile` hero: matrix backdrop, embedded `ResonanceBody` with
+  `nodeStyle="icon"` using `/9-centers/` sigils from `CENTER_SYMBOL`.
+- `ResonanceBody`: `embedded`, `showHud`, `nodeStyle` props; `normalizeChannels`
+  shared in `bodygraph-data.ts`.
+- Gates: build OK.
+
+## [2026-07-09] fix | VTRS Resonance Body — 8-center layout retune
+- Retuned `VTRS_BODY_POSITIONS` crown→hara (Saturation 0.42→0.58); shared
+  `VTRS_SVG_LAYOUT` derived from same anchors in `vtrs-body-layout.ts`.
+- `ResonanceBody.tsx`: spine axis, larger nodes, roman + short labels, curved links.
+- `ResonanceBodygraph.tsx`: spine guide, roman numerals, unified layout import.
+- Gates: build OK · vitest 593/594 (pre-existing profile-console-model label drift).
+
 ## [2026-07-02] manual | Bio-Architecture → VTRS Interactive System Terminal
 - Rebuilt /bio-architecture as a purely technical cockpit for the Vossari Tetradic
   Resonance System (spec: docs/superpowers/specs/2026-07-02-bio-architecture-terminal-design.md,
@@ -1248,3 +1276,23 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Created [[concept-vossari-naming-taxonomy]] — approved stack from `docs/plans/2026-07-07-naming-taxonomy-handoff.md`.
 - Updated [[entity-vrc-engine]], [[entity-static-signature]], [[wiki-schema]], [[wiki-index]], `terminology_map.json`.
 - UI: `/signature` tabs (Static Signature Reading / Current Resonance), founder product page, Protocol section VII, Codex Field Index labels, `/static-signature` → `/signature` redirect.
+
+## [2026-07-08] canon | Site copy alignment sweep (V2)
+- Updated Protocol, CoreConcepts, ModelsMaps: 8 VTRS centers, 32 links, V2 authority chain, VTRS center names in lexicon.
+- Marketing/nav: Footer, Home, Preparation, Cosmichronica, guards, CTAs — retired Blueprint product names; Field Index + Static Signature Reading labels.
+- Profile, CodonDetail, signature-products, StaticReading prime-stack label.
+
+## [2026-07-08] fix | Recompute static profile silent failure
+- `recomputeStaticProfile` now resolves missing `timezoneOffset` from stored coordinates (common on legacy rows).
+- `/signature` Recalculate button shows success/error feedback instead of failing silently.
+
+## [2026-07-09] ui | Profile-embedded Static Signature style unification
+- `StaticSignaturePanel embedded` now uses Arkana/profile tokens via `SignatureEmbedContext`: `profile-sig-block`, `profile-sig-metric`, `profile-sig-tabs`, notices, grids.
+- `profile.css` expanded for embed + resonance tab (`profile-signature-embed__resonance`); `DynamicReadingPanel` empty states and tab bar match profile row typography.
+- Eliminates visual rupture at profile section 04 when scrolling into Static Signature / Current Resonance.
+
+## [2026-07-08] fix | Static profile lattice persistence
+- Added dedicated `userStaticProfiles` columns: `activations`, `channelStatuses`, `calculationStatus`, `calculationContext`, `specVersion` (Drizzle `0011` + runtime migrations).
+- `upsertUserStaticProfile` writes lattice fields to columns; `parseUserStaticProfileRow` reads columns first, `coreCodonEngine.lattice` as fallback.
+- Extracted `server/canonical-lattice-persistence.ts` with roundtrip tests.
+- `/signature`: filter centers to VTRS 8; show Recalculate Profile when stored data is incomplete.

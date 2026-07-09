@@ -83,7 +83,7 @@ export default function NatalProfile() {
 
   useEffect(() => {
     if (statusQuery.data?.complete) {
-      setLocation("/signature");
+      setLocation("/profile#static-signature");
     }
   }, [setLocation, statusQuery.data]);
 
@@ -119,7 +119,7 @@ export default function NatalProfile() {
       });
       await refresh();
       setSuccess("Your Static Signature Reading has been calculated and saved.");
-      window.location.href = "/signature";
+      window.location.href = "/profile#static-signature";
     } catch (mutationError) {
       setError(
         mutationError instanceof Error
@@ -204,7 +204,7 @@ export default function NatalProfile() {
                 maxWidth: 560,
               }}
             >
-              Your Static Signature Reading lives at /signature. ORIEL uses this
+              Your Static Signature Reading lives on your profile. ORIEL uses this
               canonical, persistent natal profile to contextualize Current
               Resonance and all dynamic readings.
             </p>

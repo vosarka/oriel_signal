@@ -1,0 +1,1 @@
+ALTER TABLE `userStaticProfiles` MODIFY COLUMN `specVersion` varchar(128);

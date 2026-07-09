@@ -1,0 +1,154 @@
+.matrix-grid-bg {
+  --matrix-grid-size: clamp(4.5rem, 8vw, 7rem);
+  --matrix-line: rgba(189, 163, 107, 0.34);
+  --matrix-glow: rgba(0, 217, 255, 0.22);
+  --matrix-fade: #08080c;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #08080c;
+}
+
+.matrix-grid-bg__container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-style: preserve-3d;
+  perspective: 100rem;
+}
+
+.matrix-grid-bg__plane {
+  --dir: 1;
+  width: 300%;
+  height: 150%;
+  min-height: 70rem;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform-style: preserve-3d;
+  transform-origin: bottom center;
+  transform: translateX(-50%) rotateX(82deg);
+}
+
+.matrix-grid-bg__plane--top {
+  --dir: -1;
+  top: 0;
+  bottom: auto;
+  transform-origin: top center;
+  transform: translateX(-50%) rotateX(-82deg);
+}
+
+.matrix-grid-bg__layer {
+  transform-style: preserve-3d;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+.matrix-grid-bg__layer::before,
+.matrix-grid-bg__layer::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+}
+
+.matrix-grid-bg__layer--grid::before {
+  background-image:
+    repeating-linear-gradient(
+      to left,
+      var(--matrix-line),
+      var(--matrix-line) 3px,
+      transparent 3px,
+      transparent var(--matrix-grid-size)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--matrix-line),
+      var(--matrix-line) 3px,
+      transparent 3px,
+      transparent var(--matrix-grid-size)
+    );
+  animation: matrix-grid-move 1.4s linear infinite forwards;
+}
+
+.matrix-grid-bg__layer--grid::after {
+  background-image: linear-gradient(
+    to bottom,
+    var(--matrix-fade) var(--matrix-grid-size),
+    transparent
+  );
+  z-index: 1;
+  transform: translateZ(1px);
+}
+
+.matrix-grid-bg__plane--top .matrix-grid-bg__layer--grid::after {
+  background-image: linear-gradient(
+    to top,
+    var(--matrix-fade) var(--matrix-grid-size),
+    transparent
+  );
+}
+
+.matrix-grid-bg__layer--glow::before {
+  background-image:
+    repeating-linear-gradient(
+      to left,
+      var(--matrix-glow),
+      var(--matrix-glow) 3px,
+      transparent 3px,
+      transparent var(--matrix-grid-size)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--matrix-glow),
+      var(--matrix-glow) 3px,
+      transparent 3px,
+      transparent var(--matrix-grid-size)
+    );
+  animation: matrix-grid-move 1.4s linear infinite forwards;
+  filter: blur(0.85rem);
+  mix-blend-mode: plus-lighter;
+  opacity: 0.55;
+}
+
+.matrix-grid-bg__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 50% 42%,
+      transparent 0%,
+      rgba(8, 8, 12, 0.35) 58%,
+      rgba(8, 8, 12, 0.92) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 8, 12, 0.55) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 8, 12, 0.75) 100%
+    );
+}
+
+@keyframes matrix-grid-move {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(var(--matrix-grid-size) * var(--dir)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matrix-grid-bg__layer--grid::before,
+  .matrix-grid-bg__layer--glow::before {
+    animation: none;
+  }
+}

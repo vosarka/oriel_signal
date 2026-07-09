@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "test": "cross-env NODE_ENV=test vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:migrate": "cross-env RUN_MIGRATIONS=true tsx server/scripts/apply-migrations.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

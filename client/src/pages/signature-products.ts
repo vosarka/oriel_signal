@@ -71,7 +71,7 @@ export const signatureProducts: SignatureProduct[] = [
       },
       {
         heading: "What it contains",
-        body: "Your full Static Signature Reading: centers, codons, resonance links, facet expressions, shadow/gift framing, somatic signals, an integration path, and a closing Founder Transmission written through the founder’s interpretive lens.",
+        body: "Your full Static Signature Reading: eight VTRS centers, codons, 32 resonance links, facet expressions, shadow/gift framing, somatic signals, an integration path, and a closing Founder Transmission written through the founder’s interpretive lens.",
       },
       {
         heading: "How to use it",

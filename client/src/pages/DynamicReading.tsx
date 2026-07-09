@@ -390,7 +390,11 @@ function ReadingShell({
   embedded: boolean;
   children: ReactNode;
 }) {
-  if (embedded) return <>{children}</>;
+  if (embedded) {
+    return (
+      <div className="profile-signature-embed__resonance">{children}</div>
+    );
+  }
   return (
     <Layout>
       <div style={{ background: C.void, minHeight: "100vh" }}>{children}</div>
@@ -606,57 +610,19 @@ export function DynamicReadingPanel({
 
   if (embedded && !historyLoading && readingId === 0) {
     return (
-      <div
-        style={{
-          padding: "36px 28px",
-          border: `1px solid ${C.border}`,
-          background: C.deep,
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-ritual)",
-            fontSize: 9,
-            color: C.amber,
-            letterSpacing: "0.2em",
-            marginBottom: 12,
-          }}
-        >
-          NO CARRIERLOCK READING YET
+      <ReadingShell embedded>
+        <div className="profile-sig-empty">
+          <span className="arkana-card__code">No carrierlock reading yet</span>
+          <p className="profile-layer__empty profile-sig-empty__text">
+            Run a Signal Check while your Static Signature is on file. The system
+            will calculate SLI across your Prime Stack and store the diagnostic
+            here.
+          </p>
+          <Link href="/signal/check">
+            <span className="profile-signature-embed__cta">Run signal check</span>
+          </Link>
         </div>
-        <p
-          style={{
-            fontFamily: "var(--font-voice)",
-            fontStyle: "italic",
-            fontSize: 15,
-            color: C.txtS,
-            lineHeight: 1.7,
-            maxWidth: 520,
-            margin: "0 auto 20px",
-          }}
-        >
-          Run a Signal Check while your Static Signature is on file. The system
-          will calculate SLI across your Prime Stack and store the diagnostic
-          here.
-        </p>
-        <Link href="/signal/check">
-          <span
-            style={{
-              display: "inline-block",
-              padding: "10px 18px",
-              border: `1px solid ${C.goldDim}`,
-              color: C.gold,
-              fontFamily: "var(--font-ritual)",
-              fontSize: 10,
-              letterSpacing: "0.14em",
-              cursor: "pointer",
-            }}
-          >
-            RUN SIGNAL CHECK
-          </span>
-        </Link>
-      </div>
+      </ReadingShell>
     );
   }
 
@@ -696,38 +662,16 @@ export function DynamicReadingPanel({
   if (error || !reading) {
     if (embedded) {
       return (
-        <div
-          style={{
-            padding: "28px",
-            border: `1px solid ${C.border}`,
-            background: C.deep,
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              color: C.txtS,
-              marginBottom: 14,
-              fontFamily: "var(--font-display)",
-              fontSize: 16,
-            }}
-          >
-            Reading not found
-          </p>
-          <Link href="/signal/check">
-            <span
-              style={{
-                color: C.gold,
-                fontFamily: "var(--font-ritual)",
-                fontSize: 10,
-                letterSpacing: "0.1em",
-                cursor: "pointer",
-              }}
-            >
-              RUN NEW SIGNAL CHECK
-            </span>
-          </Link>
-        </div>
+        <ReadingShell embedded>
+          <div className="profile-sig-empty">
+            <p className="profile-layer__empty">Reading not found</p>
+            <Link href="/signal/check">
+              <span className="profile-signature-embed__cta">
+                Run new signal check
+              </span>
+            </Link>
+          </div>
+        </ReadingShell>
       );
     }
     return (
@@ -1822,19 +1766,24 @@ export function DynamicReadingPanel({
         )}
 
         <div
-          style={{
-            position: embedded ? "relative" : "sticky",
-            top: embedded ? undefined : 0,
-            zIndex: embedded ? 1 : 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: embedded ? "0 0 16px" : "10px 24px",
-            background: embedded ? "transparent" : "rgba(10,10,14,0.90)",
-            backdropFilter: embedded ? undefined : "blur(20px)",
-            borderBottom: `1px solid ${C.border}`,
-            marginBottom: embedded ? 20 : 0,
-          }}
+          className={embedded ? "profile-sig-resonance-bar" : undefined}
+          style={
+            embedded
+              ? undefined
+              : {
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 50,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 24px",
+                  background: "rgba(10,10,14,0.90)",
+                  backdropFilter: "blur(20px)",
+                  borderBottom: `1px solid ${C.border}`,
+                  marginBottom: 0,
+                }
+          }
         >
           {/* Reading timestamp */}
           <div
@@ -1855,25 +1804,37 @@ export function DynamicReadingPanel({
           </div>
 
           {/* View Tabs */}
-          <div style={{ display: "flex", gap: 2 }}>
+          <div
+            className={embedded ? "profile-sig-tabs profile-sig-tabs--compact" : undefined}
+            style={embedded ? undefined : { display: "flex", gap: 2 }}
+          >
             {views.map(v => (
               <button
                 key={v.id}
                 onClick={() => setActiveView(v.id)}
-                style={{
-                  background:
-                    activeView === v.id
-                      ? "rgba(189,163,107,0.1)"
-                      : "transparent",
-                  border: `1px solid ${activeView === v.id ? C.goldDim : "transparent"}`,
-                  color: activeView === v.id ? C.gold : C.txtD,
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 10,
-                  letterSpacing: "0.08em",
-                  padding: "6px 14px",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                }}
+                className={
+                  embedded
+                    ? `profile-sig-tab${activeView === v.id ? " profile-sig-tab--active" : ""}`
+                    : undefined
+                }
+                style={
+                  embedded
+                    ? undefined
+                    : {
+                        background:
+                          activeView === v.id
+                            ? "rgba(189,163,107,0.1)"
+                            : "transparent",
+                        border: `1px solid ${activeView === v.id ? C.goldDim : "transparent"}`,
+                        color: activeView === v.id ? C.gold : C.txtD,
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 10,
+                        letterSpacing: "0.08em",
+                        padding: "6px 14px",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }
+                }
               >
                 {v.label}
               </button>
@@ -1899,17 +1860,7 @@ export function DynamicReadingPanel({
             </Link>
           ) : (
             <Link href="/signal/check">
-              <span
-                style={{
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 9,
-                  color: C.gold,
-                  letterSpacing: "0.1em",
-                  cursor: "pointer",
-                }}
-              >
-                NEW CHECK
-              </span>
+              <span className="profile-signature-embed__cta">New check</span>
             </Link>
           )}
         </div>

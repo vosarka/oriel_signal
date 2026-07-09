@@ -110,7 +110,7 @@ export default function TermsOfService() {
               <div className="space-y-3 text-gray-400">
                 <p>
                   The current deployment offers a one-time Founder Static
-                  Signature Blueprint purchase. Payments are processed by
+                  Founder-Curated Bio-Signature purchase. Payments are processed by
                   PayPal. By purchasing, you agree to PayPal's terms and the
                   current product price shown at checkout.
                 </p>

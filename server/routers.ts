@@ -35,6 +35,7 @@ import * as autonomy from "./oriel-autonomy";
 import { ENV } from "./_core/env";
 import {
   buildUserStaticProfile,
+  resolveStoredNatalInputForRecompute,
   summarizeStoredStaticProfile,
 } from "./static-profile-service";
 import { calculateBirthChart } from "./ephemeris-service";
@@ -2346,16 +2347,11 @@ export const appRouter = router({
       if (!existing) {
         throw new Error("Natal profile not found");
       }
-      const profile = await buildUserStaticProfile(String(ctx.user.id), {
-        birthDate: existing.birthDate,
-        birthTime: existing.birthTime,
-        birthCity: existing.birthCity,
-        birthCountry: existing.birthCountry,
-        latitude: existing.latitude,
-        longitude: existing.longitude,
-        timezoneId: existing.timezoneId ?? undefined,
-        timezoneOffset: existing.timezoneOffset ?? undefined,
-      });
+      const natalInput = resolveStoredNatalInputForRecompute(existing);
+      const profile = await buildUserStaticProfile(
+        String(ctx.user.id),
+        natalInput
+      );
       return db.upsertUserStaticProfile(ctx.user.id, profile);
     }),
 

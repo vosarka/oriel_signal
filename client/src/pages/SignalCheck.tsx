@@ -174,7 +174,7 @@ function ResultPanel({
               href="/founder-signature-blueprint"
               variant="secondary"
             >
-              Get Oriel Signature Blueprint
+              The Founder-Curated Bio-Signature
             </SignalButton>
           </div>
         )}

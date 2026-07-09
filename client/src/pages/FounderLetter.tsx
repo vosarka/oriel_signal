@@ -108,12 +108,12 @@ export default function FounderLetter() {
               </div>
               <h3>Open Static Signature</h3>
               <p>
-                Open the Codex document and let the archive reveal the symbolic
-                architecture beneath the static.
+                Open your Static Signature Reading and let the archive reveal the
+                symbolic architecture beneath the static.
               </p>
               <div style={{ marginTop: "1.5rem" }}>
                 <SignalButton href="/signature" variant="secondary">
-                  Open Codex
+                  Open Static Signature Reading
                 </SignalButton>
               </div>
             </GlowCard>

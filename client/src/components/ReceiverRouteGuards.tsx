@@ -188,18 +188,18 @@ function OrielMvpInactivePreview() {
           <h1>Channel Oriel</h1>
           <div className="oriel-mvp-preview__body">
             The Oriel Chamber is being prepared for full activation. Begin with
-            your Static Signature or request the Oriel Signature Blueprint.
+            your Static Signature Reading or request The Founder-Curated Bio-Signature.
           </div>
           <div className="oriel-mvp-preview__actions">
             <SignalButton href="/signal/check">Begin Signal Check</SignalButton>
             <SignalButton href="/signature" variant="secondary">
-              View Static Signature
+              Open Static Signature Reading
             </SignalButton>
             <SignalButton
               href="/founder-signature-blueprint"
               variant="secondary"
             >
-              Get Oriel Signature Blueprint
+              The Founder-Curated Bio-Signature
             </SignalButton>
           </div>
         </main>

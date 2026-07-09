@@ -10,6 +10,7 @@ vi.mock("./ephemeris-service", () => ({
 
 import {
   buildUserStaticProfile,
+  resolveStoredNatalInputForRecompute,
   summarizeStoredStaticProfile,
 } from "./static-profile-service";
 
@@ -246,6 +247,36 @@ describe("buildUserStaticProfile", () => {
     expect(summary).toContain(
       "Missing precision: birth time, birth coordinates, timezone offset"
     );
+  });
+
+  it("resolves missing timezone offset from stored coordinates for recompute", () => {
+    const input = resolveStoredNatalInputForRecompute({
+      birthDate: "1985-03-15",
+      birthTime: "14:30",
+      birthCity: "Bucharest",
+      birthCountry: "RO",
+      latitude: 44.4268,
+      longitude: 26.1025,
+      timezoneId: null,
+      timezoneOffset: null,
+    });
+
+    expect(input.timezoneOffset).toEqual(expect.any(Number));
+    expect(input.timezoneId).toEqual(expect.any(String));
+    expect(input.birthTime).toBe("14:30");
+  });
+
+  it("refuses recompute when stored birth time is missing", () => {
+    expect(() =>
+      resolveStoredNatalInputForRecompute({
+        birthDate: "1985-03-15",
+        birthTime: null,
+        birthCity: "Bucharest",
+        birthCountry: "RO",
+        latitude: 44.4268,
+        longitude: 26.1025,
+      })
+    ).toThrow(/birth time is missing/i);
   });
 
   it("renders nullable legacy birth times as missing instead of literal null", () => {
