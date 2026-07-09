@@ -28,7 +28,7 @@ async function hashCredentialPassword(password: string) {
   return bcrypt.hash(password, 12);
 }
 
-async function verifyCredentialPassword({
+export async function verifyCredentialPassword({
   password,
   hash,
 }: {

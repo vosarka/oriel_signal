@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
+import { verifyCredentialPassword } from "./_core/auth";
 import * as db from "./db";
 import * as gemini from "./gemini";
 import { handlePayPalWebhook, PayPalWebhookPayload } from "./paypal-webhook";
@@ -304,13 +305,11 @@ export const appRouter = router({
           return { success: true } as const;
         }
 
-        // Verify current password using the same logic as better-auth
-        const isValid = await (async () => {
-          if (currentHash.startsWith("$2a$") || currentHash.startsWith("$2b$") || currentHash.startsWith("$2y$")) {
-            return bcrypt.compare(input.currentPassword, currentHash);
-          }
-          return false;
-        })();
+        // Verify current password using better-auth's logic (supports bcrypt + legacy scrypt)
+        const isValid = await verifyCredentialPassword({
+          password: input.currentPassword,
+          hash: currentHash,
+        });
 
         if (!isValid) {
           throw new Error("Current password is incorrect.");
