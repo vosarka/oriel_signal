@@ -57,9 +57,17 @@ export async function verifyCredentialPassword({
 export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:*",
-    ...(ENV.appBaseUrl ? [ENV.appBaseUrl] : []),
+    "https://localhost:*",
+    ...(ENV.appBaseUrl
+      ? [ENV.appBaseUrl.replace(/\/$/, "")] // remove trailing slash
+      : []),
+    // Support comma-separated additional origins (useful for prod domains, www vs non-www, etc.)
+    ...((process.env.TRUSTED_ORIGINS || "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)),
   ],
-  baseURL: ENV.appBaseUrl || `http://localhost:${process.env.PORT || 3000}`,
+  baseURL: ENV.appBaseUrl ? ENV.appBaseUrl.replace(/\/$/, "") : `http://localhost:${process.env.PORT || 3000}`,
   basePath: "/api/auth",
   secret:
     ENV.betterAuthSecret ||

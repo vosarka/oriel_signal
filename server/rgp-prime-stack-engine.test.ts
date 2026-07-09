@@ -10,6 +10,7 @@ import {
   calculate9CenterMap,
   calculateFractalRole,
   calculateAuthorityNode,
+  calculateResonanceRole,
   validatePrimeStack,
   generatePrimeStackSummary,
 } from "./rgp-prime-stack-engine";
@@ -411,6 +412,56 @@ describe("RGP Prime Stack Calculation Engine", () => {
       expect(role.role).toBeDefined();
       expect(authority.node).toBeDefined();
       expect(summary.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Resonance Role Calculation (16 Roles)", () => {
+    it("returns 'Awaiting role' for empty / no data", () => {
+      expect(calculateResonanceRole(null)).toMatchObject({ primaryRole: "Awaiting role", confidence: 0 });
+      expect(calculateResonanceRole({})).toMatchObject({ primaryRole: "Awaiting role", confidence: 0 });
+      expect(calculateResonanceRole([])).toMatchObject({ primaryRole: "Awaiting role", confidence: 0 });
+    });
+
+    it("derives Sovereign from primeStack codon 24 (RC21-24 tetrad)", () => {
+      const result = calculateResonanceRole({
+        primeStack: [{ codon: 24, weightedFrequency: 120 }],
+      });
+      expect(result.primaryRole).toBe("Sovereign");
+      expect(result.confidence).toBeGreaterThan(0);
+    });
+
+    it("prefers 26 activations and returns primary + secondary", () => {
+      // Simulate a rich activation set (different tetrads). Catalyst cluster has clear lead.
+      const activations = [
+        { codonId: 2, weight: 80 },    // Originator
+        { codonId: 3, weight: 60 },
+        { codonId: 24, weight: 90 },   // Sovereign
+        { codonId: 25, weight: 50 },
+        { codonId: 40, weight: 150 },  // Catalyst (dominant)
+        { codonId: 41, weight: 55 },
+      ];
+      const result = calculateResonanceRole({ activations });
+      expect(result.primaryRole).toBe("Catalyst"); // highest weight cluster
+      expect(["Sovereign", "Originator"]).toContain(result.secondaryRole);
+      expect(result.confidence).toBeGreaterThan(20);
+    });
+
+    it("works directly on full PrimeStackMap shape (from calculatePrimeStack)", () => {
+      const primeStack = calculatePrimeStack(sampleConscious, sampleDesign);
+      const result = calculateResonanceRole(primeStack);
+      expect(typeof result.primaryRole).toBe("string");
+      expect(result.primaryRole).not.toBe("Awaiting role");
+      // confidence between 0-100
+      expect(result.confidence).toBeGreaterThanOrEqual(0);
+      expect(result.confidence).toBeLessThanOrEqual(100);
+    });
+
+    it("falls back gracefully on positions array", () => {
+      const result = calculateResonanceRole([
+        { codon: 10, weightedFrequency: 80 },
+        { codon: 12, weight: 40 },
+      ]);
+      expect(result.primaryRole).toBe("Articulator"); // RC09-12
     });
   });
 });

@@ -77,12 +77,15 @@ describe("profile.getProfileConsoleSummary", () => {
     });
     expect(summary.identity.userId).toBe(7);
     expect(summary.identity).toMatchObject({
-      resonanceRole: "Sovereign", // now derived from primeStack codon 24 (RC21-24 tetrad)
+      resonanceRole: "Sovereign",
+      secondaryRole: null,
       fractalRole: "Catalyst",
       vrcType: "Resonator",
       vrcAuthority: "The Seal",
       primeCodonName: "Returning",
     });
+    expect(typeof summary.identity.roleConfidence).toBe("number");
+    expect(summary.identity.roleConfidence).toBeGreaterThan(0);
     expect(summary.recent.latestTransmission?.status).toBe("revealed");
     expect(db.getLatestStaticSignature).toHaveBeenCalledWith(7);
     expect(db.getReadingCount).toHaveBeenCalledWith(7);
