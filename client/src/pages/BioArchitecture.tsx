@@ -1231,6 +1231,22 @@ export default function BioArchitecture() {
             SYSTEM STATUS: ACTIVE · 64 CODONS · 8 CENTERS · 32 LINKS · 512 NODES
           </div>
 
+          {/* Cross-reference to Profile: positions the terminal as the indispensable
+              system layer that explains every user's personal Bio-Architecture. */}
+          <p
+            style={{
+              fontFamily: "var(--font-voice, serif)",
+              fontStyle: "italic",
+              color: "#b8af9b",
+              fontSize: "0.95rem",
+              margin: "0.35rem 0 0.85rem",
+              maxWidth: "860px",
+            }}
+          >
+            The terminal teaches the universal structure. Anchor or view your own defined centers, active links, and Prime Stack in{" "}
+            <a href="/profile" style={{ color: "var(--gold)", textDecoration: "underline" }}>your Profile</a>.
+          </p>
+
           <section className="bio-architecture-page__intro" aria-label="Introduction">
             <p className="bio-architecture-page__voice">
               {activeModule === null

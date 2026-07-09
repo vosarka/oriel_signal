@@ -24,7 +24,7 @@ export default function Footer() {
           <a href="/knowledge">ARCHIVA</a>
           <a href="/bio-architecture">BIO-ARCHITECTURE</a>
           <a href="/protocol">PROTOCOL</a>
-          <a href="/founder-signature-blueprint">ORIEL Founder’s Vision Blueprint</a>
+          <a href="/founder-signature-blueprint">The Founder-Curated Bio-Signature</a>
         </nav>
 
         <div className="oriel-archive-footer__support">

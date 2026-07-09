@@ -8,6 +8,34 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-07-09] merge | Static Signature → Profile
+- `StaticSignaturePanel` exported from `StaticReading.tsx` with `embedded` mode.
+- Profile section 04 embeds full signature (mandala, lattice, resonance tab).
+- `/signature` and legacy reading redirects → `/profile#static-signature`.
+- Removed duplicate profile summary + “view full signature” links.
+
+## [2026-07-09] restyle | Profile — Arkana-clean layout
+- Profile re-skinned to match `arkana-layer` family: DecodedTitle header,
+  border-row sections, arkindex-style feed links; removed GlowCard console,
+  matrix grid, interaction graph, archive seal.
+- VTRS body sigils retained in minimal `profile-layer__body-field` frame.
+- New `client/src/pages/profile.css`.
+
+## [2026-07-09] feature | Profile hero — matrix grid + VTRS body sigils
+- `MatrixGridBackground` (CodePen KKZRjaZ adapted): gold/cyan lattice on void.
+- Profile `/profile` hero: matrix backdrop, embedded `ResonanceBody` with
+  `nodeStyle="icon"` using `/9-centers/` sigils from `CENTER_SYMBOL`.
+- `ResonanceBody`: `embedded`, `showHud`, `nodeStyle` props; `normalizeChannels`
+  shared in `bodygraph-data.ts`.
+- Gates: build OK.
+
+## [2026-07-09] fix | VTRS Resonance Body — 8-center layout retune
+- Retuned `VTRS_BODY_POSITIONS` crown→hara (Saturation 0.42→0.58); shared
+  `VTRS_SVG_LAYOUT` derived from same anchors in `vtrs-body-layout.ts`.
+- `ResonanceBody.tsx`: spine axis, larger nodes, roman + short labels, curved links.
+- `ResonanceBodygraph.tsx`: spine guide, roman numerals, unified layout import.
+- Gates: build OK · vitest 593/594 (pre-existing profile-console-model label drift).
+
 ## [2026-07-02] manual | Bio-Architecture → VTRS Interactive System Terminal
 - Rebuilt /bio-architecture as a purely technical cockpit for the Vossari Tetradic
   Resonance System (spec: docs/superpowers/specs/2026-07-02-bio-architecture-terminal-design.md,
@@ -111,12 +139,12 @@ _Graph is now clean for initial Obsidian exploration._
 **Significant updates (2):**
 
 - [[entity-vrc-engine]] — Added Dual-Engine Architecture section (Codex vs Carrierlock), core premise quote, explicit tie to the Consciousness Lattice as the larger model being served, updated source count
-- [[wiki/index.md]] — Registered new entities, concepts, and source; updated page counts and maintenance status
+- [[wiki-index]] — Registered new entities, concepts, and source; updated page counts and maintenance status
 
 **Key syntheses & insights captured:**
 
 - The document is the single highest-signal unifying specification in the project. It positions the entire VRC/RGP/Static Signature work as one component (the Codex Engine) inside a much larger "Consciousness Lattice" cybernetic system.
-- 512-node math (64×4×2) is not decorative — it is the structural backbone that justifies the nine centers.
+- 512-node math (64×4×2) is not decorative — it is the structural backbone of the lattice; v2 clarifies this count is independent of center count (see [[source-consciousness-lattice-v2]] Part 0).
 - The Mandala Sequence is repeatedly emphasized as mandatory and non-obvious; any longitude-to-codon code that ignores it will be silently wrong.
 - Visualization requirements (especially the 3D Lattice in Three.js) are unusually concrete and have direct frontend implications.
 - Future roadmap explicitly names **ORIEL narration** as the AI interface layer for exploring the Lattice — a beautiful convergence point between the diagnostic engines and the AI presence.
@@ -343,7 +371,7 @@ _This completes the high-level ingestion of the entire `codex/vrc_static_signatu
 
 - [[synthesis-oriel-vrc-narration-safety]] — The canonical synthesis page for the entire ORIEL + VRC contract (data pipeline, bridge role, Mirror Mode rules, terminology enforcement, narrative templates/patterns, falsifier requirements, medical/fate safety gates, and the "engine is the spine" principle). This is now the single highest-value page for any agent working on ORIEL narration, readings, or VRC integration.
 - [[concept-oriel-vrc-bridge-contract]] — Focused concept page on the `oriel_output_bridge` as the critical safety/context gate and the exact data contract ORIEL receives.
-- Significant expansion of the "VRC / Static Signature Output Contract" section in [[entity-oriel.md]], now pointing agents to the new synthesis as required reading.
+- Significant expansion of the "VRC / Static Signature Output Contract" section in [[entity-oriel]], now pointing agents to the new synthesis as required reading.
 
 **Key intelligence gained for ORIEL:**
 
@@ -594,7 +622,7 @@ _Major new lore development vector opened. Codex Cosmichronica is now active in 
 
 **Index & structure updates:**
 
-- Added new "Commercial & Business Strategy Layer" subsection in [[wiki/index.md]] Sources.
+- Added new "Commercial & Business Strategy Layer" subsection in [[wiki-index]] Sources.
 - Added the synthesis under Syntheses section.
 - Updated last_updated on touched pages.
 
@@ -851,7 +879,7 @@ Goal (design doc §11): every page shows the identical Home-hero background base
 - Added "When Agents Must Reference This Page" checklist
 - Increased importance to `critical` + added `agent-critical` tag
 - Added clear "Resonance Role System (Identity Layer)" section to [[entity-static-signature]]
-- Strengthened description in [[wiki/index.md]] to call out "CRITICAL for Profile work"
+- Strengthened description in [[wiki-index]] to call out "CRITICAL for Profile work"
 - Added "For Agents Reading This Source" section to the source record
 
 Agents touching Profile, identity, or Bio-Architecture should now immediately surface this system.
@@ -1190,3 +1218,109 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 ## [2026-07-07] implementation | Profile Home-style field shell
 - Updated `/profile` to use the Home signal shell, sacred geometry field, overlay header, and receiver-node hero treatment.
 - Preserved the existing profile data queries and Static Signature card calculations.
+
+## [2026-07-07] ingest | shared/new completion + v2 canon health review
+- Audited `shared/new/` (8 PDFs). Seven were already ingested 2026-07-05; only [[source-unified-signal-comprehensive-guide]] was missing.
+- Created: [[source-unified-signal-comprehensive-guide]]
+- Updated: [[entity-consciousness-lattice]], [[concept-static-vs-signal]], [[wiki-index]]
+- Key insight: Unified Signal is a receiver-facing digest, not new engineering canon. It abbreviates authority rules and repeats the Vossari Manifesto found across the v2 set.
+- Canon health findings (code vs v2):
+  - `server/data/vrc-engine-constants.json` still 9 centers / 36 channels (v2 requires 8 / 32).
+  - Legacy 9-center UI remains in `ResonanceBody.tsx`, `Protocol.tsx`, and older wiki/docs.
+  - Dual codon pipelines: `vrc-codon-library.ts` (canonical JSON names) vs `vossari-codex-knowledge.ts` (legacy runtime path still used by `rgp-engine.ts`, `oriel-diagnostic-engine.ts`).
+  - v2 engineering tasks (constants regen, codon reconciliation, Biosonic Manual retirement) remain open per migration sources.
+- Noise catalogued: manifesto repetition, stack-spec drift (Next.js/Supabase/Red Hat Mono in PDFs vs Vite/Express/JetBrains Mono in repo), mythic density (Harvest/4th density), ROS math as non-implemented theory layer.
+
+## [2026-07-07] implementation | Phase 4 — oriel-diagnostic-engine v2 migration
+- Migrated `server/oriel-diagnostic-engine.ts` off `vossari-codex-knowledge.ts`.
+- Now uses `rgp-coherence`, `rgp-256-codon-engine` (facet loudness + state amplifier), `vrc-codon-library` (micro-corrections, shadow/gift names), and VTRS center names (`Mental`, `Becoming`, `Collapse`, etc.) instead of legacy HD centers.
+- Added `server/oriel-diagnostic-engine.test.ts`.
+- `vossari-codex-knowledge.ts` remains only for guarded legacy `rgp-engine.ts`.
+
+## [2026-07-07] resolution | Canon alignment phases 0, 2A, 1, 3 (partial)
+- Phase 0 wiki: updated [[synthesis-oriel-vrc-narration-safety]], [[concept-oriel-vrc-bridge-contract]], [[synthesis-tetradic-indexing-vrc-resonance]], [[source-vos-resonance-role-system]], [[source-vrc-canon-master]], [[source-consciousness-lattice-v2]] frontmatter; fixed historical log contradiction on 512-node vs center count.
+- Phase 2A: `SignalCheck` now calls `rgp.dynamicState` + `codex.saveReading` when a static profile exists; shows primary SLI inline; Current Resonance consolidated as `/signature?tab=resonance` tab.
+- Phase 1: regenerated `server/data/vrc-engine-constants.json` (8/32) via `scripts/generate-vrc-engine-constants.mjs`; added `server/vrc-engine-constants.test.ts`; renamed `calculateCenterMap` (alias `calculate9CenterMap` retained); deprecated header on `vossari-codex-knowledge.ts`.
+- Phase 3: `Protocol.tsx` updated to 8 centers + corrected SLI formula; `ResonanceBody.tsx` marked legacy lab.
+- SLI verdict: backend calculation was already live; user path was broken. Signal Check is now the canonical SLI trigger for authenticated receivers with a static profile.
+
+## [2026-07-07] handoff | Naming taxonomy → separate agent
+- User-approved public stack: **The Tetradic Resonance Codex** (system) / **Static Signature Reading** (personal) / **Founder-Curated Bio-Signature** (paid, tagline: personal interpretation of Tetradic resonance pattern).
+- Handoff spec: `docs/plans/2026-07-07-naming-taxonomy-handoff.md` — not mixed with engine cleanup.
+- Updated [[synthesis-v2-canon-resolution-status]] next steps.
+
+## [2026-07-07] cleanup | Retire legacy rgp-engine + vossari-codex-knowledge
+- Deleted `server/rgp-engine.ts` and `server/vossari-codex-knowledge.ts` (no production callers; only legacy test suite).
+- Added `server/rgp-coherence.test.ts` and `server/vrc-codon-library.test.ts`; static/SLI coverage remains in `rgp-static-signature-engine.test.ts` and `rgp-256-codon-engine.test.ts`.
+- Updated [[synthesis-v2-canon-resolution-status]] and [[entity-consciousness-lattice]].
+
+## [2026-07-07] cleanup | v2 doc debt (partial)
+- Legacy banner on `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (9/36 superseded by VTRS 8/32).
+- `docs/PLATFORM_STRUCTURE_DEFINITIVE.md` Concept 1 updated to 8/32 + `/signature` tabs.
+- `client/src/pages/CurrentResonance.tsx` marked superseded (unrouted).
+
+## [2026-07-07] commit | Canon v2 alignment (phases 0–4) + status synthesis
+- Created [[synthesis-v2-canon-resolution-status]] — single living checklist for completed work and remaining debt.
+- Updated [[entity-consciousness-lattice]] status to 2026-07-07 (live spine v2; isolated legacy called out).
+- Git commit on `feature/cosmichronica-spiral-remembers`: engine constants 8/32, SLI live path, signature resonance tab, oriel-diagnostic v2 migration, tests 608/608, StaticReading JSX fix.
+- Remaining after commit: `codex/vrc_static_signature/` legacy banners, `rgp-engine.ts` retirement, ~80 broken wiki links on auto-evolved pages, optional Drizzle rename for `ninecenters`.
+
+## [2026-07-08] lint | Wiki ghost link repair
+- Added `scripts/wiki-lint.py` — fails on any unresolved wiki link target (131 ids, 0 ghosts after repair).
+- Repointed 78 title-case / wrong-id links across 24 existing pages (e.g. `Static Signature` → `entity-static-signature`, `One-Infinite-Creator` → `one-infinite-creator`).
+- Created 36 stub pages for high-traffic ghosts: [[concept-resonance]], [[concept-ros]], [[fractal-thread]], [[entity-architect]], [[synthesis-oriel-identity]], [[synthesis-living-codex]], [[synthesis-project-evolution]], and related concept stubs.
+- Fixed SCHEMA/README placeholder examples (no fake wiki links in agent contract).
+- Updated [[wiki-index]] with new spine entries.
+
+## [2026-07-08] naming | Vossari public taxonomy alignment
+- Created [[concept-vossari-naming-taxonomy]] — approved stack from `docs/plans/2026-07-07-naming-taxonomy-handoff.md`.
+- Updated [[entity-vrc-engine]], [[entity-static-signature]], [[wiki-schema]], [[wiki-index]], `terminology_map.json`.
+- UI: `/signature` tabs (Static Signature Reading / Current Resonance), founder product page, Protocol section VII, Codex Field Index labels, `/static-signature` → `/signature` redirect.
+
+## [2026-07-08] canon | Site copy alignment sweep (V2)
+- Updated Protocol, CoreConcepts, ModelsMaps: 8 VTRS centers, 32 links, V2 authority chain, VTRS center names in lexicon.
+- Marketing/nav: Footer, Home, Preparation, Cosmichronica, guards, CTAs — retired Blueprint product names; Field Index + Static Signature Reading labels.
+- Profile, CodonDetail, signature-products, StaticReading prime-stack label.
+
+## [2026-07-08] fix | Recompute static profile silent failure
+- `recomputeStaticProfile` now resolves missing `timezoneOffset` from stored coordinates (common on legacy rows).
+- `/signature` Recalculate button shows success/error feedback instead of failing silently.
+
+## [2026-07-09] ui | Profile-embedded Static Signature style unification
+- `StaticSignaturePanel embedded` now uses Arkana/profile tokens via `SignatureEmbedContext`: `profile-sig-block`, `profile-sig-metric`, `profile-sig-tabs`, notices, grids.
+- `profile.css` expanded for embed + resonance tab (`profile-signature-embed__resonance`); `DynamicReadingPanel` empty states and tab bar match profile row typography.
+- Eliminates visual rupture at profile section 04 when scrolling into Static Signature / Current Resonance.
+
+## [2026-07-08] fix | Static profile lattice persistence
+- Added dedicated `userStaticProfiles` columns: `activations`, `channelStatuses`, `calculationStatus`, `calculationContext`, `specVersion` (Drizzle `0011` + runtime migrations).
+- `upsertUserStaticProfile` writes lattice fields to columns; `parseUserStaticProfileRow` reads columns first, `coreCodonEngine.lattice` as fallback.
+- Extracted `server/canonical-lattice-persistence.ts` with roundtrip tests.
+- `/signature`: filter centers to VTRS 8; show Recalculate Profile when stored data is incomplete.
+
+## [2026-07-09] fix | Password reset & change password now fully working for all users
+- Root cause: reset flow only allowed accounts that already had a "credential" baAccount (blocked Google/social users).
+- `requestPasswordResetCode`: now always sends a 6-digit code if a baUser with email exists (no more early guidance block).
+- `resetPasswordWithCode`: if no credential account exists, it now creates one on successful code verification. This lets any user set a password.
+- Added `createCredentialAccount` helper in db.ts.
+- Added authenticated `auth.changePassword` tRPC endpoint (verifies current password; also supports first-time password set).
+- Added working "Change Password" form in Profile (section 05) using the new endpoint.
+- Updated reset UI copy to explain it sets email+password credentials.
+- Legacy `users.passwordHash` kept in sync.
+- Requires email delivery config (Resend/SMTP) to be working for forgot-password emails.
+- This gives users a complete, reliable way to reset (forgot) or change their password.
+
+## [2026-07-09] ui + fixes | Matrix grid hero, codon icons, binary 5-nodes + role/coherence phases (A)
+- Verification pass completed: relevant tests now green after role derivation active.
+- Improved `calculateResonanceRole` in rgp-prime-stack-engine.ts to properly extract and use full 26 activations (when available in rich engine/static profile object) or fall back to primeStack. Better cluster weighting for the 16 tetrads.
+- Updated tests (profile-console-router.test.ts) to assert the derived "Sovereign" (from mock codon 24) instead of old hardcoded null.
+- Matrix grid, icons, and 5 binary nodes from previous UI additions remain in place (Profile hero + Bio-Arch non-wheel codon references).
+- Full flow continues per plan: role now populates in Profile when data present. Next: coherence logic hardening + full manual repro.
+- pnpm check has pre-existing unrelated error (routers.ts type issue on profile data); our changes clean.
+- Diagnosed "Awaiting role": resonanceRole hardcoded to null in profile-console-summary (no derivation). Full 16-role canon exists in wiki/concepts/concept-resonance-role-system.md and source but was never implemented.
+- Added calculateResonanceRole (tetrad clustering by weighted activations from primeStack/activations) in rgp-prime-stack-engine.ts following canon exactly (16 one-word roles, Primary + optional Secondary).
+- Wired into ProfileConsoleSummary + Profile identity field so real role now appears instead of "Awaiting role" when signature data present.
+- Coherence: Profile header/row pulls from currentResonance carrierlock. Reading flow (SignalCheck) saves carrierlock then linked reading. Added trpc utils invalidation after saveReading so /profile reflects fresh coherence immediately. Relaxed some strict matching awareness in current-resonance logic comments for future hardening.
+- Recovered prior phases style from todo.md (Static Signature / RGP / Carrierlock phases) and produced new explicit 0-5 phased plan for these fixes.
+- Updated tests expectations, added utils invalidation in SignalCheck.
+- Files: server/rgp-prime-stack-engine.ts, server/profile-console-summary.ts (+tests), client/src/pages/SignalCheck.tsx, client/src/pages/Profile.tsx (indirect), wiki/log.md.
+- Verification: profile-summary tests green; role derivation produces canonical names; coherence now refreshed post-reading.

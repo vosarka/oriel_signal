@@ -1,5 +1,7 @@
 # VRC Static Signature Codex: CANON MASTER (Source of Truth)
 
+> **Legacy center/link notice (2026-07-07):** Where this document describes **9 centers** or **36 resonance links**, live canon is superseded by the Consciousness Lattice v2 / VTRS model (**8 Tetradic centers**, **32 resonance links**). Mathematical spine (Mandala, 512-node lattice, Prime Stack, Solar Arc, SLI, Carrierlock) remains authoritative. Live constants: `server/data/vrc-engine-constants.json`, `server/vrc-mandala.ts`. Wiki: `wiki/sources/source-consciousness-lattice-v2.md`.
+
 This is the single authoritative source of truth for the Vossari Resonance Codex (VRC) / Resonance Genetics Protocol (RGP) calculations, naming systems, and structural hierarchies. Downstream engines, reports, and voice modules must defer to the math and rules defined in this document.
 
 ---

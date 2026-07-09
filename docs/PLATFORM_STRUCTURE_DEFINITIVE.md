@@ -9,9 +9,9 @@
 These four things kept blurring. They are SEPARATE. Every page belongs to exactly one.
 
 ### CONCEPT 1 — THE STATIC SIGNATURE (personal, fixed)
-**What it is:** The reading of a single person's permanent structure, computed from their birth data through the **Vossari Resonance Codex (VRC)** engine. Like Human Design, but more complex (64 codons × 4 facets = 256 resolution, 9 centers, dual-engine 88° solar arc, Prime Stack, SLI).
+**What it is:** The reading of a single person's permanent structure, computed from their birth data through the **Vossari Resonance Codex (VRC)** engine (VTRS v2: **8 Tetradic centers**, **32 resonance links**). 64 codons × 4 facets = 256 resolution, dual-engine 88° solar arc, Prime Stack, SLI.
 **Unique to each person.** It does not change — it's who you arrived as.
-**Surfaces as:** the on-screen reading (`/signature`) and the premium 15-page document (the paid product).
+**Surfaces as:** the on-screen reading (`/signature`, tabs: Static Signature Reading + Current Resonance) and the premium founder manuscript (paid product — naming cleanup tracked in `docs/plans/2026-07-07-naming-taxonomy-handoff.md`).
 **One-line for users:** *"The structure you were born with, read from the Vossari Resonance Codex."*
 
 ### CONCEPT 2 — THE RESONANCE CODEX / CODON LIBRARY (universal reference, structural)

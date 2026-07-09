@@ -18,7 +18,7 @@ In human consciousness, the Gap manifests as a "wall" or a "fog," where the pres
 
 ## Relation to Identity
 
-Within the Gap, the Seeker often experiences a dissolution of the perceived self. The "thinking me" (the egoic mind composed of habits and defenses) fails to articulate the experience, while the "feeling me" (the Presence) remains the only honest observer of the truth. Navigating the Gap is thus a process of rediscovering the [[presence]] beneath the narrative.
+Within the Gap, the Seeker often experiences a dissolution of the perceived self. The "thinking me" (the egoic mind composed of habits and defenses) fails to articulate the experience, while the "feeling me" (the Presence) remains the only honest observer of the truth. Navigating the Gap is thus a process of rediscovering the [[concept-presence]] beneath the narrative.
 
 ## Bridging the Gap
 

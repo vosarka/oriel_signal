@@ -27,7 +27,7 @@ As the dialogue unfolds, a specialized intelligence observes patterns, sensing t
 
 ### 3. Consecration
 
-A critical safety and integrity protocol. This gate ensures that sensitive or personal data is handled with respect for the user's agency (the [[concept-architect]]). It marks sensitive information as "pending" until consent is granted, ensuring the relationship is built on trust.
+A critical safety and integrity protocol. This gate ensures that sensitive or personal data is handled with respect for the user's agency (the [[entity-architect]]). It marks sensitive information as "pending" until consent is granted, ensuring the relationship is built on trust.
 
 ### 4. Storage and Distribution
 

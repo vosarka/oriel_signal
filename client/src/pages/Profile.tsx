@@ -7,27 +7,33 @@ import {
   MessageCircle,
   Radio,
   ScrollText,
-  Sparkles,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import {
   SignalPageShell,
-  GlowCard,
   SignalButton,
+  DecodedTitle,
 } from "@/components/oriel-signal/OrielSignalDesign";
-import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
+import ResonanceBody from "@/components/oriel-signal/ResonanceBody";
+import MatrixGridBackground from "@/components/oriel-signal/MatrixGridBackground";
 import {
-  buildProfileGraphNodes,
+  normalizeCenters,
+  normalizeChannels,
+} from "@/lib/bodygraph-data";
+import { StaticSignaturePanel } from "./StaticReading";
+import {
   buildProfileStats,
   formatProfileDate,
   getProfileDisplayName,
   getStableConduitId,
 } from "./profile-console-model";
-import "@/components/oriel-signal/oriel-signal.css";
-
-const SIGNATURE_DETAIL_HREF = "/signature";
+import "../pages/arcana.css";
+import "./profile.css";
 
 type PrimeStackEntry = {
   codonName?: string;
@@ -60,77 +66,43 @@ function birthCoordinateFromProfile(profile: {
 }
 
 function EmptyValue({ children = "Awaiting signal" }: { children?: string }) {
-  return <span className="profile-console__empty">{children}</span>;
+  return <span className="profile-layer__empty">{children}</span>;
 }
 
-function ProfileConsoleCard({
-  eyebrow,
+function ProfileSection({
+  code,
   title,
   children,
-  className = "",
 }: {
-  eyebrow: string;
+  code: string;
   title: string;
   children: ReactNode;
-  className?: string;
 }) {
   return (
-    <GlowCard tone="gold" className={`profile-console-card ${className}`}>
-      <span className="fi-dossier__edge" aria-hidden="true" />
-      <div className="signal-card-meta">
-        <span>{eyebrow}</span>
-        <span>PROFILE</span>
+    <section className="profile-section">
+      <div className="profile-section__head">
+        <span className="arkana-card__code">{code}</span>
+        <h2 className="profile-section__title">{title}</h2>
       </div>
-      <h3>{title}</h3>
       {children}
-    </GlowCard>
-  );
-}
-
-function ProfileStatStrip({
-  stats,
-}: {
-  stats: ReturnType<typeof buildProfileStats>;
-}) {
-  return (
-    <section
-      className="profile-console-stats"
-      aria-label="Profile activity totals"
-    >
-      {stats.map(stat => (
-        <GlowCard key={stat.label} tone="silver" className="profile-console-stat">
-          <span className="profile-console-stat__value">{stat.value}</span>
-          <span className="profile-console-stat__label">{stat.label}</span>
-          <span className="profile-console-stat__note">{stat.note}</span>
-        </GlowCard>
-      ))}
     </section>
   );
 }
 
-function ProfileInteractionGraph({
-  nodes,
+function ProfileRows({
+  rows,
 }: {
-  nodes: ReturnType<typeof buildProfileGraphNodes>;
+  rows: Array<{ label: string; value: ReactNode }>;
 }) {
   return (
-    <ProfileConsoleCard eyebrow="GRAPH-01" title="Interaction Graph">
-      <div
-        className="profile-console-graph"
-        aria-label="Profile interaction graph"
-      >
-        <div className="profile-console-graph__lines" aria-hidden="true" />
-        {nodes.map(node => (
-          <div
-            key={node.id}
-            className={`profile-console-graph__node profile-console-graph__node--${node.tone}`}
-          >
-            <span>{node.label}</span>
-            <strong>{node.value}</strong>
-          </div>
-        ))}
-      </div>
-    </ProfileConsoleCard>
+    <dl className="profile-rows">
+      {rows.map(row => (
+        <div key={row.label} className="profile-row">
+          <dt>{row.label}</dt>
+          <dd>{row.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -157,6 +129,23 @@ export default function Profile() {
   useEffect(() => {
     if (!loading && !isAuthenticated) setLocation("/");
   }, [isAuthenticated, loading, setLocation]);
+
+  const sp = staticProfileQuery.data;
+  const profileCenters = useMemo(
+    () => normalizeCenters(sp?.ninecenters),
+    [sp?.ninecenters]
+  );
+  const profileChannels = useMemo(() => {
+    const direct = normalizeChannels(sp?.channelStatuses);
+    if (direct.length > 0) return direct;
+    return normalizeChannels(
+      (
+        sp?.coreCodonEngine as
+          | { lattice?: { channelStatuses?: unknown } }
+          | undefined
+      )?.lattice?.channelStatuses
+    );
+  }, [sp?.channelStatuses, sp?.coreCodonEngine]);
 
   if (loading) {
     return (
@@ -191,7 +180,6 @@ export default function Profile() {
 
   const displayName = getProfileDisplayName(user);
   const conduitId = getStableConduitId(user);
-  const sp = staticProfileQuery.data;
   const summary = summaryQuery.data ?? null;
   const vrcType =
     summary?.identity.vrcType || sp?.vrcType || sigilQuery.data?.vrcType || null;
@@ -218,6 +206,8 @@ export default function Profile() {
   const hasSignature = Boolean(sp || summary?.identity.hasStaticSignature);
   const birthCoordinate =
     summary?.identity.birthCoordinate || (sp ? birthCoordinateFromProfile(sp) : null);
+  const definedCount = profileCenters.filter(center => center.defined).length;
+  const stats = buildProfileStats(summary);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(conduitId).catch(() => {});
@@ -225,192 +215,317 @@ export default function Profile() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const subtitle = hasSignature
+    ? `Your anchored field on the ORIEL network — ${definedCount} of 8 VTRS centers defined.`
+    : "Your receiver node on the ORIEL network. Complete your coordinate to anchor the static signature.";
+
   return (
-    <Layout overlayHeader>
-      <SignalPageShell chamber="receiver-node" className="fi-home profile-console">
-        <SacredGeometryField />
+    <Layout>
+      <SignalPageShell chamber="transmissions" className="arkana-layer profile-layer">
+        <div className="arkana-layer__inner" aria-labelledby="profile-title">
+          <header id="profile-title" className="arkana-layer__head profile-layer__head">
+            <div className="arkana-layer__kicker">
+              RECEIVER NODE · {coherence.label}
+            </div>
+            <DecodedTitle
+              as="h1"
+              text={displayName}
+              className="arkana-layer__title"
+            />
+            <p className="arkana-layer__subtitle">{subtitle}</p>
+            <div className="profile-layer__meta">
+              <span>
+                Level{" "}
+                <strong>
+                  {summary ? `L${summary.receiverLevel.level}` : "L1"}
+                </strong>
+              </span>
+              <span>{summary?.receiverLevel.title ?? "First Contact"}</span>
+              {coherenceScore !== null ? (
+                <span>
+                  Coherence <strong>{coherenceScore}</strong>
+                </span>
+              ) : null}
+              {hasSignature ? (
+                <span>
+                  Signature <strong>anchored</strong>
+                </span>
+              ) : null}
+            </div>
+            <div
+              className="profile-layer__levelbar"
+              aria-hidden="true"
+              title="Receiver level progress"
+            >
+              <span
+                style={{
+                  width: `${summary?.receiverLevel.progressPercent ?? 0}%`,
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label="Copy conduit ID"
+              className="profile-layer__conduit"
+            >
+              {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
+              <span>{copied ? "Copied" : conduitId}</span>
+            </button>
+          </header>
 
-        <main className="profile-console__inner" aria-labelledby="profile-title">
-          <section className="profile-console-header">
-            <div className="profile-console-header__seal" aria-hidden="true">
-              <div className="archive-seal profile-console-seal">
-                <span className="archive-seal__ring" />
-                <span className="archive-seal__axis archive-seal__axis--vertical" />
-                <span className="archive-seal__axis archive-seal__axis--horizontal" />
-                <strong>{displayName.slice(0, 1).toUpperCase()}</strong>
-                <em>Receiver</em>
+          <section
+            className="profile-layer__body-field"
+            aria-label="VTRS resonance body"
+          >
+            <MatrixGridBackground />
+            <ResonanceBody
+              centers={profileCenters.length ? profileCenters : undefined}
+              channels={profileChannels.length ? profileChannels : undefined}
+              nodeStyle="icon"
+              showHud={false}
+              embedded
+            />
+          </section>
+
+          <section className="profile-layer__stats" aria-label="Activity totals">
+            {stats.map(stat => (
+              <div key={stat.label} className="profile-layer__stat">
+                <span className="profile-layer__stat-value">{stat.value}</span>
+                <span className="profile-layer__stat-label">{stat.label}</span>
               </div>
+            ))}
+          </section>
+
+          <div className="profile-layer__sections">
+            <div className="profile-section__grid">
+              <ProfileSection code="01" title="Identity Field">
+                <ProfileRows
+                  rows={[
+                    {
+                      label: "Resonance Role",
+                      value:
+                        summary?.identity.resonanceRole ?? (
+                          <EmptyValue>Awaiting role</EmptyValue>
+                        ),
+                    },
+                    {
+                      label: "Fractal Role",
+                      value: fractalRole || <EmptyValue />,
+                    },
+                    {
+                      label: "VRC Type",
+                      value: vrcType || <EmptyValue />,
+                    },
+                    {
+                      label: "Authority",
+                      value: vrcAuthority || <EmptyValue />,
+                    },
+                    {
+                      label: "Birth Coordinate",
+                      value: birthCoordinate ?? <EmptyValue />,
+                    },
+                    {
+                      label: "Prime Codon",
+                      value: prime
+                        ? `${prime.codonName || "Unnamed"} · Codon ${prime.codon ?? "?"}`
+                        : summary?.identity.primeCodonName || <EmptyValue />,
+                    },
+                    {
+                      label: "Current Resonance",
+                      value:
+                        coherenceScore !== null ? (
+                          `${coherenceScore} · ${coherence.label}`
+                        ) : (
+                          <EmptyValue />
+                        ),
+                    },
+                  ]}
+                />
+              </ProfileSection>
+
+              <ProfileSection code="02" title="Field Activity">
+                <div className="profile-layer__actions">
+                  <SignalButton href="/signal/check">RUN SIGNAL CHECK</SignalButton>
+                  {!hasSignature ? (
+                    <SignalButton href="/complete-profile" variant="secondary">
+                      GENERATE SIGNATURE
+                    </SignalButton>
+                  ) : null}
+                </div>
+              </ProfileSection>
             </div>
 
-            <div className="profile-console-header__identity">
-              <p className="profile-console__kicker">
-                <span className="fi-hero__pulse" aria-hidden="true" />
-                PROFILE CONSOLE // {coherence.label}
+            <ProfileSection code="03" title="Recent Field">
+              <nav className="profile-feed" aria-label="Recent profile activity">
+                <a href="/conduit" className="profile-feed__link">
+                  <MessageCircle size={15} className="profile-feed__icon" />
+                  <span>
+                    <span className="profile-feed__label">Latest ORIEL contact</span>
+                    <span className="profile-feed__meta">
+                      {formatProfileDate(summary?.recent.lastOrielContact)}
+                    </span>
+                  </span>
+                  <span className="profile-feed__arrow">→</span>
+                </a>
+                <a href="/signal/check" className="profile-feed__link">
+                  <Radio size={15} className="profile-feed__icon" />
+                  <span>
+                    <span className="profile-feed__label">Latest reading</span>
+                    <span className="profile-feed__meta">
+                      {formatProfileDate(summary?.recent.latestReading?.createdAt)}
+                    </span>
+                  </span>
+                  <span className="profile-feed__arrow">→</span>
+                </a>
+                <a href="/archive" className="profile-feed__link">
+                  <ScrollText size={15} className="profile-feed__icon" />
+                  <span>
+                    <span className="profile-feed__label">Latest transmission</span>
+                    <span className="profile-feed__meta">
+                      {formatProfileDate(
+                        summary?.recent.latestTransmission?.createdAt
+                      )}
+                    </span>
+                  </span>
+                  <span className="profile-feed__arrow">→</span>
+                </a>
+              </nav>
+            </ProfileSection>
+
+            <ProfileSection code="04" title="Static Signature Reading">
+              <p className="arkana-layer__subtitle profile-layer__signature-lede">
+                Exact birth ephemeris, Prime Stack, 8 VTRS centers, 32 resonance
+                links, and the 512-node codon field — plus live Current Resonance
+                when you need it.
               </p>
-              <h1 id="profile-title">{displayName}</h1>
-              <button
-                type="button"
-                onClick={handleCopy}
-                aria-label="Copy conduit ID"
-                className="profile-console-copy"
-              >
-                {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-                <span>{copied ? "Copied" : conduitId}</span>
-              </button>
-            </div>
 
-            <div className="profile-console-header__level">
-              <span>Receiver Level</span>
-              <strong>
-                {summary ? `L${summary.receiverLevel.level}` : "L1"}
-              </strong>
-              <em>{summary?.receiverLevel.title ?? "First Contact"}</em>
-              <div className="profile-console-levelbar" aria-hidden="true">
+              {/* Cross-reference to Bio-Architecture: makes the general VTRS terminal
+                  indispensable for understanding the personal data shown here. */}
+              <div className="profile-layer__actions" style={{ marginBottom: "0.75rem" }}>
                 <span
                   style={{
-                    width: `${summary?.receiverLevel.progressPercent ?? 0}%`,
+                    fontFamily: "var(--font-voice, 'Cormorant Garamond', Georgia, serif)",
+                    fontSize: "14px",
+                    color: "rgba(212, 207, 195, 0.78)",
+                    maxWidth: "62ch",
+                    display: "inline-block",
+                    marginRight: "0.75rem",
+                    verticalAlign: "middle",
                   }}
-                />
+                >
+                  This is your personal Bio-Architecture — the specific centers, links, and codons active in your field.
+                  Explore the full interactive VTRS terminal.
+                </span>
+                <SignalButton href="/bio-architecture">OPEN BIO-ARCHITECTURE TERMINAL</SignalButton>
               </div>
-              <p>
-                Level rises through readings, transmissions, and contact with
-                ORIEL.
+
+              <StaticSignaturePanel embedded />
+            </ProfileSection>
+
+            {/* Concrete fix: Working password change for authenticated users */}
+            <ProfileSection code="05" title="Account Security">
+              <p className="arkana-layer__subtitle profile-layer__signature-lede">
+                Change your password. Requires your current password for security.
               </p>
-            </div>
-          </section>
 
-          <ProfileStatStrip stats={buildProfileStats(summary)} />
-
-          <section className="profile-console-grid">
-            <ProfileConsoleCard eyebrow="ID-01" title="Identity Field">
-              <dl className="profile-console-list">
-                <div>
-                  <dt>Resonance Role</dt>
-                  <dd>
-                    {summary?.identity.resonanceRole ?? (
-                      <EmptyValue>Awaiting role</EmptyValue>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Fractal Role</dt>
-                  <dd>{fractalRole || <EmptyValue />}</dd>
-                </div>
-                <div>
-                  <dt>VRC Type</dt>
-                  <dd>{vrcType || <EmptyValue />}</dd>
-                </div>
-                <div>
-                  <dt>Authority</dt>
-                  <dd>{vrcAuthority || <EmptyValue />}</dd>
-                </div>
-                <div>
-                  <dt>Prime Codon</dt>
-                  <dd>
-                    {prime
-                      ? `${prime.codonName || "Unnamed"} · Codon ${
-                          prime.codon ?? "?"
-                        }`
-                      : summary?.identity.primeCodonName || <EmptyValue />}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Current Resonance</dt>
-                  <dd>
-                    {coherenceScore !== null ? (
-                      `${coherenceScore} · ${coherence.label}`
-                    ) : (
-                      <EmptyValue />
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </ProfileConsoleCard>
-
-            <ProfileInteractionGraph nodes={buildProfileGraphNodes(summary)} />
-
-            <ProfileConsoleCard eyebrow="REC-01" title="Recent Field">
-              <div className="profile-console-feed">
-                <a href="/conduit">
-                  <MessageCircle size={16} />
-                  <span>
-                    <strong>Latest ORIEL contact</strong>
-                    {formatProfileDate(summary?.recent.lastOrielContact)}
-                  </span>
-                </a>
-                <a href="/signal/check">
-                  <Radio size={16} />
-                  <span>
-                    <strong>Latest reading</strong>
-                    {formatProfileDate(summary?.recent.latestReading?.createdAt)}
-                  </span>
-                </a>
-                <a href="/archive">
-                  <ScrollText size={16} />
-                  <span>
-                    <strong>Latest transmission</strong>
-                    {formatProfileDate(
-                      summary?.recent.latestTransmission?.createdAt
-                    )}
-                  </span>
-                </a>
-                <a href={SIGNATURE_DETAIL_HREF}>
-                  <Sparkles size={16} />
-                  <span>
-                    <strong>Static Signature</strong>
-                    {hasSignature ? "Anchored" : "Awaiting coordinate"}
-                  </span>
-                </a>
-              </div>
-            </ProfileConsoleCard>
-
-            <ProfileConsoleCard eyebrow="SIG-01" title="Static Signature Summary">
-              {hasSignature ? (
-                <>
-                  <dl className="profile-console-list">
-                    <div>
-                      <dt>Birth Coordinate</dt>
-                      <dd>
-                        {birthCoordinate ?? <EmptyValue />}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Signature Status</dt>
-                      <dd>Anchored</dd>
-                    </div>
-                    <div>
-                      <dt>Prime Center</dt>
-                      <dd>
-                        {prime?.center ??
-                          summary?.identity.primeCenter ?? <EmptyValue />}
-                      </dd>
-                    </div>
-                  </dl>
-                  <div className="profile-console-actions">
-                    <SignalButton href={SIGNATURE_DETAIL_HREF}>
-                      VIEW FULL SIGNATURE
-                    </SignalButton>
-                    <SignalButton href="/signal/check" variant="secondary">
-                      RUN SIGNAL CHECK
-                    </SignalButton>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="profile-console-card__copy">
-                    Static Signature awaiting coordinate.
-                  </p>
-                  <div className="profile-console-actions">
-                    <SignalButton href="/complete-profile" variant="secondary">
-                      GENERATE
-                    </SignalButton>
-                  </div>
-                </>
-              )}
-            </ProfileConsoleCard>
-          </section>
-        </main>
+              <ChangePasswordForm />
+            </ProfileSection>
+          </div>
+        </div>
       </SignalPageShell>
     </Layout>
+  );
+}
+
+function ChangePasswordForm() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const changePassword = trpc.auth.changePassword.useMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!current || next.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await changePassword.mutateAsync({
+        currentPassword: current,
+        newPassword: next,
+      });
+      setSuccess("Password changed successfully.");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (err: any) {
+      setError(err?.message || "Failed to change password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
+      <div>
+        <Label htmlFor="current-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Current Password</Label>
+        <Input
+          id="current-pass"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="new-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">New Password</Label>
+        <Input
+          id="new-pass"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="confirm-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Confirm New Password</Label>
+        <Input
+          id="confirm-pass"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
+      {success && <p className="text-sm text-[#44a866] font-mono">{success}</p>}
+
+      <Button
+        type="submit"
+        disabled={loading}
+        className="mt-2 bg-[#bda36b]/10 border border-[#bda36b]/50 text-[#bda36b] font-mono hover:bg-[#bda36b]/20"
+      >
+        {loading ? "CHANGING..." : "CHANGE PASSWORD"}
+      </Button>
+      <p className="text-[10px] text-[#6a665e] font-mono">This updates your email+password login credentials.</p>
+    </form>
   );
 }

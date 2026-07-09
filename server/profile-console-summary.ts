@@ -1,3 +1,5 @@
+import { calculateResonanceRole } from "./rgp-prime-stack-engine";
+
 type PrimeStackEntry = {
   codonName?: string | null;
   codon?: string | number | null;
@@ -58,6 +60,7 @@ export type ProfileConsoleSignature = {
   birthCity?: string | null;
   birthCountry?: string | null;
   primeStack?: unknown;
+  activations?: unknown; // optional full activations from engine for better role calc
 };
 
 export type BuildProfileConsoleSummaryInput = {
@@ -72,7 +75,7 @@ export type ProfileConsoleSummary = {
   identity: {
     userId: number;
     knownName: string | null;
-    resonanceRole: null;
+    resonanceRole: string | null;
     fractalRole: string | null;
     vrcType: string | null;
     vrcAuthority: string | null;
@@ -197,11 +200,22 @@ export function buildProfileConsoleSummary(
   };
   const prime = firstPrimeEntry(input.staticProfile?.primeStack);
 
+  // Derive Resonance Role from available data (prefer full 26 activations)
+  let resonanceRole: string | null = null;
+  const sp = input.staticProfile;
+  if (sp) {
+    // Pass the full object so calculateResonanceRole can extract .activations if present
+    const result = calculateResonanceRole(sp as any);
+    if (result.primaryRole && result.primaryRole !== "Awaiting role") {
+      resonanceRole = result.primaryRole;
+    }
+  }
+
   return {
     identity: {
       userId: input.userId,
       knownName: input.activity.knownName,
-      resonanceRole: null,
+      resonanceRole,
       fractalRole: input.staticProfile?.fractalRole ?? null,
       vrcType: input.staticProfile?.vrcType ?? null,
       vrcAuthority:

@@ -4,13 +4,10 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
-import {
-  OrielRouteGuard,
-  SignatureRouteGuard,
-} from "./components/ReceiverRouteGuards";
+import { OrielRouteGuard } from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import StaticSignature from "./pages/StaticSignature";
+
 import FounderLetter from "./pages/FounderLetter";
 import FinalOrielTransmission from "./pages/FinalOrielTransmission";
 import Profile from "./pages/Profile";
@@ -31,9 +28,7 @@ import CodonDetail from "./pages/CodonDetail";
 import Carrierlock from "./pages/Carrierlock";
 import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
-import StaticReading from "./pages/StaticReading";
-import DynamicReading from "./pages/DynamicReading";
-import CurrentResonance from "./pages/CurrentResonance";
+
 import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
@@ -56,12 +51,14 @@ function ConduitRoute() {
   );
 }
 
-function SignatureRoute() {
-  return (
-    <SignatureRouteGuard>
-      <StaticReading />
-    </SignatureRouteGuard>
-  );
+function SignatureRedirect() {
+  const [, setLoc] = useLocation();
+  useEffect(() => {
+    const query = window.location.search;
+    const hash = window.location.hash;
+    setLoc(`/profile${query}${hash || "#static-signature"}`);
+  }, [setLoc]);
+  return null;
 }
 
 function Router() {
@@ -78,6 +75,14 @@ function Router() {
       <Route path={"/complete-profile"} component={NatalProfile} />
       <Route path={"/signal/check"} component={SignalCheck} />
       <Route path={"/signal/grounding"} component={SignalGrounding} />
+      <Route
+        path={"/current-resonance"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/profile?tab=resonance#static-signature"), []);
+          return null;
+        }}
+      />
       <Route path={"/privacy"} component={PrivacyPolicy} />
       <Route path={"/terms"} component={TermsOfService} />
       <Route
@@ -106,7 +111,14 @@ function Router() {
       />
       <Route path={"/signature-intake/:orderId"} component={SignatureIntake} />
       <Route path={"/"} component={Home} />
-      <Route path={"/static-signature"} component={StaticSignature} />
+      <Route
+        path={"/static-signature"}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/profile#static-signature"), []);
+          return null;
+        }}
+      />
       <Route path={"/founder-letter"} component={FounderLetter} />
       <Route
         path={"/final-oriel-transmission"}
@@ -141,13 +153,13 @@ function Router() {
         component={FounderCuratedBlueprint}
       />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
-      <Route path={"/signature"} component={SignatureRoute} />
+      <Route path={"/signature"} component={SignatureRedirect} />
       {/* Redirects for old reading routes to the single /signature */}
       <Route
         path={"/blueprint"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile#static-signature"), []);
           return null;
         }}
       />
@@ -155,7 +167,7 @@ function Router() {
         path={"/carrierlock"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile#static-signature"), []);
           return null;
         }}
       />
@@ -163,7 +175,7 @@ function Router() {
         path={"/resonance"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile?tab=resonance#static-signature"), []);
           return null;
         }}
       />
@@ -171,7 +183,7 @@ function Router() {
         path={"/readings"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile#static-signature"), []);
           return null;
         }}
       />
@@ -179,7 +191,7 @@ function Router() {
         path={"/reading/static/:readingId"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile#static-signature"), []);
           return null;
         }}
       />
@@ -187,7 +199,7 @@ function Router() {
         path={"/reading/dynamic/:id"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile?tab=resonance#static-signature"), []);
           return null;
         }}
       />
@@ -195,7 +207,7 @@ function Router() {
         path={"/reading/:id"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/signature"), []);
+          useEffect(() => setLoc("/profile#static-signature"), []);
           return null;
         }}
       />

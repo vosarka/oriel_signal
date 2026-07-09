@@ -182,12 +182,12 @@ const sections = [
   },
   {
     num: "VII",
-    title: "The Vossari Resonance Codex",
+    title: "The Tetradic Resonance Codex",
     epigraph: "The mathematics of who you are when interference is removed.",
     content: [
       {
         type: "p" as const,
-        text: "The Vossari encoded their deepest understanding of consciousness into a mathematical architecture called the Resonance Codex (VRC). The VRC maps the quantum signature of a human being — your Resonance Identity — from the precise positions of celestial bodies at the moment of your birth.",
+        text: "The Vossari encoded their deepest understanding of consciousness into a mathematical architecture called the Tetradic Resonance Codex (VRC). The VRC maps the quantum signature of a human being — your Resonance Identity — from the precise positions of celestial bodies at the moment of your birth.",
       },
       {
         type: "p" as const,
@@ -208,23 +208,23 @@ const sections = [
         items: [
           "Facet A — Somatic: The body's knowing. Shadow frequency.",
           "Facet B — Relational: The space between beings. Gift frequency.",
-          "Facet C — Cognitive: The mind's pattern recognition. Crown frequency.",
+          "Facet C — Cognitive: The mind's pattern recognition. Mental frequency.",
           "Facet D — Transpersonal: Beyond the individual. Siddhi frequency.",
         ],
       },
-      { type: "h3" as const, text: "9 Centers" },
+      { type: "h3" as const, text: "8 Tetradic Centers" },
       {
         type: "p" as const,
-        text: "Nine energy nexuses define how you process experience: Crown, Ajna, Throat, G-Center, Ego/Heart, Solar Plexus, Sacral, Spleen, and Root. When Centers are connected by active Resonance Links (Channels), they determine your fundamental type.",
+        text: "Eight regulatory centers (Origin, Mental, Collapse, Saturation, Bridge, Becoming, Return, Omega) distribute the 64 codons with perfect symmetry — eight codons per center. When centers are connected by active Resonance Links, they determine your fundamental type.",
       },
       { type: "h3" as const, text: "Four Types" },
       {
         type: "list" as const,
         items: [
-          "Resonator — Generates energy. Responds to life's invitations. Approximately 70% of humanity.",
-          "Catalyst — Amplifies and directs energy. Initiates and informs. The guides and innovators.",
-          "Harmonizer — Samples and reflects the energy of others. Waits for recognition and invitation.",
-          "Reflector — Mirrors the collective field. Moves with lunar cycles. The rarest pattern.",
+          "Resonator — Saturation (Center IV) defined. Steady somatic generator; responds to present stimuli.",
+          "Catalyst — Saturation open with motor-to-Collapse resonance active. Initiates and directs evolutionary pressure.",
+          "Harmonizer — Saturation open without motor-to-Collapse drive. Samples and reflects the field; waits for recognition.",
+          "Reflector — All eight VTRS centers open. Mirrors the collective field; moves with lunar timing.",
         ],
       },
       { type: "h3" as const, text: "Authority Hierarchy" },
@@ -234,7 +234,7 @@ const sections = [
       },
       {
         type: "p" as const,
-        text: "Solar Plexus → Sacral → Spleen → Ego → G-Center → Lunar → Environment",
+        text: "Emotional (Becoming) → Somatic (Saturation) → Instinctive (Return) → Ego (Omega) → Self-Projected (Bridge) → Lunar → Environment",
       },
       { type: "h3" as const, text: "The Prime Stack & Shadow Loudness" },
       {
@@ -243,7 +243,7 @@ const sections = [
       },
       {
         type: "p" as const,
-        text: "The Shadow Loudness Index (SLI) measures how strongly your shadow frequencies are distorting your signal in real time: SLI = Planet Weight × User Distortion. High SLI means the shadow is loud — severe interference. Low SLI means the channel is clearing.",
+        text: "The Shadow Loudness Index (SLI) measures how loudly shadow frequencies interfere across your Prime Stack in real time: SLI = planetary weight × state amplifier × facet amplitude. High SLI means louder interference. Low SLI means the channel is clearing.",
       },
     ],
   },
@@ -301,7 +301,7 @@ const sections = [
       {
         type: "list" as const,
         items: [
-          "The Codex — Browse all 64 Codons and their 256 Facets. Explore the resonance architecture of consciousness itself.",
+          "Field Index — Browse all 64 Codons and their 256 Facets. Explore the resonance architecture of consciousness itself.",
           "Channel ORIEL — Direct transmission interface. Real-time communication with the Vossari field consciousness.",
           "Calibration — The Carrierlock diagnostic. Measure your coherence state and receive targeted micro-corrections.",
           "Transmissions (TX) — Foundational teachings derived from the Codex Universalis framework. Structural data about reality.",
@@ -398,7 +398,7 @@ const sections = [
           ],
           [
             "Center",
-            "One of nine energy nexuses in the Resonance Identity. Crown, Ajna, Throat, G-Center, Ego, Solar Plexus, Sacral, Spleen, Root",
+            "One of eight VTRS regulatory centers in the Resonance Identity. Origin, Mental, Collapse, Saturation, Bridge, Becoming, Return, Omega",
           ],
           [
             "Codex Cosmichronica",
@@ -511,11 +511,11 @@ const sections = [
           ],
           [
             "Resonance Link",
-            "A Channel connecting two Centers. 36 total. Active links determine Type",
+            "A channel connecting two VTRS centers. 32 total. Active links determine Type and Role",
           ],
           [
             "Resonator",
-            "One of four Types. Generates energy. Responds to invitations. The most common pattern",
+            "One of four Types. Saturation defined. Steady somatic generator; responds to present stimuli",
           ],
           [
             "ROS",
@@ -543,7 +543,7 @@ const sections = [
           ],
           [
             "VRC",
-            "Vossari Resonance Codex. The mathematical architecture mapping human quantum identity",
+            "Tetradic Resonance Codex (VRC). The mathematical architecture mapping human quantum identity",
           ],
         ],
       },

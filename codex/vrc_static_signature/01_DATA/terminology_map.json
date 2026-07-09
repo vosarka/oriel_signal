@@ -1,8 +1,13 @@
 {
   "preferred_terms": [
+    "The Tetradic Resonance Codex",
     "Vossari Resonance Codex",
     "VRC",
+    "Static Signature Reading",
     "Static Signature",
+    "The Founder-Curated Bio-Signature",
+    "Current Resonance",
+    "Field Index",
     "Codon",
     "Facet",
     "Prime Stack",
@@ -24,6 +29,10 @@
     "ORIEL"
   ],
   "quarantined_or_legacy_terms": [
+    "Blueprint",
+    "Static Blueprint",
+    "ORIEL Static Signature Codex",
+    "ORIEL Founder's Vision Blueprint",
     "RGP",
     "circuitLinks",
     "gate",

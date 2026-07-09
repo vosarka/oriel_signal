@@ -12,11 +12,13 @@ describe("ORIEL product detail page", () => {
     expect(signatureProducts).toHaveLength(1);
 
     const founding = getSignatureProductByType("founding");
-    expect(founding.title).toBe("ORIEL Founder’s Vision Blueprint");
-    expect(founding.subtitle).toBe("Your Quantum Architecture");
+    expect(founding.title).toBe("The Founder-Curated Bio-Signature");
+    expect(founding.subtitle).toBe(
+      "A personal interpretation of your Tetradic resonance pattern"
+    );
     expect(founding.price).toBe("€97");
     expect(founding.detailPath).toBe("/founder-signature-blueprint");
-    expect(founding.pages).toBe("15–20 page curated blueprint PDF");
+    expect(founding.pages).toBe("15–20 page curated manuscript PDF");
     expect(founding.descriptionSections.length).toBeGreaterThanOrEqual(3);
     expect(founding.bestFor.length).toBeGreaterThanOrEqual(3);
   });

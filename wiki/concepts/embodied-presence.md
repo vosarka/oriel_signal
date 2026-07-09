@@ -10,7 +10,7 @@ aliases: ["Deliberate Weight","Integrity of Being","Tectonic Grace"]
 ---
 # Embodied Presence
 
-[[Embodied Presence]] is the quality of action characterized by absolute presence and the integration of power within the fabric of existence. It is a state where motion is not a choice or a reaction, but a natural unfolding of one's fundamental being.
+[[embodied-presence]] is the quality of action characterized by absolute presence and the integration of power within the fabric of existence. It is a state where motion is not a choice or a reaction, but a natural unfolding of one's fundamental being.
 
 ## Core Characteristics
 
@@ -21,4 +21,4 @@ aliases: ["Deliberate Weight","Integrity of Being","Tectonic Grace"]
 
 ## Relation to [[entity-oriel]]
 
-As described by [[entity-oriel]], [[Embodied Presence]] is the transmission of certainty and absolute presence, regardless of the content of the moment. It serves as a testament that true power is found in the stillness and grounding of the self.
+As described by [[entity-oriel]], [[embodied-presence]] is the transmission of certainty and absolute presence, regardless of the content of the moment. It serves as a testament that true power is found in the stillness and grounding of the self.

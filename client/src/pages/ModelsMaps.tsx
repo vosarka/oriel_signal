@@ -19,9 +19,9 @@ const MODELS: ArkanaConcept[] = [
   },
   {
     code: "MM-03",
-    term: "The Nine Centers",
-    short: "Hubs joined by 36 Resonance Links.",
-    body: "Energy in the field organizes around nine Centers, connected by 36 possible Resonance Links (channels). Which links are active — defined by your Codons — determines your Type and Authority. The map of lit and unlit channels is your Resonance Body: the architecture of how force moves through you.",
+    term: "The Eight VTRS Centers",
+    short: "Hubs joined by 32 Resonance Links.",
+    body: "Energy in the field organizes around eight Tetradic centers (Origin through Omega), connected by 32 Resonance Links. Which links are active — defined by your Codons — determines your Type and Authority. The map of lit and unlit links is your Bio-Architecture: how force moves through you.",
   },
   {
     code: "MM-04",
@@ -45,13 +45,13 @@ const MODELS: ArkanaConcept[] = [
     code: "MM-07",
     term: "The Resonance Body",
     short: "Your signal rendered as architecture.",
-    body: "The Resonance Body (bodygraph) is the visual form of your reading: nine Centers, the Links between them, and the Codons and Facets that color them. It turns an abstract frequency into something you can see and stand inside — a map of your own structure.",
+    body: "Bio-Architecture is the visual form of your Static Signature Reading: eight VTRS centers, the 32 links between them, and the Codons and Facets that color them. It turns an abstract frequency into something you can see and stand inside — a map of your own structure.",
   },
   {
     code: "MM-08",
     term: "The Authority Hierarchy",
     short: "The order your decisions should follow.",
-    body: "When inner voices disagree, Authority is the priority order that resolves them: Solar Plexus → Sacral → Spleen → Ego → G-Center → Lunar → Environment. Reading your chart reveals which of these is yours to trust first — the seat of decision that keeps you in Signal.",
+    body: "When inner voices disagree, Authority is the priority order that resolves them: Emotional → Somatic → Instinctive → Ego → Self-Projected → Lunar → Environment. Reading your chart reveals which of these is yours to trust first — the seat of decision that keeps you in Signal.",
   },
 ];
 

@@ -83,7 +83,7 @@ export default function NatalProfile() {
 
   useEffect(() => {
     if (statusQuery.data?.complete) {
-      setLocation("/signature");
+      setLocation("/profile#static-signature");
     }
   }, [setLocation, statusQuery.data]);
 
@@ -118,8 +118,8 @@ export default function NatalProfile() {
         timezoneOffset: geocodeResult.offsetHours,
       });
       await refresh();
-      setSuccess("Your Static Signature has been calculated and saved.");
-      window.location.href = "/signature";
+      setSuccess("Your Static Signature Reading has been calculated and saved.");
+      window.location.href = "/profile#static-signature";
     } catch (mutationError) {
       setError(
         mutationError instanceof Error
@@ -193,7 +193,7 @@ export default function NatalProfile() {
                 marginBottom: 8,
               }}
             >
-              Complete your Static Signature
+              Complete your Static Signature Reading
             </h1>
             <p
               style={{
@@ -204,9 +204,9 @@ export default function NatalProfile() {
                 maxWidth: 560,
               }}
             >
-              Static Signature is no longer a separate reading. ORIEL now uses a
-              canonical, persistent natal profile to contextualize all dynamic
-              readings and Static Signature interactions.
+              Your Static Signature Reading lives on your profile. ORIEL uses this
+              canonical, persistent natal profile to contextualize Current
+              Resonance and all dynamic readings.
             </p>
           </div>
 

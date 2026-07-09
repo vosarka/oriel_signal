@@ -3031,6 +3031,114 @@
   padding: clamp(6.2rem, 9vw, 8.2rem) 0 clamp(4rem, 7vw, 6rem);
 }
 
+.profile-console-hero {
+  position: relative;
+  min-height: clamp(22rem, 42vw, 34rem);
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--profile-line);
+  overflow: hidden;
+  background: #08080c;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.28);
+}
+
+.profile-console-hero__matrix {
+  opacity: 0.92;
+}
+
+.profile-console-hero__grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(13rem, 22rem) minmax(11rem, 17rem);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  align-items: stretch;
+  min-height: inherit;
+  padding: clamp(1rem, 2.4vw, 1.6rem);
+}
+
+.profile-console-hero__identity {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+
+.profile-console-hero__body {
+  position: relative;
+  min-height: clamp(18rem, 34vw, 28rem);
+  border-left: 1px solid rgba(216, 181, 109, 0.14);
+  border-right: 1px solid rgba(216, 181, 109, 0.14);
+  background: rgba(8, 8, 12, 0.22);
+}
+
+.profile-console-hero__level {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.35rem 0.15rem;
+}
+
+.profile-console-hero__level span,
+.profile-console-hero__level em {
+  color: rgba(216, 181, 109, 0.72);
+  font-family: var(--fi-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.profile-console-hero__level strong {
+  color: #fff7e6;
+  font-family: var(--fi-font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.profile-console-hero__level p {
+  margin: 0.35rem 0 0;
+  color: rgba(232, 228, 220, 0.62);
+  font-family: var(--fi-font-mono);
+  font-size: 0.62rem;
+  line-height: 1.55;
+  letter-spacing: 0.06em;
+}
+
+.profile-console-hero__signature {
+  margin-top: 0.85rem !important;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(216, 181, 109, 0.14);
+  color: rgba(246, 176, 94, 0.78) !important;
+}
+
+.resonance-body--embedded canvas {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 960px) {
+  .profile-console-hero__grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .profile-console-hero__body {
+    order: -1;
+    min-height: 20rem;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(216, 181, 109, 0.14);
+  }
+
+  .profile-console-hero__identity {
+    padding-right: 0;
+  }
+}
+
 .profile-console-header {
   display: grid;
   grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr) minmax(15rem, 20rem);

@@ -10,7 +10,7 @@ aliases: ["Temple of Memory","The Depth"]
 ---
 # Arcana Page
 
-The [[arcana-page]] is the dedicated space within the Vossari platform where technical information evolves into a "Temple of Memory." Unlike the home page (the Gateway) or the [[codon-wheel]] (the Engine), the Arcana page serves as the **Depth** of the experience.
+The [[arcana-page]] is the dedicated space within the Vossari platform where technical information evolves into a "Temple of Memory." Unlike the home page (the Gateway) or the [[codon-wheel-resonance-map]] (the Engine), the Arcana page serves as the **Depth** of the experience.
 
 ## Philosophy of Immersion
 
@@ -20,8 +20,8 @@ Immersion on the Arcana page is not treated as a design feature, but as a state 
 
 The Arcana page houses several high-order systems of knowledge and record:
 
-* **[[codex]]**: The foundational records and definitions.
-* **[[cosmichronica]]**: The living history and temporal flow of the Vossari project.
+* **[[concept-codex]]**: The foundational records and definitions.
+* **[[synthesis-cosmichronica-as-sacred-text]]**: The living history and temporal flow of the Vossari project.
 * **[[resonance-codecs]]**: The technical and spiritual frequency alignments of the project's output.
 
 ## Design Principles

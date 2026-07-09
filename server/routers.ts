@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
+import { verifyCredentialPassword } from "./_core/auth";
 import * as db from "./db";
 import * as gemini from "./gemini";
 import { handlePayPalWebhook, PayPalWebhookPayload } from "./paypal-webhook";
@@ -35,6 +36,7 @@ import * as autonomy from "./oriel-autonomy";
 import { ENV } from "./_core/env";
 import {
   buildUserStaticProfile,
+  resolveStoredNatalInputForRecompute,
   summarizeStoredStaticProfile,
 } from "./static-profile-service";
 import { calculateBirthChart } from "./ephemeris-service";
@@ -211,17 +213,12 @@ export const appRouter = router({
         const baUser = await db.getBetterAuthUserByEmail(email);
 
         if (!baUser) {
+          // No account, but don't leak existence
           return { success: true } as const;
         }
 
-        const credentialAccount = await db.getCredentialAccountForUser(
-          baUser.id
-        );
-        if (!credentialAccount) {
-          await sendPasswordRecoveryGuidanceEmail(email);
-          return { success: true } as const;
-        }
-
+        // Always allow reset code for any baUser (including social/legacy).
+        // This allows users to set a password for email login.
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const codeHash = hashResetCode(email, code);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
@@ -247,13 +244,6 @@ export const appRouter = router({
           throw new Error("Invalid or expired reset code.");
         }
 
-        const credentialAccount = await db.getCredentialAccountForUser(
-          baUser.id
-        );
-        if (!credentialAccount) {
-          throw new Error("Password reset is not available for this account.");
-        }
-
         const storedCodeValid = await db.consumePasswordResetCode(
           email,
           hashResetCode(email, input.code)
@@ -263,11 +253,76 @@ export const appRouter = router({
         }
 
         const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
-        await db.updateCredentialPassword(baUser.id, newPasswordHash);
+
+        // Create credential account if it doesn't exist (supports social/legacy users setting a password)
+        const existingCredential = await db.getCredentialAccountForUser(baUser.id);
+        if (!existingCredential) {
+          await db.createCredentialAccount(baUser.id, email, newPasswordHash);
+        } else {
+          await db.updateCredentialPassword(baUser.id, newPasswordHash);
+        }
+
+        // Keep legacy in sync if present
         const legacyUser = await db.getUserByEmail(email);
         if (legacyUser) {
           await db.setUserPasswordHash(legacyUser.openId, newPasswordHash);
         }
+
+        return { success: true } as const;
+      }),
+
+    /**
+     * Change password for a logged-in user who has (or will have) email+password.
+     * Requires the current password for security.
+     */
+    changePassword: protectedProcedure
+      .input(
+        z.object({
+          currentPassword: z.string(),
+          newPassword: z.string().min(8, "New password must be at least 8 characters."),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.email) {
+          throw new Error("Not authenticated.");
+        }
+
+        const email = normalizeEmail(ctx.user.email);
+        const baUser = await db.getBetterAuthUserByEmail(email);
+        if (!baUser) {
+          throw new Error("Account not found.");
+        }
+
+        const currentHash = await db.getCredentialPasswordHash(baUser.id);
+        if (!currentHash) {
+          // Allow setting password even if none existed (e.g. social user adding one)
+          const newHash = await bcrypt.hash(input.newPassword, 12);
+          await db.createCredentialAccount(baUser.id, email, newHash);
+          const legacy = await db.getUserByEmail(email);
+          if (legacy) {
+            await db.setUserPasswordHash(legacy.openId, newHash);
+          }
+          return { success: true } as const;
+        }
+
+        // Verify current password using better-auth's logic (supports bcrypt + legacy scrypt)
+        const isValid = await verifyCredentialPassword({
+          password: input.currentPassword,
+          hash: currentHash,
+        });
+
+        if (!isValid) {
+          throw new Error("Current password is incorrect.");
+        }
+
+        const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
+        await db.updateCredentialPassword(baUser.id, newPasswordHash);
+
+        const legacyUser = await db.getUserByEmail(email);
+        if (legacyUser) {
+          await db.setUserPasswordHash(legacyUser.openId, newPasswordHash);
+        }
+
         return { success: true } as const;
       }),
   }),
@@ -2346,16 +2401,11 @@ export const appRouter = router({
       if (!existing) {
         throw new Error("Natal profile not found");
       }
-      const profile = await buildUserStaticProfile(String(ctx.user.id), {
-        birthDate: existing.birthDate,
-        birthTime: existing.birthTime,
-        birthCity: existing.birthCity,
-        birthCountry: existing.birthCountry,
-        latitude: existing.latitude,
-        longitude: existing.longitude,
-        timezoneId: existing.timezoneId ?? undefined,
-        timezoneOffset: existing.timezoneOffset ?? undefined,
-      });
+      const natalInput = resolveStoredNatalInputForRecompute(existing);
+      const profile = await buildUserStaticProfile(
+        String(ctx.user.id),
+        natalInput
+      );
       return db.upsertUserStaticProfile(ctx.user.id, profile);
     }),
 

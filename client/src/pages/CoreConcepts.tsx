@@ -51,7 +51,7 @@ const CONCEPTS: ArkanaConcept[] = [
     code: "CC-08",
     term: "Type & Authority",
     short: "How your signal moves, and how it decides.",
-    body: "Type — Resonator, Catalyst, Harmonizer or Reflector — describes the shape of your energy in the world. Authority is the inner hierarchy your decisions should follow (Solar Plexus → Sacral → Spleen → Ego → G-Center → Lunar → Environment). Both emerge from how your nine Centers are wired by 36 Resonance Links.",
+    body: "Type — Resonator, Catalyst, Harmonizer or Reflector — describes how your Tetradic field moves in the world. Authority is the inner hierarchy your decisions should follow: Emotional → Somatic → Instinctive → Ego → Self-Projected → Lunar → Environment (mapped from Becoming, Saturation, Return, Omega, and Bridge). Both emerge from how your eight VTRS centers are wired by 32 Resonance Links.",
   },
   {
     code: "CC-09",

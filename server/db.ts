@@ -48,6 +48,11 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { createDrizzleFromDatabaseUrl, type DrizzleDb } from "./_core/mysql";
+import {
+  mergeCanonicalLatticeIntoCoreCodonEngine,
+  parseLatticeFields,
+  serializeLatticeColumns,
+} from "./canonical-lattice-persistence";
 import type { SignatureOrderStatus } from "./signature-letter-system";
 import type { ProfileConsoleActivity } from "./profile-console-summary";
 
@@ -88,13 +93,28 @@ function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
 }
 
 function isMissingTableError(error: unknown, tableName: string) {
-  return hasMigrationErrorFragment(error, [
+  if (
+    hasMigrationErrorFragment(error, [
+      "ER_BAD_FIELD_ERROR",
+      "Unknown column",
+    ])
+  ) {
+    return false;
+  }
+
+  const message = String(
+    (error as { message?: string })?.message ?? error ?? ""
+  );
+  const tableMissingPatterns = [
     "ER_NO_SUCH_TABLE",
-    "doesn't exist",
-    "does not exist",
     "no such table",
-    tableName,
-  ]);
+    `Table '${tableName}' doesn't exist`,
+    `Table \`${tableName}\` doesn't exist`,
+    `table '${tableName}' doesn't exist`,
+    `table \`${tableName}\` doesn't exist`,
+  ];
+
+  return tableMissingPatterns.some(fragment => message.includes(fragment));
 }
 
 async function executeMigrationStep(
@@ -113,85 +133,6 @@ async function executeMigrationStep(
       console.error("[Migrations] Error:", error);
     }
   }
-}
-
-type CanonicalLatticeCarrier = {
-  coreCodonEngine?: unknown;
-  calculationContext?: unknown;
-  activations?: unknown;
-  channelStatuses?: unknown;
-  legacyCircuitLinks?: unknown;
-  circuitLinks?: unknown;
-  specVersion?: string;
-  calculationStatus?: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function mergeCanonicalLatticeIntoCoreCodonEngine(
-  data: CanonicalLatticeCarrier
-): unknown {
-  const base = isRecord(data.coreCodonEngine) ? data.coreCodonEngine : {};
-  const existingLattice = isRecord(base.lattice) ? base.lattice : {};
-  const lattice = {
-    ...existingLattice,
-    ...(data.specVersion ? { specVersion: data.specVersion } : {}),
-    ...(data.calculationStatus
-      ? { calculationStatus: data.calculationStatus }
-      : {}),
-    ...(data.calculationContext
-      ? { calculationContext: data.calculationContext }
-      : {}),
-    ...(data.activations ? { activations: data.activations } : {}),
-    ...(data.channelStatuses ? { channelStatuses: data.channelStatuses } : {}),
-    ...((data.legacyCircuitLinks ?? data.circuitLinks)
-      ? { legacyCircuitLinks: data.legacyCircuitLinks ?? data.circuitLinks }
-      : {}),
-  };
-
-  if (Object.keys(base).length === 0 && Object.keys(lattice).length === 0) {
-    return data.coreCodonEngine;
-  }
-
-  return {
-    ...base,
-    ...(Object.keys(lattice).length > 0 ? { lattice } : {}),
-  };
-}
-
-function extractCanonicalLattice(
-  coreCodonEngine: unknown,
-  circuitLinks: unknown
-) {
-  const lattice: Record<string, unknown> =
-    isRecord(coreCodonEngine) && isRecord(coreCodonEngine.lattice)
-      ? coreCodonEngine.lattice
-      : {};
-
-  return {
-    activations: Array.isArray(lattice.activations)
-      ? lattice.activations
-      : null,
-    channelStatuses: Array.isArray(lattice.channelStatuses)
-      ? lattice.channelStatuses
-      : null,
-    legacyCircuitLinks: Array.isArray(lattice.legacyCircuitLinks)
-      ? lattice.legacyCircuitLinks
-      : Array.isArray(circuitLinks)
-        ? circuitLinks
-        : null,
-    specVersion:
-      typeof lattice.specVersion === "string" ? lattice.specVersion : null,
-    calculationStatus:
-      typeof lattice.calculationStatus === "string"
-        ? lattice.calculationStatus
-        : null,
-    calculationContext: isRecord(lattice.calculationContext)
-      ? lattice.calculationContext
-      : null,
-  };
 }
 
 /**
@@ -414,6 +355,39 @@ export async function runMigrations() {
         UNIQUE KEY \`userStaticProfiles_userId_unique\` (\`userId\`)
       )`,
       ignorableFragments: ["already exists"],
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`activations\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added userStaticProfiles.activations column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`channelStatuses\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage:
+        "[Migrations] Added userStaticProfiles.channelStatuses column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`calculationStatus\` varchar(32) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage:
+        "[Migrations] Added userStaticProfiles.calculationStatus column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`calculationContext\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage:
+        "[Migrations] Added userStaticProfiles.calculationContext column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`specVersion\` varchar(32) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added userStaticProfiles.specVersion column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` MODIFY COLUMN \`specVersion\` varchar(128) NULL`,
+      successMessage:
+        "[Migrations] Widened userStaticProfiles.specVersion to varchar(128)",
     },
   ];
 
@@ -2362,6 +2336,43 @@ export async function getCredentialAccountForUser(baUserId: string) {
   return result[0] || null;
 }
 
+export async function createCredentialAccount(
+  baUserId: string,
+  email: string,
+  passwordHash: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  await db.insert(baAccount).values({
+    id: randomUUID(),
+    accountId: normalizedEmail,
+    providerId: "credential",
+    userId: baUserId,
+    password: passwordHash,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+export async function getCredentialPasswordHash(baUserId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select({ password: baAccount.password })
+    .from(baAccount)
+    .where(
+      and(
+        eq(baAccount.userId, baUserId),
+        eq(baAccount.providerId, "credential")
+      )
+    )
+    .limit(1);
+  return result[0]?.password || null;
+}
+
 export async function storePasswordResetCode(
   email: string,
   codeHash: string,
@@ -3153,6 +3164,7 @@ export async function upsertUserStaticProfile(
       houses: profile.houses ? JSON.stringify(profile.houses) : null,
       diagnosticTransmission: profile.diagnosticTransmission ?? null,
       coreCodonEngine: coreCodonEngine ? JSON.stringify(coreCodonEngine) : null,
+      ...serializeLatticeColumns(profile),
       engineVersion: profile.engineVersion ?? 2,
     };
 
@@ -3173,12 +3185,32 @@ export async function upsertUserStaticProfile(
 
     return inserted[0] ? parseUserStaticProfileRow(inserted[0]) : null;
   } catch (error) {
+    if (
+      hasMigrationErrorFragment(error, [
+        "ER_DATA_TOO_LONG",
+        "Data too long for column",
+      ])
+    ) {
+      throw new Error(
+        "Natal profile payload is too large for the current database schema. Run: pnpm db:migrate — then restart the server."
+      );
+    }
+
+    if (hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])) {
+      console.warn(
+        "[Database] userStaticProfiles schema is out of date. Apply migrations before saving natal profiles."
+      );
+      throw new Error(
+        "Natal profile storage schema is out of date. Run: pnpm db:migrate — then restart the server."
+      );
+    }
+
     if (isMissingTableError(error, "userStaticProfiles")) {
       console.warn(
         "[Database] userStaticProfiles table is missing. Apply migrations before saving natal profiles."
       );
       throw new Error(
-        "Natal profile storage is not available yet because the database migration for userStaticProfiles has not been applied."
+        "Natal profile storage is not available yet. Run: pnpm db:migrate — then restart the server."
       );
     }
 
@@ -3246,15 +3278,13 @@ export async function getLatestStaticSignature(userId: number) {
 
 /** Parse JSON text columns back into objects */
 function parseStaticSignatureRow(row: typeof staticSignatures.$inferSelect) {
-  const circuitLinks = safeJsonParse(row.circuitLinks, null);
-  const coreCodonEngine = safeJsonParse(row.coreCodonEngine, null);
-  const lattice = extractCanonicalLattice(coreCodonEngine, circuitLinks);
+  const lattice = parseLatticeFields(row, safeJsonParse);
 
   return {
     ...row,
     primeStack: safeJsonParse(row.primeStack, null),
     ninecenters: safeJsonParse(row.ninecenters, null),
-    circuitLinks,
+    circuitLinks: lattice.circuitLinks,
     legacyCircuitLinks: lattice.legacyCircuitLinks,
     activations: lattice.activations,
     channelStatuses: lattice.channelStatuses,
@@ -3265,22 +3295,20 @@ function parseStaticSignatureRow(row: typeof staticSignatures.$inferSelect) {
     microCorrections: safeJsonParse(row.microCorrections, null),
     ephemerisData: safeJsonParse(row.ephemerisData, null),
     houses: safeJsonParse(row.houses, null),
-    coreCodonEngine,
+    coreCodonEngine: lattice.coreCodonEngine,
   };
 }
 
 function parseUserStaticProfileRow(
   row: typeof userStaticProfiles.$inferSelect
 ) {
-  const circuitLinks = safeJsonParse(row.circuitLinks, null);
-  const coreCodonEngine = safeJsonParse(row.coreCodonEngine, null);
-  const lattice = extractCanonicalLattice(coreCodonEngine, circuitLinks);
+  const lattice = parseLatticeFields(row, safeJsonParse);
 
   return {
     ...row,
     primeStack: safeJsonParse(row.primeStack, null),
     ninecenters: safeJsonParse(row.ninecenters, null),
-    circuitLinks,
+    circuitLinks: lattice.circuitLinks,
     legacyCircuitLinks: lattice.legacyCircuitLinks,
     activations: lattice.activations,
     channelStatuses: lattice.channelStatuses,
@@ -3290,7 +3318,7 @@ function parseUserStaticProfileRow(
     microCorrections: safeJsonParse(row.microCorrections, null),
     ephemerisData: safeJsonParse(row.ephemerisData, null),
     houses: safeJsonParse(row.houses, null),
-    coreCodonEngine,
+    coreCodonEngine: lattice.coreCodonEngine,
   };
 }
 

@@ -7,12 +7,18 @@ last_updated: 2026-07-05
 sources: 14
 importance: critical
 aliases:
-  ["Vossari Resonance Codex Engine", "RGP", "Static Signature Engine", "VRC"]
+  [
+    "The Tetradic Resonance Codex",
+    "Vossari Resonance Codex Engine",
+    "RGP",
+    "Static Signature Engine",
+    "VRC"
+  ]
 ---
 
-# VRC Engine (Vossari Resonance Codex)
+# VRC Engine (The Tetradic Resonance Codex)
 
-The **VRC Engine** (also called RGP / Static Signature system) is the computational heart of the Vossari diagnostic and identity system. It is one of two primary engines in the **Consciousness Lattice** architecture (see [[entity-consciousness-lattice]]).
+Public system name: **The Tetradic Resonance Codex** (see [[concept-vossari-naming-taxonomy]]). The **VRC Engine** (internal acronym; legacy alias RGP) is the computational heart of the Vossari diagnostic and identity system. It is one of two primary engines in the **Consciousness Lattice** architecture (see [[entity-consciousness-lattice]]).
 
 It transforms a user's birth data into a structured "quantum identity" reading expressed through the 64-codon mandala, then renders that into ORIEL transmissions, visual maps, and micro-corrections.
 
@@ -116,7 +122,7 @@ The v2 ingest establishes [[vtrs-architecture]] as the active center/link canon:
 The live codebase is not perfectly synchronized yet:
 
 - `server/vrc-mandala.ts` already contains the v2 center map and 32 resonance links.
-- `server/data/vrc-engine-constants.json` and `server/vrc-engine-constants.ts` still expose the legacy 9 centers and 36 channels.
+- `server/data/vrc-engine-constants.json` regenerated to VTRS v2 (8 centers, 32 links) as of 2026-07-07; `server/vossari-codex-knowledge.ts` remains legacy until ORIEL diagnostic migration.
 - `server/vossari-codex-knowledge.ts` is called out by v2 migration sources as a codon-name drift point, while `server/data/vrc-codons.json` and the codex JSON files contain the canonical Vossari names.
 
 Future engineering work should reconcile those files through proposed migrations and tests, not silent broad rewrites.

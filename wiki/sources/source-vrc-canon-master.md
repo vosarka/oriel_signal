@@ -11,6 +11,8 @@ aliases: ["VRC Canon Master", "CANON_MASTER.md", "Static Signature Codex Canon"]
 
 # Source: VRC Static Signature Codex — CANON MASTER
 
+> **Legacy center/link notice:** Where this source describes 9 centers or 36 channels, [[source-consciousness-lattice-v2]] supersedes that layer with 8 Tetradic centers and 32 resonance links. Mathematical spine (codons, facets, Mandala, Prime Stack, SLI) remains authoritative.
+
 **Provenance:** `codex/vrc_static_signature/00_CANON/CANON_MASTER.md` (248 lines)  
 **Role:** The single authoritative source of truth for the Vossari Resonance Codex (VRC) / Resonance Genetics Protocol (RGP) calculations, naming systems, and structural hierarchies.
 

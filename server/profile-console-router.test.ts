@@ -77,7 +77,7 @@ describe("profile.getProfileConsoleSummary", () => {
     });
     expect(summary.identity.userId).toBe(7);
     expect(summary.identity).toMatchObject({
-      resonanceRole: null,
+      resonanceRole: "Sovereign", // now derived from primeStack codon 24 (RC21-24 tetrad)
       fractalRole: "Catalyst",
       vrcType: "Resonator",
       vrcAuthority: "The Seal",

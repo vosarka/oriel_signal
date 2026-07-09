@@ -509,7 +509,7 @@ export default function ReadingEnhanced() {
               onClick={() => toggleSection("nineCenters")}
             >
               <div className="flex items-center justify-between">
-                <CardTitle>9-Center Resonance Map</CardTitle>
+                <CardTitle>8-Center VTRS Map</CardTitle>
                 {expandedSections.nineCenters ? (
                   <ChevronUp className="w-5 h-5" />
                 ) : (

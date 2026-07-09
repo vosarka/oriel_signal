@@ -81,8 +81,8 @@ From the orchestrator + bridge, ORIEL is given a clean, validated payload contai
 
 - Status (`CONFIRMED` / `DRAFT`)
 - 26 activations (planet, layer, codon, facet, center, weight)
-- 9 centers with Defined/Open status + active links
-- Active Resonance Links (with names)
+- 8 Tetradic centers (VTRS v2) with Defined/Open status + 32 active resonance links
+- Active Resonance Links (with canonical names from [[source-consciousness-lattice-v2]] Part VII)
 - Identity object (vrcType, subtype, authority)
 - Optional dynamic state (Coherence Score, SLI scores)
 - Audit signature

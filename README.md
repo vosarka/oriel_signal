@@ -72,11 +72,12 @@ http://localhost:3000/api/auth/google/callback
 ```
 
 ```bash
+pnpm db:migrate # apply runtime migrations (userStaticProfiles, etc.)
 pnpm db:push   # push schema to database
 pnpm dev       # start dev server (Express + Vite HMR on same port)
 ```
 
-`RUN_MIGRATIONS` is disabled by default in development so local boot does not automatically touch a shared database. Use `pnpm db:push` or set `RUN_MIGRATIONS=true` only when you explicitly want startup migrations.
+`RUN_MIGRATIONS` is disabled by default in development so local boot does not automatically touch a shared database. When you need schema updates (e.g. `userStaticProfiles`), run `pnpm db:migrate` once, then restart the dev server. Alternatively use `pnpm db:push` or set `RUN_MIGRATIONS=true` for startup migrations.
 
 ---
 

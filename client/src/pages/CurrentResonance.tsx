@@ -1,3 +1,6 @@
+// Legacy standalone page — superseded by /signature?tab=resonance (DynamicReadingPanel).
+// Not mounted in App.tsx; kept for reference only.
+
 import { Link } from "wouter";
 import {
   Activity,

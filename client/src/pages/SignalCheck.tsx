@@ -5,6 +5,7 @@ import {
   SignalPageShell,
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useReceiverState } from "@/hooks/useReceiverState";
 import { trpc } from "@/lib/trpc";
 import {
@@ -65,6 +66,13 @@ function SliderField({
   );
 }
 
+type SliSummary = {
+  primaryCodon: string;
+  primarySli: number;
+  flaggedCodons: string[];
+  engineMicroCorrection?: string | null;
+};
+
 function ResultPanel({
   result,
   score,
@@ -72,6 +80,7 @@ function ResultPanel({
   showMicroCorrection,
   onShowMicroCorrection,
   microCorrection,
+  sliSummary,
 }: {
   result: SignalResult;
   score: number;
@@ -79,6 +88,7 @@ function ResultPanel({
   showMicroCorrection: boolean;
   onShowMicroCorrection: () => void;
   microCorrection: string;
+  sliSummary: SliSummary | null;
 }) {
   return (
     <section className="signal-check__result" aria-live="polite">
@@ -89,6 +99,32 @@ function ResultPanel({
       <div>
         <p className="signal-check__result-label">{result.label}</p>
         <p className="signal-check__result-message">{result.message}</p>
+
+        {sliSummary && (
+          <div className="signal-check__micro signal-check__sli">
+            <span>// shadow loudness index</span>
+            <p>
+              Primary interference:{" "}
+              <strong>
+                {sliSummary.primaryCodon} · SLI{" "}
+                {sliSummary.primarySli.toFixed(1)}
+              </strong>
+            </p>
+            {sliSummary.flaggedCodons.length > 1 && (
+              <p>
+                Flagged codons: {sliSummary.flaggedCodons.join(", ")}
+              </p>
+            )}
+            {sliSummary.engineMicroCorrection && (
+              <p>{sliSummary.engineMicroCorrection}</p>
+            )}
+            <div className="signal-check__actions">
+              <SignalButton href="/signature?tab=resonance">
+                Open Current Resonance
+              </SignalButton>
+            </div>
+          </div>
+        )}
 
         {result.label === "FRAGMENTED" && (
           <div className="signal-check__actions">
@@ -138,7 +174,7 @@ function ResultPanel({
               href="/founder-signature-blueprint"
               variant="secondary"
             >
-              Get Oriel Signature Blueprint
+              The Founder-Curated Bio-Signature
             </SignalButton>
           </div>
         )}
@@ -148,6 +184,7 @@ function ResultPanel({
 }
 
 export default function SignalCheck() {
+  const { user } = useAuth();
   const receiver = useReceiverState();
   const [mentalNoise, setMentalNoise] = useState(5);
   const [bodyTension, setBodyTension] = useState(5);
@@ -156,8 +193,12 @@ export default function SignalCheck() {
   const [resultScore, setResultScore] = useState<number | null>(null);
   const [showMicroCorrection, setShowMicroCorrection] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [sliSummary, setSliSummary] = useState<SliSummary | null>(null);
 
   const saveCarrierlockMutation = trpc.codex.saveCarrierlock.useMutation();
+  const dynamicStateMutation = trpc.rgp.dynamicState.useMutation();
+  const saveReadingMutation = trpc.codex.saveReading.useMutation();
+  const utils = trpc.useUtils();
 
   const liveScore = useMemo(
     () =>
@@ -183,6 +224,7 @@ export default function SignalCheck() {
     setResultScore(score);
     setShowMicroCorrection(false);
     setSaveNotice(null);
+    setSliSummary(null);
 
     if (!receiver.isAuthed) {
       setSaveNotice(
@@ -192,15 +234,95 @@ export default function SignalCheck() {
     }
 
     try {
-      await saveCarrierlockMutation.mutateAsync({
+      const carrierlockResult = await saveCarrierlockMutation.mutateAsync({
         mentalNoise,
         bodyTension,
         emotionalTurbulence: emotionalTide,
         breathCompletion: breathCompleted,
       });
-      setSaveNotice(
-        "Latest Carrierlock state preserved inside this receiver node."
-      );
+
+      if (receiver.hasSignature && user?.id) {
+        const dynamic = await dynamicStateMutation.mutateAsync({
+          mentalNoise,
+          bodyTension,
+          emotionalTurbulence: emotionalTide,
+          breathCompletion: breathCompleted ? 1 : 0,
+          birthDate: new Date().toISOString(),
+          userId: String(user.id),
+        });
+
+        if (dynamic.success && dynamic.data) {
+          const data = dynamic.data;
+          const readingText = [
+            `ORIEL Dynamic Reading — ${data.coherenceScore}/100 — ${data.coherenceLabel}`,
+            "",
+            data.orielTransmission,
+          ].join("\n");
+
+          const correctionFacet =
+            data.correctionFacet &&
+            ["A", "B", "C", "D"].includes(data.correctionFacet)
+              ? (data.correctionFacet as "A" | "B" | "C" | "D")
+              : undefined;
+
+          await saveReadingMutation.mutateAsync({
+            carrierlockId: carrierlockResult.id,
+            readingText,
+            flaggedCodons: data.flaggedCodons ?? [],
+            sliScores: data.sliScores ?? {},
+            activeFacets: data.activeFacets ?? {},
+            confidenceLevels: data.confidenceLevels ?? {},
+            microCorrection: data.microCorrection,
+            correctionFacet,
+            falsifier: data.falsifier ?? "",
+          });
+
+          // Make sure /profile sees the fresh carrierlock + coherence immediately
+          utils.profile.getCurrentResonance.invalidate().catch(() => {});
+          utils.profile.getProfileConsoleSummary.invalidate().catch(() => {});
+
+          const primaryCodon = data.flaggedCodons?.[0] ?? "—";
+          const scoreEntries =
+            data.sliScores && typeof data.sliScores === "object"
+              ? Object.entries(data.sliScores as Record<string, number>)
+              : [];
+          const primaryEntry =
+            scoreEntries.find(
+              ([key]) =>
+                key === primaryCodon ||
+                key.endsWith(`:${primaryCodon}`) ||
+                key.endsWith(primaryCodon)
+            ) ?? scoreEntries.sort((a, b) => b[1] - a[1])[0];
+          const primarySli = primaryEntry ? Number(primaryEntry[1]) : 0;
+
+          setSliSummary({
+            primaryCodon,
+            primarySli: Number.isFinite(primarySli) ? primarySli : 0,
+            flaggedCodons: data.flaggedCodons ?? [],
+            engineMicroCorrection: data.microCorrection,
+          });
+
+          setSaveNotice(
+            "Carrierlock preserved. SLI diagnostic recorded against your Static Signature."
+          );
+        } else if (
+          (dynamic as { requiresStaticProfile?: boolean }).requiresStaticProfile
+        ) {
+          setSaveNotice(
+            "Carrierlock preserved. Complete your natal profile to unlock SLI diagnostics."
+          );
+        } else {
+          setSaveNotice(
+            "Latest Carrierlock state preserved inside this receiver node."
+          );
+        }
+      } else {
+        setSaveNotice(
+          receiver.hasSignature
+            ? "Latest Carrierlock state preserved inside this receiver node."
+            : "Carrierlock preserved. Complete your Static Signature to unlock SLI diagnostics."
+        );
+      }
     } catch {
       setSaveNotice(
         "Signal state calculated. Persistence did not complete on this pass."
@@ -536,7 +658,9 @@ export default function SignalCheck() {
               <span className="signal-check__notice">
                 Live score: {liveScore}/100
               </span>
-              {saveCarrierlockMutation.isPending && (
+              {(saveCarrierlockMutation.isPending ||
+                dynamicStateMutation.isPending ||
+                saveReadingMutation.isPending) && (
                 <span className="signal-check__notice">
                   Preserving Carrierlock state...
                 </span>
@@ -553,6 +677,7 @@ export default function SignalCheck() {
               showMicroCorrection={showMicroCorrection}
               onShowMicroCorrection={() => setShowMicroCorrection(true)}
               microCorrection={microCorrection}
+              sliSummary={sliSummary}
             />
           )}
         </main>

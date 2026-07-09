@@ -12,7 +12,7 @@ aliases: ["Somatic Stripping","The Weather Removal"]
 
 Psychological Clearing is a strategic process of cognitive and somatic stripping designed to transition an initiate from the state of a consumer (the "customer") to the state of a receiver (the "initiate"). 
 
-It is the act of removing the "Weather"—the surface-level noise, societal expectations, and mental clutter—before a high-fidelity transmission can be received. In the context of the [[entity-oriel]] framework, it is the preparatory phase of the [[concept-static-signature]] tuning process.
+It is the act of removing the "Weather"—the surface-level noise, societal expectations, and mental clutter—before a high-fidelity transmission can be received. In the context of the [[entity-oriel]] framework, it is the preparatory phase of the [[entity-static-signature]] tuning process.
 
 ## Core Objectives
 
@@ -29,7 +29,7 @@ Focuses on the "Static" within the biological receiver. By forcing the initiate 
 Challenges the initiate to acknowledge the versions of themselves they have spent energy pretending to be, initiating a dissolution of the false self to prepare for the truth of the manuscript.
 
 ### Sacred Silence
-Moves the initiate into a state of emptiness by stripping away titles and expectations, creating the void necessary for the [[concept-static-signature]] to be integrated.
+Moves the initiate into a state of emptiness by stripping away titles and expectations, creating the void necessary for the [[entity-static-signature]] to be integrated.
 
 ## Relationship to Transmission
 

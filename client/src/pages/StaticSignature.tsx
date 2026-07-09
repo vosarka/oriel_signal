@@ -63,26 +63,26 @@ export default function StaticSignature() {
           <ArchiveMetaStrip items={codexMeta} />
           <div className="signal-two-column signal-two-column--archive signal-pagehead-grid">
             <div>
-              <SignalKicker>// static signature codex</SignalKicker>
+              <SignalKicker>// static signature reading</SignalKicker>
               <h1 className="archive-page-title">
-                O R I E L<span>GENERATE THE RECEIVER CODEX</span>
+                O R I E L<span>STATIC SIGNATURE READING</span>
               </h1>
               <p className="archive-page-copy">
-                The Static Signature Codex is a symbolic field document
-                generated from the receiver’s inner architecture. It does not
-                reduce the receiver to a type. It reveals a pattern of movement,
-                pressure, openness, definition, instinct, authority, and
-                transmission.
+                The Static Signature Reading is a symbolic field document
+                generated from the receiver’s inner architecture via the
+                Tetradic Resonance Codex. It does not reduce the receiver to a
+                type. It reveals a pattern of movement, pressure, openness,
+                definition, instinct, authority, and transmission.
               </p>
               <div className="signal-hero__actions">
                 <SignalButton href="/complete-profile">
-                  Generate Static Signature
+                  Generate Static Signature Reading
                 </SignalButton>
                 <SignalButton
                   href="/founder-signature-blueprint"
                   variant="secondary"
                 >
-                  Get Oriel Signature Blueprint
+                  Founder-Curated Bio-Signature
                 </SignalButton>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function StaticSignature() {
               </div>
               <h3>Core Signature Overview</h3>
               <p>
-                Once generated, the Codex becomes a personal archive record:
+                Once generated, the reading becomes a personal archive record:
                 Type, Authority, Profile, defined and open Centers, Signature
                 Metrics, and the Final Oriel Transmission preserved as a sealed
                 document.

@@ -44,7 +44,7 @@ The wiki's job is to **synthesize across** all of the above.
 ## The Three Magic Operations
 
 1. **Ingest** — Drop a new source (article, design doc, long transcript, research note) and say "process this into the wiki".
-2. **Query + File Back** — Ask a hard question. When the answer is good, tell the LLM "file this as [[synthesis-xxx]]".
+2. **Query + File Back** — Ask a hard question. When the answer is good, tell the LLM "file this as synthesis-xxx".
 3. **Lint** — Periodically: "Run a wiki health check. Find contradictions, orphans, and missing pages."
 
 ## Tips

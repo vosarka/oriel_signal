@@ -122,7 +122,7 @@ export function buildProfileGraphNodes(
     },
     {
       id: "signature",
-      label: "Static Signature",
+      label: "Static Signature Reading",
       value: summary?.identity?.hasStaticSignature ? "Linked" : "Awaiting",
       tone: "gold",
     },

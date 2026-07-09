@@ -9,7 +9,6 @@ import {
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
-import { VeyranSignalWindow } from "@/components/oriel-signal/VeyranSignalWindow";
 import { useReceiverState } from "@/hooks/useReceiverState";
 import { buildHomeChamberStates, type ChamberKey } from "@shared/phase-gate";
 
@@ -32,8 +31,8 @@ const archiveModules = [
   {
     key: "blueprint" as const,
     file: "RC-001 // PRODUCT",
-    title: "ORIEL Founder’s Vision Blueprint",
-    copy: "The Oriel-curated Static Signature artifact: birth-coordinate, Codons, Centers, Resonance Links, and ORIEL narration prepared as one personal blueprint.",
+    title: "The Founder-Curated Bio-Signature",
+    copy: "A founder-led interpretation of your Tetradic resonance pattern: birth coordinates, Codons, VTRS centers, Resonance Links, and ORIEL narration delivered as a personal manuscript.",
     href: "/founder-signature-blueprint",
     tone: "gold" as const,
   },
@@ -49,7 +48,7 @@ const archiveModules = [
     key: "codons" as const,
     file: "RC-003 // LATTICE",
     title: "Bio-Architecture",
-    copy: "The Vossari Resonance Codex explained: Codons, Facets, Centers, Resonance Links, and the structural logic behind every Static Signature.",
+    copy: "The Tetradic Resonance Codex explained: Codons, Facets, eight VTRS centers, 32 Resonance Links, and the structural logic behind every Static Signature Reading.",
     href: "/bio-architecture",
     tone: "gold" as const,
   },
@@ -58,7 +57,7 @@ const archiveModules = [
 const fieldStatus: Array<[string, string]> = [
   ["Core Patterns", "64"],
   ["Archive Nodes", "512"],
-  ["Architectures", "9"],
+  ["Architectures", "8"],
   ["Dimensions", "4"],
 ];
 
@@ -258,7 +257,7 @@ export default function Home() {
                   href="/founder-signature-blueprint"
                   variant="secondary"
                 >
-                  Oriel Signature Blueprint
+                  The Founder-Curated Bio-Signature
                 </SignalButton>
                 <SignalButton href="/bio-architecture" variant="secondary">
                   Bio-Architecture
@@ -308,11 +307,6 @@ export default function Home() {
               INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN
             </p>
           </div>
-        </section>
-
-        {/* ── II·5 THE VEYRAN SIGNAL WINDOW ───────────────────────────── */}
-        <section className="signal-section" aria-label="Veyran Signal Window">
-          <VeyranSignalWindow />
         </section>
 
         {/* ── III. ARCHIVE DIRECTORY ──────────────────────────────────── */}

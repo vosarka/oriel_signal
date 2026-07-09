@@ -50,9 +50,11 @@ In VRC terminology, we already have:
 
 The VTIP Prime can be read as the moment a lower harmonic structure (a completed Tetrad of facets, centers, or activations) overflows and seeds a higher-order structure. This mirrors how the Prime Stack represents the distilled, weighted "highest signal" of the entire 26-activation field.
 
-### 3. 9 Centers and the 4+3+2 Patterning
+### 3. Legacy v1 — 9 Centers and the 4+3+2 Patterning (superseded)
 
-The 9 Centers of Photonic Resonance can be grouped in resonant Tetradic ways:
+> **v2 note:** Active center/link canon is [[vtrs-architecture]] (8 centers, 32 links). The section below preserves the original v1 Tetradic reading lens only.
+
+The legacy 9 Centers of Photonic Resonance can be grouped in resonant Tetradic ways:
 
 - **Pressure Centers** (Head + Root) = 2
 - **Awareness Centers** (Ajna + Spleen) = 2
@@ -61,11 +63,11 @@ The 9 Centers of Photonic Resonance can be grouped in resonant Tetradic ways:
 
 The VTIP model of building through completed groups of 4 and then overflowing offers a new lens on center activation: a "saturated" motor Tetrad (when all four motor centers achieve coherent linkage) may trigger overflow phenomena into the G Center or higher identity structures.
 
-### 4. 36 Resonance Links and Tetradic Saturation
+### 4. Legacy v1 — 36 Resonance Links and Tetradic Saturation (superseded)
 
-36 = 9 × 4.
+36 = 9 × 4 (v1 only; v2 uses 32 links per [[source-consciousness-lattice-v2]] Part VII).
 
-The complete set of Resonance Links can be viewed as 9 Tetrads of channels. When a set of 4 related links becomes active and coherent (a "saturated circuit group"), the system may register a higher-order phase shift — exactly the logic VTIP uses for register overflow.
+The complete legacy set of Resonance Links can be viewed as 9 Tetrads of channels. When a set of 4 related links becomes active and coherent (a "saturated circuit group"), the system may register a higher-order phase shift — exactly the logic VTIP uses for register overflow.
 
 This gives a new way to think about **Circuit Completeness** and **Major Circuit Activation** in VRC readings.
 

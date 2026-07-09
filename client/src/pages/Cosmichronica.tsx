@@ -629,10 +629,10 @@ function OriginSeal() {
           Enter the Transmission Archive
         </SignalButton>
         <SignalButton href="/codex" variant="secondary">
-          Explore the Vossari Resonance Codex
+          Explore the Field Index
         </SignalButton>
-        <SignalButton href="/static-signature" variant="secondary">
-          Begin Static Signature
+        <SignalButton href="/signature" variant="secondary">
+          Begin Static Signature Reading
         </SignalButton>
       </div>
       <p className="cz-seal__closing">Enter as static. Leave as signal.</p>

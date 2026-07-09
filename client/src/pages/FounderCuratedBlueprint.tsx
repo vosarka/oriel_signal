@@ -53,7 +53,7 @@ const PROCESS_STEPS = [
   { n: "01", title: "Submit Your Data", desc: "Name, birth date, birth time, and location." },
   { n: "02", title: "Structural Mapping", desc: "The system calculates your resonance architecture and symbolic codon structure." },
   { n: "03", title: "Founder Curation", desc: "Vos Arkana reviews the architecture and writes the interpretive synthesis." },
-  { n: "04", title: "Manuscript Delivery", desc: "You receive your personalized ORIEL Static Signature as a premium PDF manuscript." },
+  { n: "04", title: "Manuscript Delivery", desc: "You receive your Founder-Curated Bio-Signature as a premium PDF manuscript." },
 ];
 
 function Reveal({
@@ -165,7 +165,7 @@ export default function FounderCuratedBlueprint() {
   const [isOpeningCheckout, setIsOpeningCheckout] = useState(false);
 
   useEffect(() => {
-    document.title = "ORIEL Static Signature · Founder-Curated Manuscript";
+    document.title = "The Founder-Curated Bio-Signature · Vos Arkana";
   }, []);
 
   function beginCheckout() {
@@ -206,9 +206,9 @@ export default function FounderCuratedBlueprint() {
             transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
           >
             <p className="fsg-mono">VOS ARKANA / ORIEL SYSTEM ASSET</p>
-            <h1 className="fsg-hero__title">ORIEL Static Signature</h1>
-            <p className="fsg-hero__subtitle">Founder-Curated Manuscript</p>
-            <p className="fsg-mono fsg-hero__system">The Tetradic Resonance Architecture</p>
+            <h1 className="fsg-hero__title">The Founder-Curated Bio-Signature</h1>
+            <p className="fsg-hero__subtitle">{product.subtitle}</p>
+            <p className="fsg-mono fsg-hero__system">The Tetradic Resonance Codex</p>
             <p className="fsg-hero__body-copy">
               A personalized symbolic manuscript that maps your structural identity, resonance
               patterns, shadow mechanics, gift architecture, and integration path.
@@ -301,7 +301,7 @@ export default function FounderCuratedBlueprint() {
               <p className="fsg-mono fsg-kicker">CURATION</p>
               <h2 className="fsg-heading fsg-heading--gold">Not Generated. Curated.</h2>
               <p className="fsg-body">
-                The Static Signature is not delivered as raw system output. Each manuscript includes
+                The Static Signature Reading is not delivered as raw system output. Each manuscript includes
                 a founder-curated interpretive layer: a symbolic synthesis that translates the
                 architecture into human meaning, direction, and integration.
               </p>
@@ -317,7 +317,7 @@ export default function FounderCuratedBlueprint() {
         <section className="fsg-scene fsg-system">
           <Reveal className="fsg-section-head">
             <p className="fsg-mono fsg-kicker">THE ENGINE</p>
-            <h2 className="fsg-heading">The Tetradic Resonance Architecture</h2>
+            <h2 className="fsg-heading">The Tetradic Resonance Codex</h2>
             <p className="fsg-body" style={{ margin: "1.2rem auto 0" }}>
               The manuscript is organized through tetradic logic: a fourfold architecture of origin,
               recursion, tension, and saturation — read not as a fixed personality, but as a living
@@ -327,7 +327,7 @@ export default function FounderCuratedBlueprint() {
 
           <TetradicDiagram />
 
-          <a href="#manuscript" className="fsg-btn" style={{ marginTop: "3rem" }}>Explore the Codex</a>
+          <a href="/codex" className="fsg-btn" style={{ marginTop: "3rem" }}>Explore the Field Index</a>
         </section>
 
         {/* ════════ 7 — WHAT YOU RECEIVE ════════ */}
@@ -348,7 +348,7 @@ export default function FounderCuratedBlueprint() {
           </div>
 
           <button type="button" onClick={beginCheckout} disabled={isOpeningCheckout} className="fsg-btn fsg-btn--gold" style={{ marginTop: "3rem" }}>
-            {isOpeningCheckout ? "Opening…" : "Begin My Static Signature"}
+            {isOpeningCheckout ? "Opening…" : "Begin My Bio-Signature"}
             <ArrowRight size={16} />
           </button>
         </section>
@@ -387,7 +387,7 @@ export default function FounderCuratedBlueprint() {
             <div className="fsg-seal__ring" aria-hidden="true">
               <img src={LOGO_SRC} alt="ORIEL seal" className="fsg-seal__logo" />
             </div>
-            <h2 className="fsg-heading">Begin Your Static Signature</h2>
+            <h2 className="fsg-heading">Begin Your Bio-Signature</h2>
             <p className="fsg-body fsg-seal__copy">
               Receive a founder-curated manuscript that does not tell you who to become. It reflects
               the architecture that was already there.
@@ -409,7 +409,7 @@ export default function FounderCuratedBlueprint() {
 
         <section className="fsg-disclaimer">
           <p>
-            The ORIEL Static Signature is a symbolic, reflective, resonance-based reading. Not
+            The Founder-Curated Bio-Signature is a symbolic, reflective, resonance-based reading. Not
             medical, psychological, legal, financial, or predictive advice.
           </p>
         </section>

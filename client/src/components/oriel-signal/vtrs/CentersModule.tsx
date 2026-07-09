@@ -66,15 +66,24 @@ export function CentersModule() {
 
                 {/* Codon chips */}
                 <div className="centers-card__codons">
-                  {center.codons.map(codon => (
-                    <span
-                      key={codon}
-                      className="centers-codon-chip"
-                      style={{ borderColor: `${color}66`, opacity: isDefined ? 1 : 0.45 }}
-                    >
-                      RC{String(codon).padStart(2, "0")}
-                    </span>
-                  ))}
+                  {center.codons.map(codon => {
+                    const code = `RC${String(codon).padStart(2, "0")}`;
+                    return (
+                      <span
+                        key={codon}
+                        className="centers-codon-chip"
+                        style={{ borderColor: `${color}66`, opacity: isDefined ? 1 : 0.45, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                      >
+                        <img 
+                          src={`/symbols/${code}.png`} 
+                          alt={code} 
+                          style={{ width: 10, height: 10, opacity: 0.85 }} 
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} 
+                        />
+                        {code}
+                      </span>
+                    );
+                  })}
                 </div>
 
                 {/* Defined / Open toggle */}

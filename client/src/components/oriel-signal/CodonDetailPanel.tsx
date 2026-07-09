@@ -142,6 +142,30 @@ export function CodonDetailPanel({
         <p className="cz-codon-subtitle">
           {codon.traditional_name} · {codon.archetype_role}
         </p>
+
+        {/* 5 empty/fill nodes from binary code (for Bio-Arch lists/panels; not inside wheel) */}
+        {codon.binary && (
+          <div style={{ display: 'inline-flex', gap: 3, margin: '4px 0 8px', alignItems: 'center' }}>
+            {codon.binary.slice(0, 5).split('').map((bit, idx) => (
+              <span
+                key={idx}
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  border: '1px solid var(--gold)',
+                  background: bit === '1' ? 'var(--cyan)' : 'transparent',
+                  display: 'inline-block',
+                }}
+                title={`bit ${idx + 1}: ${bit}`}
+              />
+            ))}
+            <span style={{ fontSize: 9, color: 'var(--mut)', marginLeft: 4, fontFamily: 'var(--font-ritual)' }}>
+              {codon.binary.slice(0,5)}
+            </span>
+          </div>
+        )}
+
         <div className="cz-metadata-row">
           <span>
             MARKER · <b>{codon.chemical_marker}</b>

@@ -365,7 +365,7 @@ export default function CodonDetail() {
                 className="border-primary/30 text-primary hover:bg-primary/10"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Codex
+                Back to Field Index
               </Button>
             </Link>
           </div>
@@ -415,7 +415,7 @@ export default function CodonDetail() {
             <Link href="/codex">
               <span className="inline-flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-[#D4AF37] transition-colors cursor-pointer tracking-wider uppercase">
                 <ArrowLeft size={12} className="text-[#D4AF37]" />
-                Return to Codex
+                Return to Field Index
               </span>
             </Link>
 
@@ -424,7 +424,7 @@ export default function CodonDetail() {
                 href="/codex"
                 className="text-zinc-500 hover:text-white transition-colors font-mono"
               >
-                CODEX
+                FIELD INDEX
               </Link>
               <span className="text-zinc-600">/</span>
               <span className="text-zinc-500 font-mono">
@@ -922,7 +922,7 @@ export default function CodonDetail() {
                 className="hover:opacity-80 transition-opacity"
                 style={{ color: "#f6b05e" }}
               >
-                Oriel Signature Blueprint
+                The Founder-Curated Bio-Signature
               </Link>
             </div>
             <div className="text-xs font-mono" style={{ color: "#6a665e" }}>

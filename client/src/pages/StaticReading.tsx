@@ -8,9 +8,33 @@ import { trpc } from "@/lib/trpc";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
 import { Link } from "wouter";
+import { VTRS_CENTERS } from "@/components/oriel-signal/vtrs/vtrs-data";
+import { DynamicReadingPanel } from "./DynamicReading";
+
+type SignatureTab = "static" | "resonance";
+
+function readSignatureTab(): SignatureTab {
+  if (typeof window === "undefined") return "static";
+  return new URLSearchParams(window.location.search).get("tab") === "resonance"
+    ? "resonance"
+    : "static";
+}
+
+const SignatureEmbedContext = createContext(false);
+
+function useSignatureEmbed() {
+  return useContext(SignatureEmbedContext);
+}
 
 const C = {
   void: "#0a0a0e",
@@ -39,6 +63,7 @@ const EXPECTED_PRIME_STACK = 9;
 const EXPECTED_VTRS_CENTERS = 8;
 const EXPECTED_RESONANCE_LINKS = 32;
 const EXPECTED_ACTIVATIONS = 26;
+const VTRS_CENTER_IDS = new Set(VTRS_CENTERS.map(center => center.id));
 
 const MANDALA_SEQUENCE = [
   51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39, 53, 62, 56, 31,
@@ -197,6 +222,7 @@ function normalizeCenters(value: unknown): CenterEntry[] {
   if (!value || typeof value !== "object") return [];
 
   return Object.entries(value as Record<string, unknown>)
+    .filter(([id]) => VTRS_CENTER_IDS.has(id))
     .map(([id, raw]) => {
       if (!raw || typeof raw !== "object") return null;
       const row = raw as Record<string, unknown>;
@@ -341,6 +367,20 @@ function Panel({
   title: string;
   children: React.ReactNode;
 }) {
+  const embedded = useSignatureEmbed();
+
+  if (embedded) {
+    return (
+      <section className="profile-sig-block">
+        <div className="profile-sig-block__head">
+          <span className="arkana-card__code">{eyebrow}</span>
+          <h3 className="profile-sig-block__title">{title}</h3>
+        </div>
+        <div className="profile-sig-block__body">{children}</div>
+      </section>
+    );
+  }
+
   return (
     <section
       style={{
@@ -398,6 +438,19 @@ function DataPill({
   value: string;
   accent?: boolean;
 }) {
+  const embedded = useSignatureEmbed();
+
+  if (embedded) {
+    return (
+      <div
+        className={`profile-sig-metric${accent ? " profile-sig-metric--accent" : ""}`}
+      >
+        <span className="profile-sig-metric__label">{label}</span>
+        <span className="profile-sig-metric__value">{value}</span>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -932,14 +985,70 @@ function logSignatureDiagnostic(
   });
 }
 
-export default function StaticReading() {
+type StaticSignaturePanelProps = {
+  /** Renders inside /profile without the standalone page chrome. */
+  embedded?: boolean;
+};
+
+export function StaticSignaturePanel({
+  embedded = false,
+}: StaticSignaturePanelProps = {}) {
   const { user, isAuthenticated, loading } = useAuth();
+  const [signatureTab, setSignatureTab] =
+    useState<SignatureTab>(readSignatureTab);
   const [selectedCodon, setSelectedCodon] = useState<number | null>(null);
+  const [recomputeError, setRecomputeError] = useState<string | null>(null);
+  const [recomputeSuccess, setRecomputeSuccess] = useState<string | null>(null);
   const previousSelectedCodonRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      setSignatureTab(readSignatureTab());
+    };
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (signatureTab === "resonance") params.set("tab", "resonance");
+    else params.delete("tab");
+    const query = params.toString();
+    const pathname = embedded ? "/profile" : window.location.pathname;
+    const url = `${pathname}${query ? `?${query}` : ""}`;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== url) {
+      window.history.replaceState(null, "", url);
+    }
+  }, [embedded, signatureTab]);
 
   const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+  const recomputeProfileMutation =
+    trpc.profile.recomputeStaticProfile.useMutation({
+      onMutate: () => {
+        setRecomputeError(null);
+        setRecomputeSuccess(null);
+      },
+      onSuccess: async result => {
+        await staticProfileQuery.refetch();
+        if (result?.calculationStatus === "exact") {
+          setRecomputeSuccess("Static profile recalculated and saved.");
+        } else {
+          setRecomputeError(
+            "Recalculation finished but the profile is still not exact. Re-enter your natal data at /complete-profile."
+          );
+        }
+      },
+      onError: error => {
+        setRecomputeError(
+          error instanceof Error
+            ? error.message
+            : "Profile recalculation failed."
+        );
+      },
+    });
   const transitOverlayQuery = trpc.profile.getTransitOverlay.useQuery(
     { days: 7 },
     {
@@ -1086,35 +1195,37 @@ export default function StaticReading() {
       : null;
 
   if (loading || staticProfileQuery.isLoading || rootCodonsQuery.isLoading) {
-    return (
-      <Layout>
+    const loadingNode = (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 16,
+          minHeight: embedded ? 180 : "100vh",
+          padding: embedded ? "2rem 0" : 0,
+        }}
+      >
+        <Spinner size={24} label="Restoring Static Signature" />
         <div
           style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            gap: 16,
+            fontFamily: "var(--font-ritual)",
+            fontSize: 10,
+            color: C.txtD,
+            letterSpacing: "0.2em",
           }}
         >
-          <Spinner size={24} label="Restoring Static Signature" />
-          <div
-            style={{
-              fontFamily: "var(--font-ritual)",
-              fontSize: 10,
-              color: C.txtD,
-              letterSpacing: "0.2em",
-            }}
-          >
-            RESTORING STATIC SIGNATURE…
-          </div>
+          RESTORING STATIC SIGNATURE…
         </div>
-      </Layout>
+      </div>
     );
+    if (embedded) return loadingNode;
+    return <Layout>{loadingNode}</Layout>;
   }
 
   if (!isAuthenticated || !user) {
+    if (embedded) return null;
     return (
       <Layout>
         <div
@@ -1192,6 +1303,18 @@ export default function StaticReading() {
   }
 
   if (!profile) {
+    if (embedded) {
+      return (
+        <div className="profile-signature-embed__empty">
+          <p className="profile-layer__empty">
+            Static Signature Reading awaiting coordinate.
+          </p>
+          <Link href="/complete-profile">
+            <span className="profile-signature-embed__cta">Complete profile</span>
+          </Link>
+        </div>
+      );
+    }
     return (
       <Layout>
         <div
@@ -1289,31 +1412,27 @@ export default function StaticReading() {
   const calculationLabel = exactCalculation
     ? "EXACT EPHEMERIS"
     : calculationStatus.toUpperCase();
+  const profileNeedsRecompute =
+    Boolean(profile) &&
+    (!exactCalculation ||
+      activations.length < EXPECTED_ACTIVATIONS ||
+      centers.length !== EXPECTED_VTRS_CENTERS ||
+      channels.length < EXPECTED_RESONANCE_LINKS);
 
-  return (
-    <Layout overlayHeader>
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes blueprintPulse {
-          0%, 100% { opacity: 0.55; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.015); }
-        }
-      `}</style>
+  const signatureKeyframes = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes blueprintPulse {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.015); }
+    }
+  `;
 
-      <SignalPageShell chamber="threshold" className="fi-home">
-        <SacredGeometryField static />
-        <div
-          style={{
-            minHeight: "100vh",
-            padding: "118px 24px 120px",
-            background:
-              "linear-gradient(180deg, rgba(3,3,3,0.12), rgba(5,5,5,0.32) 48%, rgba(3,3,3,0.2))",
-          }}
-        >
-          <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+  const readingContent = (
+    <div style={{ maxWidth: embedded ? "100%" : 1320, margin: "0 auto", width: "100%" }}>
+            {!embedded ? (
             <div
               style={{
                 display: "flex",
@@ -1334,7 +1453,9 @@ export default function StaticReading() {
                     marginBottom: 12,
                   }}
                 >
-                  STATIC SIGNATURE · {calculationLabel}
+                  {signatureTab === "resonance"
+                    ? "CURRENT RESONANCE · CARRIERLOCK SLI"
+                    : `STATIC SIGNATURE · ${calculationLabel}`}
                 </div>
                 <div
                   style={{
@@ -1354,7 +1475,9 @@ export default function StaticReading() {
                     marginBottom: 10,
                   }}
                 >
-                  ORIEL Static Signature
+                  {signatureTab === "resonance"
+                    ? "Current Resonance"
+                    : "Static Signature Reading"}
                 </h1>
                 <p
                   style={{
@@ -1365,10 +1488,9 @@ export default function StaticReading() {
                     maxWidth: 760,
                   }}
                 >
-                  Exact birth ephemeris resolves into the Prime Stack, the 8
-                  VTRS centers, 32 resonance links, and the 512-node codon-facet
-                  field. ORIEL narrates the stored result; this page does not
-                  invent missing calculations.
+                  {signatureTab === "resonance"
+                    ? "Live Carrierlock diagnostics against your stored Static Signature — coherence zone, Shadow Loudness Index across the Prime Stack, and the latest dynamic reading transmission."
+                    : "Exact birth ephemeris resolves into the Prime Stack, the 8 VTRS centers, 32 resonance links, and the 512-node codon-facet field. ORIEL narrates the stored result; this page does not invent missing calculations."}
                 </p>
               </div>
 
@@ -1412,14 +1534,79 @@ export default function StaticReading() {
                 </Link>
               </div>
             </div>
+            ) : null}
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-                gap: 12,
-                marginBottom: 18,
-              }}
+              className={
+                embedded
+                  ? "profile-sig-tabs profile-signature-embed__tabs"
+                  : undefined
+              }
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "flex",
+                      gap: 8,
+                      marginBottom: 22,
+                      flexWrap: "wrap",
+                    }
+              }
+            >
+              {(
+                [
+                  ["static", "Static Signature Reading"],
+                  ["resonance", "Current Resonance"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSignatureTab(id)}
+                  className={
+                    embedded
+                      ? `profile-sig-tab${signatureTab === id ? " profile-sig-tab--active" : ""}`
+                      : undefined
+                  }
+                  style={
+                    embedded
+                      ? undefined
+                      : {
+                          padding: "10px 16px",
+                          border: `1px solid ${signatureTab === id ? C.goldDim : C.border}`,
+                          background:
+                            signatureTab === id
+                              ? "rgba(189,163,107,0.08)"
+                              : "transparent",
+                          color: signatureTab === id ? C.gold : C.txtD,
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          letterSpacing: "0.14em",
+                          cursor: "pointer",
+                        }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {signatureTab === "resonance" ? (
+              <DynamicReadingPanel embedded />
+            ) : (
+              <>
+            <div
+              className={embedded ? "profile-sig-metrics" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                      gap: 12,
+                      marginBottom: 18,
+                    }
+              }
             >
               <DataPill label="CALCULATION" value={calculationLabel} accent />
               <DataPill
@@ -1436,13 +1623,140 @@ export default function StaticReading() {
               />
             </div>
 
+            {profileNeedsRecompute ? (
+              <div
+                className={
+                  embedded
+                    ? "profile-sig-notice profile-sig-notice--warn"
+                    : undefined
+                }
+                style={
+                  embedded
+                    ? undefined
+                    : {
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        flexWrap: "wrap",
+                        marginBottom: 18,
+                        padding: "14px 16px",
+                        border: `1px solid ${C.amberDim}`,
+                        background: C.amberGlow,
+                      }
+                }
+              >
+                <div
+                  className={embedded ? "profile-sig-notice__text" : undefined}
+                  style={
+                    embedded
+                      ? undefined
+                      : {
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 11,
+                          color: C.amber,
+                          letterSpacing: "0.12em",
+                          lineHeight: 1.5,
+                        }
+                  }
+                >
+                  Stored profile is incomplete or out of date. Recalculate from
+                  your saved natal coordinates to restore the lattice.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => recomputeProfileMutation.mutate(undefined)}
+                  disabled={recomputeProfileMutation.isPending}
+                  className={embedded ? "profile-sig-action" : undefined}
+                  style={
+                    embedded
+                      ? undefined
+                      : {
+                          padding: "10px 16px",
+                          border: `1px solid ${C.goldDim}`,
+                          background: "rgba(189,163,107,0.08)",
+                          color: C.gold,
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          letterSpacing: "0.14em",
+                          cursor: recomputeProfileMutation.isPending
+                            ? "wait"
+                            : "pointer",
+                          opacity: recomputeProfileMutation.isPending ? 0.7 : 1,
+                        }
+                  }
+                >
+                  {recomputeProfileMutation.isPending
+                    ? "RECALCULATING..."
+                    : "RECALCULATE PROFILE"}
+                </button>
+              </div>
+            ) : null}
+
+            {recomputeError ? (
+              <div
+                className={
+                  embedded
+                    ? "profile-sig-notice profile-sig-notice--error"
+                    : undefined
+                }
+                style={
+                  embedded
+                    ? undefined
+                    : {
+                        marginBottom: 18,
+                        padding: "12px 16px",
+                        border: `1px solid ${C.red}`,
+                        color: C.red,
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 11,
+                        letterSpacing: "0.08em",
+                        lineHeight: 1.5,
+                      }
+                }
+              >
+                {recomputeError}
+              </div>
+            ) : null}
+
+            {recomputeSuccess ? (
+              <div
+                className={
+                  embedded
+                    ? "profile-sig-notice profile-sig-notice--success"
+                    : undefined
+                }
+                style={
+                  embedded
+                    ? undefined
+                    : {
+                        marginBottom: 18,
+                        padding: "12px 16px",
+                        border: `1px solid ${C.green}`,
+                        color: C.green,
+                        fontFamily: "var(--font-ritual)",
+                        fontSize: 11,
+                        letterSpacing: "0.08em",
+                        lineHeight: 1.5,
+                      }
+                }
+              >
+                {recomputeSuccess}
+              </div>
+            ) : null}
+
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-                gap: 12,
-                marginBottom: 18,
-              }}
+              className={embedded ? "profile-sig-metrics" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                      gap: 12,
+                      marginBottom: 18,
+                    }
+              }
             >
               <DataPill
                 label="VRC TYPE"
@@ -1462,22 +1776,32 @@ export default function StaticReading() {
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 22,
-                alignItems: "start",
-              }}
+              className={embedded ? "profile-sig-grid" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: 22,
+                      alignItems: "start",
+                    }
+              }
             >
               <Panel eyebrow="MANDALA" title="64 Codons in Wheel Form">
                 <div
-                  style={{
-                    position: "relative",
-                    background: `linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)`,
-                    border: `1px solid ${C.border}`,
-                    padding: "20px 14px 18px",
-                    overflow: "hidden",
-                  }}
+                  className={embedded ? "profile-sig-stage" : undefined}
+                  style={
+                    embedded
+                      ? { position: "relative", overflow: "hidden" }
+                      : {
+                          position: "relative",
+                          background: `linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)`,
+                          border: `1px solid ${C.border}`,
+                          padding: "20px 14px 18px",
+                          overflow: "hidden",
+                        }
+                  }
                 >
                   <div
                     style={{
@@ -1843,16 +2167,23 @@ export default function StaticReading() {
 
                     <Link href={`/codex/${selectedCodon}`}>
                       <span
-                        style={{
-                          display: "inline-block",
-                          padding: "10px 18px",
-                          border: `1px solid ${C.goldDim}`,
-                          color: C.gold,
-                          fontFamily: "var(--font-ritual)",
-                          fontSize: 10,
-                          letterSpacing: "0.16em",
-                          cursor: "pointer",
-                        }}
+                        className={
+                          embedded ? "profile-signature-embed__cta" : undefined
+                        }
+                        style={
+                          embedded
+                            ? undefined
+                            : {
+                                display: "inline-block",
+                                padding: "10px 18px",
+                                border: `1px solid ${C.goldDim}`,
+                                color: C.gold,
+                                fontFamily: "var(--font-ritual)",
+                                fontSize: 10,
+                                letterSpacing: "0.16em",
+                                cursor: "pointer",
+                              }
+                        }
                       >
                         OPEN CODEX ENTRY
                       </span>
@@ -1875,17 +2206,22 @@ export default function StaticReading() {
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 22,
-                marginTop: 22,
-                alignItems: "start",
-              }}
+              className={embedded ? "profile-sig-grid" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: 22,
+                      marginTop: 22,
+                      alignItems: "start",
+                    }
+              }
             >
               <Panel
                 eyebrow="PRIME STACK"
-                title="Nine Positions of the Static Signature"
+                title="Prime Stack Positions"
               >
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 6 }}
@@ -2113,13 +2449,18 @@ export default function StaticReading() {
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 22,
-                marginTop: 22,
-                alignItems: "start",
-              }}
+              className={embedded ? "profile-sig-grid" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: 22,
+                      marginTop: 22,
+                      alignItems: "start",
+                    }
+              }
             >
               <Panel eyebrow="512 LATTICE" title="Codon-Facet Activation Field">
                 <Lattice512Viewer nodes={latticeNodes} />
@@ -2307,13 +2648,18 @@ export default function StaticReading() {
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 22,
-                marginTop: 22,
-                alignItems: "start",
-              }}
+              className={embedded ? "profile-sig-grid" : undefined}
+              style={
+                embedded
+                  ? undefined
+                  : {
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: 22,
+                      marginTop: 22,
+                      alignItems: "start",
+                    }
+              }
             >
               <Panel
                 eyebrow="MICRO-CORRECTIONS"
@@ -2424,24 +2770,62 @@ export default function StaticReading() {
                   </div>
                 </div>
                 <div
-                  style={{
-                    padding: "16px 18px",
-                    border: `1px solid ${C.border}`,
-                    background: "rgba(255,255,255,0.015)",
-                    fontFamily: "var(--font-ritual)",
-                    fontSize: 10,
-                    color: C.txtS,
-                    lineHeight: 1.95,
-                    whiteSpace: "pre-wrap",
-                  }}
+                  className={embedded ? "profile-sig-prose" : undefined}
+                  style={
+                    embedded
+                      ? undefined
+                      : {
+                          padding: "16px 18px",
+                          border: `1px solid ${C.border}`,
+                          background: "rgba(255,255,255,0.015)",
+                          fontFamily: "var(--font-ritual)",
+                          fontSize: 10,
+                          color: C.txtS,
+                          lineHeight: 1.95,
+                          whiteSpace: "pre-wrap",
+                        }
+                  }
                 >
                   {diagnosticTransmission}
                 </div>
               </Panel>
             </div>
-          </div>
+              </>
+            )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <SignatureEmbedContext.Provider value>
+        <div id="static-signature" className="profile-signature-embed">
+          <style>{signatureKeyframes}</style>
+          {readingContent}
+        </div>
+      </SignatureEmbedContext.Provider>
+    );
+  }
+
+  return (
+    <Layout overlayHeader>
+      <style>{signatureKeyframes}</style>
+      <SignalPageShell chamber="threshold" className="fi-home">
+        <SacredGeometryField static />
+        <div
+          style={{
+            minHeight: "100vh",
+            padding: "118px 24px 120px",
+            background:
+              "linear-gradient(180deg, rgba(3,3,3,0.12), rgba(5,5,5,0.32) 48%, rgba(3,3,3,0.2))",
+          }}
+        >
+          {readingContent}
         </div>
       </SignalPageShell>
     </Layout>
   );
+}
+
+export default function StaticReading() {
+  return <StaticSignaturePanel />;
 }

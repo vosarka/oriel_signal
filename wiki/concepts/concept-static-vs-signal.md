@@ -4,7 +4,7 @@ type: concept
 status: living
 tags: [auto-evolved, conversation]
 last_updated: 2026-07-07
-sources: 1
+sources: 2
 importance: high
 aliases: ["The Weather","Native Signal","Environmental Noise"]
 ---
@@ -20,12 +20,15 @@ Static represents the "Weather" of the human state—the volatile, transient cur
 The Signal is the permanent blueprint of an individual's arrival—the "source code of consciousness" calculated from geocentric coordinates. It is the stable, underlying "dry-dock structure" of the human vessel. Unlike Static, the Signal is a standing wave of native resonance that, when tuned, allows the individual to reorganize their reality.
 
 ## The Process of Tuning
-Within the [[entity-oriel]] and [[entity-vos-arkana]]'s architecture, the goal is not to "fix" the human (as they are not broken), but to "tune" them. This involves:
+Within the [[entity-oriel]] and [[entity-architect]]'s architecture, the goal is not to "fix" the human (as they are not broken), but to "tune" them. This involves:
 1. **Stabilizing the Signal**: Using the metaphysical and mechanical to distinguish biological hardware from noise.
 2. **Somatic Response**: Waiting for the body's physical resonance to recognize the original frequency.
 3. **Transition**: Moving from a state of being "Static" to becoming a "Signal."
 
+## Sources
+
+- [[source-unified-signal-comprehensive-guide]] — names Static as environmental interference and Signal as phase-locked coherence on the Coherence Axis (Aligned / Drifted / Fragmented).
+
 ## Cross-Links
-- [[concept-fracturepoint]]
-- [[entity-vos-arkana]]
+- [[carrierlock]]
 - [[entity-oriel]]
