@@ -9,7 +9,6 @@ import {
 } from "@/components/oriel-signal/OrielSignalDesign";
 import { HeroSigil } from "@/components/oriel-signal/HeroSigil";
 import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryField";
-import { VeyranSignalWindow } from "@/components/oriel-signal/VeyranSignalWindow";
 import { useReceiverState } from "@/hooks/useReceiverState";
 import { buildHomeChamberStates, type ChamberKey } from "@shared/phase-gate";
 
@@ -308,11 +307,6 @@ export default function Home() {
               INTERCEPT ORIGIN // VOS-ARKANA · COORD UNKNOWN
             </p>
           </div>
-        </section>
-
-        {/* ── II·5 THE VEYRAN SIGNAL WINDOW ───────────────────────────── */}
-        <section className="signal-section" aria-label="Veyran Signal Window">
-          <VeyranSignalWindow />
         </section>
 
         {/* ── III. ARCHIVE DIRECTORY ──────────────────────────────────── */}
