@@ -148,9 +148,11 @@ export function LinksModule() {
                 {selected.id} · {selected.circuit.toUpperCase()} CIRCUIT
               </span>
               <h3 className="links-detail__name">{selected.name}</h3>
-              <div className="links-detail__codons">
+              <div className="links-detail__codons" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <img src={`/symbols/RC${String(selected.codonA).padStart(2, "0")}.png`} alt="" style={{width:10,height:10}} onError={e=> (e.target as any).style.display='none'} />
                 RC{String(selected.codonA).padStart(2, "0")} ({selected.centerA}) ↔ RC
                 {String(selected.codonB).padStart(2, "0")} ({selected.centerB})
+                <img src={`/symbols/RC${String(selected.codonB).padStart(2, "0")}.png`} alt="" style={{width:10,height:10}} onError={e=> (e.target as any).style.display='none'} />
               </div>
               <p className="links-detail__profile">{selected.profile}</p>
             </>

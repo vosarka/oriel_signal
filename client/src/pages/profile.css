@@ -50,6 +50,21 @@
   border-top: 1px solid rgba(216, 181, 109, 0.14);
   border-bottom: 1px solid rgba(216, 181, 109, 0.14);
   background: rgba(12, 11, 9, 0.35);
+  overflow: hidden;
+}
+
+/* Matrix grid as subtle animated hero backdrop behind the resonance body */
+.profile-layer__body-field .matrix-grid-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.profile-layer__body-field > :not(.matrix-grid-bg) {
+  position: relative;
+  z-index: 1;
 }
 
 .profile-layer__stats {

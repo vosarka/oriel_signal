@@ -77,7 +77,7 @@ describe("profile.getProfileConsoleSummary", () => {
     });
     expect(summary.identity.userId).toBe(7);
     expect(summary.identity).toMatchObject({
-      resonanceRole: null,
+      resonanceRole: null, // or derived string when primeStack present
       fractalRole: "Catalyst",
       vrcType: "Resonator",
       vrcAuthority: "The Seal",

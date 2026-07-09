@@ -198,6 +198,7 @@ export default function SignalCheck() {
   const saveCarrierlockMutation = trpc.codex.saveCarrierlock.useMutation();
   const dynamicStateMutation = trpc.rgp.dynamicState.useMutation();
   const saveReadingMutation = trpc.codex.saveReading.useMutation();
+  const utils = trpc.useUtils();
 
   const liveScore = useMemo(
     () =>
@@ -275,6 +276,10 @@ export default function SignalCheck() {
             correctionFacet,
             falsifier: data.falsifier ?? "",
           });
+
+          // Make sure /profile sees the fresh carrierlock + coherence immediately
+          utils.profile.getCurrentResonance.invalidate().catch(() => {});
+          utils.profile.getProfileConsoleSummary.invalidate().catch(() => {});
 
           const primaryCodon = data.flaggedCodons?.[0] ?? "—";
           const scoreEntries =

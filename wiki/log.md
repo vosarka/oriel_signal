@@ -1296,3 +1296,18 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - `upsertUserStaticProfile` writes lattice fields to columns; `parseUserStaticProfileRow` reads columns first, `coreCodonEngine.lattice` as fallback.
 - Extracted `server/canonical-lattice-persistence.ts` with roundtrip tests.
 - `/signature`: filter centers to VTRS 8; show Recalculate Profile when stored data is incomplete.
+
+## [2026-07-09] ui + fixes | Matrix grid hero, codon icons, binary 5-nodes + role/coherence phases
+- Added MatrixGridBackground (the adapted CodePen KKZRjaZ) to the resonance body hero (`.profile-layer__body-field`) in Profile as subtle animated backdrop.
+- Added codon icons (`/symbols/RCxx.png`) to centers codon chips and links detail codons in Bio-Architecture (outside the wheel).
+- In Bio-Arch CodonDetailPanel (and codon references): added small 5 empty/fill nodes visual derived from codon's `binary` field (first 5 bits, cyan fill for 1).
+- Continued the main plan flow: role derivation `calculateResonanceRole` implemented and wired; coherence refresh via invalidation after reading saves.
+- See plan for phases.
+- Diagnosed "Awaiting role": resonanceRole hardcoded to null in profile-console-summary (no derivation). Full 16-role canon exists in wiki/concepts/concept-resonance-role-system.md and source but was never implemented.
+- Added calculateResonanceRole (tetrad clustering by weighted activations from primeStack/activations) in rgp-prime-stack-engine.ts following canon exactly (16 one-word roles, Primary + optional Secondary).
+- Wired into ProfileConsoleSummary + Profile identity field so real role now appears instead of "Awaiting role" when signature data present.
+- Coherence: Profile header/row pulls from currentResonance carrierlock. Reading flow (SignalCheck) saves carrierlock then linked reading. Added trpc utils invalidation after saveReading so /profile reflects fresh coherence immediately. Relaxed some strict matching awareness in current-resonance logic comments for future hardening.
+- Recovered prior phases style from todo.md (Static Signature / RGP / Carrierlock phases) and produced new explicit 0-5 phased plan for these fixes.
+- Updated tests expectations, added utils invalidation in SignalCheck.
+- Files: server/rgp-prime-stack-engine.ts, server/profile-console-summary.ts (+tests), client/src/pages/SignalCheck.tsx, client/src/pages/Profile.tsx (indirect), wiki/log.md.
+- Verification: profile-summary tests green; role derivation produces canonical names; coherence now refreshed post-reading.

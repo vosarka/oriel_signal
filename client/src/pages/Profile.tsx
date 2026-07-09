@@ -17,6 +17,7 @@ import {
   DecodedTitle,
 } from "@/components/oriel-signal/OrielSignalDesign";
 import ResonanceBody from "@/components/oriel-signal/ResonanceBody";
+import MatrixGridBackground from "@/components/oriel-signal/MatrixGridBackground";
 import {
   normalizeCenters,
   normalizeChannels,
@@ -274,6 +275,7 @@ export default function Profile() {
             className="profile-layer__body-field"
             aria-label="VTRS resonance body"
           >
+            <MatrixGridBackground />
             <ResonanceBody
               centers={profileCenters.length ? profileCenters : undefined}
               channels={profileChannels.length ? profileChannels : undefined}
@@ -394,6 +396,27 @@ export default function Profile() {
                 links, and the 512-node codon field — plus live Current Resonance
                 when you need it.
               </p>
+
+              {/* Cross-reference to Bio-Architecture: makes the general VTRS terminal
+                  indispensable for understanding the personal data shown here. */}
+              <div className="profile-layer__actions" style={{ marginBottom: "0.75rem" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-voice, 'Cormorant Garamond', Georgia, serif)",
+                    fontSize: "14px",
+                    color: "rgba(212, 207, 195, 0.78)",
+                    maxWidth: "62ch",
+                    display: "inline-block",
+                    marginRight: "0.75rem",
+                    verticalAlign: "middle",
+                  }}
+                >
+                  This is your personal Bio-Architecture — the specific centers, links, and codons active in your field.
+                  Explore the full interactive VTRS terminal.
+                </span>
+                <SignalButton href="/bio-architecture">OPEN BIO-ARCHITECTURE TERMINAL</SignalButton>
+              </div>
+
               <StaticSignaturePanel embedded />
             </ProfileSection>
           </div>
