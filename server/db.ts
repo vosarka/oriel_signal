@@ -2336,6 +2336,43 @@ export async function getCredentialAccountForUser(baUserId: string) {
   return result[0] || null;
 }
 
+export async function createCredentialAccount(
+  baUserId: string,
+  email: string,
+  passwordHash: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  await db.insert(baAccount).values({
+    id: randomUUID(),
+    accountId: normalizedEmail,
+    providerId: "credential",
+    userId: baUserId,
+    password: passwordHash,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+export async function getCredentialPasswordHash(baUserId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select({ password: baAccount.password })
+    .from(baAccount)
+    .where(
+      and(
+        eq(baAccount.userId, baUserId),
+        eq(baAccount.providerId, "credential")
+      )
+    )
+    .limit(1);
+  return result[0]?.password || null;
+}
+
 export async function storePasswordResetCode(
   email: string,
   codeHash: string,

@@ -200,12 +200,12 @@ export function buildProfileConsoleSummary(
   };
   const prime = firstPrimeEntry(input.staticProfile?.primeStack);
 
-  // Derive Resonance Role from available data (primeStack or activations)
+  // Derive Resonance Role from available data (prefer full 26 activations)
   let resonanceRole: string | null = null;
   const sp = input.staticProfile;
   if (sp) {
-    const inputForRole = (sp as any).activations || sp.primeStack || [];
-    const result = calculateResonanceRole(inputForRole as any);
+    // Pass the full object so calculateResonanceRole can extract .activations if present
+    const result = calculateResonanceRole(sp as any);
     if (result.primaryRole && result.primaryRole !== "Awaiting role") {
       resonanceRole = result.primaryRole;
     }

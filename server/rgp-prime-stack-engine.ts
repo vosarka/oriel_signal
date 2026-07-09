@@ -559,21 +559,38 @@ function codonToRoleIndex(codon: number): number {
 }
 
 export function calculateResonanceRole(
-  input: PlanetaryActivation[] | PrimeStackCodon[] | number[]
+  input: PlanetaryActivation[] | PrimeStackCodon[] | number[] | any
 ): { primaryRole: string; secondaryRole?: string; confidence: number } {
   const entries: Array<{ codon: number; weight: number }> = [];
 
-  if (Array.isArray(input) && input.length > 0) {
-    const first: any = input[0];
+  // Support rich engine output or static profile shape
+  let toProcess: any = input;
+
+  if (input && typeof input === 'object' && !Array.isArray(input)) {
+    if (Array.isArray(input.activations) && input.activations.length > 0) {
+      toProcess = input.activations;
+    } else if (Array.isArray(input.primeStack) && input.primeStack.length > 0) {
+      toProcess = input.primeStack;
+    } else if (Array.isArray(input.positions) && input.positions.length > 0) {
+      toProcess = input.positions;
+    }
+  }
+
+  if (Array.isArray(toProcess) && toProcess.length > 0) {
+    const first: any = toProcess[0];
     if (typeof first === "number") {
-      (input as number[]).forEach((c) => entries.push({ codon: c, weight: 1 }));
+      (toProcess as number[]).forEach((c) => entries.push({ codon: c, weight: 1 }));
     } else if (first && typeof first.codonId === "number") {
-      (input as PlanetaryActivation[]).forEach((a) => entries.push({ codon: a.codonId, weight: a.weight ?? 1 }));
+      (toProcess as any[]).forEach((a) => {
+        const c = a.codonId ?? a.codon;
+        const w = a.weight ?? a.weightedFrequency ?? 1;
+        if (c) entries.push({ codon: Number(c), weight: Number(w) });
+      });
     } else if (first && (typeof first.codon === "number" || typeof first.codonId === "number")) {
-      (input as any[]).forEach((p) => {
+      (toProcess as any[]).forEach((p) => {
         const c = p.codon ?? p.codonId;
         const w = p.weightedFrequency ?? p.weight ?? 1;
-        if (c) entries.push({ codon: c, weight: w });
+        if (c) entries.push({ codon: Number(c), weight: Number(w) });
       });
     }
   }

@@ -1297,12 +1297,25 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Extracted `server/canonical-lattice-persistence.ts` with roundtrip tests.
 - `/signature`: filter centers to VTRS 8; show Recalculate Profile when stored data is incomplete.
 
-## [2026-07-09] ui + fixes | Matrix grid hero, codon icons, binary 5-nodes + role/coherence phases
-- Added MatrixGridBackground (the adapted CodePen KKZRjaZ) to the resonance body hero (`.profile-layer__body-field`) in Profile as subtle animated backdrop.
-- Added codon icons (`/symbols/RCxx.png`) to centers codon chips and links detail codons in Bio-Architecture (outside the wheel).
-- In Bio-Arch CodonDetailPanel (and codon references): added small 5 empty/fill nodes visual derived from codon's `binary` field (first 5 bits, cyan fill for 1).
-- Continued the main plan flow: role derivation `calculateResonanceRole` implemented and wired; coherence refresh via invalidation after reading saves.
-- See plan for phases.
+## [2026-07-09] fix | Password reset & change password now fully working for all users
+- Root cause: reset flow only allowed accounts that already had a "credential" baAccount (blocked Google/social users).
+- `requestPasswordResetCode`: now always sends a 6-digit code if a baUser with email exists (no more early guidance block).
+- `resetPasswordWithCode`: if no credential account exists, it now creates one on successful code verification. This lets any user set a password.
+- Added `createCredentialAccount` helper in db.ts.
+- Added authenticated `auth.changePassword` tRPC endpoint (verifies current password; also supports first-time password set).
+- Added working "Change Password" form in Profile (section 05) using the new endpoint.
+- Updated reset UI copy to explain it sets email+password credentials.
+- Legacy `users.passwordHash` kept in sync.
+- Requires email delivery config (Resend/SMTP) to be working for forgot-password emails.
+- This gives users a complete, reliable way to reset (forgot) or change their password.
+
+## [2026-07-09] ui + fixes | Matrix grid hero, codon icons, binary 5-nodes + role/coherence phases (A)
+- Verification pass completed: relevant tests now green after role derivation active.
+- Improved `calculateResonanceRole` in rgp-prime-stack-engine.ts to properly extract and use full 26 activations (when available in rich engine/static profile object) or fall back to primeStack. Better cluster weighting for the 16 tetrads.
+- Updated tests (profile-console-router.test.ts) to assert the derived "Sovereign" (from mock codon 24) instead of old hardcoded null.
+- Matrix grid, icons, and 5 binary nodes from previous UI additions remain in place (Profile hero + Bio-Arch non-wheel codon references).
+- Full flow continues per plan: role now populates in Profile when data present. Next: coherence logic hardening + full manual repro.
+- pnpm check has pre-existing unrelated error (routers.ts type issue on profile data); our changes clean.
 - Diagnosed "Awaiting role": resonanceRole hardcoded to null in profile-console-summary (no derivation). Full 16-role canon exists in wiki/concepts/concept-resonance-role-system.md and source but was never implemented.
 - Added calculateResonanceRole (tetrad clustering by weighted activations from primeStack/activations) in rgp-prime-stack-engine.ts following canon exactly (16 one-word roles, Primary + optional Secondary).
 - Wired into ProfileConsoleSummary + Profile identity field so real role now appears instead of "Awaiting role" when signature data present.

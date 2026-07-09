@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import Layout from "@/components/Layout";
 import {
   SignalPageShell,
@@ -419,9 +422,110 @@ export default function Profile() {
 
               <StaticSignaturePanel embedded />
             </ProfileSection>
+
+            {/* Concrete fix: Working password change for authenticated users */}
+            <ProfileSection code="05" title="Account Security">
+              <p className="arkana-layer__subtitle profile-layer__signature-lede">
+                Change your password. Requires your current password for security.
+              </p>
+
+              <ChangePasswordForm />
+            </ProfileSection>
           </div>
         </div>
       </SignalPageShell>
     </Layout>
+  );
+}
+
+function ChangePasswordForm() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const changePassword = trpc.auth.changePassword.useMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!current || next.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      setError("New passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await changePassword.mutateAsync({
+        currentPassword: current,
+        newPassword: next,
+      });
+      setSuccess("Password changed successfully.");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (err: any) {
+      setError(err?.message || "Failed to change password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
+      <div>
+        <Label htmlFor="current-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Current Password</Label>
+        <Input
+          id="current-pass"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="new-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">New Password</Label>
+        <Input
+          id="new-pass"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="confirm-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Confirm New Password</Label>
+        <Input
+          id="confirm-pass"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+          required
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
+      {success && <p className="text-sm text-[#44a866] font-mono">{success}</p>}
+
+      <Button
+        type="submit"
+        disabled={loading}
+        className="mt-2 bg-[#bda36b]/10 border border-[#bda36b]/50 text-[#bda36b] font-mono hover:bg-[#bda36b]/20"
+      >
+        {loading ? "CHANGING..." : "CHANGE PASSWORD"}
+      </Button>
+      <p className="text-[10px] text-[#6a665e] font-mono">This updates your email+password login credentials.</p>
+    </form>
   );
 }

@@ -370,7 +370,7 @@ function ResetPasswordFlow({ onBackToSignIn }: { onBackToSignIn: () => void }) {
 
       <div className="mb-4 rounded-md border border-[#bda36b]/20 bg-black/30 px-4 py-3">
         <p className="text-xs font-mono text-[#9a968e] leading-relaxed">
-          Request a 6-digit reset code, then choose a new password.
+          Request a 6-digit reset code via email. This works for any account and will set (or change) your email + password login credentials.
         </p>
       </div>
 
