@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowLeft,
+  ArrowRight,
   Moon,
   Diamond,
   Infinity,
@@ -17,6 +18,7 @@ import {
   SignalPageShell,
   DecodedTitle,
 } from "@/components/oriel-signal/OrielSignalDesign";
+import Grainient from "@/components/Grainient";
 
 
 // Facet letter → display name
@@ -60,23 +62,6 @@ const FACET_COLORS: Record<
 
 const FACET_ORDER = ["A", "B", "C", "D"] as const;
 
-// Soft rainy gradient generator — unique combination per codon
-// Uses codon number + binary for deterministic, harmonious cool rainy tones.
-function generateSoftRainGradient(codonNumber: number, binary: string, center?: string | null) {
-  const bitCount = [...(binary || "")].reduce((sum, bit) => sum + (bit === "1" ? 1 : 0), 0);
-  // Rainy palette base: cool blues, teals, slate — desaturated and atmospheric
-  const hueBase = 198 + ((codonNumber * 3.7 + bitCount * 1.8) % 52);
-  const sat = 11 + (bitCount % 9);
-  const light = 7 + (codonNumber % 7);
-
-  const c1 = `hsl(${hueBase.toFixed(1)}, ${sat}%, ${light}%)`;
-  const c2 = `hsl(${(hueBase + 7 + (bitCount % 5)).toFixed(1)}, ${sat + 4}%, ${light + 6}%)`;
-  const c3 = `hsl(${(hueBase + 16) % 360}, ${sat + 1}%, ${light + 10}%)`;
-
-  // Soft diagonal "rainy sky" direction
-  return `linear-gradient(158deg, ${c1} 0%, ${c2} 46%, ${c3} 100%)`;
-}
-
 type BlueprintPrimePosition = {
   position: number;
   name: string;
@@ -87,6 +72,7 @@ type BlueprintPrimePosition = {
   facetFull: string;
   center: string;
   planetaryBody: string;
+  weight: number;
 };
 
 function normalizeCodonNumber(value: unknown): number | null {
@@ -120,6 +106,7 @@ function normalizeBlueprintPrimeStack(
         center: typeof row.center === "string" ? row.center : "Unknown Center",
         planetaryBody:
           typeof row.planetaryBody === "string" ? row.planetaryBody : "Unknown",
+        weight: typeof row.weight === "number" ? row.weight : (typeof row.weightedFrequency === "number" ? row.weightedFrequency / 50 : 1),
       };
     })
     .filter((entry): entry is BlueprintPrimePosition =>
@@ -201,6 +188,12 @@ export default function CodonDetail() {
     return row.defined ? "Defined" : "Open";
   })();
 
+  // SLI / Loudness based on planetary weights in user's prime stack for this codon
+  const codonLoudness = blueprintMatches.length > 0
+    ? Math.max(...blueprintMatches.map(m => (m as any).weight || 1))
+    : 1;  // default for non-user or not in stack
+  const sliFactor = Math.max(0.3, Math.min(2.0, codonLoudness / 0.9)); // normalize around typical weights 0.3-1.8+
+
   // Related codons: adjacent + harmonic partners
   const getRelatedCodons = () => {
     if (!allCodons || !codon) return [];
@@ -219,7 +212,7 @@ export default function CodonDetail() {
   // ── Loading / Error states ────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <SignalPageShell chamber="codex" className="arkana-layer profile-layer">
+      <SignalPageShell chamber="threshold" className="fi-home">
         <div className="arkana-layer__inner flex min-h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Spinner size={24} label="Loading codon" />
@@ -232,7 +225,7 @@ export default function CodonDetail() {
 
   if (!codon) {
     return (
-      <SignalPageShell chamber="codex" className="arkana-layer profile-layer">
+      <SignalPageShell chamber="threshold" className="fi-home">
         <div className="arkana-layer__inner">
           <Link href="/codex" className="arkana-layer__back inline-flex items-center gap-2">
             <ArrowLeft size={12} /> RETURN TO FIELD INDEX
@@ -255,19 +248,153 @@ export default function CodonDetail() {
   const pad = (n: number) => String(n).padStart(2, "0");
   const iconSrc = `/symbols/RC${pad(codonNumber)}.png`;
 
+  // Generate unique Grainient colors + params per codon using number + binary
+  // Much more diversified palettes per codon (different hue families, not just pink shifts)
+  const getGrainientPropsForCodon = (num: number, bin: string) => {
+    const bitCount = [...bin].filter(b => b === '1').length;
+    const seed = num * 19 + bitCount * 11;
+
+    // Pick a broad "family" so we get real diversity across codons
+    const family = num % 7; // 7 distinct vibe families
+
+    const hslToHex = (h: number, s: number, l: number): string => {
+      h /= 360; s /= 100; l /= 100;
+      let r: number, g: number, b: number;
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p: number, q: number, t: number) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      const toHex = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+
+    let h1, h2, h3, s1, s2, s3, l1, l2, l3;
+
+    switch (family) {
+      case 0: // Deep oceanic / teal-cyan
+        h1 = 195 + (seed % 25); h2 = 210 + (seed % 20); h3 = 175 + (seed % 30);
+        s1 = 82; s2 = 88; s3 = 70; l1 = 58; l2 = 52; l3 = 65;
+        break;
+      case 1: // Fiery / amber-orange
+        h1 = 18 + (seed % 22); h2 = 35 + (seed % 18); h3 = 5 + (seed % 15);
+        s1 = 90; s2 = 85; s3 = 78; l1 = 55; l2 = 60; l3 = 50;
+        break;
+      case 2: // Royal purple / indigo
+        h1 = 265 + (seed % 25); h2 = 280 + (seed % 22); h3 = 245 + (seed % 28);
+        s1 = 78; s2 = 85; s3 = 72; l1 = 56; l2 = 50; l3 = 62;
+        break;
+      case 3: // Forest / emerald green
+        h1 = 145 + (seed % 20); h2 = 160 + (seed % 18); h3 = 130 + (seed % 25);
+        s1 = 75; s2 = 82; s3 = 68; l1 = 52; l2 = 58; l3 = 48;
+        break;
+      case 4: // Magenta / rose + teal accents (controlled pink)
+        h1 = 320 + (seed % 18); h2 = 335 + (seed % 15); h3 = 195 + (seed % 20);
+        s1 = 82; s2 = 78; s3 = 80; l1 = 58; l2 = 54; l3 = 60;
+        break;
+      case 5: // Warm sunset / coral + gold
+        h1 = 12 + (seed % 15); h2 = 28 + (seed % 20); h3 = 42 + (seed % 12);
+        s1 = 88; s2 = 80; s3 = 75; l1 = 57; l2 = 62; l3 = 55;
+        break;
+      default: // Cool lavender + steel blue
+        h1 = 235 + (seed % 22); h2 = 255 + (seed % 18); h3 = 215 + (seed % 25);
+        s1 = 72; s2 = 78; s3 = 68; l1 = 60; l2 = 55; l3 = 65;
+    }
+
+    // Extra randomization from binary so even same family feels different
+    const binShift = bitCount * 3;
+    h1 = (h1 + binShift) % 360;
+    h2 = (h2 + binShift) % 360;
+    h3 = (h3 + binShift) % 360;
+
+    return {
+      color1: hslToHex(h1, s1, l1),
+      color2: hslToHex(h2, s2, l2),
+      color3: hslToHex(h3, s3, l3),
+      timeSpeed: 0.36 + (bitCount % 5) * 0.05,
+      warpStrength: 1.35 + (num % 6) * 0.13,
+      warpFrequency: 4.6 + (bitCount % 4) * 0.35,
+      warpSpeed: 3.1 + (seed % 5) * 0.32,
+      warpAmplitude: 46 + (num % 7) * 2.5,
+      blendAngle: 85 + (num % 70),
+      blendSoftness: 0.38 + (bitCount % 6) * 0.05,
+      rotationAmount: 480 + ((bitCount * 9) % 90),
+      noiseScale: 1.45 + (num % 5) * 0.15,
+      grainAmount: 0.065 + (seed % 7) * 0.012,
+      grainScale: 1.35 + (bitCount % 4) * 0.18,
+      grainAnimated: true,
+      contrast: 1.5,
+      gamma: 0.76,
+      saturation: 1.08,
+      centerX: ((num % 11) - 5) * 0.007,
+      centerY: ((bitCount % 7) - 3) * 0.007,
+      zoom: 1.06 + (num % 4) * 0.03,
+    };
+  };
+
+  const grainProps = getGrainientPropsForCodon(codonNumber, codon.binary || "000000");
+
+  // Next codon (wraps from 64 back to 01)
+  const nextCodonNumber = codonNumber === 64 ? 1 : codonNumber + 1;
+  const nextCodonId = `RC${String(nextCodonNumber).padStart(2, '0')}`;
+
   return (
-    <SignalPageShell chamber="codex" className="arkana-layer profile-layer">
+    <SignalPageShell chamber="threshold" className="fi-home">
       <div className="arkana-layer__inner">
         {/* Header matching Profile */}
         <header className="arkana-layer__head profile-layer__head">
-          <Link href="/codex" className="arkana-layer__back mb-3 inline-flex items-center gap-2">
-            <ArrowLeft size={12} /> RETURN TO FIELD INDEX
-          </Link>
+          <div>
+            <Link href="/codex" className="arkana-layer__back mb-2 inline-flex items-center gap-2 text-xs">
+              <ArrowLeft size={12} /> RETURN TO FIELD INDEX
+            </Link>
+          </div>
 
-          <DecodedTitle
-            text={`${codon.id} · ${codon.name}`}
-            className="arkana-layer__title"
-          />
+          <div className="flex items-baseline justify-between gap-4">
+            <DecodedTitle
+              text={`${codon.id} · ${codon.name}`}
+              className="arkana-layer__title"
+            />
+            <Link 
+              href={`/codex/${nextCodonId}`}
+              className="arkana-layer__back inline-flex items-center gap-1 text-xs hover:text-[#d8b56d] transition-colors whitespace-nowrap"
+            >
+              NEXT <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          {/* Thin SLI Gradient line placed right under the codon name (title) */}
+          {/* Made full width starting from the left to cover under the entire title including the codon number (RCxx) */}
+          <div
+            style={{
+              width: '100%',
+              height: `${Math.max(3, Math.min(14, Math.round(4 * sliFactor)))}px`,
+              margin: '0.6rem 0 1rem 0',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '1px',
+              boxShadow: sliFactor > 1.2 ? '0 0 6px rgba(216,181,109,0.25)' : 'none',
+            }}
+          >
+            <Grainient 
+              {...grainProps} 
+              contrast={grainProps.contrast * (0.85 + sliFactor * 0.2)}
+              grainAmount={grainProps.grainAmount * sliFactor}
+              warpStrength={grainProps.warpStrength * (0.8 + sliFactor * 0.25)}
+            />
+          </div>
+
           {codon.essence && (
             <p className="arkana-layer__subtitle max-w-[72ch]">{codon.essence}</p>
           )}
@@ -280,57 +407,33 @@ export default function CodonDetail() {
           </div>
         </header>
 
-        {/* Central Hero Viz — Hexagonal nodes + Codon Icon in the center */}
-        {/* Soft rainy gradient background — unique color combination per codon */}
-        <section
-          className="profile-layer__body-field codon-hero relative overflow-hidden"
-          aria-label="Codon resonance glyph with central icon"
-          style={{ background: generateSoftRainGradient(codonNumber, codon.binary || "000000", codon.center) }}
-        >
-          {/* Soft rain texture streaks */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-40"
-            style={{
-              background: `repeating-linear-gradient(
-                to bottom,
-                transparent 0%,
-                transparent 3%,
-                rgba(195, 215, 240, 0.045) 3.3%,
-                rgba(195, 215, 240, 0.022) 4.1%,
-                transparent 4.8%
-              )`,
-            }}
-          />
-
-          {/* Very soft atmospheric light wash from top */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "radial-gradient(ellipse at 50% 20%, rgba(210,225,245,0.07) 0%, transparent 55%)",
-            }}
-          />
-
-          <div className="relative z-10 flex h-full w-full items-center justify-center">
-            <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
-              {/* Hexagonal nodes (kept) */}
-              <CodonGlyph
-                codonNumber={codonNumber}
-                className="w-[240px] h-[240px] text-[#d8b56d] drop-shadow-[0_0_40px_rgba(216,181,109,0.3)]"
-              />
-              {/* Codon Icon — placed exactly in the center of the hex nodes */}
-              <img
-                src={iconSrc}
-                alt={`${codon.id} icon`}
-                className="absolute w-[72px] h-[72px] object-contain"
-                style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-              />
-            </div>
+        {/* The codon glyph / symbol - centered below the thin SLI gradient line */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0.5rem 0 1rem' }}>
+          <div style={{ position: 'relative', width: 240, height: 240 }}>
+            <CodonGlyph
+              codonNumber={codonNumber}
+              className="w-full h-full text-[#e8d9a0] drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
+            />
+            <img
+              src={iconSrc}
+              alt={`${codon.id} icon`}
+              className="absolute w-[70px] h-[70px] object-contain"
+              style={{ 
+                left: '50%', 
+                top: '50%', 
+                transform: 'translate(-50%, -50%)',
+                filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.6))'
+              }}
+            />
           </div>
+        </div>
 
-          <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded bg-black/30 px-3 py-0.5 text-[10px] font-mono tracking-[0.25em] text-[#d8b56d]/70 backdrop-blur">
+        {/* Label under the glyph */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d8b56d]/70">
             HEX NODES • {codon.binary}
-          </div>
-        </section>
+          </span>
+        </div>
 
         {/* Key Identity facts (Profile style rows) */}
         <div className="profile-layer__sections mt-2">

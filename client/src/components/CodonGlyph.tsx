@@ -113,7 +113,7 @@ export default function CodonGlyph({
       className={className}
       aria-label={`Codon ${codonNumber} glyph`}
     >
-      {/* Orbit ring */}
+      {/* Orbit ring (curved) */}
       <circle
         cx={cx}
         cy={cy}
@@ -123,20 +123,40 @@ export default function CodonGlyph({
         strokeOpacity={isActivating ? 0.6 : 0.12}
         strokeWidth={isActivating ? 1.5 : 1}
       />
-      {/* Lines between adjacent filled nodes */}
+
+      {/* Straight lines for hexagon structure - full closed hexagon (all sides present) */}
+      {Array.from({ length: 6 }).map((_, i) => {
+        const p1 = nodes[i];
+        const p2 = nodes[(i + 1) % 6];
+        return (
+          <line
+            key={`straight-${i}`}
+            x1={p1.x}
+            y1={p1.y}
+            x2={p2.x}
+            y2={p2.y}
+            stroke="currentColor"
+            strokeWidth={isActivating ? 1.2 : 0.8}
+            strokeOpacity={isActivating ? 0.5 : 0.25}
+          />
+        );
+      })}
+
+      {/* Curved lines between adjacent filled nodes (vice versa from previous straight logic) */}
       {nodes.map((node, i) => {
         const next = nodes[(i + 1) % 6];
         if (!node.filled || !next.filled) return null;
+        // control point for curve (bulge outward)
+        const mx = (node.x + next.x) / 2 + (next.y - node.y) * 0.25;
+        const my = (node.y + next.y) / 2 - (next.x - node.x) * 0.25;
         return (
-          <line
-            key={`l${i}`}
-            x1={node.x}
-            y1={node.y}
-            x2={next.x}
-            y2={next.y}
+          <path
+            key={`curved-${i}`}
+            d={`M ${node.x} ${node.y} Q ${mx} ${my} ${next.x} ${next.y}`}
+            fill="none"
             stroke="currentColor"
-            strokeWidth={isActivating ? 1.5 : 1}
-            strokeOpacity={isActivating ? 0.7 : 0.35}
+            strokeWidth={isActivating ? 1.8 : 1.2}
+            strokeOpacity={isActivating ? 0.85 : 0.55}
           />
         );
       })}
