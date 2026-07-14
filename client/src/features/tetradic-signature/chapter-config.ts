@@ -75,7 +75,10 @@ function narrativeOpacity(
     end: number;
   }>
 ) {
-  if (progress <= range.start || progress >= range.end) return 0;
+  if (progress <= range.start) return 0;
+  if (progress >= range.end) {
+    return range.fadeOutStart === range.end ? 1 : 0;
+  }
   if (progress < range.fadeInEnd) {
     return rangeProgress(progress, {
       start: range.start,

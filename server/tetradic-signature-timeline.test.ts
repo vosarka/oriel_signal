@@ -35,4 +35,8 @@ describe("Tetradic Signature scroll timeline", () => {
       getTetradicSceneState(TETRADIC_CHAPTERS.opening.start).activeChapter
     ).toBe("opening");
   });
+
+  it("keeps the final CTA visible at the end of the scroll", () => {
+    expect(getTetradicSceneState(1).narrative.cta).toBe(1);
+  });
 });
