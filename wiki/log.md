@@ -1324,3 +1324,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Updated tests expectations, added utils invalidation in SignalCheck.
 - Files: server/rgp-prime-stack-engine.ts, server/profile-console-summary.ts (+tests), client/src/pages/SignalCheck.tsx, client/src/pages/Profile.tsx (indirect), wiki/log.md.
 - Verification: profile-summary tests green; role derivation produces canonical names; coherence now refreshed post-reading.
+
+## [2026-07-14] feature | Tetradic Signature Phase 1 scroll prototype
+- Added the isolated `/tetradic-signature` route while preserving `/founder-signature-blueprint` unchanged.
+- Added a reversible normalized scroll timeline, sticky cinematic viewport, scroll-bound placeholder book and camera, cover opening, two placeholder Tetrad states, narrative transitions, and a final CTA placeholder.
+- Used the supplied Founder scene pedestal/background and cover assets plus the existing ORIEL signal mark; no new visual assets were generated.
+- Added responsive calibration, a static reduced-motion fallback, reload-position reconstruction, and focused timeline tests.
+- Verification: targeted timeline tests and production build pass; repository-wide checks retain unrelated pre-existing failures documented in the completion report.
