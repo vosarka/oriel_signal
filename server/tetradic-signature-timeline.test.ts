@@ -39,4 +39,22 @@ describe("Tetradic Signature scroll timeline", () => {
   it("keeps the final CTA visible at the end of the scroll", () => {
     expect(getTetradicSceneState(1).narrative.cta).toBe(1);
   });
+
+  it("finishes each book movement before the next scene begins", () => {
+    expect(TETRADIC_CHAPTERS.approach.start).toBeGreaterThanOrEqual(
+      TETRADIC_CHAPTERS.revelation.end
+    );
+    expect(TETRADIC_CHAPTERS.opening.start).toBeGreaterThanOrEqual(
+      Math.max(
+        TETRADIC_CHAPTERS.approach.end,
+        TETRADIC_CHAPTERS.orientation.end
+      )
+    );
+    expect(TETRADIC_CHAPTERS.tetradOne.start).toBeGreaterThanOrEqual(
+      TETRADIC_CHAPTERS.opening.end
+    );
+    expect(getTetradicSceneState(TETRADIC_CHAPTERS.opening.end).tetradOne).toBe(
+      0
+    );
+  });
 });

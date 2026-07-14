@@ -23,7 +23,7 @@ export function useTetradicScrollProgress(
   reducedMotion: boolean
 ) {
   const sceneStateRef = useRef<TetradicSceneState>(
-    getTetradicSceneState(reducedMotion ? 0.76 : 0)
+    getTetradicSceneState(reducedMotion ? 0.84 : 0)
   );
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export function useTetradicScrollProgress(
 
     if (reducedMotion) {
       container.dataset.reducedMotion = "true";
-      apply(0.76);
+      apply(0.84);
       return;
     }
 

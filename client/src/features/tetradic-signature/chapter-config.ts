@@ -5,11 +5,11 @@ export type ChapterRange = Readonly<{
 
 export const TETRADIC_CHAPTERS = {
   revelation: { start: 0.02, end: 0.18 },
-  approach: { start: 0.1, end: 0.34 },
-  orientation: { start: 0.16, end: 0.36 },
-  opening: { start: 0.3, end: 0.52 },
-  tetradOne: { start: 0.5, end: 0.7 },
-  transition: { start: 0.68, end: 0.84 },
+  approach: { start: 0.18, end: 0.34 },
+  orientation: { start: 0.18, end: 0.34 },
+  opening: { start: 0.34, end: 0.54 },
+  tetradOne: { start: 0.54, end: 0.7 },
+  transition: { start: 0.7, end: 0.84 },
   cta: { start: 0.84, end: 0.98 },
 } as const satisfies Record<string, ChapterRange>;
 

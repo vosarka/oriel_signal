@@ -50,7 +50,7 @@ export function TetradicNarrative({
         <CoverHierarchy compact />
         <p className="tetradic-signature__reduced-note">
           Motion is reduced. The prototype is shown in its open-book state with
-          both Tetrad states represented as structural placeholders.
+          the final placeholder Tetrad state held static.
         </p>
         <PlaceholderCta />
       </div>
