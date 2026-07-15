@@ -81,7 +81,7 @@ export const TETRADIC_SIGNATURE_CONFIG = {
       spreadDistanceFactor: 1.95,
       scale: {
         desktopClosed: 0.82,
-        desktopOpen: 0.76,
+        desktopOpen: 1.04,
         compactClosed: 0.76,
         compactOpen: 0.62,
       },
