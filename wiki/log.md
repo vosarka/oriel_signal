@@ -1331,3 +1331,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Used the supplied Founder scene pedestal/background and cover assets plus the existing ORIEL signal mark; no new visual assets were generated.
 - Added responsive calibration, a static reduced-motion fallback, reload-position reconstruction, and focused timeline tests.
 - Verification: targeted timeline tests and production build pass; repository-wide checks retain unrelated pre-existing failures documented in the completion report.
+
+## [2026-07-15] feature | Tetradic Signature Phase 2 Tetrad 01 checkpoint
+- Normalized the twelve existing Tetrad symbol assets to `assets/tetrads/01.png` through `12.png`; no new raster artwork was generated.
+- Recalibrated the scroll-controlled book on the Founder pedestal and added a coded two-page Tetrad 01 spread with live HTML, CSS, reusable SVG diagrams, and a 64-segment illustrative sample seal.
+- Centralized product naming, redacted sample data, symbol paths, CTA state, scroll rhythm, and book/camera animation values.
+- Activated `EXPLORE A SAMPLE`; kept `GENERATE MY SIGNATURE` disabled with `AWAITING_GENERATOR_ROUTE` after auditing the existing profile and order routes.
+- Verification: focused Tetradic tests and production build pass; desktop, mobile, reduced-motion, reverse-scroll, reload reconstruction, and browser-console checks pass. Tetrads 02–12 remain unimplemented pending visual approval.

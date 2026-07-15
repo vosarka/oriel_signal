@@ -1,0 +1,477 @@
+.tetradic-spread {
+  --spread-reveal: 0;
+  --diagram-reveal: 0;
+  --seal-light: 0;
+  --seal-light-opacity: 0;
+  --spread-page-lift: 0;
+  --spread-withdrawal: 0;
+  width: 960px;
+  height: 640px;
+  color: #211d16;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  transform-style: preserve-3d;
+  will-change: opacity;
+}
+
+.tetradic-spread__pages {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 18px 22px rgba(10, 8, 5, 0.35));
+  transform-style: preserve-3d;
+}
+
+.tetradic-spread__page {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 36px 40px 32px;
+  background-color: #d8c99f;
+  background-image:
+    radial-gradient(
+      circle at 17% 12%,
+      rgba(255, 250, 222, 0.62),
+      transparent 28%
+    ),
+    radial-gradient(circle at 82% 76%, rgba(95, 72, 39, 0.1), transparent 34%),
+    repeating-linear-gradient(
+      7deg,
+      rgba(68, 51, 27, 0.022) 0,
+      rgba(68, 51, 27, 0.022) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    repeating-linear-gradient(
+      91deg,
+      rgba(255, 255, 238, 0.04) 0,
+      rgba(255, 255, 238, 0.04) 2px,
+      transparent 2px,
+      transparent 9px
+    );
+  border: 1px solid rgba(76, 56, 27, 0.42);
+  box-shadow:
+    inset 0 0 42px rgba(79, 54, 22, 0.13),
+    inset 0 0 4px rgba(255, 250, 220, 0.72);
+}
+
+.tetradic-spread__page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+  background:
+    linear-gradient(90deg, transparent 97%, rgba(74, 48, 18, 0.16)),
+    repeating-radial-gradient(
+      ellipse at 30% 20%,
+      transparent 0,
+      transparent 8px,
+      rgba(61, 45, 25, 0.025) 9px,
+      transparent 10px
+    );
+}
+
+.tetradic-spread__page--left {
+  border-radius: 5px 0 0 8px;
+  border-right: 0;
+  box-shadow:
+    inset -24px 0 34px rgba(67, 44, 17, 0.16),
+    inset 0 0 42px rgba(79, 54, 22, 0.11),
+    inset 0 0 4px rgba(255, 250, 220, 0.72);
+}
+
+.tetradic-spread__page--right {
+  border-radius: 0 5px 8px 0;
+  border-left: 0;
+  box-shadow:
+    inset 24px 0 34px rgba(67, 44, 17, 0.16),
+    inset 0 0 42px rgba(79, 54, 22, 0.11),
+    inset 0 0 4px rgba(255, 250, 220, 0.72);
+}
+
+.tetradic-spread__page-header,
+.tetradic-spread__folio,
+.tetradic-spread__kicker,
+.tetradic-spread__verification-note,
+.tetradic-spread__legend,
+.tetradic-spread__record-row {
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+}
+
+.tetradic-spread__page-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(61, 46, 25, 0.48);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: rgba(45, 35, 22, 0.72);
+}
+
+.tetradic-spread__left-intro {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+}
+
+.tetradic-spread__kicker {
+  margin: 0 0 8px;
+  font-size: 9px;
+  letter-spacing: 0.19em;
+  color: #7c5725;
+}
+
+.tetradic-spread__left-intro h3,
+.tetradic-spread__threshold-copy h3 {
+  margin: 0;
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.tetradic-spread__left-intro h3 {
+  font-size: 27px;
+}
+
+.tetradic-spread__left-intro > p:last-child {
+  width: 82%;
+  margin: 7px 0 0;
+  font-size: 15px;
+  line-height: 1.22;
+  color: rgba(38, 31, 21, 0.76);
+}
+
+.tetradic-spread__record {
+  position: relative;
+  z-index: 1;
+  margin: 21px 0 16px;
+  padding: 12px 14px 10px;
+  border: 1px solid rgba(165, 123, 53, 0.58);
+  background: rgba(245, 234, 199, 0.34);
+  box-shadow: inset 0 0 0 3px rgba(117, 84, 35, 0.055);
+}
+
+.tetradic-spread__record::after {
+  content: "Ψ";
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-family: "Cinzel", serif;
+  font-size: 27px;
+  color: rgba(127, 89, 35, 0.16);
+}
+
+.tetradic-spread__record-row {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px dotted rgba(72, 52, 27, 0.22);
+  font-size: 8.5px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+}
+
+.tetradic-spread__record-row:last-child {
+  border-bottom: 0;
+}
+
+.tetradic-spread__record-row dt {
+  color: rgba(49, 37, 21, 0.55);
+}
+
+.tetradic-spread__record-row dd {
+  margin: 0;
+  font-weight: 700;
+  color: #292016;
+}
+
+.tetradic-spread__coordinate-diagram {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 176px;
+  overflow: visible;
+  border: 1px solid rgba(163, 123, 51, 0.34);
+  background: #0f0e0c;
+  box-shadow:
+    inset 0 0 36px rgba(0, 0, 0, 0.8),
+    0 5px 12px rgba(43, 28, 10, 0.16);
+  opacity: calc(0.28 + var(--diagram-reveal) * 0.72);
+  transform: translateY(calc((1 - var(--diagram-reveal)) * 5px));
+}
+
+.tetradic-spread__coordinate-diagram rect,
+.tetradic-spread__coordinate-diagram path,
+.tetradic-spread__coordinate-diagram ellipse,
+.tetradic-spread__coordinate-diagram circle {
+  fill: none;
+  stroke: #b89550;
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.tetradic-spread__coordinate-diagram .axis {
+  stroke-width: 0.75;
+  opacity: 0.42;
+  stroke-dasharray: 2 5;
+}
+
+.tetradic-spread__coordinate-diagram .signal {
+  stroke: #d5b56c;
+  stroke-width: 1.8;
+}
+
+.tetradic-spread__coordinate-diagram .signal-core {
+  fill: #d8bd7b;
+  stroke: none;
+}
+
+.tetradic-spread__coordinate-diagram .calibration {
+  fill: #81483c;
+  stroke: #b46b59;
+}
+
+.tetradic-spread__coordinate-diagram text {
+  fill: rgba(205, 177, 116, 0.76);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.11em;
+}
+
+.tetradic-spread__verification-note {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 0;
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  color: #74443b;
+}
+
+.tetradic-spread__seal-field {
+  position: relative;
+  z-index: 1;
+  width: 332px;
+  height: 332px;
+  margin: 18px auto 0;
+  overflow: hidden;
+  border: 1px solid rgba(132, 96, 42, 0.7);
+  border-radius: 50%;
+  background: #0e0d0b;
+  box-shadow:
+    0 0 0 5px rgba(90, 63, 28, 0.1),
+    0 10px 22px rgba(52, 34, 13, 0.26);
+}
+
+.tetradic-seal {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tetradic-seal__linework {
+  stroke: #ba9650;
+  stroke-width: 1.05;
+  vector-effect: non-scaling-stroke;
+}
+
+.tetradic-seal__linework .is-cardinal {
+  stroke: #e1c783;
+  stroke-width: 2.2;
+}
+
+.tetradic-seal__calibration {
+  fill: #8d4a3a;
+  stroke: #d0a45a;
+  stroke-width: 1;
+}
+
+.tetradic-seal__symbol {
+  opacity: 0.66;
+  filter: sepia(0.2) brightness(1.16) contrast(1.08);
+  mix-blend-mode: screen;
+}
+
+.tetradic-seal__oriel,
+.tetradic-seal__sample,
+.tetradic-seal__id,
+.tetradic-seal__state {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.17em;
+}
+
+.tetradic-seal__oriel {
+  fill: #d4b66f;
+  font-size: 13px;
+}
+
+.tetradic-seal__sample {
+  fill: #b96c58;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.31em;
+}
+
+.tetradic-seal__id {
+  fill: #ceb575;
+  font-size: 10px;
+}
+
+.tetradic-seal__state {
+  fill: rgba(205, 184, 134, 0.55);
+  font-size: 7px;
+}
+
+.tetradic-spread__seal-light {
+  position: absolute;
+  z-index: 2;
+  top: -12%;
+  left: 40%;
+  width: 15%;
+  height: 124%;
+  pointer-events: none;
+  opacity: calc(var(--seal-light-opacity) * 0.68);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 223, 147, 0.08),
+    rgba(255, 228, 162, 0.68),
+    rgba(255, 223, 147, 0.08),
+    transparent
+  );
+  filter: blur(5px);
+  mix-blend-mode: screen;
+  transform: translateX(calc(-360% + var(--seal-light) * 720%)) rotate(8deg);
+}
+
+.tetradic-spread__threshold-copy {
+  position: relative;
+  z-index: 1;
+  width: 86%;
+  margin: 13px auto 0;
+  text-align: center;
+}
+
+.tetradic-spread__threshold-copy h3 {
+  font-size: 24px;
+  line-height: 1;
+  color: #251d13;
+}
+
+.tetradic-spread__threshold-copy > p:last-child {
+  margin: 7px auto 0;
+  font-size: 15px;
+  line-height: 1.18;
+  color: rgba(38, 29, 18, 0.72);
+}
+
+.tetradic-spread__legend {
+  position: relative;
+  z-index: 1;
+  width: 86%;
+  margin: 14px auto 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(90, 62, 28, 0.33);
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  color: rgba(46, 35, 20, 0.58);
+}
+
+.tetradic-spread__legend p {
+  margin: 4px 0 0;
+  color: #74542b;
+}
+
+.tetradic-spread__folio {
+  position: absolute;
+  z-index: 2;
+  right: 38px;
+  bottom: 18px;
+  left: 40px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: rgba(49, 37, 21, 0.52);
+}
+
+.tetradic-spread__folio b {
+  font-family: "Cinzel", serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #79572b;
+}
+
+.tetradic-spread__folio--right {
+  flex-direction: row-reverse;
+}
+
+.tetradic-spread__gutter {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 30px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(54, 35, 13, 0.03),
+    rgba(37, 22, 8, 0.32) 43%,
+    rgba(255, 244, 207, 0.24) 53%,
+    rgba(54, 35, 13, 0.04)
+  );
+  filter: blur(0.6px);
+  transform: translateX(-50%);
+}
+
+.tetradic-spread__turning-leaf {
+  position: absolute;
+  z-index: 5;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: calc(50% - 3px);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--spread-page-lift);
+  transform-origin: 0 50%;
+  transform: perspective(1100px) rotateY(calc(var(--spread-page-lift) * -42deg))
+    translateZ(1px);
+  background:
+    radial-gradient(
+      circle at 75% 20%,
+      rgba(255, 249, 218, 0.58),
+      transparent 35%
+    ),
+    repeating-linear-gradient(
+      8deg,
+      rgba(72, 51, 25, 0.026) 0,
+      rgba(72, 51, 25, 0.026) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    #d6c79d;
+  border: 1px solid rgba(82, 58, 25, 0.38);
+  box-shadow: -18px 2px 28px
+    rgba(24, 15, 5, calc(var(--spread-page-lift) * 0.42));
+}
+
+.tetradic-spread__turning-leaf span {
+  position: absolute;
+  right: 34px;
+  bottom: 19px;
+  font-family: "Cinzel", serif;
+  font-size: 15px;
+  color: #79572b;
+}

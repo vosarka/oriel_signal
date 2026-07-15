@@ -1,58 +1,120 @@
-function CoverHierarchy({ compact = false }: { compact?: boolean }) {
+import {
+  TETRADIC_FINAL_OFFER,
+  TETRADIC_SIGNATURE_CONFIG,
+  TETRAD_ONE_SPREAD,
+} from "./tetradic-signature-config";
+
+function CoverHierarchy() {
+  const { naming, assets } = TETRADIC_SIGNATURE_CONFIG;
+
   return (
-    <div
-      className={`tetradic-signature__cover-lockup${compact ? " is-compact" : ""}`}
-    >
+    <div className="tetradic-signature__cover-lockup">
       <div className="tetradic-signature__brand">
-        <img src="/oriel-signal-mark.png" alt="" />
-        <span>ORIEL</span>
+        <img src={assets.logo} alt="" />
+        <span>{naming.brand}</span>
       </div>
       <h1>
-        <span>THE TETRADIC</span>
-        <span>SIGNATURE</span>
+        {naming.productLines.map(line => (
+          <span key={line}>{line}</span>
+        ))}
       </h1>
-      <p className="tetradic-signature__edition">FOUNDER EDITION</p>
-      <p className="tetradic-signature__subtitle">
-        YOUR RESONANCE ARCHITECTURE
-      </p>
+      <p className="tetradic-signature__edition">{naming.edition}</p>
+      <p className="tetradic-signature__subtitle">{naming.subtitle}</p>
       <p className="tetradic-signature__reading-type">
-        A FOUNDER-CURATED STATIC READING
-        <span>BUILT THROUGH THE TETRADIC RESONANCE ARCHITECTURE</span>
+        A {naming.readingType}
+        <span>BUILT THROUGH THE {naming.system}</span>
       </p>
     </div>
   );
 }
 
-function PlaceholderCta() {
+function FinalOffer({ onExploreSample }: { onExploreSample: () => void }) {
+  const { ctas } = TETRADIC_SIGNATURE_CONFIG;
+
   return (
     <div className="tetradic-signature__cta-block">
-      <p className="tetradic-signature__eyebrow">FOUNDER EDITION · PROTOTYPE</p>
-      <h2>Your architecture awaits its reading.</h2>
-      <p>
-        The final acquisition path will be connected only after the experience
-        architecture is approved.
+      <p className="tetradic-signature__eyebrow">
+        {TETRADIC_FINAL_OFFER.eyebrow}
       </p>
-      <button type="button" disabled aria-disabled="true">
-        CTA PLACEHOLDER
-      </button>
+      <h2>
+        {TETRADIC_FINAL_OFFER.headline.map(line => (
+          <span key={line}>{line}</span>
+        ))}
+      </h2>
+      <p>{TETRADIC_FINAL_OFFER.description}</p>
+      <div className="tetradic-signature__cta-actions">
+        <button
+          type="button"
+          className="is-primary"
+          disabled
+          aria-disabled="true"
+          data-development-note={ctas.generateSignatureStatus}
+        >
+          {ctas.generateSignatureLabel}
+        </button>
+        <button
+          type="button"
+          className="is-secondary"
+          onClick={onExploreSample}
+        >
+          {ctas.exploreSampleLabel}
+        </button>
+      </div>
+      <p className="tetradic-signature__trust">{TETRADIC_FINAL_OFFER.trust}</p>
     </div>
+  );
+}
+
+function TetradOneNarrative({
+  staticState = false,
+}: {
+  staticState?: boolean;
+}) {
+  return (
+    <section
+      className={`tetradic-signature__narrative tetradic-signature__narrative--tetrad-one${
+        staticState ? " is-static" : ""
+      }`}
+    >
+      <div className="tetradic-signature__tetrad-heading">
+        <p className="tetradic-signature__eyebrow">
+          {TETRAD_ONE_SPREAD.eyebrow}
+        </p>
+        <h2>{TETRAD_ONE_SPREAD.title}</h2>
+      </div>
+      <div className="tetradic-signature__tetrad-explanation">
+        <p className="tetradic-signature__main-statement">
+          {TETRAD_ONE_SPREAD.mainStatement}
+        </p>
+        <p className="tetradic-signature__description">
+          {TETRAD_ONE_SPREAD.description}
+        </p>
+        <div className="tetradic-signature__technical-labels">
+          {TETRAD_ONE_SPREAD.technicalLabels.map(label => (
+            <span key={label}>{label}</span>
+          ))}
+        </div>
+      </div>
+      <div className="tetradic-signature__annotation" aria-hidden="true">
+        <span />
+        <i />
+      </div>
+    </section>
   );
 }
 
 export function TetradicNarrative({
   reducedMotion,
+  onExploreSample,
 }: {
   reducedMotion: boolean;
+  onExploreSample: () => void;
 }) {
   if (reducedMotion) {
     return (
       <div className="tetradic-signature__reduced-narrative">
-        <CoverHierarchy compact />
-        <p className="tetradic-signature__reduced-note">
-          Motion is reduced. The prototype is shown in its open-book state with
-          the final placeholder Tetrad state held static.
-        </p>
-        <PlaceholderCta />
+        <TetradOneNarrative staticState />
+        <FinalOffer onExploreSample={onExploreSample} />
       </div>
     );
   }
@@ -64,39 +126,19 @@ export function TetradicNarrative({
       </section>
 
       <section className="tetradic-signature__narrative tetradic-signature__narrative--approach">
-        <p className="tetradic-signature__eyebrow">RESONANCE OBJECT · 001</p>
-        <h2>A closed architecture, held in potential.</h2>
-        <p>
-          The camera and object remain bound to your movement through the field.
-        </p>
-      </section>
-
-      <section className="tetradic-signature__narrative tetradic-signature__narrative--opening">
-        <p className="tetradic-signature__eyebrow">THE THRESHOLD</p>
-        <h2>The architecture opens.</h2>
-        <p>
-          Scroll controls the cover directly. Reverse the movement to close it.
-        </p>
-      </section>
-
-      <section className="tetradic-signature__narrative tetradic-signature__narrative--tetrad-one">
         <p className="tetradic-signature__eyebrow">
-          TETRAD I · PLACEHOLDER STATE
+          {TETRADIC_SIGNATURE_CONFIG.naming.system}
         </p>
-        <h2>Four positions establish the field.</h2>
-        <p>Final symbols and reading content are intentionally deferred.</p>
+        <h2>A personal artifact, held in potential.</h2>
+        <p>
+          The examination begins only when the receiver brings it into view.
+        </p>
       </section>
 
-      <section className="tetradic-signature__narrative tetradic-signature__narrative--tetrad-two">
-        <p className="tetradic-signature__eyebrow">
-          TETRAD TRANSITION · PLACEHOLDER STATE
-        </p>
-        <h2>The same structure enters a second relation.</h2>
-        <p>This reversible transition proves scene-state continuity.</p>
-      </section>
+      <TetradOneNarrative />
 
       <section className="tetradic-signature__narrative tetradic-signature__narrative--cta">
-        <PlaceholderCta />
+        <FinalOffer onExploreSample={onExploreSample} />
       </section>
     </div>
   );

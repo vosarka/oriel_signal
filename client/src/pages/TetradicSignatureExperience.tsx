@@ -3,14 +3,19 @@ import { useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { TetradicBookScene } from "@/features/tetradic-signature/TetradicBookScene";
 import { TetradicNarrative } from "@/features/tetradic-signature/TetradicNarrative";
+import { TETRADIC_SIGNATURE_CONFIG } from "@/features/tetradic-signature/tetradic-signature-config";
 import { useTetradicScrollProgress } from "@/features/tetradic-signature/useTetradicScrollProgress";
 import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
 import "@/features/tetradic-signature/tetradic-signature.css";
+import "@/features/tetradic-signature/tetradic-spread.css";
 
 export default function TetradicSignatureExperience() {
   const containerRef = useRef<HTMLElement>(null);
   const { compact, reducedMotion } = useTetradicViewport();
-  const sceneStateRef = useTetradicScrollProgress(containerRef, reducedMotion);
+  const { sceneStateRef, exploreSample } = useTetradicScrollProgress(
+    containerRef,
+    reducedMotion
+  );
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -25,6 +30,8 @@ export default function TetradicSignatureExperience() {
       <section
         ref={containerRef}
         className="tetradic-signature"
+        tabIndex={-1}
+        aria-label="The Tetradic Signature interactive sample"
         data-progress="0.0000"
         data-chapter="darkness"
         data-cover-open="0.0000"
@@ -32,7 +39,7 @@ export default function TetradicSignatureExperience() {
         <div className="tetradic-signature__viewport">
           <img
             className="tetradic-signature__environment"
-            src="/assets/founder-scene/pedestal-scene.png"
+            src={TETRADIC_SIGNATURE_CONFIG.assets.environment}
             alt=""
           />
           <div
@@ -45,7 +52,10 @@ export default function TetradicSignatureExperience() {
             reducedMotion={reducedMotion}
             sceneStateRef={sceneStateRef}
           />
-          <TetradicNarrative reducedMotion={reducedMotion} />
+          <TetradicNarrative
+            reducedMotion={reducedMotion}
+            onExploreSample={exploreSample}
+          />
 
           {!reducedMotion && (
             <>
