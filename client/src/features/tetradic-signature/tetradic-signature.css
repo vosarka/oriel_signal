@@ -55,9 +55,13 @@ html.lenis {
   height: 100%;
   object-fit: cover;
   object-position: 50% 50%;
-  opacity: calc(0.08 + var(--ts-reveal) * 0.92);
+  opacity: clamp(
+    0.04,
+    calc(0.04 + max(0, var(--ts-reveal) - 0.22) * 1.23),
+    1
+  );
   filter: brightness(
-      calc(0.44 + var(--ts-reveal) * 0.42 - var(--ts-celestial) * 0.44)
+      calc(0.34 + var(--ts-reveal) * 0.52 - var(--ts-celestial) * 0.42)
     )
     saturate(calc(0.82 - var(--ts-celestial) * 0.32));
   transform: scale(1.002);
@@ -83,15 +87,16 @@ html.lenis {
       2,
       2,
       3,
-      calc(0.66 - var(--ts-reveal) * 0.52 + var(--ts-celestial) * 0.62)
+      calc(0.76 - var(--ts-reveal) * 0.62 + var(--ts-celestial) * 0.62)
     );
 }
 
 .tetradic-signature__canvas {
   z-index: 2;
-  opacity: var(--ts-reveal);
+  opacity: clamp(0, calc(var(--ts-reveal) * 1.12), 1);
   transform: translateY(-0.5vh);
-  filter: drop-shadow(0 1.1rem 1.8rem rgba(0, 0, 0, 0.56));
+  filter: brightness(calc(0.38 + var(--ts-reveal) * 0.62))
+    drop-shadow(0 1.1rem 1.8rem rgba(0, 0, 0, 0.56));
   pointer-events: none;
 }
 

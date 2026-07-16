@@ -1415,3 +1415,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Created `assets/tetradic-signature/pedestal-scene-final.png` by removing only the baked `PROTOTYPE 001` label from the supplied pedestal scene; the original asset remains unchanged.
 - Verification: focused Tetradic tests pass (12/12), production build passes, and desktop/mobile/reduced-motion/reverse/reload browser checks report no runtime errors. Repository-wide type-check and test failures remain limited to the documented unrelated backend/profile terminology issues.
 - No Tetrad 02–12 implementation or asset was changed for this checkpoint.
+
+## [2026-07-16] feature | Tetradic Signature Tetrads 01–03 motion choreography pass
+- Slowed the shared Lenis and ScrollTrigger response with one scrubbed visual playhead while preserving deterministic reverse motion and reload reconstruction.
+- Staged the book entrance and opening into distinct reveal, recognition, release, rotation, interior, reading-angle, and settled inspection beats.
+- Replaced abrupt camera states with continuous compatible paths; added physical anticipation, travel, and settling to both approved page transitions.
+- Rebalanced the desktop and compact book scale, camera distance, narrative holds, and Tetrad 03 journey without changing the locked Tetrad 01 spread, assets, copy, or route.
+- Verification: focused Tetradic tests and production build pass; browser checks cover reverse scroll, reload reconstruction, compact touch input, and reduced motion. Tetrads 04–12 remain untouched.

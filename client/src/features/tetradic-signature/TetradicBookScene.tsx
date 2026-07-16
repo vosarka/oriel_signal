@@ -44,14 +44,31 @@ function ScrollCamera({
   const target = useMemo(() => new THREE.Vector3(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const cameraConfig = compact ? BOOK.camera.compact : BOOK.camera.desktop;
+  const foldCurve = useMemo(
+    () =>
+      compact
+        ? new THREE.CubicBezierCurve3(
+            new THREE.Vector3(0, 6.2, 7.55),
+            new THREE.Vector3(0.08, 4.6, 4.4),
+            new THREE.Vector3(0.12, 3.2, -2.4),
+            new THREE.Vector3(0, 5.75, -7.7)
+          )
+        : new THREE.CubicBezierCurve3(
+            new THREE.Vector3(0, 5.72, 6.25),
+            new THREE.Vector3(0.24, 3.3, 3.35),
+            new THREE.Vector3(0.42, 2.15, -1.8),
+            new THREE.Vector3(0, 4.95, -6.8)
+          ),
+    [compact]
+  );
+  const foldPosition = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(() => {
     const state = sceneStateRef.current;
-    const inspection = state.tetradOne.settle;
-    const transitionOne = state.transitionOneToTwo.progress;
+    const inspection = state.opening.readingAngle;
+    const transitionOne = state.transitionOneToTwo.camera;
     const tetradTwo = state.tetradTwo;
     const transitionTwo = state.transitionTwoToThree;
-    const tetradThree = state.tetradThree;
     const approachedY = THREE.MathUtils.lerp(
       cameraConfig.startY,
       cameraConfig.approachY,
@@ -86,7 +103,7 @@ function ScrollCamera({
     const overheadY = compact ? 6.45 : 6.1;
     const overheadZ = compact ? 7.8 : 5.9;
     const t2BaseX =
-      Math.sin(tetradTwo.orbit * Math.PI) * (compact ? 0.2 : 0.62);
+      Math.sin(tetradTwo.orbit * Math.PI) * (compact ? 0.12 : 0.62);
     const t2X = THREE.MathUtils.lerp(0, t2BaseX, tetradTwo.settle);
     const t2Y = THREE.MathUtils.lerp(
       overheadY,
@@ -106,23 +123,10 @@ function ScrollCamera({
     let cameraY = chapterY;
     let cameraZ = chapterZ;
     if (transitionTwo.foldDive > 0) {
-      const dive = transitionTwo.foldDive;
-      const split = 0.52;
-      if (dive < split) {
-        const intoFold = dive / split;
-        cameraX = THREE.MathUtils.lerp(chapterX, 0, intoFold);
-        cameraY = THREE.MathUtils.lerp(chapterY, 1.7, intoFold);
-        cameraZ = THREE.MathUtils.lerp(chapterZ, 1, intoFold);
-      } else {
-        const outOfFold = (dive - split) / (1 - split);
-        cameraX = 0;
-        cameraY = THREE.MathUtils.lerp(1.7, compact ? 5.95 : 4.82, outOfFold);
-        cameraZ = THREE.MathUtils.lerp(1, compact ? -7.8 : -6.65, outOfFold);
-      }
-    } else if (tetradThree.settle > 0) {
-      cameraX = 0;
-      cameraY = compact ? 5.95 : 4.82;
-      cameraZ = compact ? -7.8 : -6.65;
+      foldCurve.getPoint(transitionTwo.foldDive, foldPosition);
+      cameraX = foldPosition.x;
+      cameraY = foldPosition.y;
+      cameraZ = foldPosition.z;
     }
 
     camera.position.set(cameraX, cameraY, cameraZ);
@@ -138,7 +142,11 @@ function ScrollCamera({
 
     const perspectiveCamera = camera as THREE.PerspectiveCamera;
     const t2Fov = THREE.MathUtils.lerp(fov, compact ? 38 : 31, transitionOne);
-    const foldFov = THREE.MathUtils.lerp(t2Fov, compact ? 39 : 34, foldTarget);
+    const foldFov = THREE.MathUtils.lerp(
+      t2Fov,
+      compact ? 38.5 : 33,
+      foldTarget
+    );
     if (Math.abs(perspectiveCamera.fov - foldFov) > 0.001) {
       perspectiveCamera.fov = foldFov;
       perspectiveCamera.updateProjectionMatrix();
@@ -169,15 +177,19 @@ function PrototypeBook({
       : BOOK.scale.desktopClosed;
     const openScale = compact ? BOOK.scale.compactOpen : BOOK.scale.desktopOpen;
     const scale =
-      THREE.MathUtils.lerp(closedScale, openScale, state.coverOpen) *
+      THREE.MathUtils.lerp(
+        closedScale,
+        openScale,
+        state.opening.interiorReveal
+      ) *
       (0.96 + state.reveal * 0.04);
+    const coverAngle = state.coverOpen * Math.PI * BOOK.coverOpenAngle;
+    const openFootprint = Math.max(0, -Math.cos(coverAngle));
 
     if (bookRef.current) {
       bookRef.current.scale.setScalar(scale);
-      bookRef.current.position.x = state.coverOpen * (BOOK_WIDTH / 2) * scale;
-      bookRef.current.position.y =
-        state.transitionOneToTwo.progress * 0.05 -
-        state.transitionTwoToThree.foldDive * 0.04;
+      bookRef.current.position.x = openFootprint * (BOOK_WIDTH / 2) * scale;
+      bookRef.current.position.y = 0;
       bookRef.current.rotation.y =
         THREE.MathUtils.lerp(
           BOOK.rotationY.closed,
@@ -188,8 +200,9 @@ function PrototypeBook({
     }
 
     if (coverHingeRef.current) {
-      coverHingeRef.current.rotation.z =
-        state.coverOpen * Math.PI * BOOK.coverOpenAngle;
+      coverHingeRef.current.position.y =
+        0.285 + state.opening.release * (1 - state.coverOpen) * 0.018;
+      coverHingeRef.current.rotation.z = coverAngle;
     }
   });
 

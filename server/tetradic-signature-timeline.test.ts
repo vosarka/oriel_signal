@@ -21,6 +21,17 @@ function atTetradProgress(progress: number) {
   return range.start + (range.end - range.start) * progress;
 }
 
+function atSvh(svh: number) {
+  return getTetradicSceneState(svh / TETRADIC_TIMELINE.totalSvh);
+}
+
+function atRangeProgress(
+  range: Readonly<{ start: number; end: number }>,
+  progress: number
+) {
+  return getTetradicSceneState(range.start + (range.end - range.start) * progress);
+}
+
 describe("Tetradic Signature scroll timeline", () => {
   it("covers one continuous master film and reconstructs every segment in reverse", () => {
     const segments = TETRADIC_CHOREOGRAPHY.flatMap(chapter => [
@@ -70,12 +81,33 @@ describe("Tetradic Signature scroll timeline", () => {
     expect(getTetradicSceneState(1.5).progress).toBe(1);
   });
 
-  it("opens the cover directly from its centralized chapter range", () => {
+  it("opens the cover through its phased centralized chapter range", () => {
     const { start, end } = TETRADIC_CHAPTERS.opening;
+    const midpoint = getTetradicSceneState((start + end) / 2);
 
     expect(getTetradicSceneState(start).coverOpen).toBe(0);
-    expect(getTetradicSceneState((start + end) / 2).coverOpen).toBeCloseTo(0.5);
+    expect(midpoint.coverOpen).toBeGreaterThan(0.7);
+    expect(midpoint.coverOpen).toBeLessThan(0.9);
+    expect(midpoint.coverOpen).toBe(midpoint.opening.coverRotation);
     expect(getTetradicSceneState(end).coverOpen).toBe(1);
+  });
+
+  it("sequences release, cover travel, reading camera, and open settle", () => {
+    const hold = atSvh(60);
+    const release = atSvh(68);
+    const rotation = atSvh(84);
+    const reading = atSvh(100);
+    const settled = atSvh(110);
+
+    expect(hold.coverOpen).toBe(0);
+    expect(release.opening.release).toBeGreaterThan(0);
+    expect(release.coverOpen).toBe(0);
+    expect(rotation.coverOpen).toBeGreaterThan(0);
+    expect(rotation.opening.readingAngle).toBe(0);
+    expect(reading.coverOpen).toBe(1);
+    expect(reading.opening.readingAngle).toBeGreaterThan(0);
+    expect(reading.opening.settle).toBe(0);
+    expect(settled.opening.settle).toBe(1);
   });
 
   it("keeps the first spread hidden until the cover is fully open", () => {
@@ -99,7 +131,7 @@ describe("Tetradic Signature scroll timeline", () => {
 
   it("keeps all narrative text hidden through the page turn and settle", () => {
     const duringTurn = getTetradicSceneState(atTetradProgress(0.1)).tetradOne;
-    const settled = getTetradicSceneState(atTetradProgress(0.31)).tetradOne;
+    const settled = getTetradicSceneState(atTetradProgress(0.36)).tetradOne;
 
     expect(duringTurn.pageTurn).toBeGreaterThan(0);
     expect(duringTurn.eyebrow).toBe(0);
@@ -111,9 +143,9 @@ describe("Tetradic Signature scroll timeline", () => {
 
   it("introduces description after the title is already mostly visible", () => {
     const descriptionStart = getTetradicSceneState(
-      atTetradProgress(0.4)
+      atTetradProgress(0.48)
     ).tetradOne;
-    const explanation = getTetradicSceneState(atTetradProgress(0.5)).tetradOne;
+    const explanation = getTetradicSceneState(atTetradProgress(0.56)).tetradOne;
 
     expect(descriptionStart.title).toBeGreaterThan(0.6);
     expect(descriptionStart.description).toBeCloseTo(0, 10);
@@ -122,11 +154,11 @@ describe("Tetradic Signature scroll timeline", () => {
   });
 
   it("withdraws labels, description, and title in that order before lift", () => {
-    const labelsGone = getTetradicSceneState(atTetradProgress(0.82)).tetradOne;
+    const labelsGone = getTetradicSceneState(atTetradProgress(0.84)).tetradOne;
     const descriptionGone = getTetradicSceneState(
-      atTetradProgress(0.87)
+      atTetradProgress(0.89)
     ).tetradOne;
-    const lifting = getTetradicSceneState(atTetradProgress(0.91)).tetradOne;
+    const lifting = getTetradicSceneState(atTetradProgress(0.93)).tetradOne;
 
     expect(labelsGone.labels).toBeCloseTo(0, 10);
     expect(labelsGone.description).toBeGreaterThan(0);
@@ -134,6 +166,60 @@ describe("Tetradic Signature scroll timeline", () => {
     expect(descriptionGone.title).toBeGreaterThan(0);
     expect(lifting.title).toBeCloseTo(0, 10);
     expect(lifting.pageLift).toBeGreaterThan(0);
+  });
+
+  it("turns and settles the Tetrad 01 page before revealing Tetrad 02", () => {
+    const range = TETRADIC_CHOREOGRAPHY[0].transitionOut.range;
+    const early = atRangeProgress(range, 0.1).transitionOneToTwo;
+    const crossing = atRangeProgress(range, 0.6).transitionOneToTwo;
+    const settled = atRangeProgress(range, 0.76).transitionOneToTwo;
+
+    expect(early.pageTurn).toBeGreaterThan(0);
+    expect(early.spreadSwap).toBe(0);
+    expect(crossing.pageTurn).toBeGreaterThan(crossing.spreadSwap);
+    expect(settled.pageTurn).toBe(1);
+    expect(settled.pageSettle).toBe(1);
+    expect(settled.spreadSwap).toBe(1);
+  });
+
+  it("stabilizes Tetrads 02 and 03 before their narrative and journey", () => {
+    const tetradTwo = TETRADIC_CHOREOGRAPHY[1].core;
+    const tetradThree = TETRADIC_CHOREOGRAPHY[2].core;
+    const twoSettled = atRangeProgress(tetradTwo, 0.18).tetradTwo;
+    const twoReadable = atRangeProgress(tetradTwo, 0.5).tetradTwo;
+    const threeSettled = atRangeProgress(tetradThree, 0.18).tetradThree;
+    const threeReadable = atRangeProgress(tetradThree, 0.42).tetradThree;
+    const threeJourneyComplete = atRangeProgress(tetradThree, 0.82).tetradThree;
+
+    expect(twoSettled.settle).toBe(1);
+    expect(twoSettled.title).toBe(0);
+    expect(twoReadable.title).toBe(1);
+    expect(twoReadable.statement).toBe(1);
+    expect(twoReadable.orbit).toBe(1);
+    expect(threeSettled.settle).toBe(1);
+    expect(threeSettled.title).toBe(0);
+    expect(threeReadable.statement).toBe(1);
+    expect(threeReadable.horizontalJourney).toBe(0);
+    expect(threeJourneyComplete.horizontalJourney).toBe(1);
+  });
+
+  it("separates the Tetrad 02 page turn, fold dive, and celestial reveal", () => {
+    const range = TETRADIC_CHOREOGRAPHY[1].transitionOut.range;
+    const anticipation = atRangeProgress(range, 0.06).transitionTwoToThree;
+    const pageTravel = atRangeProgress(range, 0.5).transitionTwoToThree;
+    const foldTravel = atRangeProgress(range, 0.7).transitionTwoToThree;
+    const celestial = atRangeProgress(range, 0.9).transitionTwoToThree;
+
+    expect(anticipation.pageAnticipation).toBeGreaterThan(0);
+    expect(anticipation.pageTurn).toBe(0);
+    expect(pageTravel.pageTurn).toBeGreaterThan(0);
+    expect(pageTravel.foldDive).toBe(0);
+    expect(pageTravel.celestialReveal).toBe(0);
+    expect(foldTravel.pageTurn).toBe(1);
+    expect(foldTravel.foldDive).toBeGreaterThan(0);
+    expect(foldTravel.celestialReveal).toBe(0);
+    expect(celestial.foldDive).toBe(1);
+    expect(celestial.celestialReveal).toBeGreaterThan(0);
   });
 
   it("keeps the final CTA out of the Tetrads 01–03 checkpoint", () => {

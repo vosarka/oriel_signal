@@ -16,6 +16,7 @@ export const TETRADIC_NARRATIVES =
 
 const TETRAD_RHYTHM = TETRADIC_SIGNATURE_CONFIG.animation.tetradRhythm;
 const CHAPTER_RHYTHM = TETRADIC_SIGNATURE_CONFIG.animation.chapterRhythm;
+const OPENING_RHYTHM = TETRADIC_SIGNATURE_CONFIG.animation.openingRhythm;
 
 export type TetradicChapter =
   | "darkness"
@@ -73,10 +74,21 @@ export type TetradicSceneState = Readonly<{
   reveal: number;
   approach: number;
   orientation: number;
+  opening: Readonly<{
+    progress: number;
+    release: number;
+    coverRotation: number;
+    interiorReveal: number;
+    readingAngle: number;
+    settle: number;
+  }>;
   coverOpen: number;
   tetradOne: TetradSceneState;
   transitionOneToTwo: Readonly<{
     progress: number;
+    pageTurn: number;
+    pageSettle: number;
+    camera: number;
     sealExpansion: number;
     blueprintReveal: number;
     spreadSwap: number;
@@ -84,7 +96,9 @@ export type TetradicSceneState = Readonly<{
   tetradTwo: TetradTwoSceneState;
   transitionTwoToThree: Readonly<{
     progress: number;
+    pageAnticipation: number;
     pageTurn: number;
+    pageSettle: number;
     foldDive: number;
     celestialReveal: number;
   }>;
@@ -261,6 +275,24 @@ export const TETRADIC_REDUCED_MOTION_PROGRESS =
 
 export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
   const progress = clampProgress(rawProgress);
+  const openingProgress = rangeProgress(progress, TETRADIC_CHAPTERS.opening);
+  const opening = {
+    progress: openingProgress,
+    release: easedRangeProgress(openingProgress, OPENING_RHYTHM.release),
+    coverRotation: easedRangeProgress(
+      openingProgress,
+      OPENING_RHYTHM.coverRotation
+    ),
+    interiorReveal: easedRangeProgress(
+      openingProgress,
+      OPENING_RHYTHM.interiorReveal
+    ),
+    readingAngle: easedRangeProgress(
+      openingProgress,
+      OPENING_RHYTHM.readingAngle
+    ),
+    settle: easedRangeProgress(openingProgress, OPENING_RHYTHM.settle),
+  };
   const transitionOneToTwo = getTransitionState(
     progress,
     CHOREOGRAPHY[0].transitionOut.range,
@@ -279,10 +311,14 @@ export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
     reveal: easedRangeProgress(progress, TETRADIC_CHAPTERS.revelation),
     approach: easedRangeProgress(progress, TETRADIC_CHAPTERS.approach),
     orientation: easedRangeProgress(progress, TETRADIC_CHAPTERS.orientation),
-    coverOpen: rangeProgress(progress, TETRADIC_CHAPTERS.opening),
+    opening,
+    coverOpen: opening.coverRotation,
     tetradOne: getTetradOneSceneState(progress),
     transitionOneToTwo: {
       progress: transitionOneToTwo.progress,
+      pageTurn: transitionOneToTwo.values.pageTurn,
+      pageSettle: transitionOneToTwo.values.pageSettle,
+      camera: transitionOneToTwo.values.camera,
       sealExpansion: transitionOneToTwo.values.sealExpansion,
       blueprintReveal: transitionOneToTwo.values.blueprintReveal,
       spreadSwap: transitionOneToTwo.values.spreadSwap,
@@ -290,7 +326,9 @@ export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
     tetradTwo: getTetradTwoSceneState(progress),
     transitionTwoToThree: {
       progress: transitionTwoToThree.progress,
+      pageAnticipation: transitionTwoToThree.values.pageAnticipation,
       pageTurn: transitionTwoToThree.values.pageTurn,
+      pageSettle: transitionTwoToThree.values.pageSettle,
       foldDive: transitionTwoToThree.values.foldDive,
       celestialReveal: transitionTwoToThree.values.celestialReveal,
     },

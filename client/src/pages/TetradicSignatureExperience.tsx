@@ -28,7 +28,7 @@ function TetradicLenisGsapBridge() {
     const updateScrollTrigger = () => ScrollTrigger.update();
     const advanceLenis = (time: number) => lenis.raf(time * 1000);
     lenis.on("scroll", updateScrollTrigger);
-    gsap.ticker.add(advanceLenis);
+    gsap.ticker.add(advanceLenis, false, true);
 
     return () => {
       lenis.off("scroll", updateScrollTrigger);
@@ -52,6 +52,7 @@ function TetradicCheckpoint({
   const { sceneStateRef } = useTetradicScrollProgress(
     containerRef,
     reducedMotion,
+    compact,
     lenis
   );
   const scrollStyle = {
@@ -128,6 +129,7 @@ function SmoothTetradicCheckpoint({ compact }: { compact: boolean }) {
 
 export default function TetradicSignatureExperience() {
   const { compact, reducedMotion } = useTetradicViewport();
+  const scroll = TETRADIC_SIGNATURE_CONFIG.animation.scroll;
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -144,7 +146,13 @@ export default function TetradicSignatureExperience() {
   return (
     <ReactLenis
       root
-      options={{ lerp: 0.085, smoothWheel: true, autoRaf: false }}
+      options={{
+        lerp: scroll.lerp,
+        wheelMultiplier: scroll.wheelMultiplier,
+        touchMultiplier: scroll.touchMultiplier,
+        smoothWheel: true,
+        autoRaf: false,
+      }}
     >
       <TetradicLenisGsapBridge />
       <SmoothTetradicCheckpoint compact={compact} />

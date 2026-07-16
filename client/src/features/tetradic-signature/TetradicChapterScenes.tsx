@@ -13,6 +13,40 @@ const IVORY = new THREE.Color("#d9caa0");
 const OBSIDIAN = new THREE.Color("#080807");
 const CYAN = new THREE.Color("#6aaeb5");
 
+function ChapterTurnPage({ sceneStateRef }: ChapterSceneProps) {
+  const hingeRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    const state = sceneStateRef.current;
+    const anticipation = state.tetradOne.pageLift;
+    const transition = state.transitionOneToTwo;
+    const startAngle = anticipation * THREE.MathUtils.degToRad(6);
+
+    if (!hingeRef.current) return;
+    hingeRef.current.visible =
+      anticipation > 0.001 ||
+      (transition.progress > 0 && transition.pageSettle < 0.999);
+    hingeRef.current.rotation.z = THREE.MathUtils.lerp(
+      startAngle,
+      Math.PI,
+      transition.pageTurn
+    );
+  });
+
+  return (
+    <group ref={hingeRef} position={[0, 0.34, 0]} visible={false}>
+      <mesh position={[1.18, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <planeGeometry args={[2.36, 3.12, 24, 2]} />
+        <meshStandardMaterial
+          color="#d8c99f"
+          roughness={0.94}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function ArchitectureBlueprint({ sceneStateRef }: ChapterSceneProps) {
   const rootRef = useRef<THREE.Group>(null);
   const ringRefs = useRef<Array<THREE.Mesh | null>>([]);
@@ -203,18 +237,24 @@ function FoldTransitionPage({ sceneStateRef }: ChapterSceneProps) {
   const color = useMemo(() => new THREE.Color(), []);
 
   useFrame(() => {
-    const { pageTurn, foldDive, celestialReveal } =
-      sceneStateRef.current.transitionTwoToThree;
+    const transition = sceneStateRef.current.transitionTwoToThree;
+    const { pageAnticipation, pageTurn, celestialReveal } = transition;
+    const startAngle = pageAnticipation * THREE.MathUtils.degToRad(6);
 
     if (hingeRef.current) {
-      hingeRef.current.visible = pageTurn > 0.001 && celestialReveal < 0.995;
-      hingeRef.current.rotation.z = pageTurn * Math.PI;
-      hingeRef.current.position.y = 0.4 + foldDive * 0.32;
-      hingeRef.current.position.z = -foldDive * 0.1;
-      hingeRef.current.scale.setScalar(1 + foldDive * 0.14);
+      hingeRef.current.visible =
+        transition.progress > 0 && transition.pageSettle < 0.999;
+      hingeRef.current.rotation.z = THREE.MathUtils.lerp(
+        startAngle,
+        Math.PI,
+        pageTurn
+      );
+      hingeRef.current.position.y = 0.34;
+      hingeRef.current.position.z = 0;
+      hingeRef.current.scale.setScalar(1);
     }
     if (materialRef.current) {
-      materialRef.current.opacity = 1;
+      materialRef.current.opacity = Math.min(1, transition.progress * 12);
       materialRef.current.color.copy(
         color.copy(IVORY).lerp(OBSIDIAN, celestialReveal)
       );
@@ -242,6 +282,8 @@ function CelestialField({ sceneStateRef }: ChapterSceneProps) {
   const starMaterialRef = useRef<THREE.PointsMaterial>(null);
   const goldSunRef = useRef<THREE.Mesh>(null);
   const cyanSunRef = useRef<THREE.Mesh>(null);
+  const goldSunMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const cyanSunMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const starGeometry = useMemo(() => {
     const positions = new Float32Array(180 * 3);
     let seed = 41;
@@ -280,9 +322,15 @@ function CelestialField({ sceneStateRef }: ChapterSceneProps) {
       goldSunRef.current.position.x = THREE.MathUtils.lerp(-0.8, -3.1, journey);
       goldSunRef.current.scale.setScalar(0.68 + reveal * 0.32);
     }
+    if (goldSunMaterialRef.current) {
+      goldSunMaterialRef.current.opacity = reveal;
+    }
     if (cyanSunRef.current) {
       cyanSunRef.current.position.x = THREE.MathUtils.lerp(0.8, 3.1, journey);
       cyanSunRef.current.scale.setScalar(0.68 + reveal * 0.32);
+    }
+    if (cyanSunMaterialRef.current) {
+      cyanSunMaterialRef.current.opacity = reveal;
     }
   });
 
@@ -301,11 +349,25 @@ function CelestialField({ sceneStateRef }: ChapterSceneProps) {
       </points>
       <mesh ref={goldSunRef} position={[-0.8, 0.7, -1.2]}>
         <sphereGeometry args={[0.12, 32, 32]} />
-        <meshBasicMaterial color={GOLD} toneMapped={false} />
+        <meshBasicMaterial
+          ref={goldSunMaterialRef}
+          color={GOLD}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
       <mesh ref={cyanSunRef} position={[0.8, -0.45, -1.2]}>
         <sphereGeometry args={[0.1, 32, 32]} />
-        <meshBasicMaterial color={CYAN} toneMapped={false} />
+        <meshBasicMaterial
+          ref={cyanSunMaterialRef}
+          color={CYAN}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
@@ -315,6 +377,7 @@ export function BookChapterGeometry({ sceneStateRef }: ChapterSceneProps) {
   return (
     <>
       <ArchitectureBlueprint sceneStateRef={sceneStateRef} />
+      <ChapterTurnPage sceneStateRef={sceneStateRef} />
       <FoldTransitionPage sceneStateRef={sceneStateRef} />
     </>
   );

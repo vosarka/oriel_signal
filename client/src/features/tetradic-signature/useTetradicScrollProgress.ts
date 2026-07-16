@@ -9,7 +9,10 @@ import {
   getTetradicSceneState,
   type TetradicSceneState,
 } from "./chapter-config";
-import { TETRADIC_TIMELINE } from "./tetradic-signature-config";
+import {
+  TETRADIC_SIGNATURE_CONFIG,
+  TETRADIC_TIMELINE,
+} from "./tetradic-signature-config";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -25,6 +28,7 @@ function isReloadNavigation() {
 export function useTetradicScrollProgress(
   containerRef: RefObject<HTMLElement | null>,
   reducedMotion: boolean,
+  compact: boolean,
   lenis?: Lenis
 ) {
   const sceneStateRef = useRef<TetradicSceneState>(
@@ -147,8 +151,20 @@ export function useTetradicScrollProgress(
     );
     if (!viewport) return;
 
+    const playhead = { progress: 0 };
+    const scrubTween = gsap.to(playhead, {
+      progress: 1,
+      paused: true,
+      ease: "none",
+      onUpdate: () => apply(playhead.progress),
+    });
+
     const trigger = ScrollTrigger.create({
       trigger: container,
+      animation: scrubTween,
+      scrub: compact
+        ? TETRADIC_SIGNATURE_CONFIG.animation.scroll.scrubCompact
+        : TETRADIC_SIGNATURE_CONFIG.animation.scroll.scrubDesktop,
       pin: viewport,
       pinSpacing: false,
       anticipatePin: 1,
@@ -156,12 +172,15 @@ export function useTetradicScrollProgress(
       end: "bottom bottom",
       invalidateOnRefresh: true,
       onUpdate: self => {
-        apply(self.progress);
         sessionStorage.setItem(RESTORE_KEY, self.progress.toFixed(6));
       },
-      onRefresh: self => apply(self.progress),
+      onRefresh: self => {
+        scrubTween.progress(self.progress);
+        apply(self.progress);
+      },
     });
 
+    scrubTween.progress(trigger.progress);
     apply(trigger.progress);
 
     frame = window.requestAnimationFrame(() => {
@@ -178,10 +197,13 @@ export function useTetradicScrollProgress(
             } else {
               window.scrollTo({ top: target, behavior: "auto" });
             }
+            scrubTween.progress(saved);
+            apply(saved);
           }
         }
 
         ScrollTrigger.update();
+        scrubTween.progress(trigger.progress);
         apply(trigger.progress);
       });
     });
@@ -189,8 +211,9 @@ export function useTetradicScrollProgress(
     return () => {
       window.cancelAnimationFrame(frame);
       trigger.kill();
+      scrubTween.kill();
     };
-  }, [containerRef, lenis, reducedMotion]);
+  }, [compact, containerRef, lenis, reducedMotion]);
 
   return { sceneStateRef };
 }

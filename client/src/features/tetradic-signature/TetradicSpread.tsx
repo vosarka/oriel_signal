@@ -362,14 +362,15 @@ export function TetradicSpread({
     const tetradTwo = state.tetradTwo;
     const transitionTwo = state.transitionTwoToThree;
     const tetradThree = state.tetradThree;
-    const t1Opacity = tetrad.spreadReveal * (1 - transitionOne.spreadSwap);
-    const t2Opacity =
-      Math.max(transitionOne.spreadSwap, tetradTwo.settle) *
-      (1 - Math.max(transitionTwo.pageTurn, transitionTwo.celestialReveal));
-    const t3Opacity = Math.max(
+    const t3Reveal = Math.max(
       transitionTwo.celestialReveal,
       tetradThree.celestialReveal
     );
+    const t1Opacity = tetrad.spreadReveal * (1 - transitionOne.spreadSwap);
+    const t2Opacity =
+      Math.max(transitionOne.spreadSwap, tetradTwo.settle) *
+      (1 - t3Reveal);
+    const t3Opacity = t3Reveal;
     root.style.setProperty("--spread-reveal", tetrad.spreadReveal.toFixed(4));
     root.style.setProperty("--diagram-reveal", tetrad.diagramReveal.toFixed(4));
     root.style.setProperty("--seal-light", tetrad.sealLight.toFixed(4));
@@ -377,7 +378,6 @@ export function TetradicSpread({
       "--seal-light-opacity",
       tetrad.sealLightOpacity.toFixed(4)
     );
-    root.style.setProperty("--spread-page-lift", tetrad.pageLift.toFixed(4));
     root.style.setProperty("--spread-withdrawal", tetrad.withdrawal.toFixed(4));
     root.style.setProperty("--t1-opacity", t1Opacity.toFixed(4));
     root.style.setProperty("--t2-opacity", t2Opacity.toFixed(4));
@@ -389,9 +389,9 @@ export function TetradicSpread({
     );
     root.style.setProperty(
       "--spread-roll",
-      `${transitionTwo.foldDive * 180}deg`
+      `${transitionTwo.celestialReveal * 180}deg`
     );
-    root.style.opacity = String(Math.max(t1Opacity, t2Opacity, t3Opacity));
+    root.style.opacity = String(tetrad.spreadReveal);
   });
 
   return (

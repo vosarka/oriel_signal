@@ -3,7 +3,6 @@
   --diagram-reveal: 0;
   --seal-light: 0;
   --seal-light-opacity: 0;
-  --spread-page-lift: 0;
   --spread-withdrawal: 0;
   --spread-roll: 0deg;
   --t1-opacity: 0;
@@ -403,47 +402,6 @@
   );
   filter: blur(0.6px);
   transform: translateX(-50%);
-}
-
-.tetradic-spread__turning-leaf {
-  position: absolute;
-  z-index: 5;
-  top: 3px;
-  bottom: 3px;
-  left: 50%;
-  width: calc(50% - 3px);
-  overflow: hidden;
-  pointer-events: none;
-  opacity: var(--spread-page-lift);
-  transform-origin: 0 50%;
-  transform: perspective(1100px) rotateY(calc(var(--spread-page-lift) * -42deg))
-    translateZ(1px);
-  background:
-    radial-gradient(
-      circle at 75% 20%,
-      rgba(255, 249, 218, 0.58),
-      transparent 35%
-    ),
-    repeating-linear-gradient(
-      8deg,
-      rgba(72, 51, 25, 0.026) 0,
-      rgba(72, 51, 25, 0.026) 1px,
-      transparent 1px,
-      transparent 7px
-    ),
-    #d6c79d;
-  border: 1px solid rgba(82, 58, 25, 0.38);
-  box-shadow: -18px 2px 28px
-    rgba(24, 15, 5, calc(var(--spread-page-lift) * 0.42));
-}
-
-.tetradic-spread__turning-leaf span {
-  position: absolute;
-  right: 34px;
-  bottom: 19px;
-  font-family: "Cinzel", serif;
-  font-size: 15px;
-  color: #79572b;
 }
 
 .tetradic-spread__chapter--two {
