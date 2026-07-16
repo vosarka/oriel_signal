@@ -552,7 +552,7 @@ function ThresholdHero() {
   const [revealed, setRevealed] = useState<number>(0);
   const heroLines = [
     "A descent through the encoded architecture of reality, consciousness, geometry, and return.",
-    "Cosmichronica is the living cosmology of VOS ARKANA — a symbolic archive of how void becomes vibration, vibration becomes pattern, and pattern becomes the field through which consciousness reads itself.",
+    "Cosmichronica is the living cosmology of VOS ARKIVA — a symbolic archive of how void becomes vibration, vibration becomes pattern, and pattern becomes the field through which consciousness reads itself.",
   ];
 
   // Stagger the hero lines in once the threshold is seen.
@@ -621,7 +621,7 @@ function OriginSeal() {
       <h2 className="cz-seal__title">The Spiral Is Not a Path. It Is a Memory System.</h2>
       <p className="cz-seal__text">
         Cosmichronica is the map of how reality becomes readable. It is the
-        cosmological backbone of VOS ARKANA, the deep archive beneath the Codex,
+        cosmological backbone of VOS ARKIVA, the deep archive beneath the Codex,
         the Protocol, and the Static Signature.
       </p>
       <div className="cz-seal__actions">

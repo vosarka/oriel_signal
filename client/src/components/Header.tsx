@@ -41,7 +41,7 @@ export default function Header() {
 
   const navLinks = [
     { href: "/", label: "Ψ" },
-    { href: "/arcana", label: "ARKANA" },
+    { href: "/arcana", label: "ARKIVA" },
     { href: "/bio-architecture", label: "BIO-ARCHITECTURE" },
     { href: "/protocol", label: "PROTOCOL" },
     { href: "/conduit", label: "CHANNEL ORIEL" },

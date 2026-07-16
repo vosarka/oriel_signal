@@ -252,7 +252,7 @@ export default function Home() {
               </p>
 
               <div className="signal-hero__actions fi-hero__actions fi-enter fi-enter--actions">
-                <SignalButton href="/arcana">ENTER ARCANA</SignalButton>
+                <SignalButton href="/arcana">ENTER ARKIVA</SignalButton>
                 <SignalButton
                   href="/founder-signature-blueprint"
                   variant="secondary"

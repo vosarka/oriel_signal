@@ -1,15 +1,21 @@
-import { TETRADIC_SIGNATURE_CONFIG } from "./tetradic-signature-config";
+import {
+  TETRADIC_CHOREOGRAPHY as CHOREOGRAPHY,
+  TETRADIC_SIGNATURE_CONFIG,
+  type TetradicTimelineRange,
+} from "./tetradic-signature-config";
 
 export type ChapterRange = Readonly<{
   start: number;
   end: number;
 }>;
 
+export const TETRADIC_CHOREOGRAPHY = CHOREOGRAPHY;
 export const TETRADIC_CHAPTERS = TETRADIC_SIGNATURE_CONFIG.animation.chapters;
 export const TETRADIC_NARRATIVES =
   TETRADIC_SIGNATURE_CONFIG.animation.narratives;
 
 const TETRAD_RHYTHM = TETRADIC_SIGNATURE_CONFIG.animation.tetradRhythm;
+const CHAPTER_RHYTHM = TETRADIC_SIGNATURE_CONFIG.animation.chapterRhythm;
 
 export type TetradicChapter =
   | "darkness"
@@ -17,7 +23,11 @@ export type TetradicChapter =
   | "approach"
   | "opening"
   | "tetrad-one"
-  | "invitation";
+  | "transition-one-two"
+  | "tetrad-two"
+  | "transition-two-three"
+  | "tetrad-three"
+  | "future";
 
 export type TetradSceneState = Readonly<{
   progress: number;
@@ -37,14 +47,48 @@ export type TetradSceneState = Readonly<{
   sealLightOpacity: number;
 }>;
 
+export type TetradTwoSceneState = Readonly<{
+  progress: number;
+  settle: number;
+  title: number;
+  statement: number;
+  blueprint: number;
+  orbit: number;
+  withdrawal: number;
+}>;
+
+export type TetradThreeSceneState = Readonly<{
+  progress: number;
+  settle: number;
+  title: number;
+  statement: number;
+  celestialReveal: number;
+  horizontalJourney: number;
+}>;
+
 export type TetradicSceneState = Readonly<{
   progress: number;
+  activeSegment: string;
   activeChapter: TetradicChapter;
   reveal: number;
   approach: number;
   orientation: number;
   coverOpen: number;
   tetradOne: TetradSceneState;
+  transitionOneToTwo: Readonly<{
+    progress: number;
+    sealExpansion: number;
+    blueprintReveal: number;
+    spreadSwap: number;
+  }>;
+  tetradTwo: TetradTwoSceneState;
+  transitionTwoToThree: Readonly<{
+    progress: number;
+    pageTurn: number;
+    foldDive: number;
+    celestialReveal: number;
+  }>;
+  tetradThree: TetradThreeSceneState;
   cta: number;
   narrative: Readonly<{
     cover: number;
@@ -59,7 +103,7 @@ export function clampProgress(value: number) {
 
 export function rangeProgress(value: number, range: ChapterRange) {
   const distance = range.end - range.start;
-  return clampProgress(distance === 0 ? 1 : (value - range.start) / distance);
+  return clampProgress(distance === 0 ? 0 : (value - range.start) / distance);
 }
 
 function easedRangeProgress(value: number, range: ChapterRange) {
@@ -76,10 +120,7 @@ function narrativeOpacity(
     end: number;
   }>
 ) {
-  if (progress <= range.start) return 0;
-  if (progress >= range.end) {
-    return range.fadeOutStart === range.end ? 1 : 0;
-  }
+  if (progress <= range.start || progress >= range.end) return 0;
   if (progress < range.fadeInEnd) {
     return rangeProgress(progress, {
       start: range.start,
@@ -94,13 +135,32 @@ function narrativeOpacity(
   return 1;
 }
 
+function getActiveTimelineSegment(progress: number) {
+  for (const chapter of CHOREOGRAPHY) {
+    if (progress <= chapter.core.end) return chapter.id;
+    if (progress < chapter.transitionOut.range.end) {
+      return chapter.transitionOut.id;
+    }
+  }
+
+  return CHOREOGRAPHY.at(-1)?.transitionOut.id ?? "final-closure";
+}
+
 function getActiveChapter(progress: number): TetradicChapter {
   if (progress < TETRADIC_CHAPTERS.revelation.start) return "darkness";
   if (progress < TETRADIC_CHAPTERS.revelation.end) return "revelation";
   if (progress < TETRADIC_CHAPTERS.opening.start) return "approach";
   if (progress < TETRADIC_CHAPTERS.opening.end) return "opening";
-  if (progress < TETRADIC_CHAPTERS.cta.start) return "tetrad-one";
-  return "invitation";
+  if (progress <= CHOREOGRAPHY[0].core.end) return "tetrad-one";
+  if (progress < CHOREOGRAPHY[0].transitionOut.range.end) {
+    return "transition-one-two";
+  }
+  if (progress <= CHOREOGRAPHY[1].core.end) return "tetrad-two";
+  if (progress < CHOREOGRAPHY[1].transitionOut.range.end) {
+    return "transition-two-three";
+  }
+  if (progress <= CHOREOGRAPHY[2].core.end) return "tetrad-three";
+  return "future";
 }
 
 export function getTetradOneSceneState(
@@ -146,27 +206,100 @@ export function getTetradOneSceneState(
   };
 }
 
-export const TETRADIC_REDUCED_MOTION_PROGRESS =
-  TETRADIC_CHAPTERS.tetradOne.start +
-  (TETRADIC_CHAPTERS.tetradOne.end - TETRADIC_CHAPTERS.tetradOne.start) *
-    TETRADIC_SIGNATURE_CONFIG.animation.reducedMotionTetradProgress;
-
-export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
-  const progress = clampProgress(rawProgress);
+function getTetradTwoSceneState(globalProgress: number): TetradTwoSceneState {
+  const progress = rangeProgress(globalProgress, CHOREOGRAPHY[1].core);
+  const rhythm = CHAPTER_RHYTHM.tetradTwo;
+  const withdrawal = easedRangeProgress(progress, rhythm.withdrawal);
 
   return {
     progress,
+    settle: easedRangeProgress(progress, rhythm.settle),
+    title: easedRangeProgress(progress, rhythm.title) * (1 - withdrawal),
+    statement:
+      easedRangeProgress(progress, rhythm.statement) * (1 - withdrawal),
+    blueprint: easedRangeProgress(progress, rhythm.blueprint),
+    orbit: easedRangeProgress(progress, rhythm.orbit),
+    withdrawal,
+  };
+}
+
+function getTetradThreeSceneState(
+  globalProgress: number
+): TetradThreeSceneState {
+  const progress = rangeProgress(globalProgress, CHOREOGRAPHY[2].core);
+  const rhythm = CHAPTER_RHYTHM.tetradThree;
+
+  return {
+    progress,
+    settle: easedRangeProgress(progress, rhythm.settle),
+    title: easedRangeProgress(progress, rhythm.title),
+    statement: easedRangeProgress(progress, rhythm.statement),
+    celestialReveal: easedRangeProgress(progress, rhythm.celestialReveal),
+    horizontalJourney: easedRangeProgress(progress, rhythm.horizontalJourney),
+  };
+}
+
+function getTransitionState(
+  progress: number,
+  range: TetradicTimelineRange,
+  rhythm: Record<string, ChapterRange>
+) {
+  const localProgress = rangeProgress(progress, range);
+  return {
+    progress: localProgress,
+    values: Object.fromEntries(
+      Object.entries(rhythm).map(([key, value]) => [
+        key,
+        easedRangeProgress(localProgress, value),
+      ])
+    ),
+  };
+}
+
+export const TETRADIC_REDUCED_MOTION_PROGRESS =
+  TETRADIC_SIGNATURE_CONFIG.animation.reducedMotionProgress;
+
+export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
+  const progress = clampProgress(rawProgress);
+  const transitionOneToTwo = getTransitionState(
+    progress,
+    CHOREOGRAPHY[0].transitionOut.range,
+    CHAPTER_RHYTHM.transitionOneToTwo
+  );
+  const transitionTwoToThree = getTransitionState(
+    progress,
+    CHOREOGRAPHY[1].transitionOut.range,
+    CHAPTER_RHYTHM.transitionTwoToThree
+  );
+
+  return {
+    progress,
+    activeSegment: getActiveTimelineSegment(progress),
     activeChapter: getActiveChapter(progress),
     reveal: easedRangeProgress(progress, TETRADIC_CHAPTERS.revelation),
     approach: easedRangeProgress(progress, TETRADIC_CHAPTERS.approach),
     orientation: easedRangeProgress(progress, TETRADIC_CHAPTERS.orientation),
     coverOpen: rangeProgress(progress, TETRADIC_CHAPTERS.opening),
     tetradOne: getTetradOneSceneState(progress),
-    cta: easedRangeProgress(progress, TETRADIC_CHAPTERS.cta),
+    transitionOneToTwo: {
+      progress: transitionOneToTwo.progress,
+      sealExpansion: transitionOneToTwo.values.sealExpansion,
+      blueprintReveal: transitionOneToTwo.values.blueprintReveal,
+      spreadSwap: transitionOneToTwo.values.spreadSwap,
+    },
+    tetradTwo: getTetradTwoSceneState(progress),
+    transitionTwoToThree: {
+      progress: transitionTwoToThree.progress,
+      pageTurn: transitionTwoToThree.values.pageTurn,
+      foldDive: transitionTwoToThree.values.foldDive,
+      celestialReveal: transitionTwoToThree.values.celestialReveal,
+    },
+    tetradThree: getTetradThreeSceneState(progress),
+    cta: 0,
     narrative: {
       cover: narrativeOpacity(progress, TETRADIC_NARRATIVES.cover),
-      approach: narrativeOpacity(progress, TETRADIC_NARRATIVES.approach),
-      cta: narrativeOpacity(progress, TETRADIC_NARRATIVES.cta),
+      approach: 0,
+      cta: 0,
     },
   };
 }

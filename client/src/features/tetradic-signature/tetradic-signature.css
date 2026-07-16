@@ -1,19 +1,29 @@
+html.lenis {
+  scroll-behavior: auto !important;
+}
+
 .tetradic-signature {
   --ts-progress: 0;
   --ts-reveal: 0;
+  --ts-celestial: 0;
   --ts-cta: 0;
   --ts-narrative-cover: 0;
-  --ts-narrative-approach: 0;
-  --ts-narrative-cta: 0;
   --ts-t1-eyebrow: 0;
   --ts-t1-title: 0;
   --ts-t1-description: 0;
-  --ts-t1-labels: 0;
-  --ts-t1-annotation: 0;
   --ts-t1-withdrawal: 0;
+  --ts-t2-title: 0;
+  --ts-t2-statement: 0;
+  --ts-t2-withdrawal: 0;
+  --ts-t3-title: 0;
+  --ts-t3-statement: 0;
+  --ts-fold-page: 0;
+  --ts-fold-dive: 0;
+  --ts-fold-veil: 0;
+  --ts-fold-celestial: 0;
   position: relative;
-  height: 700svh;
-  min-height: 700vh;
+  height: var(--ts-scroll-height, 660svh);
+  min-height: var(--ts-scroll-height, 660vh);
   color: #eee9df;
   background: #050505;
   isolation: isolate;
@@ -21,8 +31,7 @@
 }
 
 .tetradic-signature__viewport {
-  position: sticky;
-  top: 0;
+  position: relative;
   width: 100%;
   height: 100vh;
   height: 100svh;
@@ -33,6 +42,7 @@
 .tetradic-signature__environment,
 .tetradic-signature__environment-shade,
 .tetradic-signature__canvas,
+.tetradic-signature__fold-passage,
 .tetradic-signature__narratives,
 .tetradic-signature__reduced-narrative {
   position: absolute;
@@ -46,7 +56,10 @@
   object-fit: cover;
   object-position: 50% 50%;
   opacity: calc(0.08 + var(--ts-reveal) * 0.92);
-  filter: brightness(calc(0.44 + var(--ts-reveal) * 0.42)) saturate(0.82);
+  filter: brightness(
+      calc(0.44 + var(--ts-reveal) * 0.42 - var(--ts-celestial) * 0.44)
+    )
+    saturate(calc(0.82 - var(--ts-celestial) * 0.32));
   transform: scale(1.002);
 }
 
@@ -66,7 +79,12 @@
       transparent 20%,
       rgba(2, 2, 2, 0.5) 100%
     ),
-    rgba(2, 2, 2, calc(0.66 - var(--ts-reveal) * 0.52 + var(--ts-cta) * 0.3));
+    rgba(
+      2,
+      2,
+      3,
+      calc(0.66 - var(--ts-reveal) * 0.52 + var(--ts-celestial) * 0.62)
+    );
 }
 
 .tetradic-signature__canvas {
@@ -81,9 +99,73 @@
   display: block;
 }
 
+.tetradic-signature__fold-passage {
+  z-index: 3;
+  overflow: hidden;
+  opacity: var(--ts-fold-veil);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.tetradic-signature__fold-paper,
+.tetradic-signature__fold-celestial {
+  position: absolute;
+  inset: 0;
+}
+
+.tetradic-signature__fold-paper {
+  background:
+    linear-gradient(
+      92deg,
+      rgba(71, 52, 26, 0.2),
+      transparent 18%,
+      transparent 79%,
+      rgba(71, 52, 26, 0.16)
+    ),
+    repeating-linear-gradient(
+      7deg,
+      rgba(63, 46, 24, 0.028) 0,
+      rgba(63, 46, 24, 0.028) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    #ded2ae;
+}
+
+.tetradic-signature__fold-celestial {
+  opacity: var(--ts-fold-celestial);
+  background:
+    radial-gradient(circle at 31% 44%, rgba(212, 174, 93, 0.3), transparent 2%),
+    radial-gradient(circle at 68% 57%, rgba(90, 173, 183, 0.3), transparent 2%),
+    radial-gradient(circle at 50% 50%, rgba(24, 23, 22, 0.38), #030405 68%);
+  box-shadow: inset 0 0 16rem rgba(0, 0, 0, 0.82);
+}
+
+.tetradic-signature__fold-axis {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  opacity: calc((1 - var(--ts-fold-celestial)) * 0.58);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(72, 53, 27, 0.68) 18%,
+    rgba(255, 247, 218, 0.68) 50%,
+    rgba(72, 53, 27, 0.68) 82%,
+    transparent
+  );
+  box-shadow:
+    -2.4rem 0 4rem rgba(76, 54, 25, 0.28),
+    1.2rem 0 3rem rgba(255, 244, 207, 0.22);
+  transform: translateX(calc((1 - var(--ts-fold-page)) * 34vw));
+  will-change: transform, opacity;
+}
+
 .tetradic-signature__narratives,
 .tetradic-signature__reduced-narrative {
-  z-index: 3;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -110,12 +192,12 @@
 }
 
 .tetradic-signature__narrative--tetrad-one {
-  top: 50%;
-  left: clamp(1.5rem, 4vw, 4rem);
-  width: min(330px, 24vw);
-  max-width: 330px;
+  inset: 0;
+  width: auto;
+  max-width: none;
+  text-align: center;
   opacity: 1;
-  transform: translate3d(0, calc(-50% - var(--ts-t1-withdrawal) * 10px), 0);
+  transform: translate3d(0, calc(var(--ts-t1-withdrawal) * -10px), 0);
 }
 
 .tetradic-signature__narrative--cta {
@@ -187,7 +269,6 @@
 .tetradic-signature__reading-type,
 .tetradic-signature__eyebrow,
 .tetradic-signature__scroll-cue,
-.tetradic-signature__technical-labels,
 .tetradic-signature__trust {
   font-family: var(--font-ritual, "IBM Plex Mono", monospace);
   text-transform: uppercase;
@@ -240,87 +321,106 @@
   color: rgba(238, 233, 223, 0.7);
 }
 
-.tetradic-signature__tetrad-heading .tetradic-signature__eyebrow {
-  opacity: var(--ts-t1-eyebrow);
-  transform: translateY(calc((1 - var(--ts-t1-eyebrow)) * 8px));
-}
-
-.tetradic-signature__tetrad-heading h2 {
-  max-width: 360px;
-  font-size: clamp(2.65rem, 4.2vw, 4rem);
-  line-height: 0.98;
+.tetradic-signature__narrative--tetrad-one h2 {
+  position: absolute;
+  top: clamp(6.75rem, 12.5vh, 8.5rem);
+  right: 1.5rem;
+  left: 1.5rem;
+  font-size: clamp(3.4rem, 6vw, 6.4rem);
+  line-height: 0.9;
   letter-spacing: -0.025em;
   opacity: var(--ts-t1-title);
   filter: blur(calc((1 - var(--ts-t1-title)) * 6px));
   transform: translateY(calc((1 - var(--ts-t1-title)) * 22px));
 }
 
-.tetradic-signature__tetrad-explanation {
-  margin-top: 1.2rem;
-}
-
 .tetradic-signature__main-statement {
-  margin: 0;
+  position: absolute;
+  right: 1.5rem;
+  bottom: clamp(1.5rem, 4vh, 3rem);
+  left: 1.5rem;
+  max-width: 38rem;
+  margin: 0 auto;
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(1.35rem, 1.8vw, 1.85rem);
+  font-size: clamp(1.35rem, 1.7vw, 1.8rem);
   line-height: 1.14;
   color: #efe6d5;
   opacity: var(--ts-t1-description);
   transform: translateY(calc((1 - var(--ts-t1-description)) * 14px));
 }
 
-.tetradic-signature__description {
-  margin: 0.95rem 0 0;
-  font-family: var(--font-body, "Inter", sans-serif);
-  font-size: clamp(0.9rem, 1.05vw, 1.05rem);
-  font-weight: 300;
-  line-height: 1.62;
-  color: rgba(238, 233, 223, 0.82);
-  opacity: var(--ts-t1-description);
-  transform: translateY(calc((1 - var(--ts-t1-description)) * 14px));
-}
-
-.tetradic-signature__technical-labels {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
-  margin-top: 1.15rem;
-  font-size: clamp(0.55rem, 0.65vw, 0.68rem);
-  line-height: 1.35;
-  letter-spacing: 0.13em;
-  color: rgba(216, 181, 109, 0.62);
-  opacity: var(--ts-t1-labels);
-}
-
-.tetradic-signature__annotation {
+.tetradic-signature__chapter-copy {
+  --chapter-number-opacity: 0;
+  --chapter-title-opacity: 0;
+  --chapter-statement-opacity: 0;
   position: absolute;
-  top: 48%;
-  left: calc(100% + 1.25rem);
-  display: flex;
-  align-items: center;
-  width: clamp(5rem, 10vw, 9rem);
-  opacity: var(--ts-t1-annotation);
-  transform: scaleX(var(--ts-t1-annotation));
-  transform-origin: left;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  text-align: center;
 }
 
-.tetradic-signature__annotation span {
-  display: block;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(216, 181, 109, 0.72),
-    rgba(216, 181, 109, 0.18)
-  );
+.tetradic-signature__chapter-copy--one {
+  --chapter-number-opacity: var(--ts-t1-eyebrow);
+  --chapter-title-opacity: var(--ts-t1-title);
+  --chapter-statement-opacity: var(--ts-t1-description);
+  transform: translateY(calc(var(--ts-t1-withdrawal) * -10px));
 }
 
-.tetradic-signature__annotation i {
-  width: 5px;
-  height: 5px;
-  border: 1px solid rgba(216, 181, 109, 0.76);
-  border-radius: 50%;
-  transform: translateX(-1px);
+.tetradic-signature__chapter-copy--two {
+  --chapter-number-opacity: var(--ts-t2-title);
+  --chapter-title-opacity: var(--ts-t2-title);
+  --chapter-statement-opacity: var(--ts-t2-statement);
+  transform: translateY(calc(var(--ts-t2-withdrawal) * -10px));
+}
+
+.tetradic-signature__chapter-copy--three {
+  --chapter-number-opacity: var(--ts-t3-title);
+  --chapter-title-opacity: var(--ts-t3-title);
+  --chapter-statement-opacity: var(--ts-t3-statement);
+}
+
+.tetradic-signature__chapter-number {
+  position: absolute;
+  top: clamp(6rem, 10.5vh, 7.5rem);
+  right: 1.5rem;
+  left: 1.5rem;
+  margin: 0;
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: clamp(0.58rem, 0.68vw, 0.72rem);
+  letter-spacing: 0.22em;
+  color: rgba(216, 181, 109, 0.66);
+  opacity: var(--chapter-number-opacity);
+  transform: translateY(calc((1 - var(--chapter-number-opacity)) * 8px));
+}
+
+.tetradic-signature__chapter-copy h2 {
+  position: absolute;
+  top: clamp(7.5rem, 13.2vh, 9.2rem);
+  right: 1.5rem;
+  left: 1.5rem;
+  margin: 0 auto;
+  max-width: min(74rem, 88vw);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(3.35rem, 6.4vw, 6.8rem);
+  font-weight: 300;
+  line-height: 0.86;
+  letter-spacing: -0.025em;
+  color: #f2ede3;
+  text-wrap: balance;
+  opacity: var(--chapter-title-opacity);
+  filter: blur(calc((1 - var(--chapter-title-opacity)) * 6px));
+  transform: translateY(calc((1 - var(--chapter-title-opacity)) * 22px));
+}
+
+.tetradic-signature__chapter-copy .tetradic-signature__main-statement {
+  opacity: var(--chapter-statement-opacity);
+  transform: translateY(calc((1 - var(--chapter-statement-opacity)) * 14px));
+}
+
+.tetradic-signature__chapter-copy--two h2,
+.tetradic-signature__chapter-copy--three h2 {
+  font-size: clamp(3rem, 5.65vw, 6.1rem);
 }
 
 .tetradic-signature__cta-block {
@@ -403,7 +503,7 @@
 
 .tetradic-signature__progress {
   position: absolute;
-  z-index: 4;
+  z-index: 5;
   top: 32%;
   right: clamp(1rem, 2vw, 2rem);
   width: 1px;
@@ -423,7 +523,7 @@
 
 .tetradic-signature__scroll-cue {
   position: absolute;
-  z-index: 4;
+  z-index: 5;
   right: clamp(2.2rem, 3.4vw, 3.6rem);
   bottom: 2rem;
   margin: 0;
@@ -442,8 +542,7 @@
 
 .tetradic-signature[data-reduced-motion="true"] .tetradic-signature__viewport {
   position: relative;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100svh + 31rem);
 }
 
 .tetradic-signature[data-reduced-motion="true"]
@@ -453,32 +552,77 @@
 }
 
 .tetradic-signature__reduced-narrative {
-  padding: 7rem 5vw 2rem;
+  padding: 0 5vw 2rem;
 }
 
-.tetradic-signature__reduced-narrative
-  .tetradic-signature__narrative--tetrad-one {
+.tetradic-signature[data-reduced-motion="true"]
+  :is(
+    .tetradic-signature__environment,
+    .tetradic-signature__environment-shade,
+    .tetradic-signature__canvas
+  ) {
+  bottom: auto;
+  height: 100vh;
+  height: 100svh;
+}
+
+.tetradic-signature__reduced-summary {
+  position: absolute;
+  top: calc(100svh - 1px);
+  right: 5vw;
   left: 5vw;
-  width: min(21rem, 27vw);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid rgba(216, 181, 109, 0.18);
+  background: rgba(216, 181, 109, 0.18);
 }
 
-.tetradic-signature__narrative--tetrad-one.is-static
-  .tetradic-signature__eyebrow,
-.tetradic-signature__narrative--tetrad-one.is-static h2,
-.tetradic-signature__narrative--tetrad-one.is-static
-  .tetradic-signature__main-statement,
-.tetradic-signature__narrative--tetrad-one.is-static
-  .tetradic-signature__description,
-.tetradic-signature__narrative--tetrad-one.is-static
-  .tetradic-signature__technical-labels {
+.tetradic-signature__chapter-copy.is-static {
+  --chapter-number-opacity: 1;
+  --chapter-title-opacity: 1;
+  --chapter-statement-opacity: 1;
+  position: relative;
+  inset: auto;
+  min-height: 23rem;
+  padding: 3.4rem 2.2rem 2.4rem;
+  text-align: left;
+  background: rgba(6, 6, 5, 0.96);
+  transform: none;
+}
+
+.tetradic-signature__chapter-copy.is-static
+  :is(
+    .tetradic-signature__chapter-number,
+    h2,
+    .tetradic-signature__main-statement
+  ) {
+  position: static;
+  max-width: none;
   opacity: 1;
   filter: none;
   transform: none;
 }
 
+.tetradic-signature__chapter-copy.is-static h2 {
+  margin-top: 1.2rem;
+  font-size: clamp(2rem, 3.1vw, 3.4rem);
+  line-height: 0.94;
+}
+
+.tetradic-signature__chapter-copy.is-static
+  .tetradic-signature__main-statement {
+  margin: 2rem 0 0;
+  font-size: 1.25rem;
+  line-height: 1.28;
+}
+
+.tetradic-signature__narrative--tetrad-one.is-static h2,
 .tetradic-signature__narrative--tetrad-one.is-static
-  .tetradic-signature__annotation {
-  display: none;
+  .tetradic-signature__main-statement {
+  opacity: 1;
+  filter: none;
+  transform: none;
 }
 
 .tetradic-signature__reduced-narrative .tetradic-signature__cta-block {
@@ -493,47 +637,10 @@
   backdrop-filter: blur(0.7rem);
 }
 
-@media (max-width: 1180px) and (min-width: 768px) {
-  .tetradic-signature__narrative--tetrad-one {
-    top: 7rem;
-    left: 50%;
-    width: min(34rem, 76vw);
-    max-width: none;
-    text-align: center;
-    transform: translate3d(-50%, calc(var(--ts-t1-withdrawal) * -10px), 0);
-  }
-
-  .tetradic-signature__tetrad-heading h2 {
-    max-width: none;
-  }
-
-  .tetradic-signature__tetrad-explanation {
-    position: fixed;
-    right: 4rem;
-    bottom: 3rem;
-    left: 4rem;
-  }
-
-  .tetradic-signature__main-statement,
-  .tetradic-signature__description {
-    max-width: 38rem;
-    margin-right: auto;
-    margin-left: auto;
-  }
-
-  .tetradic-signature__technical-labels {
-    align-items: center;
-  }
-
-  .tetradic-signature__annotation {
-    display: none;
-  }
-}
-
 @media (max-width: 767px) {
   .tetradic-signature {
-    height: 650svh;
-    min-height: 650vh;
+    height: var(--ts-scroll-height, 660svh);
+    min-height: var(--ts-scroll-height, 660vh);
   }
 
   .tetradic-signature__environment {
@@ -606,52 +713,45 @@
     transform: translateY(calc(var(--ts-t1-withdrawal) * -10px));
   }
 
-  .tetradic-signature__tetrad-heading {
-    position: absolute;
+  .tetradic-signature__narrative--tetrad-one h2 {
     top: clamp(6.6rem, 13vh, 8rem);
     right: 1.35rem;
     left: 1.35rem;
-    text-align: center;
-  }
-
-  .tetradic-signature__tetrad-heading .tetradic-signature__eyebrow {
-    margin-bottom: 0.55rem;
-    font-size: 0.58rem;
-  }
-
-  .tetradic-signature__tetrad-heading h2 {
-    max-width: none;
     font-size: clamp(2rem, 10vw, 2.75rem);
   }
 
-  .tetradic-signature__tetrad-explanation {
-    position: absolute;
+  .tetradic-signature__main-statement {
     right: 1.35rem;
     bottom: 1.2rem;
     left: 1.35rem;
-    margin: 0;
-  }
-
-  .tetradic-signature__main-statement {
     max-width: 19rem;
     font-size: 1.2rem;
   }
 
-  .tetradic-signature__description {
-    max-width: 22rem;
-    margin-top: 0.55rem;
-    font-size: 0.82rem;
-    line-height: 1.48;
+  .tetradic-signature__chapter-number {
+    top: clamp(5.8rem, 10.5vh, 6.8rem);
+    right: 1.25rem;
+    left: 1.25rem;
+    font-size: 0.52rem;
   }
 
-  .tetradic-signature__technical-labels {
-    gap: 0.25rem;
-    margin-top: 0.65rem;
-    font-size: 0.47rem;
+  .tetradic-signature__chapter-copy h2,
+  .tetradic-signature__chapter-copy--two h2,
+  .tetradic-signature__chapter-copy--three h2 {
+    top: clamp(7rem, 13vh, 8.3rem);
+    right: 1.25rem;
+    left: 1.25rem;
+    max-width: 24rem;
+    font-size: clamp(2rem, 10vw, 3rem);
+    line-height: 0.9;
   }
 
-  .tetradic-signature__annotation {
-    display: none;
+  .tetradic-signature__chapter-copy .tetradic-signature__main-statement {
+    right: 1.25rem;
+    bottom: 1.1rem;
+    left: 1.25rem;
+    max-width: 20rem;
+    font-size: 1.12rem;
   }
 
   .tetradic-signature__narrative--cta {
@@ -697,15 +797,9 @@
     padding: 6.5rem 1.25rem 1.25rem;
   }
 
-  .tetradic-signature__reduced-narrative
-    .tetradic-signature__narrative--tetrad-one {
-    inset: 0;
-    width: auto;
-  }
-
   .tetradic-signature[data-reduced-motion="true"]
     .tetradic-signature__viewport {
-    min-height: 78rem;
+    min-height: calc(min(100svh, 52rem) + 45rem);
   }
 
   .tetradic-signature[data-reduced-motion="true"]
@@ -718,14 +812,36 @@
     height: min(100svh, 52rem);
   }
 
-  .tetradic-signature__reduced-narrative
-    .tetradic-signature__tetrad-explanation {
+  .tetradic-signature__reduced-summary {
+    top: min(100svh, 52rem);
+    right: 1.25rem;
+    left: 1.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  .tetradic-signature__chapter-copy.is-static {
+    min-height: 14rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .tetradic-signature__chapter-copy.is-static h2 {
+    margin-top: 0.8rem;
+    font-size: 2rem;
+  }
+
+  .tetradic-signature__chapter-copy.is-static
+    .tetradic-signature__main-statement {
+    margin-top: 1.2rem;
+    font-size: 1.05rem;
+  }
+
+  .tetradic-signature__reduced-narrative .tetradic-signature__main-statement {
     top: clamp(34rem, 76svh, 40rem);
     bottom: auto;
   }
 
   .tetradic-signature__reduced-narrative .tetradic-signature__cta-block {
-    top: calc(clamp(34rem, 76svh, 40rem) + 13rem);
+    top: calc(clamp(34rem, 76svh, 40rem) + 7rem);
     right: 1.25rem;
     bottom: auto;
     left: 1.25rem;

@@ -1,9 +1,14 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
+import { gsap } from "gsap";
 import * as THREE from "three";
 
 import type { TetradicSceneState } from "./chapter-config";
+import {
+  BookChapterGeometry,
+  CelestialChapterField,
+} from "./TetradicChapterScenes";
 import { TetradicSpread } from "./TetradicSpread";
 import { TETRADIC_SIGNATURE_CONFIG } from "./tetradic-signature-config";
 
@@ -17,17 +22,36 @@ const BOOK = TETRADIC_SIGNATURE_CONFIG.animation.book;
 const BOOK_WIDTH = BOOK.width;
 const BOOK_DEPTH = BOOK.depth;
 
+function GsapCanvasTicker({ reducedMotion }: { reducedMotion: boolean }) {
+  const advance = useThree(state => state.advance);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    const render = (time: number) => advance(time * 1000, true);
+    gsap.ticker.add(render);
+    return () => gsap.ticker.remove(render);
+  }, [advance, reducedMotion]);
+
+  return null;
+}
+
 function ScrollCamera({
   compact,
   sceneStateRef,
 }: Omit<SceneProps, "reducedMotion">) {
   const { camera } = useThree();
   const target = useMemo(() => new THREE.Vector3(), []);
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const cameraConfig = compact ? BOOK.camera.compact : BOOK.camera.desktop;
 
   useFrame(() => {
     const state = sceneStateRef.current;
     const inspection = state.tetradOne.settle;
+    const transitionOne = state.transitionOneToTwo.progress;
+    const tetradTwo = state.tetradTwo;
+    const transitionTwo = state.transitionTwoToThree;
+    const tetradThree = state.tetradThree;
     const approachedY = THREE.MathUtils.lerp(
       cameraConfig.startY,
       cameraConfig.approachY,
@@ -38,21 +62,88 @@ function ScrollCamera({
       cameraConfig.approachZ,
       state.approach
     );
-
-    camera.position.set(
-      0,
-      THREE.MathUtils.lerp(approachedY, cameraConfig.inspectionY, inspection),
-      THREE.MathUtils.lerp(approachedZ, cameraConfig.inspectionZ, inspection)
+    const approachedFov = THREE.MathUtils.lerp(
+      cameraConfig.startFov,
+      cameraConfig.approachFov,
+      state.approach
     );
-    target.set(0, 0.13, -0.04);
-    camera.lookAt(target);
-  });
+    const fov = THREE.MathUtils.lerp(
+      approachedFov,
+      cameraConfig.inspectionFov,
+      inspection
+    );
 
-  useEffect(() => {
+    const t1Y = THREE.MathUtils.lerp(
+      approachedY,
+      cameraConfig.inspectionY,
+      inspection
+    );
+    const t1Z = THREE.MathUtils.lerp(
+      approachedZ,
+      cameraConfig.inspectionZ,
+      inspection
+    );
+    const overheadY = compact ? 6.45 : 6.1;
+    const overheadZ = compact ? 7.8 : 5.9;
+    const t2BaseX =
+      Math.sin(tetradTwo.orbit * Math.PI) * (compact ? 0.2 : 0.62);
+    const t2X = THREE.MathUtils.lerp(0, t2BaseX, tetradTwo.settle);
+    const t2Y = THREE.MathUtils.lerp(
+      overheadY,
+      compact ? 6.2 : 5.72,
+      tetradTwo.orbit
+    );
+    const t2Z = THREE.MathUtils.lerp(
+      overheadZ,
+      compact ? 7.55 : 6.25,
+      tetradTwo.orbit
+    );
+    const chapterX = THREE.MathUtils.lerp(0, t2X, tetradTwo.settle);
+    const chapterY = THREE.MathUtils.lerp(t1Y, t2Y, transitionOne);
+    const chapterZ = THREE.MathUtils.lerp(t1Z, t2Z, transitionOne);
+
+    let cameraX = chapterX;
+    let cameraY = chapterY;
+    let cameraZ = chapterZ;
+    if (transitionTwo.foldDive > 0) {
+      const dive = transitionTwo.foldDive;
+      const split = 0.52;
+      if (dive < split) {
+        const intoFold = dive / split;
+        cameraX = THREE.MathUtils.lerp(chapterX, 0, intoFold);
+        cameraY = THREE.MathUtils.lerp(chapterY, 1.7, intoFold);
+        cameraZ = THREE.MathUtils.lerp(chapterZ, 1, intoFold);
+      } else {
+        const outOfFold = (dive - split) / (1 - split);
+        cameraX = 0;
+        cameraY = THREE.MathUtils.lerp(1.7, compact ? 5.95 : 4.82, outOfFold);
+        cameraZ = THREE.MathUtils.lerp(1, compact ? -7.8 : -6.65, outOfFold);
+      }
+    } else if (tetradThree.settle > 0) {
+      cameraX = 0;
+      cameraY = compact ? 5.95 : 4.82;
+      cameraZ = compact ? -7.8 : -6.65;
+    }
+
+    camera.position.set(cameraX, cameraY, cameraZ);
+    const foldTarget = transitionTwo.foldDive;
+    target.set(
+      0,
+      THREE.MathUtils.lerp(0.13, 0.34, foldTarget),
+      THREE.MathUtils.lerp(-0.04, 0, foldTarget)
+    );
+    up.set(0, 1, 0);
+    camera.up.copy(up);
+    camera.lookAt(target);
+
     const perspectiveCamera = camera as THREE.PerspectiveCamera;
-    perspectiveCamera.fov = cameraConfig.fov;
-    perspectiveCamera.updateProjectionMatrix();
-  }, [camera, cameraConfig.fov]);
+    const t2Fov = THREE.MathUtils.lerp(fov, compact ? 38 : 31, transitionOne);
+    const foldFov = THREE.MathUtils.lerp(t2Fov, compact ? 39 : 34, foldTarget);
+    if (Math.abs(perspectiveCamera.fov - foldFov) > 0.001) {
+      perspectiveCamera.fov = foldFov;
+      perspectiveCamera.updateProjectionMatrix();
+    }
+  });
 
   return null;
 }
@@ -84,11 +175,16 @@ function PrototypeBook({
     if (bookRef.current) {
       bookRef.current.scale.setScalar(scale);
       bookRef.current.position.x = state.coverOpen * (BOOK_WIDTH / 2) * scale;
-      bookRef.current.rotation.y = THREE.MathUtils.lerp(
-        -0.16,
-        0.012,
-        state.orientation
-      );
+      bookRef.current.position.y =
+        state.transitionOneToTwo.progress * 0.05 -
+        state.transitionTwoToThree.foldDive * 0.04;
+      bookRef.current.rotation.y =
+        THREE.MathUtils.lerp(
+          BOOK.rotationY.closed,
+          BOOK.rotationY.open,
+          state.orientation
+        ) +
+        state.tetradTwo.orbit * 0.035;
     }
 
     if (coverHingeRef.current) {
@@ -162,6 +258,7 @@ function PrototypeBook({
       </mesh>
 
       <TetradicSpread sceneStateRef={sceneStateRef} />
+      <BookChapterGeometry sceneStateRef={sceneStateRef} />
     </group>
   );
 }
@@ -199,12 +296,17 @@ function BookStage({
       </mesh>
 
       <PrototypeBook compact={compact} sceneStateRef={sceneStateRef} />
+      <CelestialChapterField sceneStateRef={sceneStateRef} />
       <ScrollCamera compact={compact} sceneStateRef={sceneStateRef} />
     </>
   );
 }
 
-export function TetradicBookScene({ compact, sceneStateRef }: SceneProps) {
+export function TetradicBookScene({
+  compact,
+  reducedMotion,
+  sceneStateRef,
+}: SceneProps) {
   const cameraConfig = compact ? BOOK.camera.compact : BOOK.camera.desktop;
 
   return (
@@ -212,10 +314,10 @@ export function TetradicBookScene({ compact, sceneStateRef }: SceneProps) {
       <Canvas
         shadows="basic"
         dpr={[1, 1.5]}
-        frameloop="always"
+        frameloop={reducedMotion ? "always" : "never"}
         camera={{
           position: [0, cameraConfig.startY, cameraConfig.startZ],
-          fov: cameraConfig.fov,
+          fov: cameraConfig.startFov,
           near: 0.1,
           far: 40,
         }}
@@ -227,6 +329,7 @@ export function TetradicBookScene({ compact, sceneStateRef }: SceneProps) {
         onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
         <Suspense fallback={null}>
+          <GsapCanvasTicker reducedMotion={reducedMotion} />
           <BookStage compact={compact} sceneStateRef={sceneStateRef} />
         </Suspense>
       </Canvas>

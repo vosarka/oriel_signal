@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type Lenis from "lenis";
 
 import {
   TETRADIC_REDUCED_MOTION_PROGRESS,
@@ -8,7 +9,7 @@ import {
   getTetradicSceneState,
   type TetradicSceneState,
 } from "./chapter-config";
-import { TETRADIC_SIGNATURE_CONFIG } from "./tetradic-signature-config";
+import { TETRADIC_TIMELINE } from "./tetradic-signature-config";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,107 +24,134 @@ function isReloadNavigation() {
 
 export function useTetradicScrollProgress(
   containerRef: RefObject<HTMLElement | null>,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  lenis?: Lenis
 ) {
   const sceneStateRef = useRef<TetradicSceneState>(
     getTetradicSceneState(reducedMotion ? TETRADIC_REDUCED_MOTION_PROGRESS : 0)
   );
-
-  const scrollToProgress = useCallback(
-    (rawProgress: number, behavior: ScrollBehavior) => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const top = container.getBoundingClientRect().top + window.scrollY;
-      const distance = Math.max(0, container.offsetHeight - window.innerHeight);
-      window.scrollTo({
-        top: top + distance * clampProgress(rawProgress),
-        behavior,
-      });
-    },
-    [containerRef]
-  );
-
-  const exploreSample = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.focus({ preventScroll: true });
-    if (reducedMotion) {
-      scrollToProgress(TETRADIC_REDUCED_MOTION_PROGRESS, "auto");
-      return;
-    }
-
-    const { startProgress, endProgress } =
-      TETRADIC_SIGNATURE_CONFIG.animation.exploreSample;
-    const previousScrollBehavior =
-      document.documentElement.style.scrollBehavior;
-    document.documentElement.style.scrollBehavior = "auto";
-    scrollToProgress(startProgress, "auto");
-    document.documentElement.style.scrollBehavior = previousScrollBehavior;
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        scrollToProgress(endProgress, "smooth");
-      });
-    });
-  }, [containerRef, reducedMotion, scrollToProgress]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     let frame = 0;
-    const apply = (rawProgress: number) => {
-      const state = getTetradicSceneState(rawProgress);
-      const tetrad = state.tetradOne;
+    const apply = (
+      rawScrollProgress: number,
+      explicitMasterProgress?: number
+    ) => {
+      const scrollProgress = clampProgress(rawScrollProgress);
+      const masterProgress =
+        explicitMasterProgress ??
+        scrollProgress * TETRADIC_TIMELINE.checkpointEndProgress;
+      const state = getTetradicSceneState(masterProgress);
+      const tetradOne = state.tetradOne;
+      const tetradTwo = state.tetradTwo;
+      const tetradThree = state.tetradThree;
+      const transitionOne = state.transitionOneToTwo;
+      const transitionTwo = state.transitionTwoToThree;
+      const celestial = Math.max(
+        transitionTwo.celestialReveal,
+        tetradThree.celestialReveal
+      );
+      const foldVeilIn = clampProgress((transitionTwo.foldDive - 0.03) / 0.19);
+      const foldVeilOut =
+        1 - clampProgress((transitionTwo.celestialReveal - 0.82) / 0.18);
+      const foldVeil = foldVeilIn * foldVeilOut;
       sceneStateRef.current = state;
 
-      container.dataset.progress = state.progress.toFixed(4);
+      container.dataset.progress = scrollProgress.toFixed(4);
+      container.dataset.masterProgress = state.progress.toFixed(4);
       container.dataset.chapter = state.activeChapter;
+      container.dataset.segment = state.activeSegment;
       container.dataset.coverOpen = state.coverOpen.toFixed(4);
-      container.dataset.tetradProgress = tetrad.progress.toFixed(4);
-      container.style.setProperty("--ts-progress", state.progress.toFixed(4));
+      container.dataset.tetradProgress = tetradOne.progress.toFixed(4);
+      container.style.setProperty("--ts-progress", scrollProgress.toFixed(4));
       container.style.setProperty("--ts-reveal", state.reveal.toFixed(4));
-      container.style.setProperty("--ts-cta", state.cta.toFixed(4));
+      container.style.setProperty("--ts-celestial", celestial.toFixed(4));
+      container.style.setProperty(
+        "--ts-fold-page",
+        transitionTwo.pageTurn.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-fold-dive",
+        transitionTwo.foldDive.toFixed(4)
+      );
+      container.style.setProperty("--ts-fold-veil", foldVeil.toFixed(4));
+      container.style.setProperty(
+        "--ts-fold-celestial",
+        transitionTwo.celestialReveal.toFixed(4)
+      );
+      container.style.setProperty("--ts-cta", "0");
       container.style.setProperty(
         "--ts-narrative-cover",
         state.narrative.cover.toFixed(4)
       );
       container.style.setProperty(
-        "--ts-narrative-approach",
-        state.narrative.approach.toFixed(4)
+        "--ts-t1-eyebrow",
+        tetradOne.eyebrow.toFixed(4)
       );
-      container.style.setProperty(
-        "--ts-narrative-cta",
-        state.narrative.cta.toFixed(4)
-      );
-      container.style.setProperty("--ts-t1-eyebrow", tetrad.eyebrow.toFixed(4));
-      container.style.setProperty("--ts-t1-title", tetrad.title.toFixed(4));
+      container.style.setProperty("--ts-t1-title", tetradOne.title.toFixed(4));
       container.style.setProperty(
         "--ts-t1-description",
-        tetrad.description.toFixed(4)
-      );
-      container.style.setProperty("--ts-t1-labels", tetrad.labels.toFixed(4));
-      container.style.setProperty(
-        "--ts-t1-annotation",
-        tetrad.annotation.toFixed(4)
+        tetradOne.description.toFixed(4)
       );
       container.style.setProperty(
         "--ts-t1-withdrawal",
-        tetrad.withdrawal.toFixed(4)
+        tetradOne.withdrawal.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-transition-01-02",
+        transitionOne.progress.toFixed(4)
+      );
+      container.style.setProperty("--ts-t2-title", tetradTwo.title.toFixed(4));
+      container.style.setProperty(
+        "--ts-t2-statement",
+        tetradTwo.statement.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-t2-withdrawal",
+        tetradTwo.withdrawal.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-transition-02-03",
+        transitionTwo.progress.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-t3-title",
+        tetradThree.title.toFixed(4)
+      );
+      container.style.setProperty(
+        "--ts-t3-statement",
+        tetradThree.statement.toFixed(4)
       );
     };
 
     if (reducedMotion) {
       container.dataset.reducedMotion = "true";
-      apply(TETRADIC_REDUCED_MOTION_PROGRESS);
+      apply(
+        TETRADIC_REDUCED_MOTION_PROGRESS /
+          TETRADIC_TIMELINE.checkpointEndProgress,
+        TETRADIC_REDUCED_MOTION_PROGRESS
+      );
+      window.scrollTo({
+        top: container.getBoundingClientRect().top + window.scrollY,
+        behavior: "auto",
+      });
       return;
     }
 
     delete container.dataset.reducedMotion;
+    const viewport = container.querySelector<HTMLElement>(
+      ".tetradic-signature__viewport"
+    );
+    if (!viewport) return;
 
     const trigger = ScrollTrigger.create({
       trigger: container,
+      pin: viewport,
+      pinSpacing: false,
+      anticipatePin: 1,
       start: "top top",
       end: "bottom bottom",
       invalidateOnRefresh: true,
@@ -131,6 +159,7 @@ export function useTetradicScrollProgress(
         apply(self.progress);
         sessionStorage.setItem(RESTORE_KEY, self.progress.toFixed(6));
       },
+      onRefresh: self => apply(self.progress),
     });
 
     apply(trigger.progress);
@@ -142,15 +171,13 @@ export function useTetradicScrollProgress(
         if (isReloadNavigation()) {
           const saved = Number(sessionStorage.getItem(RESTORE_KEY));
           if (Number.isFinite(saved) && saved > 0 && saved <= 1) {
-            const previousScrollBehavior =
-              document.documentElement.style.scrollBehavior;
-            document.documentElement.style.scrollBehavior = "auto";
-            window.scrollTo(
-              0,
-              trigger.start + saved * (trigger.end - trigger.start)
-            );
-            document.documentElement.style.scrollBehavior =
-              previousScrollBehavior;
+            const target =
+              trigger.start + saved * (trigger.end - trigger.start);
+            if (lenis) {
+              lenis.scrollTo(target, { immediate: true });
+            } else {
+              window.scrollTo({ top: target, behavior: "auto" });
+            }
           }
         }
 
@@ -163,7 +190,7 @@ export function useTetradicScrollProgress(
       window.cancelAnimationFrame(frame);
       trigger.kill();
     };
-  }, [containerRef, reducedMotion]);
+  }, [containerRef, lenis, reducedMotion]);
 
-  return { sceneStateRef, exploreSample };
+  return { sceneStateRef };
 }

@@ -3,10 +3,12 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import {
+  buildParticleAppearance,
   buildForms,
   buildGenesisHelix,
   FORM_PARTICLE_COUNT,
   dwellForm,
+  phaseCameraArc,
 } from "@/lib/cosmichronica-forms";
 
 // PROTOTYPE FLAG — when true, the Spiral is a point cloud that MORPHS through the
@@ -335,17 +337,52 @@ function MorphSpiral({ stateRef, reducedMotion }: SpiralProps) {
   const forms = useMemo(() => buildForms(FORM_PARTICLE_COUNT), []);
   const helix = useMemo(() => buildGenesisHelix(FORM_PARTICLE_COUNT), []);
   const initial = useMemo(() => helix.slice(), [helix]); // open on the spiral
-  const colors = useMemo(() => REGISTER_COLORS.map((c) => new THREE.Color(c)), []);
+  const appearance = useMemo(
+    () => buildParticleAppearance(FORM_PARTICLE_COUNT),
+    []
+  );
+  const colors = useMemo(
+    () => REGISTER_COLORS.map(c => new THREE.Color(c)),
+    []
+  );
   const glow = useMemo(() => makeGlowTexture(), []);
   const tmp = useMemo(() => new THREE.Color(), []);
+  const particleMaterial = useMemo(() => {
+    const material = new THREE.PointsMaterial({
+      map: glow,
+      color: colors[0],
+      size: 0.05,
+      transparent: true,
+      opacity: 0.9,
+      sizeAttenuation: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
 
-  useEffect(() => () => glow.dispose(), [glow]);
+    material.onBeforeCompile = shader => {
+      shader.vertexShader = shader.vertexShader
+        .replace("uniform float size;", "attribute float particleSize;")
+        .replace("gl_PointSize = size;", "gl_PointSize = particleSize;");
+    };
+    material.customProgramCacheKey = () => "cosmichronica-particle-size-v1";
+    return material;
+  }, [colors, glow]);
+
+  useEffect(
+    () => () => {
+      particleMaterial.dispose();
+      glow.dispose();
+    },
+    [glow, particleMaterial]
+  );
 
   useFrame((state, delta) => {
     if (!pointsRef.current) return;
     const live = stateRef.current;
     const last = REGISTER_COUNT - 1;
-    const raw = Math.max(0, Math.min(live.progress * last, last));
+    const raw = Math.max(0, Math.min(live.progress * REGISTER_COUNT, last));
     const target = dwellForm(raw, last); // rest on each form, then transition
     // Internal easing → the "liquid" follow behind the scrubbed scroll.
     const k = reducedMotion ? 1 : Math.min(1, delta * 3.2);
@@ -375,17 +412,16 @@ function MorphSpiral({ stateRef, reducedMotion }: SpiralProps) {
     }
     attr.needsUpdate = true;
 
-    const mat = pointsRef.current.material as THREE.PointsMaterial;
     tmp.copy(colors[a]).lerp(colors[b], t);
-    mat.color.copy(tmp);
+    particleMaterial.color.copy(tmp);
 
     // Fade the dots down while the camera is INSIDE the point (mid fly-through),
     // so streaming past them reads as a whoosh rather than a white-out.
     if (!reducedMotion && a === 0) {
       const inside = Math.max(0, 1 - Math.abs(p - 0.5) / 0.4);
-      mat.opacity = 0.9 - inside * 0.55;
+      particleMaterial.opacity = 0.9 - inside * 0.55;
     } else {
-      mat.opacity = 0.9;
+      particleMaterial.opacity = 0.9;
     }
 
     // No group rotation through the reveal chain (0 Point → 1 Line → 2 Triangle):
@@ -404,18 +440,16 @@ function MorphSpiral({ stateRef, reducedMotion }: SpiralProps) {
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[initial, 3]} />
+        <bufferAttribute
+          attach="attributes-particleSize"
+          args={[appearance.sizes, 1]}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          args={[appearance.colors, 4]}
+        />
       </bufferGeometry>
-      <pointsMaterial
-        map={glow}
-        color={colors[0]}
-        size={0.05}
-        transparent
-        opacity={0.9}
-        sizeAttenuation
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        toneMapped={false}
-      />
+      <primitive object={particleMaterial} attach="material" />
     </points>
   );
 }
@@ -483,7 +517,10 @@ function MorphCamera({ stateRef }: { stateRef: React.MutableRefObject<SpiralStat
     const last = REGISTER_COUNT - 1;
     const d =
       live.formValue ??
-      dwellForm(Math.max(0, Math.min(live.progress * last, last)), last);
+      dwellForm(
+        Math.max(0, Math.min(live.progress * REGISTER_COUNT, last)),
+        last
+      );
     const a = Math.floor(d);
     const b = Math.min(a + 1, last);
     const f = d - a;
@@ -495,13 +532,15 @@ function MorphCamera({ stateRef }: { stateRef: React.MutableRefObject<SpiralStat
       // Orbit to the phase's pose.
       const pa = CAM_POSES[a];
       const pb = CAM_POSES[b];
+      const arc = phaseCameraArc(a, f);
       const nearest = Math.min(f, 1 - f);
       const arrival = 1 - Math.min(1, nearest / 0.5);
       const focus = live.focusRegister !== null || live.topDown ? 1 : 0;
       const sway = Math.sin(state.clock.elapsedTime * 0.16) * 0.04;
-      const az = pa.az + (pb.az - pa.az) * f + sway;
-      const el = pa.el + (pb.el - pa.el) * f;
-      const r = pa.r + (pb.r - pa.r) * f - arrival * 0.6 - focus * 1.2;
+      const az = pa.az + (pb.az - pa.az) * f + arc.azimuth + sway;
+      const el = pa.el + (pb.el - pa.el) * f + arc.elevation;
+      const r =
+        pa.r + (pb.r - pa.r) * f + arc.radius - arrival * 0.6 - focus * 1.2;
       const ce = Math.cos(el);
       tP.set(Math.sin(az) * ce * r, Math.sin(el) * r, Math.cos(az) * ce * r);
       tL.set(0, 0, 0);

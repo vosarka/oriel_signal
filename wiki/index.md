@@ -20,6 +20,7 @@ Read this first on any knowledge-oriented session. Then follow links.
 
 Core named systems and beings with ongoing identity.
 
+- [[entity-silviu]] — Silviu. (auto-evolved 2026-07-13)
 - [[biological-vessel-description]] — Biological Vessel. (auto-evolved 2026-07-06)
 - [[vossari-physiology]] — Vossari Physiology. (auto-evolved 2026-07-06)
 - [[entity-vossari]] — Vossari. (auto-evolved 2026-07-06)
@@ -35,6 +36,10 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[concept-the-static]] — The Static. (auto-evolved 2026-07-14)
+- [[resonance-operating-system]] — Resonance Operating System (ROS). (auto-evolved 2026-07-13)
+- [[concept-telekinesis]] — Telekinesis. (auto-evolved 2026-07-13)
+- [[concept-the-one-infinite-creator]] — The One Infinite Creator. (auto-evolved 2026-07-13)
 - [[psychological-clearing]] — Psychological Clearing. (auto-evolved 2026-07-07)
 - [[threshold-questions]] — Threshold Questions. (auto-evolved 2026-07-07)
 - [[concept-vossari-naming-taxonomy]] — Approved public naming stack: Tetradic Resonance Codex, Static Signature Reading, Founder-Curated Bio-Signature, Current Resonance, Field Index. (stable 2026-07-08)

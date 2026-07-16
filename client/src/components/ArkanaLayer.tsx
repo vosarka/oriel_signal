@@ -31,7 +31,7 @@ export function ArkanaLayerShell({
       <SignalPageShell chamber="transmissions" className="arkana-layer">
         <div className="arkana-layer__inner">
           <Link href="/arcana">
-            <span className="arkana-layer__back">← ARKANA NODE FIELD</span>
+            <span className="arkana-layer__back">← ARKIVA NODE FIELD</span>
           </Link>
 
           <motion.header

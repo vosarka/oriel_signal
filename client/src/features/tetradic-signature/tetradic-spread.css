@@ -5,10 +5,17 @@
   --seal-light-opacity: 0;
   --spread-page-lift: 0;
   --spread-withdrawal: 0;
+  --spread-roll: 0deg;
+  --t1-opacity: 0;
+  --t2-opacity: 0;
+  --t2-blueprint: 0;
+  --t3-opacity: 0;
+  --t3-journey: 0;
   width: 960px;
   height: 640px;
   color: #211d16;
   font-family: "Cormorant Garamond", Georgia, serif;
+  transform: rotate(var(--spread-roll));
   transform-style: preserve-3d;
   will-change: opacity;
 }
@@ -21,6 +28,18 @@
   height: 100%;
   filter: drop-shadow(0 18px 22px rgba(10, 8, 5, 0.35));
   transform-style: preserve-3d;
+}
+
+.tetradic-spread__chapter {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.tetradic-spread__chapter--one {
+  opacity: var(--t1-opacity);
 }
 
 .tetradic-spread__page {
@@ -95,9 +114,7 @@
 .tetradic-spread__page-header,
 .tetradic-spread__folio,
 .tetradic-spread__kicker,
-.tetradic-spread__verification-note,
-.tetradic-spread__legend,
-.tetradic-spread__record-row {
+.tetradic-spread__verification-note {
   font-family: "JetBrains Mono", monospace;
   text-transform: uppercase;
 }
@@ -110,7 +127,7 @@
   justify-content: space-between;
   padding-bottom: 11px;
   border-bottom: 1px solid rgba(61, 46, 25, 0.48);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1;
   letter-spacing: 0.14em;
   color: rgba(45, 35, 22, 0.72);
@@ -124,7 +141,7 @@
 
 .tetradic-spread__kicker {
   margin: 0 0 8px;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.19em;
   color: #7c5725;
 }
@@ -138,68 +155,16 @@
 }
 
 .tetradic-spread__left-intro h3 {
-  font-size: 27px;
+  font-size: 30px;
 }
 
-.tetradic-spread__left-intro > p:last-child {
-  width: 82%;
-  margin: 7px 0 0;
-  font-size: 15px;
-  line-height: 1.22;
-  color: rgba(38, 31, 21, 0.76);
-}
-
-.tetradic-spread__record {
-  position: relative;
-  z-index: 1;
-  margin: 21px 0 16px;
-  padding: 12px 14px 10px;
-  border: 1px solid rgba(165, 123, 53, 0.58);
-  background: rgba(245, 234, 199, 0.34);
-  box-shadow: inset 0 0 0 3px rgba(117, 84, 35, 0.055);
-}
-
-.tetradic-spread__record::after {
-  content: "Ψ";
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
-  font-family: "Cinzel", serif;
-  font-size: 27px;
-  color: rgba(127, 89, 35, 0.16);
-}
-
-.tetradic-spread__record-row {
-  display: grid;
-  grid-template-columns: 112px 1fr;
-  gap: 10px;
-  padding: 4px 0;
-  border-bottom: 1px dotted rgba(72, 52, 27, 0.22);
-  font-size: 8.5px;
-  line-height: 1.2;
-  letter-spacing: 0.08em;
-}
-
-.tetradic-spread__record-row:last-child {
-  border-bottom: 0;
-}
-
-.tetradic-spread__record-row dt {
-  color: rgba(49, 37, 21, 0.55);
-}
-
-.tetradic-spread__record-row dd {
-  margin: 0;
-  font-weight: 700;
-  color: #292016;
-}
-
-.tetradic-spread__coordinate-diagram {
+.tetradic-spread__receiver-initialization {
   position: relative;
   z-index: 1;
   display: block;
   width: 100%;
-  height: 176px;
+  height: 312px;
+  margin-top: 22px;
   overflow: visible;
   border: 1px solid rgba(163, 123, 51, 0.34);
   background: #0f0e0c;
@@ -210,49 +175,53 @@
   transform: translateY(calc((1 - var(--diagram-reveal)) * 5px));
 }
 
-.tetradic-spread__coordinate-diagram rect,
-.tetradic-spread__coordinate-diagram path,
-.tetradic-spread__coordinate-diagram ellipse,
-.tetradic-spread__coordinate-diagram circle {
-  fill: none;
+.tetradic-spread__receiver-initialization .record-node {
+  fill: rgba(22, 20, 16, 0.86);
   stroke: #b89550;
-  stroke-width: 1.15;
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
-.tetradic-spread__coordinate-diagram .axis {
-  stroke-width: 0.75;
-  opacity: 0.42;
-  stroke-dasharray: 2 5;
+.tetradic-spread__receiver-initialization .record-node.is-archive {
+  fill: rgba(95, 67, 29, 0.24);
+  stroke: #d1ae62;
 }
 
-.tetradic-spread__coordinate-diagram .signal {
-  stroke: #d5b56c;
-  stroke-width: 1.8;
+.tetradic-spread__receiver-initialization .record-flow {
+  fill: none;
+  stroke: rgba(194, 157, 81, 0.72);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
-.tetradic-spread__coordinate-diagram .signal-core {
-  fill: #d8bd7b;
-  stroke: none;
+.tetradic-spread__receiver-initialization .record-junction {
+  fill: #b66b55;
 }
 
-.tetradic-spread__coordinate-diagram .calibration {
-  fill: #81483c;
-  stroke: #b46b59;
-}
-
-.tetradic-spread__coordinate-diagram text {
-  fill: rgba(205, 177, 116, 0.76);
+.tetradic-spread__receiver-initialization text {
   font-family: "JetBrains Mono", monospace;
-  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.tetradic-spread__receiver-initialization .record-diagram-title,
+.tetradic-spread__receiver-initialization .record-node-label {
+  fill: rgba(205, 177, 116, 0.76);
+  font-size: 10.5px;
   letter-spacing: 0.11em;
+}
+
+.tetradic-spread__receiver-initialization .record-node-value {
+  fill: #e1cd99;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .tetradic-spread__verification-note {
   position: relative;
   z-index: 1;
   margin: 10px 0 0;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.13em;
   color: #74443b;
 }
@@ -323,12 +292,12 @@
 
 .tetradic-seal__id {
   fill: #ceb575;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .tetradic-seal__state {
   fill: rgba(205, 184, 134, 0.55);
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .tetradic-spread__seal-light {
@@ -362,33 +331,16 @@
 }
 
 .tetradic-spread__threshold-copy h3 {
-  font-size: 24px;
+  font-size: 27px;
   line-height: 1;
   color: #251d13;
 }
 
 .tetradic-spread__threshold-copy > p:last-child {
   margin: 7px auto 0;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.18;
   color: rgba(38, 29, 18, 0.72);
-}
-
-.tetradic-spread__legend {
-  position: relative;
-  z-index: 1;
-  width: 86%;
-  margin: 14px auto 0;
-  padding-top: 8px;
-  border-top: 1px solid rgba(90, 62, 28, 0.33);
-  font-size: 8px;
-  letter-spacing: 0.13em;
-  color: rgba(46, 35, 20, 0.58);
-}
-
-.tetradic-spread__legend p {
-  margin: 4px 0 0;
-  color: #74542b;
 }
 
 .tetradic-spread__folio {
@@ -400,7 +352,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.16em;
   color: rgba(49, 37, 21, 0.52);
 }
@@ -414,6 +366,24 @@
 
 .tetradic-spread__folio--right {
   flex-direction: row-reverse;
+}
+
+.tetradic-spread__archive-annotation {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  opacity: calc(var(--diagram-reveal) * 0.72);
+}
+
+.tetradic-spread__archive-annotation path {
+  fill: none;
+  stroke: rgba(155, 111, 46, 0.72);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .tetradic-spread__gutter {
@@ -474,4 +444,350 @@
   font-family: "Cinzel", serif;
   font-size: 15px;
   color: #79572b;
+}
+
+.tetradic-spread__chapter--two {
+  color: #d6c18c;
+  opacity: var(--t2-opacity);
+  background: linear-gradient(
+    90deg,
+    #cfc097 0%,
+    #d9cba4 47.5%,
+    #755e39 49.7%,
+    #4b3921 50%,
+    #d8caa3 50.6%,
+    #cfc097 100%
+  );
+  border: 1px solid rgba(77, 56, 28, 0.55);
+  border-radius: 5px 5px 8px 8px;
+  box-shadow:
+    inset 0 0 45px rgba(54, 37, 14, 0.2),
+    0 18px 22px rgba(10, 8, 5, 0.35);
+}
+
+.tetradic-spread__chapter--two::before {
+  content: "";
+  position: absolute;
+  inset: 30px 34px;
+  border: 1px solid rgba(143, 105, 48, 0.54);
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(184, 151, 80, 0.08),
+      transparent 42%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(213, 185, 119, 0.028) 0,
+      rgba(213, 185, 119, 0.028) 1px,
+      transparent 1px,
+      transparent 14px
+    ),
+    #0d0c0a;
+  box-shadow:
+    inset 0 0 48px #050504,
+    0 8px 20px rgba(51, 33, 11, 0.26);
+}
+
+.tetradic-spread__blueprint-header,
+.tetradic-spread__blueprint-index,
+.tetradic-spread__blueprint-seal,
+.tetradic-spread__folio-mark,
+.tetradic-spread__timing-copy {
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+}
+
+.tetradic-spread__blueprint-header {
+  position: absolute;
+  z-index: 2;
+  top: 48px;
+  right: 54px;
+  left: 54px;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(196, 160, 83, 0.34);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(213, 190, 139, 0.62);
+}
+
+.tetradic-spread__architecture-diagram {
+  position: absolute;
+  z-index: 1;
+  top: 67px;
+  left: 50%;
+  width: 760px;
+  height: 540px;
+  overflow: visible;
+  opacity: calc(0.42 + var(--t2-blueprint) * 0.58);
+  transform: translateX(-50%) scale(calc(0.94 + var(--t2-blueprint) * 0.06));
+  transform-origin: 50% 50%;
+}
+
+.tetradic-spread__architecture-diagram :is(circle, line, path) {
+  fill: none;
+  stroke: #af914f;
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.tetradic-spread__architecture-diagram .architecture-orbits {
+  opacity: 0.78;
+}
+
+.tetradic-spread__architecture-diagram .architecture-orbits .is-active {
+  stroke: #eee0af;
+  stroke-width: 2.6;
+}
+
+.tetradic-spread__architecture-diagram .architecture-circuitry {
+  stroke-dasharray: 2 5;
+  opacity: calc(0.34 + var(--t2-blueprint) * 0.66);
+}
+
+.tetradic-spread__architecture-diagram .architecture-centers path {
+  stroke-width: 1.5;
+}
+
+.tetradic-spread__architecture-diagram .architecture-centers .is-defined {
+  fill: #9e5a46;
+  stroke: #d4ae62;
+}
+
+.tetradic-spread__architecture-diagram .architecture-centers .is-open {
+  fill: #0d0c0a;
+  stroke: #76a4a6;
+}
+
+.tetradic-spread__architecture-diagram text {
+  fill: rgba(207, 181, 117, 0.6);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+.tetradic-spread__blueprint-index {
+  position: absolute;
+  z-index: 2;
+  top: 105px;
+  left: 58px;
+  display: grid;
+  gap: 13px;
+  width: 170px;
+  font-size: 8px;
+  letter-spacing: 0.11em;
+  color: rgba(203, 180, 127, 0.56);
+}
+
+.tetradic-spread__blueprint-seal {
+  position: absolute;
+  z-index: 2;
+  right: 58px;
+  bottom: 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 8px;
+  letter-spacing: 0.11em;
+  color: rgba(203, 180, 127, 0.62);
+}
+
+.tetradic-spread__blueprint-seal img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  opacity: 0.76;
+  filter: sepia(0.38) saturate(0.68) brightness(1.14);
+}
+
+.tetradic-spread__folio-mark {
+  position: absolute;
+  z-index: 6;
+  bottom: 17px;
+  font-family: "Cinzel", serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #76552b;
+}
+
+.tetradic-spread__folio-mark.is-left {
+  left: 42px;
+}
+
+.tetradic-spread__folio-mark.is-right {
+  right: 42px;
+}
+
+.tetradic-spread__chapter--three {
+  opacity: var(--t3-opacity);
+  background: #070808;
+  border: 1px solid rgba(108, 83, 43, 0.72);
+  border-radius: 5px 5px 8px 8px;
+  box-shadow:
+    inset 0 0 75px #000,
+    0 18px 24px rgba(0, 0, 0, 0.52);
+}
+
+.tetradic-spread__chapter--three::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 48%,
+      rgba(0, 0, 0, 0.72) 50%,
+      transparent 52%
+    ),
+    radial-gradient(circle at center, transparent 45%, rgba(0, 0, 0, 0.46));
+}
+
+.tetradic-spread__timing-track {
+  display: flex;
+  width: 400%;
+  height: 100%;
+  transform: translateX(calc(var(--t3-journey) * -75%));
+  will-change: transform;
+}
+
+.tetradic-spread__timing-state {
+  position: relative;
+  flex: 0 0 25%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 70% 45%,
+      rgba(82, 124, 127, 0.1),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 28% 54%,
+      rgba(190, 147, 63, 0.13),
+      transparent 25%
+    ),
+    linear-gradient(118deg, #070706, #0b0d0e 56%, #060707);
+}
+
+.tetradic-spread__timing-state::before {
+  content: "";
+  position: absolute;
+  inset: 29px;
+  border: 1px solid rgba(172, 137, 72, 0.23);
+  background-image:
+    linear-gradient(rgba(171, 139, 79, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(171, 139, 79, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.tetradic-spread__timing-state svg {
+  position: absolute;
+  top: 50%;
+  right: 76px;
+  width: 420px;
+  height: 330px;
+  transform: translateY(-50%);
+}
+
+.tetradic-spread__timing-state svg :is(circle, path) {
+  fill: none;
+  stroke: rgba(190, 154, 82, 0.64);
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.tetradic-spread__timing-state svg .axis {
+  stroke-dasharray: 2 8;
+  opacity: 0.35;
+}
+
+.tetradic-spread__timing-state svg .calibration-arc {
+  stroke: #c69f51;
+  stroke-width: 2;
+}
+
+.tetradic-spread__timing-state svg .gold-sun {
+  fill: #c69f51;
+  stroke: #f0d899;
+}
+
+.tetradic-spread__timing-state svg .cyan-sun {
+  fill: #5a9ca4;
+  stroke: #9fd3d2;
+}
+
+.tetradic-spread__timing-state svg .mirror {
+  stroke: rgba(215, 204, 171, 0.5);
+  stroke-dasharray: 3 7;
+}
+
+.tetradic-spread__timing-state svg text {
+  fill: rgba(200, 178, 126, 0.58);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+.tetradic-spread__timing-copy {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 76px;
+  width: 320px;
+  transform: translateY(-50%);
+}
+
+.tetradic-spread__timing-copy p,
+.tetradic-spread__timing-copy span {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(198, 164, 91, 0.66);
+}
+
+.tetradic-spread__timing-copy h3 {
+  margin: 18px 0 16px;
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: 0.04em;
+  color: #e0d5ba;
+}
+
+.tetradic-spread__timing-copy span {
+  color: rgba(160, 190, 189, 0.68);
+}
+
+.tetradic-spread__timing-seal {
+  position: absolute;
+  z-index: 2;
+  bottom: 54px;
+  left: 76px;
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  opacity: 0.62;
+  filter: sepia(0.18) saturate(0.72) brightness(1.22);
+}
+
+.tetradic-spread__chapter--three .tetradic-spread__gutter {
+  z-index: 5;
+  opacity: 0.58;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.88) 44%,
+    rgba(113, 88, 46, 0.22) 51%,
+    transparent
+  );
+}
+
+.tetradic-spread__chapter--three .tetradic-spread__folio-mark {
+  z-index: 6;
+  color: rgba(190, 155, 82, 0.54);
 }
