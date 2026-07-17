@@ -7,6 +7,7 @@ import "lenis/dist/lenis.css";
 import { TetradicSignatureV2 } from "@/features/tetradic-signature/TetradicSignatureV2";
 import { TETRADIC_SIGNATURE_CONFIG } from "@/features/tetradic-signature/tetradic-signature-config";
 import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
+import "@/features/tetradic-signature/tetradic-later-spreads.css";
 import "@/features/tetradic-signature/tetradic-spread.css";
 import "@/features/tetradic-signature/tetradic-signature-v2.css";
 
@@ -30,6 +31,17 @@ function TetradicLenisGsapBridge() {
   }, [lenis]);
 
   return null;
+}
+
+function SmoothTetradicV2({ compact }: { compact: boolean }) {
+  const lenis = useLenis();
+  return (
+    <TetradicSignatureV2
+      compact={compact}
+      reducedMotion={false}
+      lenis={lenis}
+    />
+  );
 }
 
 export default function TetradicSignatureExperience() {
@@ -60,7 +72,7 @@ export default function TetradicSignatureExperience() {
       }}
     >
       <TetradicLenisGsapBridge />
-      <TetradicSignatureV2 compact={compact} reducedMotion={false} />
+      <SmoothTetradicV2 compact={compact} />
     </ReactLenis>
   );
 }

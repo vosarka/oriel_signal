@@ -375,6 +375,30 @@
   opacity: calc(0.18 + var(--t04-phase-3) * 0.82);
 }
 
+.mandala-segments .is-field {
+  fill: rgba(174, 143, 82, 0.18);
+  opacity: 0.14;
+}
+
+.mandala-segments .is-field-1 {
+  opacity: calc(0.14 + var(--t04-phase-1) * 0.5);
+}
+
+.mandala-segments .is-field-2 {
+  fill: rgba(83, 127, 131, 0.62);
+  opacity: calc(0.14 + var(--t04-phase-2) * 0.52);
+}
+
+.mandala-segments .is-field-3 {
+  fill: rgba(221, 208, 170, 0.68);
+  opacity: calc(0.14 + var(--t04-phase-3) * 0.52);
+}
+
+.mandala-segments .is-field-4 {
+  fill: rgba(189, 145, 68, 0.7);
+  opacity: calc(0.14 + var(--t04-phase-4) * 0.52);
+}
+
 .mandala-field .center-marker {
   fill: #c39b50;
   stroke: #efe0b5;
@@ -402,7 +426,7 @@
   display: grid;
   gap: 10px;
   width: 285px;
-  font-size: 8.5px;
+  font-size: 10px;
   letter-spacing: 0.13em;
   color: rgba(43, 34, 24, 0.72);
 }
@@ -480,6 +504,11 @@
   stroke: #eadbb5;
 }
 
+.centers-field .center-node.is-redacted circle:first-child {
+  fill: rgba(12, 11, 9, 0.94);
+  stroke-dasharray: 2 1.5;
+}
+
 .centers-field .center-core {
   fill: #fff1c7;
   opacity: calc(var(--chapter-inspection) * 0.82);
@@ -505,7 +534,7 @@
   gap: 7px;
   padding-bottom: 5px;
   border-bottom: 1px solid rgba(83, 61, 28, 0.22);
-  font-size: 7.6px;
+  font-size: 9.5px;
   letter-spacing: 0.09em;
 }
 
@@ -574,6 +603,30 @@
   stroke-dasharray: 0.11 0.06;
 }
 
+.circuit-demonstration path {
+  fill: none;
+  stroke: #c9a354;
+  stroke-width: 0.9;
+  stroke-dasharray: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.circuit-demonstration path:first-child {
+  stroke-dashoffset: calc(1 - var(--t06-phase-2));
+}
+
+.circuit-demonstration path:nth-child(2) {
+  stroke-dashoffset: calc(1 - var(--t06-phase-3));
+}
+
+.circuit-demonstration .circuit-gap {
+  stroke: #a65b4a;
+  stroke-width: 1.4;
+  stroke-dasharray: 1.6 1.2;
+  opacity: var(--t06-phase-4);
+}
+
 #tetrad-six-arrow path {
   fill: #d9bb74;
 }
@@ -606,7 +659,7 @@
   display: grid;
   gap: 10px;
   width: 343px;
-  font-size: 8px;
+  font-size: 9.5px;
   letter-spacing: 0.11em;
   color: rgba(47, 37, 24, 0.74);
 }
@@ -667,7 +720,7 @@
   transform: translateX(calc(-42px + var(--t08-camera) * 84px)) scaleX(-1);
 }
 
-.planetary-atlas :is(.atlas-axis, .atlas-orbit, .atlas-node line) {
+.planetary-atlas :is(.atlas-axis, .atlas-orbit, .atlas-group line) {
   fill: none;
   stroke: rgba(199, 161, 82, 0.34);
   stroke-width: 1;
@@ -678,7 +731,7 @@
   opacity: calc(0.18 + var(--chapter-visual) * 0.7);
 }
 
-.planetary-atlas .atlas-node circle {
+.planetary-atlas .atlas-group circle {
   fill: #c9a354;
   stroke: #efdba5;
   stroke-width: 1;
@@ -689,7 +742,11 @@
   );
 }
 
-.planetary-atlas .atlas-node line {
+.planetary-atlas .atlas-group-member {
+  opacity: 0.78;
+}
+
+.planetary-atlas .atlas-group line {
   opacity: calc(var(--chapter-inspection) * 0.45);
 }
 
@@ -698,11 +755,11 @@
   stroke: #c9a354;
 }
 
-.planetary-atlas.is-design :is(.atlas-axis, .atlas-orbit, .atlas-node line) {
+.planetary-atlas.is-design :is(.atlas-axis, .atlas-orbit, .atlas-group line) {
   stroke: rgba(91, 157, 166, 0.38);
 }
 
-.planetary-atlas.is-design .atlas-node circle {
+.planetary-atlas.is-design .atlas-group circle {
   fill: #578e94;
   stroke: #a7d1cf;
 }
@@ -719,7 +776,7 @@
   display: grid;
   gap: 13px;
   width: 285px;
-  font-size: 8px;
+  font-size: 9.5px;
   letter-spacing: 0.1em;
   color: rgba(214, 190, 137, 0.7);
 }

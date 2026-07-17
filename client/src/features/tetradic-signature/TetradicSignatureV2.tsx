@@ -1,14 +1,17 @@
 import { useRef, type CSSProperties } from "react";
+import type Lenis from "lenis";
 
 import Layout from "@/components/Layout";
 import { SampleArchiveSeal } from "./SampleArchiveSeal";
+import { TetradicCinematicVisual } from "./TetradicLaterSpreads";
 import {
   TETRADIC_SIGNATURE_CONFIG,
   TETRAD_ONE_SPREAD,
+  TETRAD_THREE_TIMING_STATES,
 } from "./tetradic-signature-config";
 import {
   TETRADIC_V2_CONFIG,
-  TETRADIC_V2_TIMELINE,
+  TETRADIC_V2_MASTER_TIMELINE,
 } from "./tetradic-signature-v2-config";
 import { useTetradicV2Progress } from "./useTetradicV2Progress";
 
@@ -190,6 +193,184 @@ function ArchitectureField() {
   );
 }
 
+function TimingField() {
+  return (
+    <div className="tetradic-v2__timing-field">
+      <svg viewBox="0 0 920 460" aria-hidden="true">
+        <defs>
+          <linearGradient id="v2-conscious-stream" x1="0" x2="1">
+            <stop offset="0" stopColor="#7d5a27" stopOpacity="0.12" />
+            <stop offset="1" stopColor="#e5c77c" stopOpacity="0.92" />
+          </linearGradient>
+          <linearGradient id="v2-design-stream" x1="1" x2="0">
+            <stop offset="0" stopColor="#335e68" stopOpacity="0.12" />
+            <stop offset="1" stopColor="#8ac1ca" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+        <path
+          className="timing-stream is-conscious"
+          pathLength="1"
+          d="M72 126C236 48 362 52 460 230S698 404 848 326"
+        />
+        <path
+          className="timing-stream is-design"
+          pathLength="1"
+          d="M848 126C684 48 558 52 460 230S222 404 72 326"
+        />
+        <circle
+          className="timing-orbit is-conscious"
+          cx="268"
+          cy="107"
+          r="72"
+        />
+        <circle className="timing-orbit is-design" cx="652" cy="107" r="72" />
+        <circle className="timing-convergence" cx="460" cy="230" r="54" />
+        <path className="timing-axis" d="M460 62v336M292 230h336" />
+      </svg>
+      <div className="tetradic-v2__timing-states">
+        {TETRAD_THREE_TIMING_STATES.map((state, index) => (
+          <div
+            key={state.code}
+            style={{ "--timing-index": index } as CSSProperties}
+          >
+            <b>{state.code}</b>
+            <span>
+              {state.title === "88.0000°" ? "88° SOLAR DESCENT" : state.title}
+            </span>
+            <small>{state.detail}</small>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type CinematicTetradNumber = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+type LaterVisualNumber = Exclude<CinematicTetradNumber, 3>;
+
+function CinematicChapter({ number }: { number: CinematicTetradNumber }) {
+  const chapter = TETRADIC_V2_CONFIG.chapters[number - 1];
+  const content = TETRADIC_V2_CONFIG.spreadContent[number - 1];
+
+  return (
+    <section
+      className={`tetradic-v2__cinematic-chapter tetradic-v2__cinematic-chapter--${String(number).padStart(2, "0")}`}
+      data-v2-chapter={number}
+      data-transition-to={chapter.transitionOut.to}
+    >
+      <div className="tetradic-v2__cinematic-plate">
+        <div className="tetradic-v2__plate-grid" />
+        <img
+          className="tetradic-v2__chapter-symbol"
+          src={chapter.symbol}
+          alt=""
+          width="500"
+          height="500"
+          loading="lazy"
+        />
+        <div className="tetradic-v2__chapter-diagram">
+          {number === 3 ? (
+            <TimingField />
+          ) : (
+            <TetradicCinematicVisual number={number as LaterVisualNumber} />
+          )}
+        </div>
+      </div>
+
+      <section className="tetradic-v2__chapter-copy tetradic-v2__later-copy">
+        <p>TETRAD {String(number).padStart(2, "0")} / 12</p>
+        <h2>{chapter.title}</h2>
+        <blockquote>{chapter.statement}</blockquote>
+      </section>
+      <div className="tetradic-v2__technical tetradic-v2__later-technical">
+        {content.technicalLabels.map(label => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+      <div className="tetradic-v2__chapter-shutter" />
+    </section>
+  );
+}
+
+function SynthesisScene() {
+  return (
+    <section className="tetradic-v2__synthesis">
+      <div className="tetradic-v2__synthesis-halo" />
+      <img
+        src={TETRADIC_V2_CONFIG.assets.thresholdSymbol}
+        alt=""
+        width="500"
+        height="500"
+      />
+      <div className="tetradic-v2__synthesis-markers">
+        {TETRADIC_V2_CONFIG.chapters.map(chapter => (
+          <i key={chapter.id} />
+        ))}
+      </div>
+      <div className="tetradic-v2__synthesis-copy">
+        <h2>
+          {TETRADIC_V2_CONFIG.synthesis.headline.map(line => (
+            <span key={line}>{line}</span>
+          ))}
+        </h2>
+        {TETRADIC_V2_CONFIG.synthesis.copy.map(line => (
+          <p key={line}>{line}</p>
+        ))}
+        <small>{TETRADIC_V2_CONFIG.synthesis.technicalLabel}</small>
+      </div>
+    </section>
+  );
+}
+
+function FinalOfferVisual() {
+  return (
+    <section className="tetradic-v2__final-offer">
+      <div className="tetradic-v2__final-halo" />
+      <div className="tetradic-v2__final-artifact">
+        <img
+          src={TETRADIC_V2_CONFIG.assets.cover}
+          alt=""
+          width="1536"
+          height="2048"
+        />
+      </div>
+      <div className="tetradic-v2__final-copy">
+        <p>{TETRADIC_V2_CONFIG.offer.eyebrow}</p>
+        <h2>
+          {TETRADIC_V2_CONFIG.offer.headline.map(line => (
+            <span key={line}>{line}</span>
+          ))}
+        </h2>
+        <blockquote>{TETRADIC_V2_CONFIG.offer.description}</blockquote>
+        <ul>
+          {TETRADIC_V2_CONFIG.offer.productDetails.map(detail => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+        <small>{TETRADIC_V2_CONFIG.offer.trust}</small>
+      </div>
+    </section>
+  );
+}
+
+function FinalActions({ onReplay }: { onReplay: () => void }) {
+  return (
+    <div
+      className="tetradic-v2__final-actions"
+      data-v2-final-actions=""
+      inert
+      aria-hidden="true"
+    >
+      <a href={TETRADIC_V2_CONFIG.ctas.generateSignatureRoute}>
+        {TETRADIC_V2_CONFIG.ctas.generateSignatureLabel}
+      </a>
+      <button type="button" onClick={onReplay}>
+        {TETRADIC_V2_CONFIG.ctas.exploreSampleLabel}
+      </button>
+    </div>
+  );
+}
+
 function TelemetryBands() {
   const labels = [
     ...TETRADIC_V2_CONFIG.telemetry,
@@ -233,21 +414,66 @@ function SemanticArchive() {
         <dd>{sample.archiveId}</dd>
       </dl>
       <p>No verified ephemeris values are presented in this sample.</p>
-      {chapters.map(chapter => (
+      {chapters.map((chapter, index) => (
         <section key={chapter.id}>
           <p>TETRAD {String(chapter.number).padStart(2, "0")} / 12</p>
           <h2>{chapter.title}</h2>
           <p>{chapter.statement}</p>
+          <p>{TETRADIC_V2_CONFIG.spreadContent[index].semanticDescription}</p>
+          <ul>
+            {TETRADIC_V2_CONFIG.spreadContent[index].technicalLabels.map(
+              label => (
+                <li key={label}>{label}</li>
+              )
+            )}
+          </ul>
         </section>
       ))}
+      <section>
+        <h2>{TETRADIC_V2_CONFIG.synthesis.headline.join(" ")}</h2>
+        {TETRADIC_V2_CONFIG.synthesis.copy.map(line => (
+          <p key={line}>{line}</p>
+        ))}
+      </section>
+      <section>
+        <h2>{TETRADIC_V2_CONFIG.offer.headline.join(" ")}</h2>
+        <p>{TETRADIC_V2_CONFIG.offer.description}</p>
+        <ul>
+          {TETRADIC_V2_CONFIG.offer.productDetails.map(detail => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      </section>
     </article>
   );
 }
 
-function ReducedExperience({ compact }: { compact: boolean }) {
+function ReducedExperience({
+  compact,
+  onReplay,
+}: {
+  compact: boolean;
+  onReplay: () => void;
+}) {
   const [threshold, architecture] = TETRADIC_V2_CONFIG.chapters;
   return (
-    <div className="tetradic-v2__reduced" aria-hidden="true">
+    <div className="tetradic-v2__reduced">
+      <dl className="sr-only">
+        <dt>Receiver</dt>
+        <dd>{TETRADIC_V2_CONFIG.sample.receiver}</dd>
+        <dt>Record status</dt>
+        <dd>{TETRADIC_V2_CONFIG.sample.recordStatus}</dd>
+        <dt>Birth record</dt>
+        <dd>{TETRADIC_V2_CONFIG.sample.birthRecord}</dd>
+        <dt>Coordinates</dt>
+        <dd>{TETRADIC_V2_CONFIG.sample.coordinates}</dd>
+        <dt>Archive ID</dt>
+        <dd>{TETRADIC_V2_CONFIG.sample.archiveId}</dd>
+      </dl>
+      <p className="sr-only">
+        No verified ephemeris values are presented in this illustrative public
+        sample.
+      </p>
       <section className="tetradic-v2__reduced-cover">
         <img
           className="tetradic-v2__reduced-environment"
@@ -265,7 +491,7 @@ function ReducedExperience({ compact }: { compact: boolean }) {
         />
         <div>
           <p>ORIEL / {TETRADIC_V2_CONFIG.naming.edition}</p>
-          <h2>{TETRADIC_V2_CONFIG.naming.product}</h2>
+          <h1>{TETRADIC_V2_CONFIG.naming.product}</h1>
         </div>
       </section>
       <section className="tetradic-v2__reduced-chapter">
@@ -297,6 +523,52 @@ function ReducedExperience({ compact }: { compact: boolean }) {
         </header>
         <ArchitectureField />
       </section>
+      {TETRADIC_V2_CONFIG.chapters.slice(2).map(chapter => (
+        <section
+          key={chapter.id}
+          className={`tetradic-v2__reduced-chapter tetradic-v2__reduced-chapter--coded is-${String(chapter.number).padStart(2, "0")}`}
+        >
+          <header>
+            <p>TETRAD {String(chapter.number).padStart(2, "0")} / 12</p>
+            <h2>{chapter.title}</h2>
+            <p>{chapter.statement}</p>
+          </header>
+          <div className="tetradic-v2__reduced-coded-visual">
+            <img src={chapter.symbol} alt="" width="500" height="500" />
+            {chapter.number === 3 ? (
+              <TimingField />
+            ) : (
+              <TetradicCinematicVisual
+                number={chapter.number as LaterVisualNumber}
+              />
+            )}
+          </div>
+        </section>
+      ))}
+      <section className="tetradic-v2__reduced-chapter tetradic-v2__reduced-synthesis">
+        <h2>{TETRADIC_V2_CONFIG.synthesis.headline.join(" ")}</h2>
+        {TETRADIC_V2_CONFIG.synthesis.copy.map(line => (
+          <p key={line}>{line}</p>
+        ))}
+      </section>
+      <section className="tetradic-v2__reduced-chapter tetradic-v2__reduced-offer">
+        <p>{TETRADIC_V2_CONFIG.offer.eyebrow}</p>
+        <h2>{TETRADIC_V2_CONFIG.offer.headline.join(" ")}</h2>
+        <p>{TETRADIC_V2_CONFIG.offer.description}</p>
+        <ul>
+          {TETRADIC_V2_CONFIG.offer.productDetails.map(detail => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+        <div className="tetradic-v2__reduced-actions">
+          <a href={TETRADIC_V2_CONFIG.ctas.generateSignatureRoute}>
+            {TETRADIC_V2_CONFIG.ctas.generateSignatureLabel}
+          </a>
+          <button type="button" onClick={onReplay}>
+            {TETRADIC_V2_CONFIG.ctas.exploreSampleLabel}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -304,20 +576,24 @@ function ReducedExperience({ compact }: { compact: boolean }) {
 export function TetradicSignatureV2({
   compact,
   reducedMotion,
+  lenis,
 }: {
   compact: boolean;
   reducedMotion: boolean;
+  lenis?: Lenis;
 }) {
   const containerRef = useRef<HTMLElement>(null);
-  useTetradicV2Progress(containerRef, reducedMotion);
+  const { restart } = useTetradicV2Progress(containerRef, reducedMotion, lenis);
   const scrollHeight =
     (compact
-      ? TETRADIC_V2_TIMELINE.compactTravelSvh
-      : TETRADIC_V2_TIMELINE.travelSvh) + TETRADIC_V2_TIMELINE.viewportSvh;
+      ? TETRADIC_V2_MASTER_TIMELINE.compactTravelSvh
+      : TETRADIC_V2_MASTER_TIMELINE.travelSvh) +
+    TETRADIC_V2_MASTER_TIMELINE.viewportSvh;
   const rootStyle = {
     "--v2-scroll-height": `${scrollHeight}svh`,
   } as CSSProperties;
   const [threshold, architecture] = TETRADIC_V2_CONFIG.chapters;
+  const architectureContent = TETRADIC_V2_CONFIG.spreadContent[1];
 
   return (
     <Layout hideFooter overlayHeader>
@@ -327,102 +603,128 @@ export function TetradicSignatureV2({
         style={rootStyle}
         data-scene={reducedMotion ? "reduced-motion" : "artifact-reveal"}
         data-progress="0.0000"
+        data-foundation-progress="0.0000"
+        data-active-chapter="1"
         data-reduced-motion={reducedMotion ? "true" : "false"}
+        tabIndex={-1}
         aria-label="The Tetradic Signature cinematic archive sample"
       >
         {reducedMotion ? (
-          <ReducedExperience compact={compact} />
+          <ReducedExperience compact={compact} onReplay={restart} />
         ) : (
-          <div className="tetradic-v2__stage" aria-hidden="true">
-            <img
-              className="tetradic-v2__environment"
-              src={TETRADIC_V2_CONFIG.assets.environment}
-              alt=""
-              width="1672"
-              height="941"
-              fetchPriority="high"
-            />
-            <div className="tetradic-v2__environment-depth" />
-            <div className="tetradic-v2__haze tetradic-v2__haze--one" />
-            <div className="tetradic-v2__haze tetradic-v2__haze--two" />
-            <TelemetryBands />
-
-            <div className="tetradic-v2__artifact">
-              <div className="tetradic-v2__artifact-shadow" />
-              <div className="tetradic-v2__cover-shell">
-                <span className="tetradic-v2__cover-edge" />
-                <img
-                  src={TETRADIC_V2_CONFIG.assets.cover}
-                  alt=""
-                  width="1536"
-                  height="2048"
-                />
-                <span className="tetradic-v2__cover-light" />
-              </div>
-            </div>
-
-            <section className="tetradic-v2__identity-lock">
-              <p>ORIEL / {TETRADIC_V2_CONFIG.naming.edition}</p>
-              <h1>
-                <span>THE TETRADIC</span>
-                <span>SIGNATURE</span>
-              </h1>
-              <p>{TETRADIC_V2_CONFIG.naming.subtitle}</p>
-            </section>
-
-            <div className="tetradic-v2__aperture-seal">
-              <SampleArchiveSeal
-                archiveId={TETRADIC_V2_CONFIG.sample.archiveId}
-                symbol={TETRADIC_V2_CONFIG.assets.thresholdSymbol}
-              />
-            </div>
-
-            <section className="tetradic-v2__tetrad-one">
-              <div className="tetradic-v2__plate-shadow" />
-              <div className="tetradic-v2__plate-window">
-                <ThresholdPlate />
-              </div>
-            </section>
-
-            <section className="tetradic-v2__tetrad-two">
-              <ArchitectureField />
-              <div className="tetradic-v2__tetrad-two-grid" />
-            </section>
-
-            <div className="tetradic-v2__transition-ring">
+          <div className="tetradic-v2__stage">
+            <div className="tetradic-v2__visual-layer" aria-hidden="true">
               <img
-                src={TETRADIC_V2_CONFIG.assets.thresholdSymbol}
+                className="tetradic-v2__environment"
+                src={TETRADIC_V2_CONFIG.assets.environment}
                 alt=""
-                width="500"
-                height="500"
+                width="1672"
+                height="941"
+                fetchPriority="high"
               />
-            </div>
-            <div className="tetradic-v2__shadow-blade" />
+              <div className="tetradic-v2__environment-depth" />
+              <div className="tetradic-v2__haze tetradic-v2__haze--one" />
+              <div className="tetradic-v2__haze tetradic-v2__haze--two" />
+              <TelemetryBands />
 
-            <section className="tetradic-v2__chapter-copy tetradic-v2__chapter-copy--one">
-              <p>TETRAD 01 / 12</p>
-              <h2>{threshold.title}</h2>
-              <blockquote>{threshold.statement}</blockquote>
-            </section>
-            <div className="tetradic-v2__technical tetradic-v2__technical--one">
-              <span>RECEIVER RECORD / INITIALIZED</span>
-              <span>ARCHIVE ID / {TETRADIC_V2_CONFIG.sample.archiveId}</span>
-            </div>
+              <div className="tetradic-v2__artifact">
+                <div className="tetradic-v2__artifact-shadow" />
+                <div className="tetradic-v2__cover-shell">
+                  <span className="tetradic-v2__cover-edge" />
+                  <img
+                    src={TETRADIC_V2_CONFIG.assets.cover}
+                    alt=""
+                    width="1536"
+                    height="2048"
+                  />
+                  <span className="tetradic-v2__cover-light" />
+                </div>
+              </div>
 
-            <section className="tetradic-v2__chapter-copy tetradic-v2__chapter-copy--two">
-              <p>TETRAD 02 / 12</p>
-              <h2>{architecture.title}</h2>
-              <blockquote>{architecture.statement}</blockquote>
-            </section>
+              <section className="tetradic-v2__identity-lock">
+                <p>ORIEL / {TETRADIC_V2_CONFIG.naming.edition}</p>
+                <h1>
+                  <span>THE TETRADIC</span>
+                  <span>SIGNATURE</span>
+                </h1>
+                <p>{TETRADIC_V2_CONFIG.naming.subtitle}</p>
+              </section>
 
-            <div className="tetradic-v2__progress">
-              <span>01</span>
-              <i />
-              <span>02</span>
+              <div className="tetradic-v2__aperture-seal">
+                <SampleArchiveSeal
+                  archiveId={TETRADIC_V2_CONFIG.sample.archiveId}
+                  symbol={TETRADIC_V2_CONFIG.assets.thresholdSymbol}
+                />
+              </div>
+
+              <section className="tetradic-v2__tetrad-one">
+                <div className="tetradic-v2__plate-shadow" />
+                <div className="tetradic-v2__plate-window">
+                  <ThresholdPlate />
+                </div>
+              </section>
+
+              <section className="tetradic-v2__tetrad-two" data-v2-chapter="2">
+                <ArchitectureField />
+                <div className="tetradic-v2__tetrad-two-grid" />
+              </section>
+
+              <div className="tetradic-v2__transition-ring">
+                <img
+                  src={TETRADIC_V2_CONFIG.assets.thresholdSymbol}
+                  alt=""
+                  width="500"
+                  height="500"
+                />
+              </div>
+              <div className="tetradic-v2__shadow-blade" />
+
+              <section className="tetradic-v2__chapter-copy tetradic-v2__chapter-copy--one">
+                <p>TETRAD 01 / 12</p>
+                <h2>{threshold.title}</h2>
+                <blockquote>{threshold.statement}</blockquote>
+              </section>
+              <div className="tetradic-v2__technical tetradic-v2__technical--one">
+                <span>RECEIVER RECORD / INITIALIZED</span>
+                <span>ARCHIVE ID / {TETRADIC_V2_CONFIG.sample.archiveId}</span>
+              </div>
+
+              <section
+                className="tetradic-v2__chapter-copy tetradic-v2__chapter-copy--two"
+                data-v2-chapter="2"
+              >
+                <p>TETRAD 02 / 12</p>
+                <h2>{architecture.title}</h2>
+                <blockquote>{architecture.statement}</blockquote>
+              </section>
+              <div
+                className="tetradic-v2__technical tetradic-v2__later-technical tetradic-v2__technical--two"
+                data-v2-chapter="2"
+              >
+                {architectureContent.technicalLabels.map(label => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+
+              {TETRADIC_V2_CONFIG.chapters.slice(2).map(chapter => (
+                <CinematicChapter
+                  key={chapter.id}
+                  number={chapter.number as CinematicTetradNumber}
+                />
+              ))}
+              <SynthesisScene />
+              <FinalOfferVisual />
+
+              <div className="tetradic-v2__progress">
+                <span data-v2-chapter-number="">01</span>
+                <i />
+                <span>12</span>
+              </div>
+              <p className="tetradic-v2__scroll-cue">
+                SCROLL / ENTER THE ARCHIVE
+              </p>
             </div>
-            <p className="tetradic-v2__scroll-cue">
-              SCROLL / ENTER THE ARCHIVE
-            </p>
+            <FinalActions onReplay={restart} />
           </div>
         )}
         {!reducedMotion && (
@@ -436,7 +738,7 @@ export function TetradicSignatureV2({
             data-v2-progress=""
           />
         )}
-        <SemanticArchive />
+        {!reducedMotion && <SemanticArchive />}
       </section>
     </Layout>
   );

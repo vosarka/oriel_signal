@@ -20,7 +20,9 @@ import {
 } from "../client/src/features/tetradic-signature/SampleArchiveSeal";
 import { TetradicNarrative } from "../client/src/features/tetradic-signature/TetradicNarrative";
 import {
+  TETRADIC_V2_MASTER_TIMELINE,
   TETRADIC_V2_TIMELINE,
+  getTetradicV2MasterState,
   getTetradicV2State,
 } from "../client/src/features/tetradic-signature/tetradic-signature-v2-config";
 
@@ -56,6 +58,19 @@ function firstPositiveProgress(
   }
 
   return Number.POSITIVE_INFINITY;
+}
+
+function v2ChapterAt(number: number, local: number) {
+  const segment = TETRADIC_V2_MASTER_TIMELINE.segments.find(
+    candidate => candidate.chapter === number
+  );
+  if (!segment) throw new Error(`Missing V2 chapter ${number}`);
+  const progress =
+    (segment.startSvh + (segment.endSvh - segment.startSvh) * local) /
+    TETRADIC_V2_MASTER_TIMELINE.travelSvh;
+  return getTetradicV2MasterState(progress).chapters.find(
+    chapter => chapter.number === number
+  )!;
 }
 
 describe("Tetradic Signature scroll timeline", () => {
@@ -481,5 +496,131 @@ describe("Tetradic Signature scroll timeline", () => {
       "tetrad-01",
       "cover-identity",
     ]);
+  });
+
+  it("extends V2 without changing the approved 700svh foundation", () => {
+    const foundationSample = 0.64;
+    const masterProgress =
+      (foundationSample * TETRADIC_V2_TIMELINE.travelSvh) /
+      TETRADIC_V2_MASTER_TIMELINE.travelSvh;
+
+    expect(getTetradicV2MasterState(masterProgress).foundation).toEqual(
+      getTetradicV2State(foundationSample)
+    );
+    expect(TETRADIC_V2_MASTER_TIMELINE.foundation.endSvh).toBe(700);
+    expect(TETRADIC_V2_MASTER_TIMELINE.compactFoundationSvh).toBe(620);
+  });
+
+  it("keeps the master segments contiguous through the final CTA", () => {
+    const segments = TETRADIC_V2_MASTER_TIMELINE.segments;
+
+    expect(segments[0].startSvh).toBe(0);
+    expect(segments.at(-1)?.endSvh).toBe(TETRADIC_V2_MASTER_TIMELINE.travelSvh);
+    segments.slice(1).forEach((segment, index) => {
+      expect(segment.startSvh).toBe(segments[index].endSvh);
+    });
+    expect(segments.filter(segment => segment.kind === "chapter")).toHaveLength(
+      11
+    );
+  });
+
+  it("reconstructs later chapters deterministically in both directions", () => {
+    const checkpoints = [0.26, 0.39, 0.58, 0.81, 0.9, 0.97];
+    const forward = checkpoints.map(getTetradicV2MasterState);
+    const reverse = [...checkpoints]
+      .reverse()
+      .map(getTetradicV2MasterState)
+      .reverse();
+
+    expect(reverse).toEqual(forward);
+    expect(forward.at(-1)?.segmentId).toBe("final-cta");
+  });
+
+  it("withdraws chapter copy before its cinematic transition dominates", () => {
+    const chapterTen = TETRADIC_V2_MASTER_TIMELINE.segments.find(
+      segment => segment.id === "tetrad-10"
+    );
+    expect(chapterTen).toBeDefined();
+
+    const progress =
+      (chapterTen!.startSvh +
+        (chapterTen!.endSvh - chapterTen!.startSvh) * 0.9) /
+      TETRADIC_V2_MASTER_TIMELINE.travelSvh;
+    const state = getTetradicV2MasterState(progress);
+    const active = state.chapters.find(chapter => chapter.number === 10);
+
+    expect(active?.beats.title).toBe(0);
+    expect(active?.beats.statement).toBe(0);
+    expect(active?.beats.transition).toBeGreaterThan(0);
+  });
+
+  it("holds every extended V2 chapter still while its copy is readable", () => {
+    for (let number = 2; number <= 12; number += 1) {
+      const holdStart = v2ChapterAt(number, number === 2 ? 0.6 : 0.62);
+      const holdEnd = v2ChapterAt(
+        number,
+        number === 2 ? 0.68 : number === 12 ? 0.8 : number === 11 ? 0.76 : 0.74
+      );
+
+      expect(holdStart.beats.motion).toEqual([1, 1, 1, 1]);
+      expect(holdEnd.beats.motion).toEqual(holdStart.beats.motion);
+      expect(holdEnd.beats.visual).toBe(1);
+      expect(holdEnd.beats.title).toBe(1);
+      expect(holdEnd.beats.statement).toBe(1);
+      expect(holdEnd.beats.transition).toBe(0);
+    }
+  });
+
+  it("gives Tetrad 12 a longer inspection segment than Tetrad 11", () => {
+    const chapters = TETRADIC_V2_MASTER_TIMELINE.segments.filter(
+      segment => segment.kind === "chapter"
+    );
+    const eleven = chapters.find(segment => segment.chapter === 11)!;
+    const twelve = chapters.find(segment => segment.chapter === 12)!;
+
+    expect(twelve.endSvh - twelve.startSvh).toBeGreaterThan(
+      eleven.endSvh - eleven.startSvh
+    );
+  });
+
+  it("hands every incoming chapter to its active state without a visual reset", () => {
+    const chapters = TETRADIC_V2_MASTER_TIMELINE.segments.filter(
+      segment => segment.kind === "chapter"
+    );
+
+    chapters.slice(0, -1).forEach(segment => {
+      const nextChapter = segment.chapter! + 1;
+      const justBefore = getTetradicV2MasterState(
+        (segment.endSvh - 0.0001) / TETRADIC_V2_MASTER_TIMELINE.travelSvh
+      );
+      const atBoundary = getTetradicV2MasterState(
+        segment.endSvh / TETRADIC_V2_MASTER_TIMELINE.travelSvh
+      );
+      const incoming = justBefore.chapters.find(
+        chapter => chapter.number === nextChapter
+      );
+      const active = atBoundary.chapters.find(
+        chapter => chapter.number === nextChapter
+      );
+
+      expect(incoming?.presence).toBeCloseTo(active?.presence ?? 0, 5);
+      expect(incoming?.beats.motion).toEqual(active?.beats.motion);
+      expect(incoming?.beats.visual).toBe(active?.beats.visual);
+    });
+  });
+
+  it("keeps synthesis copy continuous after Tetrad 12", () => {
+    const twelve = TETRADIC_V2_MASTER_TIMELINE.segments.find(
+      segment => segment.chapter === 12
+    )!;
+    const justBefore = getTetradicV2MasterState(
+      (twelve.endSvh - 0.0001) / TETRADIC_V2_MASTER_TIMELINE.travelSvh
+    );
+    const atBoundary = getTetradicV2MasterState(
+      twelve.endSvh / TETRADIC_V2_MASTER_TIMELINE.travelSvh
+    );
+
+    expect(justBefore.synthesisCopy).toBeCloseTo(1, 5);
+    expect(atBoundary.synthesisCopy).toBe(1);
   });
 });
