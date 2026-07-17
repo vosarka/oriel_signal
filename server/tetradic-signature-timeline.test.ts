@@ -19,6 +19,10 @@ import {
   createCoronaSegments,
 } from "../client/src/features/tetradic-signature/SampleArchiveSeal";
 import { TetradicNarrative } from "../client/src/features/tetradic-signature/TetradicNarrative";
+import {
+  TETRADIC_V2_TIMELINE,
+  getTetradicV2State,
+} from "../client/src/features/tetradic-signature/tetradic-signature-v2-config";
 
 function atTetradProgress(progress: number) {
   const range = TETRADIC_CHAPTERS.tetradOne;
@@ -417,8 +421,7 @@ describe("Tetradic Signature scroll timeline", () => {
     const semanticMarkup = markup.match(
       /<article class="sr-only">([\s\S]*?)<\/article>/
     )?.[1];
-    const semanticChapters =
-      semanticMarkup?.match(/TETRAD \d{2} \/ 12/g) ?? [];
+    const semanticChapters = semanticMarkup?.match(/TETRAD \d{2} \/ 12/g) ?? [];
 
     const expectedChapters = Array.from(
       { length: 12 },
@@ -426,7 +429,9 @@ describe("Tetradic Signature scroll timeline", () => {
     );
     expect([...new Set(semanticChapters)]).toEqual(expectedChapters);
     expectedChapters.forEach(chapter => {
-      expect(semanticChapters.filter(label => label === chapter)).toHaveLength(1);
+      expect(semanticChapters.filter(label => label === chapter)).toHaveLength(
+        1
+      );
     });
     expect(markup).toContain(
       'class="tetradic-signature__reduced-visual-copy" aria-hidden="true"'
@@ -440,5 +445,41 @@ describe("Tetradic Signature scroll timeline", () => {
     expect(TETRAD_THREE_TIMING_STATES[3].detail).toMatch(
       /NO VERIFIED EPHEMERIS/
     );
+  });
+
+  it("orders the V2 artifact, archive, Threshold, and Tetrad 02 reveal", () => {
+    expect(getTetradicV2State(0.08).scene).toBe("artifact-reveal");
+    expect(getTetradicV2State(0.24).scene).toBe("cover-identity");
+    expect(getTetradicV2State(0.4).scene).toBe("enter-archive");
+    expect(getTetradicV2State(0.58).scene).toBe("tetrad-01");
+    expect(getTetradicV2State(0.9).scene).toBe("transition-01-02");
+
+    expect(getTetradicV2State(0.5).tetradOne).toBeGreaterThan(0);
+    expect(getTetradicV2State(0.5).tetradOneTitle).toBe(0);
+    expect(getTetradicV2State(0.58).tetradOneTitle).toBeGreaterThan(0);
+    expect(getTetradicV2State(0.58).tetradOneStatement).toBe(0);
+    expect(getTetradicV2State(0.64).tetradOneStatement).toBeGreaterThan(0);
+    expect(getTetradicV2State(0.86).tetradTwo).toBe(0);
+    expect(getTetradicV2State(0.96).tetradTwo).toBeGreaterThan(0);
+  });
+
+  it("reconstructs identical V2 state after a forward and reverse round trip", () => {
+    expect(TETRADIC_V2_TIMELINE.travelSvh).toBe(700);
+    expect(TETRADIC_V2_TIMELINE.compactTravelSvh).toBeLessThan(
+      TETRADIC_V2_TIMELINE.travelSvh
+    );
+    expect(getTetradicV2State(-1).progress).toBe(0);
+    expect(getTetradicV2State(2).progress).toBe(1);
+
+    const roundTrip = [0.24, 0.64, 0.96, 0.64, 0.24].map(getTetradicV2State);
+    expect(roundTrip[1]).toEqual(roundTrip[3]);
+    expect(roundTrip[0]).toEqual(roundTrip[4]);
+    expect(roundTrip.map(state => state.scene)).toEqual([
+      "cover-identity",
+      "tetrad-01",
+      "transition-01-02",
+      "tetrad-01",
+      "cover-identity",
+    ]);
   });
 });

@@ -1429,3 +1429,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Replaced abrupt camera states with continuous compatible paths; added physical anticipation, travel, and settling to both approved page transitions.
 - Rebalanced the desktop and compact book scale, camera distance, narrative holds, and Tetrad 03 journey without changing the locked Tetrad 01 spread, assets, copy, or route.
 - Verification: focused Tetradic tests and production build pass; browser checks cover reverse scroll, reload reconstruction, compact touch input, and reduced motion. Tetrads 04–12 remain untouched.
+
+## [2026-07-17] feature | Tetradic Signature cinematic V2 prototype
+- Replaced the mounted R3F book and mechanical page-turn presentation on `/tetradic-signature` with one stable 2.5D DOM stage driven by the existing Lenis layer and a single normalized ScrollTrigger.
+- Implemented the approved prototype sequence: darkness and artifact reveal, cover identity lock, seal-aperture archive entry, the unchanged final-quality Tetrad 01 plate, and a visible seal-derived transition into Tetrad 02.
+- Reused the existing pedestal, cover, archive seal, redacted sample data, Tetrad symbols, and coded diagrams; retained the V1 implementation for rollback and generated no raster assets.
+- Verification: focused Tetradic tests pass (24/24), production build passes, and desktop/mobile/reduced-motion/reverse/reload browser checks report no runtime errors. Type-check retains the pre-existing `server/routers.ts:873` error; the repository suite retains the unrelated Profile Console and public-terminology assertions.
