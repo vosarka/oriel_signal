@@ -1,5 +1,6 @@
 import {
   TETRADIC_CHOREOGRAPHY as CHOREOGRAPHY,
+  TETRADIC_LATER_MOTION,
   TETRADIC_SIGNATURE_CONFIG,
   type TetradicTimelineRange,
 } from "./tetradic-signature-config";
@@ -28,7 +29,17 @@ export type TetradicChapter =
   | "tetrad-two"
   | "transition-two-three"
   | "tetrad-three"
-  | "future";
+  | "transition-three-four"
+  | "tetrad-four"
+  | "tetrad-five"
+  | "tetrad-six"
+  | "tetrad-seven"
+  | "tetrad-eight"
+  | "tetrad-nine"
+  | "tetrad-ten"
+  | "tetrad-eleven"
+  | "tetrad-twelve"
+  | "final-closure";
 
 export type TetradSceneState = Readonly<{
   progress: number;
@@ -65,12 +76,58 @@ export type TetradThreeSceneState = Readonly<{
   statement: number;
   celestialReveal: number;
   horizontalJourney: number;
+  withdrawal: number;
+}>;
+
+export type LaterTetradSceneState = Readonly<{
+  number: number;
+  progress: number;
+  settle: number;
+  title: number;
+  statement: number;
+  visual: number;
+  inspection: number;
+  withdrawal: number;
+  pagePrep: number;
+  motion: Readonly<{
+    phases: readonly [number, number, number, number];
+    cameraTravel: number;
+    path: number;
+    breath: number;
+    imprint: number;
+  }>;
+}>;
+
+export type LaterTransitionSceneState = Readonly<{
+  from: number;
+  to: number;
+  progress: number;
+  anticipation: number;
+  pageLift: number;
+  pageTurn: number;
+  spreadSwap: number;
+  pageSettle: number;
+  visualTransform: number;
+}>;
+
+export type TetradicClosureState = Readonly<{
+  progress: number;
+  synthesis: number;
+  title: number;
+  bookClose: number;
+  cameraPullback: number;
+  settle: number;
+  halo: number;
+  markers: number;
+  cta: number;
 }>;
 
 export type TetradicSceneState = Readonly<{
   progress: number;
   activeSegment: string;
   activeChapter: TetradicChapter;
+  activeTetrad: number;
+  visibleSpread: number;
   reveal: number;
   approach: number;
   orientation: number;
@@ -103,10 +160,14 @@ export type TetradicSceneState = Readonly<{
     celestialReveal: number;
   }>;
   tetradThree: TetradThreeSceneState;
+  laterChapters: readonly LaterTetradSceneState[];
+  laterTransitions: readonly LaterTransitionSceneState[];
+  closure: TetradicClosureState;
   cta: number;
   narrative: Readonly<{
     cover: number;
     approach: number;
+    synthesis: number;
     cta: number;
   }>;
 }>;
@@ -174,7 +235,34 @@ function getActiveChapter(progress: number): TetradicChapter {
     return "transition-two-three";
   }
   if (progress <= CHOREOGRAPHY[2].core.end) return "tetrad-three";
-  return "future";
+  if (progress < CHOREOGRAPHY[2].transitionOut.range.end) {
+    return "transition-three-four";
+  }
+
+  const laterNames = [
+    "tetrad-four",
+    "tetrad-five",
+    "tetrad-six",
+    "tetrad-seven",
+    "tetrad-eight",
+    "tetrad-nine",
+    "tetrad-ten",
+    "tetrad-eleven",
+    "tetrad-twelve",
+  ] as const;
+
+  for (let index = 3; index < CHOREOGRAPHY.length; index += 1) {
+    if (progress <= CHOREOGRAPHY[index].core.end) {
+      return laterNames[index - 3];
+    }
+    if (progress < CHOREOGRAPHY[index].transitionOut.range.end) {
+      return index === CHOREOGRAPHY.length - 1
+        ? "final-closure"
+        : laterNames[index - 3];
+    }
+  }
+
+  return "final-closure";
 }
 
 export function getTetradOneSceneState(
@@ -238,19 +326,160 @@ function getTetradTwoSceneState(globalProgress: number): TetradTwoSceneState {
 }
 
 function getTetradThreeSceneState(
-  globalProgress: number
+  globalProgress: number,
+  ctaWithdrawal = 0
 ): TetradThreeSceneState {
   const progress = rangeProgress(globalProgress, CHOREOGRAPHY[2].core);
   const rhythm = CHAPTER_RHYTHM.tetradThree;
+  const withdrawal = Math.max(
+    ctaWithdrawal,
+    easedRangeProgress(progress, rhythm.withdrawal)
+  );
+  const hold = 1 - withdrawal;
 
   return {
     progress,
     settle: easedRangeProgress(progress, rhythm.settle),
-    title: easedRangeProgress(progress, rhythm.title),
-    statement: easedRangeProgress(progress, rhythm.statement),
+    title: easedRangeProgress(progress, rhythm.title) * hold,
+    statement: easedRangeProgress(progress, rhythm.statement) * hold,
     celestialReveal: easedRangeProgress(progress, rhythm.celestialReveal),
     horizontalJourney: easedRangeProgress(progress, rhythm.horizontalJourney),
+    withdrawal,
   };
+}
+
+function getLaterTetradSceneState(
+  globalProgress: number,
+  chapterIndex: number
+): LaterTetradSceneState {
+  const chapter = CHOREOGRAPHY[chapterIndex];
+  const progress = rangeProgress(globalProgress, chapter.core);
+  const finalChapter = chapterIndex === CHOREOGRAPHY.length - 1;
+  const rhythm = finalChapter
+    ? CHAPTER_RHYTHM.finalChapter
+    : CHAPTER_RHYTHM.laterChapter;
+  const withdrawal = easedRangeProgress(progress, rhythm.withdrawal);
+  const motion = TETRADIC_LATER_MOTION[chapterIndex - 3];
+  const phaseValues = motion.phases.map(range =>
+    easedRangeProgress(progress, range)
+  ) as [number, number, number, number];
+  const breathProgress = rangeProgress(progress, motion.breathWindow);
+  const breath =
+    motion.breathCycles === 0
+      ? 0
+      : Math.sin(breathProgress * Math.PI * motion.breathCycles) ** 2;
+
+  return {
+    number: chapter.number,
+    progress,
+    settle: easedRangeProgress(progress, rhythm.settle),
+    title:
+      easedRangeProgress(progress, rhythm.title) *
+      (finalChapter ? 1 : 1 - withdrawal),
+    statement:
+      easedRangeProgress(progress, rhythm.statement) * (1 - withdrawal),
+    visual: easedRangeProgress(progress, rhythm.visual),
+    inspection: easedRangeProgress(progress, rhythm.inspection),
+    withdrawal,
+    pagePrep: finalChapter ? 0 : easedRangeProgress(progress, rhythm.pageLift),
+    motion: {
+      phases: phaseValues,
+      cameraTravel: easedRangeProgress(progress, motion.cameraTravel),
+      path: easedRangeProgress(progress, motion.path),
+      breath,
+      imprint: easedRangeProgress(progress, motion.imprint),
+    },
+  };
+}
+
+function getLaterTransitionSceneState(
+  globalProgress: number,
+  chapterIndex: number
+): LaterTransitionSceneState {
+  const chapter = CHOREOGRAPHY[chapterIndex];
+  const transition = getTransitionState(
+    globalProgress,
+    chapter.transitionOut.range,
+    CHAPTER_RHYTHM.laterTransition
+  );
+
+  return {
+    from: chapter.number,
+    to: CHOREOGRAPHY[chapterIndex + 1].number,
+    progress: transition.progress,
+    anticipation: transition.values.anticipation,
+    pageLift: transition.values.pageLift,
+    pageTurn: transition.values.pageTurn,
+    spreadSwap: transition.values.spreadSwap,
+    pageSettle: transition.values.pageSettle,
+    visualTransform: transition.values.visualTransform,
+  };
+}
+
+function getClosureSceneState(globalProgress: number): TetradicClosureState {
+  const range = CHOREOGRAPHY[11].transitionOut.range;
+  const progress = rangeProgress(globalProgress, range);
+  const rhythm = CHAPTER_RHYTHM.finalClosure;
+  const title = easedRangeProgress(progress, rhythm.synthesisTitle);
+  const synthesisEntry = easedRangeProgress(progress, rhythm.synthesis);
+  const synthesisExit = easedRangeProgress(progress, {
+    start: 0.68,
+    end: 0.84,
+  });
+
+  return {
+    progress,
+    synthesis: synthesisEntry * (1 - synthesisExit),
+    title: title * (1 - synthesisExit),
+    bookClose: easedRangeProgress(progress, rhythm.bookClose),
+    cameraPullback: easedRangeProgress(progress, rhythm.cameraPullback),
+    settle: easedRangeProgress(progress, rhythm.settle),
+    halo: easedRangeProgress(progress, rhythm.halo),
+    markers: easedRangeProgress(progress, rhythm.markers),
+    cta: easedRangeProgress(progress, rhythm.cta),
+  };
+}
+
+function getActiveTetrad(progress: number) {
+  for (let index = 0; index < CHOREOGRAPHY.length; index += 1) {
+    const chapter = CHOREOGRAPHY[index];
+    if (progress <= chapter.core.end) return chapter.number;
+    if (progress < chapter.transitionOut.range.end) {
+      const local = rangeProgress(progress, chapter.transitionOut.range);
+      return local < 0.5 || index === CHOREOGRAPHY.length - 1
+        ? chapter.number
+        : CHOREOGRAPHY[index + 1].number;
+    }
+  }
+
+  return 12;
+}
+
+function getVisibleSpread(progress: number) {
+  if (progress <= CHOREOGRAPHY[0].core.end) return 1;
+  if (progress < CHOREOGRAPHY[0].transitionOut.range.end) {
+    return rangeProgress(progress, CHOREOGRAPHY[0].transitionOut.range) < 0.58
+      ? 1
+      : 2;
+  }
+  if (progress <= CHOREOGRAPHY[1].core.end) return 2;
+  if (progress < CHOREOGRAPHY[1].transitionOut.range.end) {
+    return rangeProgress(progress, CHOREOGRAPHY[1].transitionOut.range) < 0.82
+      ? 2
+      : 3;
+  }
+
+  for (let index = 2; index < CHOREOGRAPHY.length - 1; index += 1) {
+    const chapter = CHOREOGRAPHY[index];
+    if (progress <= chapter.core.end) return chapter.number;
+    if (progress < chapter.transitionOut.range.end) {
+      return rangeProgress(progress, chapter.transitionOut.range) < 0.5
+        ? chapter.number
+        : CHOREOGRAPHY[index + 1].number;
+    }
+  }
+
+  return 12;
 }
 
 function getTransitionState(
@@ -303,16 +532,28 @@ export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
     CHOREOGRAPHY[1].transitionOut.range,
     CHAPTER_RHYTHM.transitionTwoToThree
   );
+  const laterChapters = Array.from({ length: 9 }, (_, index) =>
+    getLaterTetradSceneState(progress, index + 3)
+  );
+  const laterTransitions = Array.from({ length: 9 }, (_, index) =>
+    getLaterTransitionSceneState(progress, index + 2)
+  );
+  const closure = getClosureSceneState(progress);
+  const cta = closure.cta;
+  const coverOpen =
+    opening.coverRotation * (1 - closure.bookClose * (1 - 30 / 180));
 
   return {
     progress,
     activeSegment: getActiveTimelineSegment(progress),
     activeChapter: getActiveChapter(progress),
+    activeTetrad: getActiveTetrad(progress),
+    visibleSpread: getVisibleSpread(progress),
     reveal: easedRangeProgress(progress, TETRADIC_CHAPTERS.revelation),
     approach: easedRangeProgress(progress, TETRADIC_CHAPTERS.approach),
     orientation: easedRangeProgress(progress, TETRADIC_CHAPTERS.orientation),
     opening,
-    coverOpen: opening.coverRotation,
+    coverOpen,
     tetradOne: getTetradOneSceneState(progress),
     transitionOneToTwo: {
       progress: transitionOneToTwo.progress,
@@ -333,11 +574,15 @@ export function getTetradicSceneState(rawProgress: number): TetradicSceneState {
       celestialReveal: transitionTwoToThree.values.celestialReveal,
     },
     tetradThree: getTetradThreeSceneState(progress),
-    cta: 0,
+    laterChapters,
+    laterTransitions,
+    closure,
+    cta,
     narrative: {
       cover: narrativeOpacity(progress, TETRADIC_NARRATIVES.cover),
       approach: 0,
-      cta: 0,
+      synthesis: closure.synthesis,
+      cta,
     },
   };
 }

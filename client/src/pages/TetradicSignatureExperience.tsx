@@ -16,6 +16,7 @@ import { useTetradicScrollProgress } from "@/features/tetradic-signature/useTetr
 import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
 import "@/features/tetradic-signature/tetradic-signature.css";
 import "@/features/tetradic-signature/tetradic-spread.css";
+import "@/features/tetradic-signature/tetradic-later-spreads.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,7 +40,53 @@ function TetradicLenisGsapBridge() {
   return null;
 }
 
-function TetradicCheckpoint({
+function ChapterProgress({
+  onSelect,
+}: {
+  onSelect: (progress: number) => void;
+}) {
+  return (
+    <>
+      <div
+        className="sr-only"
+        role="progressbar"
+        aria-label="Tetradic chapter progress"
+        aria-valuemin={1}
+        aria-valuemax={12}
+        aria-valuenow={1}
+        aria-valuetext="Tetrad 01 of 12"
+        data-tetradic-progressbar=""
+      />
+      <nav
+        className="tetradic-signature__chapter-progress"
+        aria-label="Choose a tetrad chapter"
+      >
+        <ol>
+          {TETRADIC_SIGNATURE_CONFIG.animation.choreography.map(chapter => (
+            <li key={chapter.id}>
+              <button
+                type="button"
+                data-chapter-dot={chapter.number}
+                aria-label={`Go to Tetrad ${String(chapter.number).padStart(2, "0")}: ${chapter.title}`}
+                aria-current={chapter.number === 1 ? "step" : undefined}
+                onClick={() =>
+                  onSelect(
+                    chapter.core.start +
+                      (chapter.core.end - chapter.core.start) * 0.58
+                  )
+                }
+              >
+                <span>{String(chapter.number).padStart(2, "0")}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </>
+  );
+}
+
+function TetradicFilm({
   compact,
   reducedMotion,
   lenis,
@@ -49,14 +96,14 @@ function TetradicCheckpoint({
   lenis?: Lenis;
 }) {
   const containerRef = useRef<HTMLElement>(null);
-  const { sceneStateRef } = useTetradicScrollProgress(
+  const { sceneStateRef, restart, seekToProgress } = useTetradicScrollProgress(
     containerRef,
     reducedMotion,
     compact,
     lenis
   );
   const scrollStyle = {
-    "--ts-scroll-height": `${TETRADIC_TIMELINE.checkpointHeightSvh}svh`,
+    "--ts-scroll-height": `${TETRADIC_TIMELINE.heightSvh}svh`,
   } as CSSProperties;
 
   return (
@@ -86,6 +133,10 @@ function TetradicCheckpoint({
             className="tetradic-signature__environment-shade"
             aria-hidden="true"
           />
+          <div
+            className="tetradic-signature__closure-halo"
+            aria-hidden="true"
+          />
 
           <TetradicBookScene
             compact={compact}
@@ -102,12 +153,21 @@ function TetradicCheckpoint({
               <span className="tetradic-signature__fold-axis" />
             </div>
           )}
-          <TetradicNarrative reducedMotion={reducedMotion} />
+          <TetradicNarrative
+            reducedMotion={reducedMotion}
+            onReplaySample={restart}
+          />
 
           {!reducedMotion && (
             <>
-              <div className="tetradic-signature__progress" aria-hidden="true">
-                <span />
+              <ChapterProgress onSelect={seekToProgress} />
+              <div
+                className="tetradic-signature__closure-markers"
+                aria-hidden="true"
+              >
+                {Array.from({ length: 12 }, (_, index) => (
+                  <span key={index} />
+                ))}
               </div>
               <p className="tetradic-signature__scroll-cue" aria-hidden="true">
                 SCROLL TO EXAMINE
@@ -122,9 +182,7 @@ function TetradicCheckpoint({
 
 function SmoothTetradicCheckpoint({ compact }: { compact: boolean }) {
   const lenis = useLenis();
-  return (
-    <TetradicCheckpoint compact={compact} reducedMotion={false} lenis={lenis} />
-  );
+  return <TetradicFilm compact={compact} reducedMotion={false} lenis={lenis} />;
 }
 
 export default function TetradicSignatureExperience() {
@@ -140,7 +198,7 @@ export default function TetradicSignatureExperience() {
   }, []);
 
   if (reducedMotion) {
-    return <TetradicCheckpoint compact={compact} reducedMotion />;
+    return <TetradicFilm compact={compact} reducedMotion />;
   }
 
   return (

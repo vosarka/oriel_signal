@@ -33,10 +33,8 @@ function timelineRange(startSvh: number, endSvh: number) {
 
 export const TETRADIC_TIMELINE = {
   totalSvh: MASTER_TIMELINE_SVH,
-  checkpointEndSvh: 560,
-  checkpointViewportSvh: 100,
-  checkpointHeightSvh: 660,
-  checkpointEndProgress: 560 / MASTER_TIMELINE_SVH,
+  viewportSvh: 100,
+  heightSvh: MASTER_TIMELINE_SVH + 100,
 } as const;
 
 export const TETRADIC_CHOREOGRAPHY = [
@@ -234,6 +232,154 @@ export const TETRADIC_CHOREOGRAPHY = [
   },
 ] as const;
 
+function chapterMotionRange(start: number, end: number) {
+  return { start, end } as const;
+}
+
+/**
+ * Chapter-local motion beats for the coded Tetrads. The four phases are
+ * intentionally chapter-specific consumers (activation groups, identity
+ * states, practice states, and so on), while camera/path/imprint remain
+ * normalized so every result is deterministic in both scroll directions.
+ */
+export const TETRADIC_LATER_MOTION = [
+  {
+    number: 4,
+    phases: [
+      chapterMotionRange(0.2, 0.34),
+      chapterMotionRange(0.32, 0.46),
+      chapterMotionRange(0.44, 0.58),
+      chapterMotionRange(0.56, 0.7),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.42),
+    path: chapterMotionRange(0.2, 0.68),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 5,
+    phases: [
+      chapterMotionRange(0.18, 0.3),
+      chapterMotionRange(0.3, 0.42),
+      chapterMotionRange(0.42, 0.56),
+      chapterMotionRange(0.56, 0.72),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.44),
+    path: chapterMotionRange(0.18, 0.72),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 6,
+    phases: [
+      chapterMotionRange(0.2, 0.32),
+      chapterMotionRange(0.32, 0.46),
+      chapterMotionRange(0.46, 0.6),
+      chapterMotionRange(0.6, 0.74),
+    ],
+    cameraTravel: chapterMotionRange(0.2, 0.44),
+    path: chapterMotionRange(0.24, 0.74),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 7,
+    phases: [
+      chapterMotionRange(0.2, 0.3),
+      chapterMotionRange(0.32, 0.42),
+      chapterMotionRange(0.44, 0.54),
+      chapterMotionRange(0.56, 0.7),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.42),
+    path: chapterMotionRange(0.2, 0.7),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 8,
+    phases: [
+      chapterMotionRange(0.2, 0.3),
+      chapterMotionRange(0.32, 0.42),
+      chapterMotionRange(0.44, 0.54),
+      chapterMotionRange(0.56, 0.7),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.42),
+    path: chapterMotionRange(0.2, 0.7),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 9,
+    phases: [
+      chapterMotionRange(0.2, 0.32),
+      chapterMotionRange(0.34, 0.46),
+      chapterMotionRange(0.48, 0.6),
+      chapterMotionRange(0.62, 0.76),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.38),
+    path: chapterMotionRange(0.2, 0.74),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [0.3, 0.43, 0.56, 0.7],
+  },
+  {
+    number: 10,
+    phases: [
+      chapterMotionRange(0.18, 0.32),
+      chapterMotionRange(0.32, 0.46),
+      chapterMotionRange(0.46, 0.6),
+      chapterMotionRange(0.6, 0.74),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.38),
+    path: chapterMotionRange(0.2, 0.74),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+  {
+    number: 11,
+    phases: [
+      chapterMotionRange(0.2, 0.32),
+      chapterMotionRange(0.34, 0.46),
+      chapterMotionRange(0.48, 0.6),
+      chapterMotionRange(0.62, 0.76),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.4),
+    path: chapterMotionRange(0.2, 0.74),
+    imprint: chapterMotionRange(1, 1),
+    breathWindow: chapterMotionRange(0.24, 0.78),
+    breathCycles: 2,
+    snapStates: [0.3, 0.43, 0.56, 0.7],
+  },
+  {
+    number: 12,
+    phases: [
+      chapterMotionRange(0.18, 0.32),
+      chapterMotionRange(0.32, 0.46),
+      chapterMotionRange(0.46, 0.6),
+      chapterMotionRange(0.6, 0.76),
+    ],
+    cameraTravel: chapterMotionRange(0.18, 0.42),
+    path: chapterMotionRange(0.18, 0.72),
+    imprint: chapterMotionRange(0.24, 0.64),
+    breathWindow: chapterMotionRange(1, 1),
+    breathCycles: 0,
+    snapStates: [],
+  },
+] as const;
+
 const TETRAD_ONE_CORE = TETRADIC_CHOREOGRAPHY[0].core;
 
 export const TETRADIC_SIGNATURE_CONFIG = {
@@ -261,19 +407,21 @@ export const TETRADIC_SIGNATURE_CONFIG = {
   ctas: {
     exploreSampleLabel: "EXPLORE A SAMPLE",
     generateSignatureLabel: "GENERATE MY SIGNATURE",
-    generateSignatureRoute: null as string | null,
-    generateSignatureStatus: "AWAITING_GENERATOR_ROUTE",
+    generateSignatureRoute: "/founder-signature-blueprint",
+    generateSignatureStatus: "ROUTED_TO_FOUNDER_BLUEPRINT",
+    secondaryRoute: null as string | null,
   },
   animation: {
     timeline: TETRADIC_TIMELINE,
     choreography: TETRADIC_CHOREOGRAPHY,
+    laterMotion: TETRADIC_LATER_MOTION,
     chapters: {
       revelation: timelineRange(8, 36),
       approach: timelineRange(24, 54),
       orientation: timelineRange(32, 56),
       opening: timelineRange(64, 110),
       tetradOne: timelineRange(110, TETRAD_ONE_CORE.endSvh),
-      cta: timelineRange(MASTER_TIMELINE_SVH, MASTER_TIMELINE_SVH),
+      finalClosure: TETRADIC_CHOREOGRAPHY[11].transitionOut.range,
     },
     narratives: {
       cover: {
@@ -281,6 +429,12 @@ export const TETRADIC_SIGNATURE_CONFIG = {
         fadeInEnd: 10 / MASTER_TIMELINE_SVH,
         fadeOutStart: 30 / MASTER_TIMELINE_SVH,
         end: 44 / MASTER_TIMELINE_SVH,
+      },
+      cta: {
+        start: 2390 / MASTER_TIMELINE_SVH,
+        fadeInEnd: 2398 / MASTER_TIMELINE_SVH,
+        fadeOutStart: 1,
+        end: 1.000001,
       },
     },
     openingRhythm: {
@@ -322,6 +476,7 @@ export const TETRADIC_SIGNATURE_CONFIG = {
         statement: { start: 0.3, end: 0.42 },
         celestialReveal: { start: 0, end: 0.18 },
         horizontalJourney: { start: 0.44, end: 0.82 },
+        withdrawal: { start: 0.84, end: 0.96 },
       },
       transitionOneToTwo: {
         pageTurn: { start: 0, end: 0.64 },
@@ -338,6 +493,42 @@ export const TETRADIC_SIGNATURE_CONFIG = {
         foldDive: { start: 0.58, end: 0.9 },
         celestialReveal: { start: 0.8, end: 1 },
       },
+      laterChapter: {
+        settle: { start: 0, end: 0.18 },
+        title: { start: 0.24, end: 0.36 },
+        statement: { start: 0.32, end: 0.44 },
+        visual: { start: 0.18, end: 0.72 },
+        inspection: { start: 0.44, end: 0.8 },
+        withdrawal: { start: 0.8, end: 0.88 },
+        pageLift: { start: 0.9, end: 1 },
+      },
+      finalChapter: {
+        settle: { start: 0, end: 0.18 },
+        title: { start: 0.24, end: 0.36 },
+        statement: { start: 0.32, end: 0.44 },
+        visual: { start: 0.18, end: 0.58 },
+        inspection: { start: 0.44, end: 0.9 },
+        withdrawal: { start: 0.9, end: 1 },
+        pageLift: { start: 1, end: 1 },
+      },
+      laterTransition: {
+        anticipation: { start: 0, end: 0.1 },
+        pageLift: { start: 0.08, end: 0.18 },
+        pageTurn: { start: 0.14, end: 0.68 },
+        spreadSwap: { start: 0.48, end: 0.5 },
+        pageSettle: { start: 0.68, end: 0.82 },
+        visualTransform: { start: 0.3, end: 0.88 },
+      },
+      finalClosure: {
+        synthesis: { start: 0.24, end: 0.46 },
+        synthesisTitle: { start: 0.08, end: 0.3 },
+        bookClose: { start: 0.38, end: 0.72 },
+        cameraPullback: { start: 0.3, end: 0.82 },
+        settle: { start: 0.7, end: 0.86 },
+        halo: { start: 0.28, end: 0.72 },
+        markers: { start: 0.48, end: 0.78 },
+        cta: { start: 0.86, end: 0.98 },
+      },
     },
     scroll: {
       lerp: 0.07,
@@ -347,7 +538,7 @@ export const TETRADIC_SIGNATURE_CONFIG = {
       scrubCompact: 0.1,
     },
     reducedMotionProgress: 141 / MASTER_TIMELINE_SVH,
-    exploreSample: { startProgress: 0.01, endProgress: 0.21 },
+    exploreSample: { startProgress: 0, endProgress: 1 },
     book: {
       width: 2.4,
       depth: 3.2,
@@ -386,6 +577,30 @@ export const TETRADIC_SIGNATURE_CONFIG = {
           inspectionZ: 8.55,
           inspectionFov: 37.5,
         },
+        laterDesktop: [
+          { x: 0, y: 6.4, z: 5.5, fov: 29 },
+          { x: 0, y: 5.75, z: 6.2, fov: 30.5 },
+          { x: 0.22, y: 5.35, z: 6.1, fov: 30 },
+          { x: -0.35, y: 5.4, z: 6.35, fov: 31 },
+          { x: -0.35, y: 5.3, z: -6.25, fov: 31 },
+          { x: 0, y: 5.6, z: 6.15, fov: 30 },
+          { x: 0, y: 5.45, z: 6.05, fov: 29.5 },
+          { x: 0, y: 5.2, z: 6.6, fov: 32.5 },
+          { x: 0, y: 6.75, z: 4.9, fov: 30 },
+        ],
+        laterCompact: [
+          { x: 0, y: 6.55, z: 8.2, fov: 38 },
+          { x: 0, y: 6.25, z: 8.45, fov: 38.5 },
+          { x: 0.08, y: 6.15, z: 8.35, fov: 38 },
+          { x: -0.1, y: 6.2, z: 8.4, fov: 38.5 },
+          { x: -0.1, y: 6.2, z: -8.4, fov: 38.5 },
+          { x: 0, y: 6.3, z: 8.35, fov: 38 },
+          { x: 0, y: 6.25, z: 8.3, fov: 38 },
+          { x: 0, y: 6.05, z: 8.55, fov: 39 },
+          { x: 0, y: 6.75, z: 7.9, fov: 38 },
+        ],
+        closureDesktop: { x: 0, y: 5.7, z: 8.2, fov: 35 },
+        closureCompact: { x: 0, y: 6.2, z: 9.25, fov: 41 },
       },
     },
   },
@@ -413,6 +628,138 @@ export const TETRADIC_FINAL_OFFER = {
   headline: ["RECEIVE YOUR", "TETRADIC SIGNATURE"],
   description:
     "A founder-curated reading of the resonance architecture encoded at your exact moment of arrival.",
+  productDetails: [
+    "12 tetradic fields",
+    "48-page Founder Edition",
+    "Exact conscious and design calculations",
+    "64-codon architecture",
+    "Eight-center and circuitry mapping",
+    "Founder-curated synthesis",
+    "Calculation and calibration audit",
+  ],
   trust:
     "Created individually. Never assembled from a generic personality template.",
 } as const;
+
+export const TETRADIC_SYNTHESIS = {
+  headline: ["TWELVE FIELDS.", "ONE ARCHITECTURE."],
+  copy: [
+    "Your signature is not contained in any single diagram.",
+    "It exists in the relationship between timing, activation, structure, tension, embodiment and integration.",
+  ],
+  technicalLabel: "FOUNDER CURATION LAYER: COMPLETE",
+} as const;
+
+export const TETRADIC_SPREAD_CONTENT = [
+  {
+    number: 1,
+    title: "THE THRESHOLD",
+    technicalLabels: ["RECEIVER RECORD: INITIALIZED", "ARCHIVE SEAL: SAMPLE"],
+    semanticDescription:
+      "A redacted receiver record connects the sample Archive ID to a 64-segment sample archive seal.",
+  },
+  {
+    number: 2,
+    title: "THE WHOLE ARCHITECTURE",
+    technicalLabels: ["SYSTEM VIEW: COMPLETE", "SAMPLE FIELD: ILLUSTRATIVE"],
+    semanticDescription:
+      "A complete system view aligns the codon field, eight-center array, links and weighted signal layers.",
+  },
+  {
+    number: 3,
+    title: "THE TWO TIMINGS",
+    technicalLabels: ["TEMPORAL LAYERS: 02", "PUBLIC SAMPLE: UNVERIFIED"],
+    semanticDescription:
+      "A four-state timeline explains the conscious birth sky, exact 88-degree solar descent method, mirrored Design layer and public-sample integrity notice.",
+  },
+  {
+    number: 4,
+    title: "THE MANDALA",
+    technicalLabels: ["CODON FIELD: 64", "ACTIVATIONS: ILLUSTRATIVE SAMPLE"],
+    semanticDescription:
+      "The canonical 64-position Mandala distinguishes illustrative Conscious, Design and convergence states without asserting calculated activations.",
+  },
+  {
+    number: 5,
+    title: "THE EIGHT CENTERS",
+    technicalLabels: ["CENTERS: 08", "DEFINITION: ILLUSTRATIVE SAMPLE"],
+    semanticDescription:
+      "The canonical eight-center body architecture distinguishes illustrative defined and open states from crown to root.",
+  },
+  {
+    number: 6,
+    title: "THE CIRCUITRY",
+    technicalLabels: ["RESONANCE LINKS: 32", "BOTTLENECK: SAMPLE MARKER"],
+    semanticDescription:
+      "A canonical Resonance Link network demonstrates direction and flow, with one clearly labeled illustrative bottleneck.",
+  },
+  {
+    number: 7,
+    title: "CONSCIOUS ACTIVATION ATLAS",
+    technicalLabels: ["LAYER: CONSCIOUS", "POSITIONS: REDACTED SAMPLE"],
+    semanticDescription:
+      "A warm-gold atlas organizes the Conscious Sun and Earth, Moon and Nodes, inner planets and outer planets without invented positions.",
+  },
+  {
+    number: 8,
+    title: "DESIGN ACTIVATION ATLAS",
+    technicalLabels: ["LAYER: DESIGN", "POSITIONS: REDACTED SAMPLE"],
+    semanticDescription:
+      "A cool, mirrored atlas organizes the Design planetary groups as a somatic layer beneath the page surface.",
+  },
+  {
+    number: 9,
+    title: "IDENTITY SYNTHESIS",
+    technicalLabels: ["ROLE FIELD: ILLUSTRATIVE", "SYNTHESIS: SAMPLE STATE"],
+    semanticDescription:
+      "Primary and secondary sample structures converge into a single identity synthesis seal without claiming a calculated role.",
+  },
+  {
+    number: 10,
+    title: "SHADOW AND GIFT",
+    technicalLabels: [
+      "INTERFERENCE: SAMPLE MODEL",
+      "COHERENCE PATH: DEMONSTRATED",
+    ],
+    semanticDescription:
+      "One continuous geometry moves from restrained fracture and interference toward coherent integration.",
+  },
+  {
+    number: 11,
+    title: "SOMATIC PRACTICE",
+    technicalLabels: ["PROTOCOLS: 03", "CALIBRATION WINDOW: 48H"],
+    semanticDescription:
+      "Three observation protocols connect to a readable zero, twenty-four and forty-eight-hour calibration path.",
+  },
+  {
+    number: 12,
+    title: "INTEGRATION AND SEAL",
+    technicalLabels: ["OBSERVATION FIELD: 07D", "INTEGRATION ORBIT: 30D"],
+    semanticDescription:
+      "A seven-day observation field and thirty-day integration orbit surround the reusable sample archive seal and Founder synthesis area.",
+  },
+] as const;
+
+/** Two-Timings fidelity labels for the Tetrad 03 horizontal audit track. */
+export const TETRAD_THREE_TIMING_STATES = [
+  {
+    code: "01 / T_BIRTH",
+    title: "CONSCIOUS SUN",
+    detail: "GEOCENTRIC TROPICAL LONGITUDE AT ARRIVAL",
+  },
+  {
+    code: "02 / SOLAR ARC",
+    title: "88.0000°",
+    detail: "RETROGRADE SEARCH — EXACTLY 88° BEHIND BIRTH SUN",
+  },
+  {
+    code: "03 / T_DESIGN",
+    title: "DESIGN LAYER",
+    detail: "FULL CHART AT THE SOLVED DESIGN JULIAN DAY",
+  },
+  {
+    code: "04 / SAMPLE INTEGRITY",
+    title: "ILLUSTRATIVE ONLY",
+    detail: "NO VERIFIED EPHEMERIS VALUES IN THIS PUBLIC SAMPLE",
+  },
+] as const;

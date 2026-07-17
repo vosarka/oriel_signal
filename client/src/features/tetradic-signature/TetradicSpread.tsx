@@ -4,10 +4,12 @@ import { useFrame } from "@react-three/fiber";
 
 import type { TetradicSceneState } from "./chapter-config";
 import { SampleArchiveSeal } from "./SampleArchiveSeal";
+import { TetradicLaterSpreads } from "./TetradicLaterSpreads";
 import {
   TETRADIC_CHOREOGRAPHY,
   TETRADIC_SIGNATURE_CONFIG,
   TETRAD_ONE_SPREAD,
+  TETRAD_THREE_TIMING_STATES,
 } from "./tetradic-signature-config";
 
 function ReceiverRecordInitialization({
@@ -245,28 +247,7 @@ function TetradTwoPages() {
   );
 }
 
-const TIMING_STATES = [
-  {
-    code: "01 / CONSCIOUS SKY",
-    title: "ARRIVAL IN LIGHT",
-    detail: "BIRTH SUN / GOLD POSITION",
-  },
-  {
-    code: "02 / SOLAR DESCENT",
-    title: "88.0000°",
-    detail: "BACKWARD CALIBRATION ARC",
-  },
-  {
-    code: "03 / MIRRORED LAYERS",
-    title: "CONSCIOUS / DESIGN",
-    detail: "TWO TIMINGS / ONE RECEIVER",
-  },
-  {
-    code: "04 / CALCULATION AUDIT",
-    title: "TRACE COMPLETE",
-    detail: "ILLUSTRATIVE CHECKPOINT / NO EPHEMERIS VALUES",
-  },
-] as const;
+const TIMING_STATES = TETRAD_THREE_TIMING_STATES;
 
 function TimingOrbit({ index }: { index: number }) {
   return (
@@ -358,7 +339,6 @@ export function TetradicSpread({
 
     const state = sceneStateRef.current;
     const tetrad = state.tetradOne;
-    const transitionOne = state.transitionOneToTwo;
     const tetradTwo = state.tetradTwo;
     const transitionTwo = state.transitionTwoToThree;
     const tetradThree = state.tetradThree;
@@ -366,11 +346,10 @@ export function TetradicSpread({
       transitionTwo.celestialReveal,
       tetradThree.celestialReveal
     );
-    const t1Opacity = tetrad.spreadReveal * (1 - transitionOne.spreadSwap);
-    const t2Opacity =
-      Math.max(transitionOne.spreadSwap, tetradTwo.settle) *
-      (1 - t3Reveal);
-    const t3Opacity = t3Reveal;
+    const t1Opacity = tetrad.spreadReveal * (state.visibleSpread === 1 ? 1 : 0);
+    const t2Opacity = state.visibleSpread === 2 ? 1 : 0;
+    const t3Opacity = t3Reveal * (state.visibleSpread === 3 ? 1 : 0);
+    root.dataset.visibleSpread = String(state.visibleSpread);
     root.style.setProperty("--spread-reveal", tetrad.spreadReveal.toFixed(4));
     root.style.setProperty("--diagram-reveal", tetrad.diagramReveal.toFixed(4));
     root.style.setProperty("--seal-light", tetrad.sealLight.toFixed(4));
@@ -389,9 +368,57 @@ export function TetradicSpread({
     );
     root.style.setProperty(
       "--spread-roll",
-      `${transitionTwo.celestialReveal * 180}deg`
+      `${transitionTwo.celestialReveal * (1 - state.laterTransitions[0].visualTransform) * 180}deg`
     );
-    root.style.opacity = String(tetrad.spreadReveal);
+    state.laterChapters.forEach(chapter => {
+      const number = String(chapter.number).padStart(2, "0");
+      root.style.setProperty(`--t${number}-visual`, chapter.visual.toFixed(4));
+      root.style.setProperty(
+        `--t${number}-inspection`,
+        chapter.inspection.toFixed(4)
+      );
+      chapter.motion.phases.forEach((phase, index) => {
+        root.style.setProperty(
+          `--t${number}-phase-${index + 1}`,
+          phase.toFixed(4)
+        );
+      });
+      root.style.setProperty(
+        `--t${number}-camera`,
+        chapter.motion.cameraTravel.toFixed(4)
+      );
+      root.style.setProperty(
+        `--t${number}-path`,
+        chapter.motion.path.toFixed(4)
+      );
+      root.style.setProperty(
+        `--t${number}-breath`,
+        chapter.motion.breath.toFixed(4)
+      );
+      root.style.setProperty(
+        `--t${number}-imprint`,
+        chapter.motion.imprint.toFixed(4)
+      );
+      root.style.setProperty(
+        `--t${number}-page-prep`,
+        chapter.pagePrep.toFixed(4)
+      );
+    });
+    root.style.setProperty(
+      "--tetradic-closure-progress",
+      state.closure.progress.toFixed(4)
+    );
+    state.laterTransitions.forEach(transition => {
+      const from = String(transition.from).padStart(2, "0");
+      const to = String(transition.to).padStart(2, "0");
+      root.style.setProperty(
+        `--transition-${from}-${to}`,
+        transition.visualTransform.toFixed(4)
+      );
+    });
+    root.style.opacity = String(
+      tetrad.spreadReveal * (1 - state.closure.bookClose)
+    );
   });
 
   return (
@@ -407,6 +434,7 @@ export function TetradicSpread({
         <TetradOnePages />
         <TetradTwoPages />
         <TetradThreePages />
+        <TetradicLaterSpreads />
       </div>
     </Html>
   );

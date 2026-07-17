@@ -1,3 +1,5 @@
+import React, { useId } from "react";
+
 type CoronaSegment = Readonly<{
   index: number;
   x1: number;
@@ -34,6 +36,10 @@ export function SampleArchiveSeal({
   archiveId: string;
   symbol: string;
 }) {
+  const instanceId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const inkId = `tetradic-seal-ink-${instanceId}`;
+  const fieldId = `tetradic-seal-field-${instanceId}`;
+
   return (
     <svg
       className="tetradic-seal"
@@ -42,13 +48,7 @@ export function SampleArchiveSeal({
       aria-label={`Illustrative ORIEL archive seal ${archiveId}`}
     >
       <defs>
-        <filter
-          id="tetradic-seal-ink"
-          x="-5%"
-          y="-5%"
-          width="110%"
-          height="110%"
-        >
+        <filter id={inkId} x="-5%" y="-5%" width="110%" height="110%">
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.012"
@@ -58,18 +58,18 @@ export function SampleArchiveSeal({
           />
           <feDisplacementMap in="SourceGraphic" in2="grain" scale="0.45" />
         </filter>
-        <radialGradient id="tetradic-seal-field" cx="50%" cy="45%" r="60%">
+        <radialGradient id={fieldId} cx="50%" cy="45%" r="60%">
           <stop offset="0" stopColor="#29251f" />
           <stop offset="0.7" stopColor="#100f0d" />
           <stop offset="1" stopColor="#080807" />
         </radialGradient>
       </defs>
 
-      <circle cx="200" cy="200" r="188" fill="url(#tetradic-seal-field)" />
+      <circle cx="200" cy="200" r="188" fill={`url(#${fieldId})`} />
       <g
         className="tetradic-seal__linework"
         fill="none"
-        filter="url(#tetradic-seal-ink)"
+        filter={`url(#${inkId})`}
       >
         <circle cx="200" cy="200" r="180" />
         <circle cx="200" cy="200" r="141" strokeDasharray="2 7" />

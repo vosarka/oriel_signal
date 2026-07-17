@@ -11,7 +11,8 @@ function readViewportPreferences(): TetradicViewport {
   }
 
   return {
-    compact: window.matchMedia("(max-width: 767px)").matches,
+    compact: window.matchMedia("(max-width: 1023px), (orientation: portrait)")
+      .matches,
     reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
       .matches,
   };
@@ -23,7 +24,9 @@ export function useTetradicViewport() {
   );
 
   useEffect(() => {
-    const compactQuery = window.matchMedia("(max-width: 767px)");
+    const compactQuery = window.matchMedia(
+      "(max-width: 1023px), (orientation: portrait)"
+    );
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setViewport(readViewportPreferences());
 

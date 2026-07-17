@@ -12,8 +12,12 @@ import {
   TETRADIC_TIMELINE,
   TETRAD_ONE_SPREAD,
   TETRAD_SYMBOLS,
+  TETRAD_THREE_TIMING_STATES,
 } from "../client/src/features/tetradic-signature/tetradic-signature-config";
-import { createCoronaSegments } from "../client/src/features/tetradic-signature/SampleArchiveSeal";
+import {
+  SampleArchiveSeal,
+  createCoronaSegments,
+} from "../client/src/features/tetradic-signature/SampleArchiveSeal";
 import { TetradicNarrative } from "../client/src/features/tetradic-signature/TetradicNarrative";
 
 function atTetradProgress(progress: number) {
@@ -29,25 +33,47 @@ function atRangeProgress(
   range: Readonly<{ start: number; end: number }>,
   progress: number
 ) {
-  return getTetradicSceneState(range.start + (range.end - range.start) * progress);
+  return getTetradicSceneState(
+    range.start + (range.end - range.start) * progress
+  );
+}
+
+function laterChapterAt(chapterIndex: number, progress: number) {
+  return atRangeProgress(TETRADIC_CHOREOGRAPHY[chapterIndex].core, progress)
+    .laterChapters[chapterIndex - 3];
+}
+
+function firstPositiveProgress(
+  chapterIndex: number,
+  field: "settle" | "title" | "statement" | "withdrawal" | "pagePrep"
+) {
+  for (let step = 0; step <= 100; step += 1) {
+    if (laterChapterAt(chapterIndex, step / 100)[field] > 0) return step / 100;
+  }
+
+  return Number.POSITIVE_INFINITY;
 }
 
 describe("Tetradic Signature scroll timeline", () => {
-  it("covers one continuous master film and reconstructs every segment in reverse", () => {
+  it("covers twelve contiguous chapters and reconstructs every segment in reverse", () => {
     const segments = TETRADIC_CHOREOGRAPHY.flatMap(chapter => [
       chapter.core,
       chapter.transitionOut.range,
     ]);
 
+    expect(TETRADIC_CHOREOGRAPHY).toHaveLength(12);
     expect(segments[0].start).toBe(0);
     segments.slice(1).forEach((segment, index) => {
       expect(segment.start).toBe(segments[index].end);
     });
     expect(segments.at(-1)?.end).toBe(1);
-    expect(TETRADIC_TIMELINE.checkpointEndProgress).toBeCloseTo(560 / 2400);
 
     const checkpoints = segments
-      .flatMap(segment => [segment.start, (segment.start + segment.end) / 2])
+      .flatMap(segment => [
+        segment.start,
+        (segment.start + segment.end) / 2,
+        segment.end,
+      ])
       .concat(1);
     const forward = checkpoints.map(getTetradicSceneState);
     const backward = [...checkpoints]
@@ -56,23 +82,18 @@ describe("Tetradic Signature scroll timeline", () => {
       .reverse();
 
     expect(backward).toEqual(forward);
-    expect(
-      getTetradicSceneState(TETRADIC_CHOREOGRAPHY[0].core.end)
-    ).toMatchObject({
-      activeSegment: "tetrad-01",
-      activeChapter: "tetrad-one",
-    });
-    expect(
-      getTetradicSceneState(TETRADIC_CHOREOGRAPHY[1].core.end)
-    ).toMatchObject({
-      activeSegment: "tetrad-02",
-      activeChapter: "tetrad-two",
-    });
-    expect(
-      getTetradicSceneState(TETRADIC_TIMELINE.checkpointEndProgress)
-    ).toMatchObject({
-      activeSegment: "tetrad-03",
-      activeChapter: "tetrad-three",
+    TETRADIC_CHOREOGRAPHY.forEach(chapter => {
+      expect(
+        getTetradicSceneState((chapter.core.start + chapter.core.end) / 2)
+          .activeSegment
+      ).toBe(chapter.id);
+      expect(
+        getTetradicSceneState(
+          (chapter.transitionOut.range.start +
+            chapter.transitionOut.range.end) /
+            2
+        ).activeSegment
+      ).toBe(chapter.transitionOut.id);
     });
   });
 
@@ -222,17 +243,99 @@ describe("Tetradic Signature scroll timeline", () => {
     expect(celestial.celestialReveal).toBeGreaterThan(0);
   });
 
-  it("keeps the final CTA out of the Tetrads 01–03 checkpoint", () => {
-    expect(
-      getTetradicSceneState(TETRADIC_TIMELINE.checkpointEndProgress).cta
-    ).toBe(0);
-    expect(
-      getTetradicSceneState(TETRADIC_TIMELINE.checkpointEndProgress).narrative
-        .cta
-    ).toBe(0);
+  it("settles Tetrads 04–12 before copy and withdraws copy before page preparation", () => {
+    for (let chapterIndex = 3; chapterIndex < 12; chapterIndex += 1) {
+      const settle = firstPositiveProgress(chapterIndex, "settle");
+      const title = firstPositiveProgress(chapterIndex, "title");
+      const statement = firstPositiveProgress(chapterIndex, "statement");
+      const withdrawal = firstPositiveProgress(chapterIndex, "withdrawal");
+      const pagePrep = firstPositiveProgress(chapterIndex, "pagePrep");
+
+      expect(settle).toBeLessThan(title);
+      expect(title).toBeLessThan(statement);
+      expect(statement).toBeLessThan(withdrawal);
+      if (chapterIndex < 11) expect(withdrawal).toBeLessThan(pagePrep);
+
+      const titleStart = laterChapterAt(chapterIndex, title);
+      expect(titleStart.settle).toBe(1);
+
+      if (chapterIndex < 11) {
+        const pagePrepStart = laterChapterAt(chapterIndex, pagePrep);
+        expect(pagePrepStart.title).toBe(0);
+        expect(pagePrepStart.statement).toBe(0);
+      }
+    }
   });
 
-  it("locks checkpoint naming, normalized symbols, and the pending route", () => {
+  it("derives distinct reversible motion phases for the later chapters", () => {
+    for (let chapterIndex = 3; chapterIndex < 12; chapterIndex += 1) {
+      const early = laterChapterAt(chapterIndex, 0.18).motion;
+      const readable = laterChapterAt(chapterIndex, 0.5).motion;
+
+      expect(early.cameraTravel).toBeLessThan(readable.cameraTravel);
+      expect(readable.cameraTravel).toBe(1);
+      expect(readable.phases.some(phase => phase > 0)).toBe(true);
+    }
+
+    expect(laterChapterAt(5, 0.6).motion.path).toBeGreaterThan(0);
+    expect(laterChapterAt(10, 0.35).motion.breath).toBeGreaterThan(0);
+    expect(laterChapterAt(11, 0.5).motion.imprint).toBeGreaterThan(0);
+    expect(
+      TETRADIC_SIGNATURE_CONFIG.animation.laterMotion
+        .filter(chapter => chapter.snapStates.length > 0)
+        .map(chapter => chapter.number)
+    ).toEqual([9, 11]);
+  });
+
+  it("gives Tetrad 12 a longer hold and no automatic page preparation", () => {
+    const tetradEleven = laterChapterAt(10, 0.84);
+    const tetradTwelve = laterChapterAt(11, 0.84);
+
+    expect(tetradEleven.withdrawal).toBeGreaterThan(0);
+    expect(tetradTwelve.withdrawal).toBe(0);
+    expect(laterChapterAt(11, 1).pagePrep).toBe(0);
+  });
+
+  it("uses physical page travel and settling for every later transition", () => {
+    expect(getTetradicSceneState(0).laterTransitions).toHaveLength(9);
+
+    TETRADIC_CHOREOGRAPHY.slice(2, 11).forEach((chapter, index) => {
+      const travelling = atRangeProgress(chapter.transitionOut.range, 0.5)
+        .laterTransitions[index];
+      const settled = atRangeProgress(chapter.transitionOut.range, 0.9)
+        .laterTransitions[index];
+
+      expect(travelling.anticipation).toBeGreaterThan(0);
+      expect(travelling.pageTurn).toBeGreaterThan(0);
+      expect(travelling.pageSettle).toBe(0);
+      expect(settled.pageTurn).toBe(1);
+      expect(settled.pageSettle).toBeGreaterThan(0);
+    });
+  });
+
+  it("holds synthesis before closing and reveals the CTA only after the book settles", () => {
+    const range = TETRADIC_CHOREOGRAPHY[11].transitionOut.range;
+    const samples = Array.from(
+      { length: 101 },
+      (_, step) => atRangeProgress(range, step / 100).closure
+    );
+    const first = (field: keyof (typeof samples)[number]) =>
+      samples.findIndex(state => state[field] > 0);
+
+    expect(first("title")).toBeGreaterThanOrEqual(0);
+    expect(first("synthesis")).toBeGreaterThan(first("title"));
+    expect(first("bookClose")).toBeGreaterThan(first("synthesis"));
+    expect(first("settle")).toBeGreaterThan(first("bookClose"));
+    expect(first("cta")).toBeGreaterThan(first("settle"));
+    expect(samples[first("cta")].settle).toBe(1);
+    expect(samples.at(-1)).toMatchObject({
+      bookClose: 1,
+      settle: 1,
+      cta: 1,
+    });
+  });
+
+  it("locks final naming, normalized symbols, and CTA destinations", () => {
     expect(TETRADIC_SIGNATURE_CONFIG.naming.system).toBe(
       "TETRADIC RESONANCE ARCHITECTURE"
     );
@@ -257,9 +360,11 @@ describe("Tetradic Signature scroll timeline", () => {
       coordinates: "REDACTED",
       archiveId: "ORL-TDS-001",
     });
-    expect(TETRADIC_SIGNATURE_CONFIG.ctas.generateSignatureRoute).toBeNull();
-    expect(TETRADIC_SIGNATURE_CONFIG.ctas.generateSignatureStatus).toBe(
-      "AWAITING_GENERATOR_ROUTE"
+    expect(TETRADIC_SIGNATURE_CONFIG.ctas.generateSignatureRoute).toBe(
+      "/founder-signature-blueprint"
+    );
+    expect(TETRADIC_SIGNATURE_CONFIG.ctas.exploreSampleLabel).toBe(
+      "EXPLORE A SAMPLE"
     );
   });
 
@@ -273,6 +378,23 @@ describe("Tetradic Signature scroll timeline", () => {
     ).toEqual([0, 16, 32, 48]);
   });
 
+  it("scopes archive seal paint servers per mounted instance", () => {
+    const seal = () =>
+      createElement(SampleArchiveSeal, {
+        archiveId: "ORL-TDS-001",
+        symbol: TETRAD_SYMBOLS[0],
+      });
+    const markup = renderToStaticMarkup(
+      createElement("div", null, seal(), seal())
+    );
+    const ids = [...markup.matchAll(/id="(tetradic-seal-[^"]+)"/g)].map(
+      match => match[1]
+    );
+
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids).size).toBe(4);
+  });
+
   it("provides a semantic equivalent for the canvas-only archive record", () => {
     const markup = renderToStaticMarkup(
       createElement(TetradicNarrative, { reducedMotion: false })
@@ -281,8 +403,42 @@ describe("Tetradic Signature scroll timeline", () => {
     expect(markup).toContain("<dl>");
     expect(markup).toContain("Illustrative public sample record");
     expect(markup).toContain("No verified ephemeris values");
+    expect(markup).toContain("TWELVE FIELDS. ONE ARCHITECTURE.");
+    expect(markup).toContain("FOUNDER CURATION LAYER: COMPLETE");
     Object.values(TETRADIC_SIGNATURE_CONFIG.sample).forEach(value => {
       expect(markup).toContain(value);
     });
+  });
+
+  it("renders all twelve semantic chapters, final CTAs, and two-timing fidelity", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TetradicNarrative, { reducedMotion: true })
+    );
+    const semanticMarkup = markup.match(
+      /<article class="sr-only">([\s\S]*?)<\/article>/
+    )?.[1];
+    const semanticChapters =
+      semanticMarkup?.match(/TETRAD \d{2} \/ 12/g) ?? [];
+
+    const expectedChapters = Array.from(
+      { length: 12 },
+      (_, index) => `TETRAD ${String(index + 1).padStart(2, "0")} / 12`
+    );
+    expect([...new Set(semanticChapters)]).toEqual(expectedChapters);
+    expectedChapters.forEach(chapter => {
+      expect(semanticChapters.filter(label => label === chapter)).toHaveLength(1);
+    });
+    expect(markup).toContain(
+      'class="tetradic-signature__reduced-visual-copy" aria-hidden="true"'
+    );
+    expect(markup).toContain("GENERATE MY SIGNATURE");
+    expect(markup).toContain('href="/founder-signature-blueprint"');
+    expect(markup).toContain("EXPLORE A SAMPLE");
+    expect(markup).toContain("88.0000 degrees behind the birth Sun");
+    expect(TETRAD_THREE_TIMING_STATES[1].title).toBe("88.0000°");
+    expect(TETRAD_THREE_TIMING_STATES[1].detail).toMatch(/RETROGRADE SEARCH/);
+    expect(TETRAD_THREE_TIMING_STATES[3].detail).toMatch(
+      /NO VERIFIED EPHEMERIS/
+    );
   });
 });

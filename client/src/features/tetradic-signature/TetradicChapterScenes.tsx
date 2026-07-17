@@ -277,6 +277,88 @@ function FoldTransitionPage({ sceneStateRef }: ChapterSceneProps) {
   );
 }
 
+function PersistentTurnPage({ sceneStateRef }: ChapterSceneProps) {
+  const hingeRef = useRef<THREE.Group>(null);
+  const paperRef = useRef<THREE.MeshStandardMaterial>(null);
+  const geometry = useMemo(() => {
+    const page = new THREE.PlaneGeometry(2.36, 3.12, 32, 4);
+    (page.attributes.position as THREE.BufferAttribute).setUsage(
+      THREE.DynamicDrawUsage
+    );
+    return page;
+  }, []);
+  const basePositions = useMemo(
+    () => Float32Array.from(geometry.attributes.position.array),
+    [geometry]
+  );
+
+  useFrame(() => {
+    const transition = sceneStateRef.current.laterTransitions.find(
+      item => item.progress > 0 && item.progress < 1
+    );
+    const visible = Boolean(transition);
+
+    if (hingeRef.current) {
+      hingeRef.current.visible = visible;
+      if (transition) {
+        hingeRef.current.rotation.z = THREE.MathUtils.lerp(
+          THREE.MathUtils.degToRad(transition.anticipation * 5),
+          Math.PI,
+          transition.pageTurn
+        );
+        hingeRef.current.position.y = 0.342 + transition.pageLift * 0.012;
+      }
+    }
+    if (!transition) return;
+
+    const position = geometry.attributes.position as THREE.BufferAttribute;
+    const curve = Math.sin(transition.pageTurn * Math.PI) * 0.075;
+    for (let index = 0; index < position.count; index += 1) {
+      const offset = index * 3;
+      const x = basePositions[offset];
+      const normalized = (x + 1.18) / 2.36;
+      position.setZ(index, Math.sin(normalized * Math.PI) * curve);
+    }
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+
+    if (paperRef.current) {
+      paperRef.current.color.set(
+        transition.from === 7 || transition.from === 8 ? "#c9c3ab" : "#d8c99f"
+      );
+    }
+  });
+
+  return (
+    <group ref={hingeRef} position={[0, 0.342, 0]} visible={false}>
+      <mesh
+        geometry={geometry}
+        position={[1.18, 0, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        castShadow
+        receiveShadow
+      >
+        <meshStandardMaterial
+          ref={paperRef}
+          color="#d8c99f"
+          roughness={0.94}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[1.18, -0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.2, 2.96]} />
+        <meshBasicMaterial
+          color="#9f7f43"
+          transparent
+          opacity={0.08}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function CelestialField({ sceneStateRef }: ChapterSceneProps) {
   const groupRef = useRef<THREE.Group>(null);
   const starMaterialRef = useRef<THREE.PointsMaterial>(null);
@@ -305,10 +387,12 @@ function CelestialField({ sceneStateRef }: ChapterSceneProps) {
 
   useFrame(() => {
     const state = sceneStateRef.current;
-    const reveal = Math.max(
-      state.transitionTwoToThree.celestialReveal,
-      state.tetradThree.celestialReveal
-    );
+    const reveal =
+      Math.max(
+        state.transitionTwoToThree.celestialReveal,
+        state.tetradThree.celestialReveal
+      ) *
+      (1 - state.laterTransitions[0].visualTransform);
     const journey = state.tetradThree.horizontalJourney;
 
     if (groupRef.current) {
@@ -379,6 +463,7 @@ export function BookChapterGeometry({ sceneStateRef }: ChapterSceneProps) {
       <ArchitectureBlueprint sceneStateRef={sceneStateRef} />
       <ChapterTurnPage sceneStateRef={sceneStateRef} />
       <FoldTransitionPage sceneStateRef={sceneStateRef} />
+      <PersistentTurnPage sceneStateRef={sceneStateRef} />
     </>
   );
 }
