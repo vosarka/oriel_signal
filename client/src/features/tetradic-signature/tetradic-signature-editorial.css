@@ -29,6 +29,25 @@
   display: block;
 }
 
+html:has(.tetradic-editorial),
+body:has(.tetradic-editorial),
+#root:has(.tetradic-editorial) {
+  min-height: 100%;
+}
+
+html:has(.tetradic-editorial) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body:has(.tetradic-editorial) {
+  overflow-x: clip;
+  overflow-y: visible;
+  position: static;
+  height: auto;
+  touch-action: pan-y;
+}
+
 .tetradic-editorial__skip-link {
   position: fixed;
   z-index: 1000;
@@ -49,18 +68,6 @@
 }
 
 .tetradic-editorial__artifact-section {
-  --artifact-opacity: 0;
-  --environment-opacity: 0.2;
-  --book-open: 0;
-  --book-shift: -75%;
-  --book-scale: 0.72;
-  --book-tilt: 59deg;
-  --book-y: 8vh;
-  --book-stage-x: 50%;
-  --cover-angle: 0deg;
-  --identity-opacity: 1;
-  --cue-opacity: 1;
-  --purchase-opacity: 0;
   position: relative;
   height: 220svh;
   background: #030302;
@@ -1724,5 +1731,275 @@
 
   .tetradic-editorial__purchase {
     transform: none;
+  }
+}
+
+/* Deliberate-scroll production controller.
+   The approved visual system above remains unchanged; this layer replaces only
+   the former compressed section geometry and normalized scroll controller. */
+.tetradic-editorial {
+  --artifact-layer-opacity: 1;
+  --artifact-opacity: 0;
+  --environment-opacity: 0.04;
+  --book-open: 0;
+  --book-shift: -75%;
+  --book-scale: 0.64;
+  --book-tilt: 59deg;
+  --book-y: 9vh;
+  --book-stage-x: 50%;
+  --cover-angle: 0deg;
+  --identity-opacity: 0;
+  --cue-opacity: 0;
+  --interior-opacity: 0;
+  --interior-scale: 0.82;
+  --synthesis-opacity: 0;
+  --spread-opacity: 1;
+  --purchase-opacity: 0;
+  min-height: 3200svh;
+  overflow: visible;
+}
+
+.tetradic-editorial__persistent-stage {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  background: #030302;
+  isolation: isolate;
+}
+
+.tetradic-editorial__artifact-section,
+.tetradic-editorial__interior,
+.tetradic-editorial__synthesis {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.tetradic-editorial__artifact-section {
+  z-index: 1;
+  opacity: var(--artifact-layer-opacity);
+  background: #030302;
+  will-change: opacity;
+}
+
+.tetradic-editorial__artifact-stage,
+.tetradic-editorial__interior-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tetradic-editorial__interior {
+  z-index: 3;
+  padding: 0;
+  opacity: var(--interior-opacity);
+  background: #050504;
+  pointer-events: none;
+  transform: scale(var(--interior-scale));
+  transform-origin: 50% 52%;
+  will-change: opacity, transform;
+}
+
+.tetradic-editorial[data-active-phase="interior-transition"]
+  .tetradic-editorial__interior,
+.tetradic-editorial[data-active-phase^="tetrad-"]
+  .tetradic-editorial__interior {
+  pointer-events: auto;
+}
+
+.tetradic-editorial__interior-stage {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.tetradic-editorial__book-spread {
+  display: block;
+}
+
+.tetradic-editorial__spread,
+.tetradic-editorial__spread[data-active="true"] {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+
+.tetradic-editorial__spread {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.tetradic-editorial__spread[data-active="true"] {
+  opacity: var(--spread-opacity);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.tetradic-editorial__synthesis {
+  z-index: 4;
+  padding: 12vh 7vw;
+  opacity: var(--synthesis-opacity);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.tetradic-editorial__scroll-track {
+  position: relative;
+  z-index: 0;
+  margin-top: -100svh;
+  pointer-events: none;
+}
+
+.tetradic-editorial__scroll-phase,
+.tetradic-editorial__tetrad-scroll-phase {
+  position: relative;
+  height: calc(var(--scroll-vh) * 1svh);
+}
+
+.tetradic-editorial__interior-start {
+  position: absolute;
+  top: min(24px, 2svh);
+  left: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.tetradic-editorial__tetrad-track {
+  position: relative;
+}
+
+.tetradic-editorial__scroll-end-buffer {
+  height: 100svh;
+}
+
+.tetradic-editorial__physical-book,
+.tetradic-editorial__environment,
+.tetradic-editorial__identity,
+.tetradic-editorial__scroll-cue,
+.tetradic-editorial__purchase {
+  will-change: transform, opacity;
+}
+
+.tetradic-editorial__purchase {
+  opacity: var(--purchase-opacity);
+}
+
+@media (max-width: 900px), (orientation: portrait) {
+  .tetradic-editorial {
+    --interior-scale: 0.9;
+    min-height: 3200svh;
+  }
+
+  .tetradic-editorial__artifact-section,
+  .tetradic-editorial__interior,
+  .tetradic-editorial__synthesis {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tetradic-editorial__book-spread {
+    display: block;
+  }
+
+  .tetradic-editorial__spread,
+  .tetradic-editorial__spread[data-active="true"] {
+    position: absolute;
+    width: auto;
+    height: auto;
+    aspect-ratio: auto;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tetradic-editorial {
+    min-height: 3200svh;
+  }
+
+  .tetradic-editorial__persistent-stage {
+    position: sticky;
+  }
+
+  .tetradic-editorial__artifact-stage,
+  .tetradic-editorial__interior-stage {
+    position: absolute;
+  }
+
+  .tetradic-editorial__artifact-section,
+  .tetradic-editorial__interior,
+  .tetradic-editorial__synthesis {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tetradic-editorial__interior {
+    padding: 0;
+  }
+
+  .tetradic-editorial__interior-stage {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .tetradic-editorial__book-spread {
+    display: block;
+  }
+
+  .tetradic-editorial__spread,
+  .tetradic-editorial__spread[data-active="true"] {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    filter: none;
+  }
+
+  .tetradic-editorial__spread[data-active="true"] {
+    opacity: var(--spread-opacity);
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .tetradic-editorial__turn-sheet {
+    display: none !important;
+  }
+
+  .tetradic-editorial__purchase {
+    opacity: var(--purchase-opacity);
+    transform: translateY(calc(-50% + (1 - var(--purchase-opacity)) * 18px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (max-width: 900px),
+  (prefers-reduced-motion: reduce) and (orientation: portrait) {
+  .tetradic-editorial__spread,
+  .tetradic-editorial__spread[data-active="true"] {
+    position: absolute;
+    width: auto;
+    height: auto;
+  }
+
+  .tetradic-editorial__purchase {
+    transform: translateY(calc((1 - var(--purchase-opacity)) * 18px));
   }
 }

@@ -2,7 +2,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { OrielRouteGuard } from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -226,9 +226,16 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
+  const previousLocationRef = useRef(location);
 
-  // Scroll to top on every route change so pages don't load at the bottom
+  // Preserve browser restoration only for the long Tetradic scroll route.
+  // Every other route keeps the existing load-at-top behavior.
   useEffect(() => {
+    if (previousLocationRef.current === location) {
+      if (location !== "/tetradic-signature") window.scrollTo(0, 0);
+      return;
+    }
+    previousLocationRef.current = location;
     window.scrollTo(0, 0);
   }, [location]);
 

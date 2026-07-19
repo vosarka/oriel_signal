@@ -1449,3 +1449,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Reused the approved pedestal, cover, ORIEL identity, and twelve Tetrad symbols; normalized the supplied spine candidate to `assets/tetradic-signature/book-spine.png`. All chapter typography and canonical diagrams remain live HTML or coded SVG, and no raster image was generated.
 - Completed desktop two-page and mobile single-page layouts, semantic chapter content, keyboard focus management, reduced-motion document flow, live preference switching, deterministic reverse scroll, and refresh reconstruction.
 - Verification: Tetradic tests pass (36/36), production build passes, and browser audits report no console errors or viewport overflow. The repository suite retains two unrelated assertions (638/640 pass), and type-check retains the pre-existing `server/routers.ts:873` `circuitLinks` error.
+
+## [2026-07-19] fix | Tetradic Signature native scroll runtime
+- Repaired the frozen `/tetradic-signature` production mount by ensuring the GSAP match-media controller initializes on desktop and by moving animated custom properties onto their actual shared owner.
+- Preserved native browser scrolling while replacing the compressed normalized controller with explicit 3,100vh phase and chapter tracks, independent ScrollTriggers, and deterministic ordered state reconstruction after refresh or resize.
+- Corrected deep-scroll reload behavior, exact chapter-boundary state, replay-to-Tetrad-01 focus, final CTA activation, and cleanup of scheduled refresh work without changing the approved artwork or chapter design.
+- Verification: focused tests pass (11/11); real-browser wheel, incremental trackpad, Arrow Down, Page Down, Space, touch, reverse, reload, replay, reduced-motion, desktop, tablet, and mobile checks pass with no runtime or network errors. Type-check retains only the pre-existing `server/routers.ts:873` `circuitLinks` error.

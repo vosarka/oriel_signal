@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import React, { useRef, type CSSProperties } from "react";
 
 import {
   TETRADIC_CHOREOGRAPHY,
@@ -16,10 +10,18 @@ import {
   TetradicEditorialVisual,
   type TetradicEditorialNumber,
 } from "./TetradicEditorialVisuals";
+import {
+  TETRADIC_CHAPTER_PHASES,
+  TETRADIC_SCROLL_RANGES,
+  TETRADIC_TOTAL_VH,
+  getTetradicChapterDataAttributes,
+  getTetradicScrollDataAttributes,
+} from "./tetradic-signature-scroll-config";
+import {
+  useTetradicEditorialScroll,
+  type TetradicInteriorState,
+} from "./useTetradicEditorialScroll";
 import { useTetradicViewport } from "./useTetradicViewport";
-
-const CHAPTER_COUNT = 12;
-const TURN_PORTION = 0.18;
 
 const EDITORIAL_CHAPTERS = TETRADIC_CHOREOGRAPHY.map((chapter, index) => ({
   ...chapter,
@@ -28,38 +30,6 @@ const EDITORIAL_CHAPTERS = TETRADIC_CHOREOGRAPHY.map((chapter, index) => ({
 }));
 
 type EditorialChapter = (typeof EDITORIAL_CHAPTERS)[number];
-
-type InteriorState = Readonly<{
-  baseIndex: number;
-  incomingIndex: number;
-  turning: boolean;
-}>;
-
-function clamp(value: number, minimum = 0, maximum = 1) {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-function range(value: number, start: number, end: number) {
-  if (start === end) return value >= end ? 1 : 0;
-  return clamp((value - start) / (end - start));
-}
-
-function mix(from: number, to: number, progress: number) {
-  return from + (to - from) * progress;
-}
-
-function sectionProgress(section: HTMLElement) {
-  const distance = Math.max(1, section.offsetHeight - window.innerHeight);
-  return clamp(-section.getBoundingClientRect().top / distance);
-}
-
-function setStyleVariable(
-  element: HTMLElement,
-  property: string,
-  value: string | number
-) {
-  element.style.setProperty(property, String(value));
-}
 
 function formatTetrad(number: number) {
   return String(number).padStart(2, "0");
@@ -83,11 +53,11 @@ function ProductIdentity() {
   );
 }
 
-function PhysicalBook({ mode }: { mode: "opening" | "closing" }) {
+function PhysicalBook() {
   const { assets, naming } = TETRADIC_SIGNATURE_CONFIG;
 
   return (
-    <div className="tetradic-editorial__physical-book" data-book-mode={mode}>
+    <div className="tetradic-editorial__physical-book">
       <div className="tetradic-editorial__contact-shadow" />
       <div className="tetradic-editorial__book-volume">
         <div className="tetradic-editorial__paper-block" />
@@ -116,7 +86,7 @@ function PhysicalBook({ mode }: { mode: "opening" | "closing" }) {
               alt="The Tetradic Signature Founder Edition cover"
               width="1536"
               height="2048"
-              fetchPriority={mode === "opening" ? "high" : undefined}
+              fetchPriority="high"
             />
           </div>
           <div className="tetradic-editorial__front-cover-inside">
@@ -130,53 +100,36 @@ function PhysicalBook({ mode }: { mode: "opening" | "closing" }) {
 }
 
 function ArtifactStage({
-  mode,
-  sectionRef,
-  purchaseActive = false,
+  purchaseActive,
+  onReplay,
 }: {
-  mode: "opening" | "closing";
-  sectionRef: React.RefObject<HTMLElement | null>;
-  purchaseActive?: boolean;
+  purchaseActive: boolean;
+  onReplay: () => void;
 }) {
   const { assets } = TETRADIC_SIGNATURE_CONFIG;
 
   return (
-    <section
-      ref={sectionRef}
-      className={`tetradic-editorial__artifact-section tetradic-editorial__artifact-section--${mode}`}
-      data-capture={mode === "opening" ? "closed-book" : "final-closed-book"}
-      data-purchase-active={
-        mode === "closing" ? String(purchaseActive) : undefined
-      }
-      aria-label={
-        mode === "opening"
-          ? "The closed Founder Edition opens on its pedestal"
-          : "The Founder Edition closes and returns to its pedestal"
-      }
+    <div
+      className="tetradic-editorial__artifact-section"
+      data-capture="physical-book"
+      data-purchase-active={String(purchaseActive)}
     >
-      <div className="tetradic-editorial__artifact-stage">
+      <div className="tetradic-editorial__artifact-stage" aria-hidden="true">
         <img
           className="tetradic-editorial__environment"
           src={assets.environment}
           alt=""
           width="1672"
           height="941"
-          fetchPriority={mode === "opening" ? "high" : undefined}
+          fetchPriority="high"
         />
         <div className="tetradic-editorial__environment-vignette" />
-        <PhysicalBook mode={mode} />
-        {mode === "opening" ? (
-          <>
-            <ProductIdentity />
-            <p className="tetradic-editorial__scroll-cue" aria-hidden="true">
-              SCROLL TO OPEN
-            </p>
-          </>
-        ) : (
-          <PurchaseState active={purchaseActive} />
-        )}
+        <PhysicalBook />
+        <ProductIdentity />
+        <p className="tetradic-editorial__scroll-cue">SCROLL TO OPEN</p>
       </div>
-    </section>
+      <PurchaseState active={purchaseActive} onReplay={onReplay} />
+    </div>
   );
 }
 
@@ -310,12 +263,10 @@ function TurningSheet({
 }
 
 function InteriorArchive({
-  sectionRef,
   state,
   reducedMotion,
 }: {
-  sectionRef: React.RefObject<HTMLElement | null>;
-  state: InteriorState;
+  state: TetradicInteriorState;
   reducedMotion: boolean;
 }) {
   const previousIndex = Math.max(0, state.incomingIndex - 1);
@@ -324,8 +275,7 @@ function InteriorArchive({
 
   return (
     <section
-      id="tetradic-interior-start"
-      ref={sectionRef}
+      id="tetradic-interior-reader"
       className="tetradic-editorial__interior"
       data-active-chapter={state.baseIndex + 1}
       data-turning={state.turning ? "true" : "false"}
@@ -333,7 +283,7 @@ function InteriorArchive({
       aria-label="Twelve curated Tetradic Signature spreads"
       tabIndex={-1}
     >
-      <div className="tetradic-editorial__interior-stage">
+      <div className="tetradic-editorial__interior-stage" aria-hidden="true">
         <div
           className="tetradic-editorial__interior-field"
           aria-hidden="true"
@@ -343,7 +293,7 @@ function InteriorArchive({
             <EditorialSpread
               key={chapter.id}
               chapter={chapter}
-              active={reducedMotion || index === state.baseIndex}
+              active={index === state.baseIndex}
             />
           ))}
           {!reducedMotion && (
@@ -354,17 +304,17 @@ function InteriorArchive({
             />
           )}
         </div>
-        {!reducedMotion && (
-          <div
-            className="tetradic-editorial__chapter-progress"
-            aria-live="polite"
-          >
-            <span>{formatTetrad(state.baseIndex + 1)}</span>
-            <i aria-hidden="true" />
-            <span>12</span>
-          </div>
-        )}
       </div>
+      {!reducedMotion && (
+        <div
+          className="tetradic-editorial__chapter-progress"
+          aria-live="polite"
+        >
+          <span>{formatTetrad(state.baseIndex + 1)}</span>
+          <i aria-hidden="true" />
+          <span>12</span>
+        </div>
+      )}
       {!reducedMotion && (
         <span
           className="tetradic-editorial__capture-marker"
@@ -372,6 +322,23 @@ function InteriorArchive({
           aria-hidden="true"
         />
       )}
+      <div className="sr-only" data-editorial-transcript>
+        <p>The Tetradic Signature Founder Edition sample archive.</p>
+        {EDITORIAL_CHAPTERS.map(chapter => (
+          <section
+            key={`transcript-${chapter.id}`}
+            aria-labelledby={`${chapter.id}-transcript-title`}
+          >
+            <p>
+              Tetrad {formatTetrad(chapter.number)} of 12. {chapter.act}.
+            </p>
+            <h2 id={`${chapter.id}-transcript-title`}>{chapter.title}</h2>
+            <blockquote>{chapter.statement}</blockquote>
+            <p>{chapter.explanation}</p>
+            <p>{chapter.technicalLabels.join(". ")}</p>
+          </section>
+        ))}
+      </div>
     </section>
   );
 }
@@ -407,21 +374,13 @@ function Synthesis() {
   );
 }
 
-function PurchaseState({ active }: { active: boolean }) {
-  const handleReplay = useCallback(() => {
-    const target = document.getElementById("tetradic-interior-start");
-    if (!target) return;
-
-    const root = document.documentElement;
-    const previousBehavior = root.style.scrollBehavior;
-    root.style.scrollBehavior = "auto";
-    target.scrollIntoView({ block: "start" });
-    window.requestAnimationFrame(() => {
-      root.style.scrollBehavior = previousBehavior;
-      target.focus({ preventScroll: true });
-    });
-  }, []);
-
+function PurchaseState({
+  active,
+  onReplay,
+}: {
+  active: boolean;
+  onReplay: () => void;
+}) {
   return (
     <section
       className="tetradic-editorial__purchase"
@@ -443,8 +402,8 @@ function PurchaseState({ active }: { active: boolean }) {
         <a href="/founder-signature-blueprint">BUY THE FOUNDER EDITION</a>
         <button
           type="button"
-          onClick={handleReplay}
-          aria-controls="tetradic-interior-start"
+          onClick={onReplay}
+          aria-controls="tetradic-interior-reader"
         >
           EXPLORE THE SAMPLE AGAIN
         </button>
@@ -454,208 +413,74 @@ function PurchaseState({ active }: { active: boolean }) {
   );
 }
 
-export function TetradicSignatureEditorial() {
-  const openingRef = useRef<HTMLElement>(null);
-  const interiorRef = useRef<HTMLElement>(null);
-  const closingRef = useRef<HTMLElement>(null);
-  const frameRef = useRef<number | null>(null);
-  const stateRef = useRef<InteriorState>({
-    baseIndex: 0,
-    incomingIndex: 0,
-    turning: false,
-  });
-  const [interiorState, setInteriorState] = useState<InteriorState>(
-    stateRef.current
+type ScrollDistanceStyle = CSSProperties & { "--scroll-vh": number };
+
+function ScrollPhase({
+  phase,
+}: {
+  phase: (typeof TETRADIC_SCROLL_RANGES)[number];
+}) {
+  return (
+    <div
+      className="tetradic-editorial__scroll-phase"
+      {...getTetradicScrollDataAttributes(phase)}
+      style={{ "--scroll-vh": phase.vh } as ScrollDistanceStyle}
+      aria-hidden="true"
+    />
   );
+}
+
+function EditorialScrollTrack() {
+  const beforeTetrads = TETRADIC_SCROLL_RANGES.slice(0, 4);
+  const tetrads = TETRADIC_SCROLL_RANGES.find(phase => phase.id === "tetrads");
+  const afterTetrads = TETRADIC_SCROLL_RANGES.slice(5);
+
+  return (
+    <div className="tetradic-editorial__scroll-track">
+      {beforeTetrads.map(phase => (
+        <ScrollPhase key={phase.id} phase={phase} />
+      ))}
+      {tetrads && (
+        <div
+          className="tetradic-editorial__tetrad-track"
+          {...getTetradicScrollDataAttributes(tetrads)}
+        >
+          {TETRADIC_CHAPTER_PHASES.map((chapter, index) => (
+            <div
+              key={chapter.id}
+              className="tetradic-editorial__tetrad-scroll-phase"
+              {...getTetradicChapterDataAttributes(chapter)}
+              style={{ "--scroll-vh": chapter.vh } as ScrollDistanceStyle}
+              aria-hidden={index === 0 ? undefined : "true"}
+            >
+              {index === 0 && (
+                <span
+                  id="tetradic-interior-start"
+                  className="tetradic-editorial__interior-start"
+                  tabIndex={-1}
+                  aria-label="Begin the twelve Tetradic Signature spreads"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {afterTetrads.map(phase => (
+        <ScrollPhase key={phase.id} phase={phase} />
+      ))}
+      <div
+        className="tetradic-editorial__scroll-end-buffer"
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
+export function TetradicSignatureEditorial() {
+  const rootRef = useRef<HTMLElement>(null);
   const { reducedMotion } = useTetradicViewport();
-  const [purchaseActive, setPurchaseActive] = useState(reducedMotion);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      openingRef.current?.removeAttribute("style");
-      interiorRef.current?.removeAttribute("style");
-      closingRef.current?.removeAttribute("style");
-      setPurchaseActive(true);
-      return;
-    }
-
-    setPurchaseActive(false);
-
-    const updateOpening = () => {
-      const section = openingRef.current;
-      if (!section) return;
-
-      const progress = sectionProgress(section);
-      const reveal = range(progress, 0.02, 0.16);
-      const approach = range(progress, 0.1, 0.34);
-      const opening = range(progress, 0.43, 0.76);
-      const readingAngle = range(progress, 0.66, 0.9);
-      const exit = range(progress, 0.92, 1);
-
-      setStyleVariable(section, "--artifact-opacity", reveal * (1 - exit));
-      setStyleVariable(section, "--environment-opacity", mix(0.2, 1, reveal));
-      setStyleVariable(section, "--book-stage-x", "50%");
-      setStyleVariable(section, "--book-open", opening);
-      setStyleVariable(
-        section,
-        "--book-shift",
-        `${mix(-75, -50, opening).toFixed(3)}%`
-      );
-      setStyleVariable(
-        section,
-        "--book-scale",
-        mix(0.72, 0.98, Math.max(approach, readingAngle)).toFixed(4)
-      );
-      setStyleVariable(
-        section,
-        "--book-tilt",
-        `${mix(mix(59, 39, approach), 12, readingAngle).toFixed(3)}deg`
-      );
-      setStyleVariable(
-        section,
-        "--book-y",
-        `${mix(8, 0, approach).toFixed(3)}vh`
-      );
-      setStyleVariable(
-        section,
-        "--cover-angle",
-        `${mix(0, -178, opening).toFixed(3)}deg`
-      );
-      setStyleVariable(
-        section,
-        "--identity-opacity",
-        1 - range(progress, 0.3, 0.48)
-      );
-      setStyleVariable(
-        section,
-        "--cue-opacity",
-        1 - range(progress, 0.16, 0.28)
-      );
-    };
-
-    const updateInterior = () => {
-      const section = interiorRef.current;
-      if (!section) return;
-
-      const progress = sectionProgress(section);
-      const rawChapter = Math.min(
-        CHAPTER_COUNT - Number.EPSILON,
-        progress * CHAPTER_COUNT
-      );
-      const incomingIndex = Math.min(CHAPTER_COUNT - 1, Math.floor(rawChapter));
-      const localProgress = rawChapter - incomingIndex;
-      const turning = incomingIndex > 0 && localProgress < TURN_PORTION;
-      const turnProgress = turning
-        ? clamp(localProgress / TURN_PORTION)
-        : incomingIndex === 0
-          ? 0
-          : 1;
-      const baseIndex =
-        turning && turnProgress < 0.5 ? incomingIndex - 1 : incomingIndex;
-      const turnShadow = turning ? 1 - Math.abs(turnProgress * 2 - 1) : 0;
-
-      setStyleVariable(section, "--turn-progress", turnProgress.toFixed(4));
-      setStyleVariable(
-        section,
-        "--turn-angle",
-        `${(-178 * turnProgress).toFixed(3)}deg`
-      );
-      setStyleVariable(section, "--turn-shadow", turnShadow.toFixed(4));
-      section.dataset.activeChapter = String(baseIndex + 1);
-      section.dataset.turning = turning ? "true" : "false";
-
-      const nextState = { baseIndex, incomingIndex, turning };
-      const previousState = stateRef.current;
-      if (
-        previousState.baseIndex !== nextState.baseIndex ||
-        previousState.incomingIndex !== nextState.incomingIndex ||
-        previousState.turning !== nextState.turning
-      ) {
-        stateRef.current = nextState;
-        setInteriorState(nextState);
-      }
-    };
-
-    const updateClosing = () => {
-      const section = closingRef.current;
-      if (!section) return;
-
-      const progress = sectionProgress(section);
-      const pullback = range(progress, 0.14, 0.82);
-      const closing = range(progress, 0.28, 0.7);
-      const cta = range(progress, 0.78, 0.94);
-
-      setStyleVariable(section, "--artifact-opacity", 1);
-      setStyleVariable(
-        section,
-        "--environment-opacity",
-        mix(0.68, 1, pullback)
-      );
-      setStyleVariable(
-        section,
-        "--book-stage-x",
-        `${mix(50, 41, cta).toFixed(3)}%`
-      );
-      setStyleVariable(section, "--book-open", 1 - closing);
-      setStyleVariable(
-        section,
-        "--book-shift",
-        `${mix(-50, -75, closing).toFixed(3)}%`
-      );
-      setStyleVariable(
-        section,
-        "--book-scale",
-        mix(1, 0.62, pullback).toFixed(4)
-      );
-      setStyleVariable(
-        section,
-        "--book-tilt",
-        `${mix(12, 59, pullback).toFixed(3)}deg`
-      );
-      setStyleVariable(
-        section,
-        "--book-y",
-        `${mix(0, 8, pullback).toFixed(3)}vh`
-      );
-      setStyleVariable(
-        section,
-        "--cover-angle",
-        `${mix(-178, 0, closing).toFixed(3)}deg`
-      );
-      setStyleVariable(section, "--purchase-opacity", cta.toFixed(4));
-      const nextPurchaseActive = cta > 0.92;
-      section.dataset.purchaseActive = nextPurchaseActive ? "true" : "false";
-      setPurchaseActive(current =>
-        current === nextPurchaseActive ? current : nextPurchaseActive
-      );
-    };
-
-    const update = () => {
-      frameRef.current = null;
-      updateOpening();
-      updateInterior();
-      updateClosing();
-    };
-
-    const requestUpdate = () => {
-      if (frameRef.current !== null) return;
-      frameRef.current = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-    const settleTimer = window.setTimeout(requestUpdate, 250);
-
-    return () => {
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      window.clearTimeout(settleTimer);
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-      }
-    };
-  }, [reducedMotion]);
+  const { interiorState, purchaseActive, replayFromFirstSpread } =
+    useTetradicEditorialScroll(rootRef, reducedMotion);
 
   return (
     <>
@@ -666,23 +491,29 @@ export function TetradicSignatureEditorial() {
         SKIP TO THE SIGNATURE
       </a>
       <main
+        ref={rootRef}
         id="tetradic-main"
         className="tetradic-editorial"
         data-reduced-motion={reducedMotion ? "true" : "false"}
+        data-total-scroll-vh={TETRADIC_TOTAL_VH}
+        data-active-phase="reveal"
+        data-active-chapter="1"
+        data-turning="false"
+        data-purchase-active="false"
       >
         <h1 className="sr-only">The Tetradic Signature Founder Edition</h1>
-        <ArtifactStage mode="opening" sectionRef={openingRef} />
-        <InteriorArchive
-          sectionRef={interiorRef}
-          state={interiorState}
-          reducedMotion={reducedMotion}
-        />
-        <Synthesis />
-        <ArtifactStage
-          mode="closing"
-          sectionRef={closingRef}
-          purchaseActive={purchaseActive}
-        />
+        <div className="tetradic-editorial__persistent-stage">
+          <ArtifactStage
+            purchaseActive={purchaseActive}
+            onReplay={replayFromFirstSpread}
+          />
+          <InteriorArchive
+            state={interiorState}
+            reducedMotion={reducedMotion}
+          />
+          <Synthesis />
+        </div>
+        <EditorialScrollTrack />
       </main>
     </>
   );
