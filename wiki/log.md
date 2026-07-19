@@ -1442,3 +1442,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Kept receiver activations, center states, links, positions, roles, and findings redacted; all readable content remains live HTML or SVG, existing Tetrad symbols remain the visual anchors, and no raster asset was generated.
 - Completed the `/founder-signature-blueprint` primary CTA, full-experience replay, semantic transcript, compact camera behavior, reduced-motion fallback, keyboard controls, deterministic reverse scroll, and refresh reconstruction.
 - Verification: focused Tetradic tests pass (32/32) and the production build passes. Desktop and mobile browser QA report no console errors; the repository suite retains two unrelated assertions (634/636 pass), and type-check retains only the pre-existing `server/routers.ts:873` `circuitLinks` error.
+
+## [2026-07-19] feature | Simplified Tetradic Signature editorial book
+- Mounted a rollback-safe semantic editorial experience at `/tetradic-signature` while leaving the complete cinematic V2 and legacy R3F implementations unchanged in the repository.
+- Added one restrained pedestal approach and cover opening, twelve stable curated spreads, a shared reversible CSS page sweep, the final synthesis, physical closure, purchase CTA, and replay-to-first-spread control using native vertical scroll.
+- Reused the approved pedestal, cover, ORIEL identity, and twelve Tetrad symbols; normalized the supplied spine candidate to `assets/tetradic-signature/book-spine.png`. All chapter typography and canonical diagrams remain live HTML or coded SVG, and no raster image was generated.
+- Completed desktop two-page and mobile single-page layouts, semantic chapter content, keyboard focus management, reduced-motion document flow, live preference switching, deterministic reverse scroll, and refresh reconstruction.
+- Verification: Tetradic tests pass (36/36), production build passes, and browser audits report no console errors or viewport overflow. The repository suite retains two unrelated assertions (638/640 pass), and type-check retains the pre-existing `server/routers.ts:873` `circuitLinks` error.

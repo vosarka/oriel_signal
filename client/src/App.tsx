@@ -30,7 +30,7 @@ import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 
 import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
-import TetradicSignatureExperience from "./pages/TetradicSignatureExperience";
+import TetradicSignatureEditorialExperience from "./pages/TetradicSignatureEditorialExperience";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -151,7 +151,7 @@ function Router() {
       <Route path={"/cosmichronica"} component={Cosmichronica} />
       <Route
         path={"/tetradic-signature"}
-        component={TetradicSignatureExperience}
+        component={TetradicSignatureEditorialExperience}
       />
       <Route
         path={"/founder-signature-blueprint"}
