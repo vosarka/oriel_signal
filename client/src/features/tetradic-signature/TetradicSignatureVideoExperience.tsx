@@ -1,242 +1,24 @@
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type Ref,
-  type TransitionEvent,
-} from "react";
+import React, { useCallback, useRef, type CSSProperties } from "react";
+import type Lenis from "lenis";
 
-import { SampleArchiveSeal } from "./SampleArchiveSeal";
 import {
-  TETRADIC_CHOREOGRAPHY,
-  TETRADIC_SIGNATURE_CONFIG,
-  TETRADIC_SPREAD_CONTENT,
-} from "./tetradic-signature-config";
+  TETRADIC_SCROLL_FILMS,
+  TETRADIC_VIDEO_SCROLL,
+} from "./tetradic-video-scroll-config";
+import { useTetradicVideoScrub } from "./useTetradicVideoScrub";
 import "./tetradic-signature-video.css";
 
-export const TETRADIC_OPENING_VIDEOS = [
-  "/assets/tetradic-signature/01first_intro_vid.mp4",
-  "/assets/tetradic-signature/02middle_intro_vid.mp4",
-  "/assets/tetradic-signature/03last_intro_vid.mp4",
-] as const;
-
-export const VIDEO_CROSSFADE_MS = 650;
-export const FINAL_FRAME_HOLD_MS = 500;
-
-type IntroPhase =
-  | "video-01"
-  | "enter-ready"
-  | "video-02-starting"
-  | "video-02"
-  | "open-ready"
-  | "video-03-starting"
-  | "video-03"
-  | "final-frame-hold"
-  | "html-crossfade"
-  | "complete";
-
-type VideoLayerProps = Readonly<{
-  index: number;
-  source: string;
-  visible: boolean;
-  autoPlay: boolean;
-  setVideoRef: (index: number, node: HTMLVideoElement | null) => void;
-  onPlaying: (index: number) => void;
-  onLoadedData: (index: number) => void;
-  onEnded: (index: number) => void;
-  onPlaybackError: (index: number) => void;
+type TetradicSignatureVideoExperienceProps = Readonly<{
+  reducedMotion?: boolean;
+  lenis?: Lenis;
 }>;
 
-function VideoLayer({
-  index,
-  source,
-  visible,
-  autoPlay,
-  setVideoRef,
-  onPlaying,
-  onLoadedData,
-  onEnded,
-  onPlaybackError,
-}: VideoLayerProps) {
-  return (
-    <video
-      ref={node => setVideoRef(index, node)}
-      className={"tetradic-video__film" + (visible ? " is-visible" : "")}
-      src={source}
-      autoPlay={autoPlay}
-      muted
-      playsInline
-      preload="auto"
-      controlsList="nodownload noremoteplayback noplaybackrate"
-      disablePictureInPicture
-      disableRemotePlayback
-      tabIndex={-1}
-      aria-hidden="true"
-      onPlaying={() => onPlaying(index)}
-      onLoadedData={() => onLoadedData(index)}
-      onEnded={() => onEnded(index)}
-      onError={() => onPlaybackError(index)}
-    />
-  );
-}
-
-function ArchiveDecision({
-  visible,
-  label,
-  onActivate,
-  buttonRef,
-}: Readonly<{
-  visible: boolean;
-  label: string;
-  onActivate: () => void;
-  buttonRef?: Ref<HTMLButtonElement>;
-}>) {
-  return (
-    <div
-      className="tetradic-video__decision"
-      data-visible={String(visible)}
-      aria-hidden={!visible}
-      inert={visible ? undefined : true}
-    >
-      <button ref={buttonRef} type="button" onClick={onActivate}>
-        <span>{label}</span>
-      </button>
-    </div>
-  );
-}
-
-function TetradOneArchive() {
-  const { naming, sample } = TETRADIC_SIGNATURE_CONFIG;
-  const chapter = TETRADIC_CHOREOGRAPHY[0];
-  const spread = TETRADIC_SPREAD_CONTENT[0];
-  const records = [
-    ["RECEIVER", sample.receiver],
-    ["RECORD STATUS", sample.recordStatus],
-    ["BIRTH RECORD", sample.birthRecord],
-    ["COORDINATES", sample.coordinates],
-    ["ARCHIVE ID", sample.archiveId],
-  ] as const;
-
-  return (
-    <section
-      id="tetradic-archive-interior"
-      className="tetradic-video-archive"
-      aria-labelledby="tetradic-video-tetrad-one-title"
-    >
-      <h1
-        id="tetradic-video-tetrad-one-title"
-        className="tetradic-video-archive__sr-title"
-        tabIndex={-1}
-      >
-        {chapter.title}
-      </h1>
-
-      <header className="tetradic-video-archive__masthead">
-        <span>{naming.brand}</span>
-        <span>{naming.edition}</span>
-      </header>
-
-      <article className="tetradic-video-archive__spread">
-        <section
-          className="tetradic-video-archive__page tetradic-video-archive__page--left"
-          style={{
-            backgroundImage: 'url("/assets/tetradic-signature/foaie1.png")',
-          }}
-        >
-          <header className="tetradic-video-archive__running-head">
-            <span>{naming.system}</span>
-            <span>RECEIVER RECORD</span>
-          </header>
-
-          <div className="tetradic-video-archive__record-heading">
-            <p>TETRAD 01 / 12</p>
-            <h2>Receiver Record Initialization</h2>
-          </div>
-
-          <div className="tetradic-video-archive__record-field">
-            <dl>
-              {records.map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p>ILLUSTRATIVE RECORD · NO PRIVATE OR EPHEMERIS DATA</p>
-          </div>
-
-          <footer className="tetradic-video-archive__folio">
-            <span>FOUNDER-CURATED STATIC READING</span>
-            <b>02</b>
-          </footer>
-        </section>
-
-        <section
-          className="tetradic-video-archive__page tetradic-video-archive__page--right"
-          style={{
-            backgroundImage: 'url("/assets/tetradic-signature/foaie2.png")',
-          }}
-        >
-          <header className="tetradic-video-archive__running-head">
-            <span>ARCHIVE SEAL / SAMPLE</span>
-            <span>64-SEGMENT CORONA</span>
-          </header>
-
-          <div className="tetradic-video-archive__seal">
-            <SampleArchiveSeal
-              archiveId={sample.archiveId}
-              symbol={chapter.symbol}
-            />
-          </div>
-
-          <div className="tetradic-video-archive__copy">
-            <p>TETRAD 01 / 12</p>
-            <h2 aria-hidden="true">{chapter.title}</h2>
-            <blockquote>{chapter.statement}</blockquote>
-            <p>{spread.semanticDescription}</p>
-          </div>
-
-          <div className="tetradic-video-archive__labels">
-            {spread.technicalLabels.map(label => (
-              <span key={label}>{label}</span>
-            ))}
-          </div>
-
-          <footer className="tetradic-video-archive__folio tetradic-video-archive__folio--right">
-            <b>03</b>
-            <span>{naming.product}</span>
-          </footer>
-        </section>
-
-        <div className="tetradic-video-archive__gutter" aria-hidden="true" />
-      </article>
-    </section>
-  );
-}
-
-function scrollLock(active: boolean) {
-  document.documentElement.classList.toggle(
-    "tetradic-video-scroll-lock",
-    active
-  );
-  document.body.classList.toggle("tetradic-video-scroll-lock", active);
-}
-
-export function TetradicSignatureVideoExperience() {
+export function TetradicSignatureVideoExperience({
+  reducedMotion = false,
+  lenis,
+}: TetradicSignatureVideoExperienceProps) {
+  const containerRef = useRef<HTMLElement | null>(null);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
-  const holdTimerRef = useRef<number | null>(null);
-  const revealFallbackRef = useRef<number | null>(null);
-  const autoplayCheckRef = useRef<number | null>(null);
-  const pendingFrameCleanupRef = useRef<(() => void) | null>(null);
-  const enterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const openButtonRef = useRef<HTMLButtonElement | null>(null);
-  const autoplayButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [phase, setPhase] = useState<IntroPhase>("video-01");
-  const [visibleVideo, setVisibleVideo] = useState(0);
-  const [archiveVisible, setArchiveVisible] = useState(false);
-  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const setVideoRef = useCallback(
     (index: number, node: HTMLVideoElement | null) => {
@@ -245,282 +27,116 @@ export function TetradicSignatureVideoExperience() {
     []
   );
 
-  const finishArchiveReveal = useCallback(() => {
-    setPhase(current => {
-      if (current !== "html-crossfade") return current;
-      scrollLock(false);
-      return "complete";
-    });
-  }, []);
-
-  const playVideo = useCallback(async (index: number) => {
+  const handleMediaError = useCallback((index: number) => {
     const video = videoRefs.current[index];
-    if (!video) return;
+    const film = TETRADIC_SCROLL_FILMS[index];
+    if (!video || !film || video.dataset.fallbackLoaded === "true") return;
 
-    setAutoplayBlocked(false);
-    if (index === 1) setPhase("video-02-starting");
-    if (index === 2) setPhase("video-03-starting");
-
-    try {
-      await video.play();
-    } catch {
-      if (index === 0) {
-        setAutoplayBlocked(true);
-        setPhase("video-01");
-      } else {
-        setPhase(index === 1 ? "enter-ready" : "open-ready");
-      }
-    }
+    video.dataset.fallbackLoaded = "true";
+    video.src = film.fallbackSource;
+    video.load();
   }, []);
 
-  const handlePlaying = useCallback((index: number) => {
-    const video = videoRefs.current[index];
-    if (!video) return;
-
-    if (autoplayCheckRef.current !== null) {
-      window.clearTimeout(autoplayCheckRef.current);
-      autoplayCheckRef.current = null;
-    }
-
-    pendingFrameCleanupRef.current?.();
-
-    let cancelled = false;
-    const revealDecodedFrame = () => {
-      if (cancelled || video.error) return;
-      pendingFrameCleanupRef.current = null;
-      setVisibleVideo(index);
-      setAutoplayBlocked(false);
-      if (index === 0) setPhase("video-01");
-      if (index === 1) setPhase("video-02");
-      if (index === 2) setPhase("video-03");
-    };
-
-    if (typeof video.requestVideoFrameCallback === "function") {
-      const callbackId = video.requestVideoFrameCallback(revealDecodedFrame);
-      pendingFrameCleanupRef.current = () => {
-        cancelled = true;
-        video.cancelVideoFrameCallback(callbackId);
-      };
-      return;
-    }
-
-    const animationFrameId = window.requestAnimationFrame(revealDecodedFrame);
-    pendingFrameCleanupRef.current = () => {
-      cancelled = true;
-      window.cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  const handleLoadedData = useCallback((index: number) => {
-    if (index !== 0) return;
-
-    if (autoplayCheckRef.current !== null) {
-      window.clearTimeout(autoplayCheckRef.current);
-    }
-
-    autoplayCheckRef.current = window.setTimeout(() => {
-      const firstVideo = videoRefs.current[0];
-      if (firstVideo?.paused && !firstVideo.ended) {
-        setAutoplayBlocked(true);
-      }
-    }, 600);
-  }, []);
-
-  const handleEnded = useCallback(
-    (index: number) => {
-      if (index === 0 && phase === "video-01") {
-        setPhase("enter-ready");
-        return;
-      }
-
-      if (index === 1 && phase === "video-02") {
-        setPhase("open-ready");
-        return;
-      }
-
-      if (index !== 2 || phase !== "video-03") return;
-
-      setPhase("final-frame-hold");
-      if (holdTimerRef.current !== null) {
-        window.clearTimeout(holdTimerRef.current);
-      }
-      holdTimerRef.current = window.setTimeout(() => {
-        setArchiveVisible(true);
-        setPhase("html-crossfade");
-      }, FINAL_FRAME_HOLD_MS);
-    },
-    [phase]
-  );
-
-  const handlePlaybackError = useCallback(
-    (index: number) => {
-      pendingFrameCleanupRef.current?.();
-      pendingFrameCleanupRef.current = null;
-
-      if (index === 0 && phase === "video-01") {
-        setAutoplayBlocked(true);
-        return;
-      }
-
-      if (
-        index === 1 &&
-        (phase === "video-02-starting" || phase === "video-02")
-      ) {
-        setVisibleVideo(0);
-        setPhase("enter-ready");
-        return;
-      }
-
-      if (
-        index === 2 &&
-        (phase === "video-03-starting" || phase === "video-03")
-      ) {
-        setVisibleVideo(1);
-        setPhase("open-ready");
-      }
-    },
-    [phase]
-  );
-
-  const handleOpeningTransitionEnd = useCallback(
-    (event: TransitionEvent<HTMLDivElement>) => {
-      if (
-        event.currentTarget === event.target &&
-        event.propertyName === "opacity"
-      ) {
-        finishArchiveReveal();
-      }
-    },
-    [finishArchiveReveal]
-  );
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    scrollLock(true);
-
-    return () => {
-      if (holdTimerRef.current !== null) {
-        window.clearTimeout(holdTimerRef.current);
-      }
-      if (revealFallbackRef.current !== null) {
-        window.clearTimeout(revealFallbackRef.current);
-      }
-      if (autoplayCheckRef.current !== null) {
-        window.clearTimeout(autoplayCheckRef.current);
-      }
-      pendingFrameCleanupRef.current?.();
-      scrollLock(false);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (phase !== "html-crossfade") return;
-
-    revealFallbackRef.current = window.setTimeout(
-      finishArchiveReveal,
-      VIDEO_CROSSFADE_MS + 150
-    );
-
-    return () => {
-      if (revealFallbackRef.current !== null) {
-        window.clearTimeout(revealFallbackRef.current);
-        revealFallbackRef.current = null;
-      }
-    };
-  }, [finishArchiveReveal, phase]);
-
-  useLayoutEffect(() => {
-    const target =
-      phase === "enter-ready"
-        ? enterButtonRef.current
-        : phase === "open-ready"
-          ? openButtonRef.current
-          : autoplayBlocked
-            ? autoplayButtonRef.current
-            : phase === "complete"
-              ? document.querySelector<HTMLHeadingElement>(
-                  "#tetradic-video-tetrad-one-title"
-                )
-              : null;
-    target?.focus({ preventScroll: true });
-  }, [autoplayBlocked, phase]);
-
-  const showOpening = phase !== "complete";
-  const archiveIsInteractive = archiveVisible || phase === "complete";
+  useTetradicVideoScrub({
+    containerRef,
+    videoRefs,
+    reducedMotion,
+    lenis,
+  });
 
   return (
     <main
+      ref={containerRef}
       className="tetradic-video-experience"
-      data-intro-phase={phase}
-      data-visible-video={String(visibleVideo + 1).padStart(2, "0")}
+      data-reduced-motion={String(reducedMotion)}
+      data-phase={reducedMotion ? "reduced-motion" : "film-01"}
+      data-active-film={reducedMotion ? "all" : "01"}
+      data-has-scrolled="false"
+      data-scroll-progress="0.0000"
+      style={
+        {
+          "--tetradic-video-scroll-height": `${TETRADIC_VIDEO_SCROLL.totalSvh}svh`,
+        } as CSSProperties
+      }
     >
-      {showOpening && (
-        <div
-          className={
-            "tetradic-video__opening" +
-            (phase === "html-crossfade" ? " is-crossfading" : "")
-          }
-          onTransitionEnd={handleOpeningTransitionEnd}
-          aria-label="The Tetradic Signature opening"
-        >
-          <div className="tetradic-video__films" aria-hidden="true">
-            {TETRADIC_OPENING_VIDEOS.map((source, index) => (
-              <VideoLayer
-                key={source}
-                index={index}
-                source={source}
-                visible={visibleVideo === index}
-                autoPlay={index === 0}
-                setVideoRef={setVideoRef}
-                onPlaying={handlePlaying}
-                onLoadedData={handleLoadedData}
-                onEnded={handleEnded}
-                onPlaybackError={handlePlaybackError}
-              />
-            ))}
-          </div>
+      <h1 className="tetradic-video__sr-only">The Tetradic Signature</h1>
+      <p className="tetradic-video__sr-only">
+        A three-film scroll-controlled opening for the Founder Edition archive.
+      </p>
 
-          <ArchiveDecision
-            visible={phase === "enter-ready"}
-            label="Enter the Archive"
-            onActivate={() => void playVideo(1)}
-            buttonRef={enterButtonRef}
-          />
-          <ArchiveDecision
-            visible={phase === "open-ready"}
-            label="Open the Archive"
-            onActivate={() => void playVideo(2)}
-            buttonRef={openButtonRef}
-          />
-
-          <div
-            className="tetradic-video__autoplay-fallback"
-            data-visible={String(autoplayBlocked)}
-            aria-hidden={!autoplayBlocked}
-            inert={autoplayBlocked ? undefined : true}
-          >
-            <p>Your browser paused the opening film.</p>
-            <button
-              ref={autoplayButtonRef}
-              type="button"
-              onClick={() => void playVideo(0)}
-            >
-              Play the Opening
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div
-        className={
-          "tetradic-video__html" +
-          (archiveVisible || phase === "complete" ? " is-visible" : "")
-        }
-        aria-hidden={!archiveIsInteractive}
-        inert={archiveIsInteractive ? undefined : true}
+      <section
+        className="tetradic-video__stage"
+        aria-label="The Tetradic Signature archive opening"
       >
-        <TetradOneArchive />
-      </div>
+        <div className="tetradic-video__films">
+          {TETRADIC_SCROLL_FILMS.map((film, index) => (
+            <figure
+              className="tetradic-video__film-layer"
+              data-film-layer={film.id}
+              key={film.id}
+              style={{ opacity: index === 0 ? 1 : 0 }}
+            >
+              <video
+                ref={node => setVideoRef(index, node)}
+                className="tetradic-video__film"
+                src={film.source}
+                muted
+                playsInline
+                preload="auto"
+                controlsList="nodownload noremoteplayback noplaybackrate"
+                disablePictureInPicture
+                disableRemotePlayback
+                tabIndex={-1}
+                aria-hidden="true"
+                onError={() => handleMediaError(index)}
+              />
+              <figcaption>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                {film.label}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <div className="tetradic-video__atmosphere" aria-hidden="true" />
+
+        <header className="tetradic-video__masthead" aria-hidden="true">
+          <span>ORIEL</span>
+          <span>THE TETRADIC SIGNATURE · FOUNDER EDITION</span>
+        </header>
+
+        <footer className="tetradic-video__telemetry">
+          <div>
+            <span>ARCHIVE OPENING</span>
+            <strong data-video-status>Artifact Reveal</strong>
+          </div>
+          <p data-video-counter>01 / 03</p>
+        </footer>
+
+        <div
+          className="tetradic-video__progress"
+          role="progressbar"
+          aria-label="Archive opening progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={0}
+        >
+          <span data-video-progress-fill />
+        </div>
+
+        <p className="tetradic-video__scroll-cue" aria-hidden="true">
+          <span />
+          Scroll to enter
+        </p>
+
+        <p
+          className="tetradic-video__sr-only"
+          data-video-live-status
+          aria-live="polite"
+        >
+          Archive film 1 of 3: Artifact Reveal
+        </p>
+      </section>
     </main>
   );
 }

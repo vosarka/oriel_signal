@@ -1461,3 +1461,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Kept document scrolling locked through both decision holds and the final 500ms frame hold, then restored natural scrolling only after the semantic redacted Tetrad 01 spread became fully visible.
 - Removed GSAP, Lenis, ScrollTrigger, R3F, WebGL, canvas, pinning, and scroll synchronization from the mounted opening while preserving the previous implementations as inactive rollback files.
 - Verification: focused opening tests pass (7/7), production build passes, and real Chrome desktop/mobile checks cover autoplay, click gates, decoded-frame continuity, focus, scroll locking, touch unlock, and the no-black-frame crossfades. Type-check retains the unrelated `server/routers.ts:873` `circuitLinks` error.
+
+## [2026-07-21] feature | Tetradic Signature three-film scroll opening
+- Replaced the click-gated opening with one 1,100svh natural scroll track, a sticky 100svh viewport, one ScrollTrigger progress controller, and one restrained Lenis bridge.
+- Mapped the three supplied films to independent scrub ranges with two reversible 60svh crossfades and a 120svh final-frame hold; the experience intentionally stops before Tetrad 01 pending the approved transition.
+- Added fast-start, frequent-keyframe scrub derivatives while retaining the supplied source films as automatic fallbacks; mobile uses contained framing and reduced motion exposes all three films as a readable static document.
+- Verification: focused opening tests pass (6/6), client and server production builds pass, and all four route assets return HTTP 200. Repository-wide tests retain unrelated Profile Console, terminology, and sandboxed webhook failures; type-check retains the unrelated `server/routers.ts:873` `circuitLinks` error. Real-browser automation was unavailable because the environment approval service reached its usage limit.
