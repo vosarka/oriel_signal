@@ -1455,3 +1455,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Preserved native browser scrolling while replacing the compressed normalized controller with explicit 3,100vh phase and chapter tracks, independent ScrollTriggers, and deterministic ordered state reconstruction after refresh or resize.
 - Corrected deep-scroll reload behavior, exact chapter-boundary state, replay-to-Tetrad-01 focus, final CTA activation, and cleanup of scheduled refresh work without changing the approved artwork or chapter design.
 - Verification: focused tests pass (11/11); real-browser wheel, incremental trackpad, Arrow Down, Page Down, Space, touch, reverse, reload, replay, reduced-motion, desktop, tablet, and mobile checks pass with no runtime or network errors. Type-check retains only the pre-existing `server/routers.ts:873` `circuitLinks` error.
+
+## [2026-07-20] feature | Tetradic Signature native cinematic opening
+- Replaced the mounted complex scroll opening on `/tetradic-signature` with three click-gated native HTML5 films using the supplied intro assets and 650ms opacity-only crossfades.
+- Kept document scrolling locked through both decision holds and the final 500ms frame hold, then restored natural scrolling only after the semantic redacted Tetrad 01 spread became fully visible.
+- Removed GSAP, Lenis, ScrollTrigger, R3F, WebGL, canvas, pinning, and scroll synchronization from the mounted opening while preserving the previous implementations as inactive rollback files.
+- Verification: focused opening tests pass (7/7), production build passes, and real Chrome desktop/mobile checks cover autoplay, click gates, decoded-frame continuity, focus, scroll locking, touch unlock, and the no-black-frame crossfades. Type-check retains the unrelated `server/routers.ts:873` `circuitLinks` error.
