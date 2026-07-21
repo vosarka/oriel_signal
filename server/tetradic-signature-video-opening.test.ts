@@ -13,8 +13,13 @@ import { describe, expect, it } from "vitest";
 
 import { TetradicSignatureVideoExperience } from "../client/src/features/tetradic-signature/TetradicSignatureVideoExperience";
 import {
+  createTetradicVideoSeekController,
+  type ScrubbableVideo,
+} from "../client/src/features/tetradic-signature/tetradic-video-seek-controller";
+import {
   getTetradicVideoScrollState,
   TETRADIC_SCROLL_FILMS,
+  TETRADIC_VIDEO_FPS,
   TETRADIC_VIDEO_SCROLL,
 } from "../client/src/features/tetradic-signature/tetradic-video-scroll-config";
 
@@ -22,6 +27,8 @@ const ROOT = process.cwd();
 const COMPONENT =
   "client/src/features/tetradic-signature/TetradicSignatureVideoExperience.tsx";
 const HOOK = "client/src/features/tetradic-signature/useTetradicVideoScrub.ts";
+const SEEK_CONTROLLER =
+  "client/src/features/tetradic-signature/tetradic-video-seek-controller.ts";
 const PAGE = "client/src/pages/TetradicSignatureSimpleExperience.tsx";
 const CSS =
   "client/src/features/tetradic-signature/tetradic-signature-video.css";
@@ -38,10 +45,59 @@ function readFilePrefix(path: string, length = 4096) {
   return buffer.subarray(0, bytesRead);
 }
 
-function renderExperience(reducedMotion = false) {
+function renderExperience(reducedMotion = false, compact = false) {
   return renderToStaticMarkup(
-    createElement(TetradicSignatureVideoExperience, { reducedMotion })
+    createElement(TetradicSignatureVideoExperience, {
+      reducedMotion,
+      compact,
+    })
   );
+}
+
+class FakeScrubbableVideo extends EventTarget {
+  duration = 10;
+  readyState = 4;
+  seeking = false;
+  assignments: number[] = [];
+  private mediaTime = 0;
+  private nextFrameCallback = 1;
+  private frameCallbacks = new Map<
+    number,
+    (now: number, metadata: { mediaTime: number }) => void
+  >();
+
+  get currentTime() {
+    return this.mediaTime;
+  }
+
+  set currentTime(time: number) {
+    this.mediaTime = time;
+    this.seeking = true;
+    this.assignments.push(time);
+  }
+
+  requestVideoFrameCallback(
+    callback: (now: number, metadata: { mediaTime: number }) => void
+  ) {
+    const handle = this.nextFrameCallback;
+    this.nextFrameCallback += 1;
+    this.frameCallbacks.set(handle, callback);
+    return handle;
+  }
+
+  cancelVideoFrameCallback(handle: number) {
+    this.frameCallbacks.delete(handle);
+  }
+
+  present(time: number) {
+    this.mediaTime = time;
+    this.seeking = false;
+    const callbacks = [...this.frameCallbacks.values()];
+    this.frameCallbacks.clear();
+    callbacks.forEach(callback =>
+      callback(performance.now(), { mediaTime: time })
+    );
+  }
 }
 
 describe("Tetradic Signature scroll-scrubbed film opening", () => {
@@ -53,21 +109,26 @@ describe("Tetradic Signature scroll-scrubbed film opening", () => {
     ]);
 
     TETRADIC_SCROLL_FILMS.forEach(film => {
-      const assetPath = "client/public" + film.source;
-      expect(existsSync(resolve(ROOT, assetPath))).toBe(true);
-      expect(
-        readFilePrefix(assetPath).indexOf(Buffer.from("moov"))
-      ).toBeLessThan(1024);
+      [film.source, film.mobileSource].forEach(source => {
+        const assetPath = "client/public" + source;
+        expect(existsSync(resolve(ROOT, assetPath))).toBe(true);
+        expect(
+          readFilePrefix(assetPath).indexOf(Buffer.from("moov"))
+        ).toBeLessThan(1024);
+      });
+      expect(film.fallbackSource).toBe(film.mobileSource);
     });
   });
 
-  it("renders three paused native video layers without click gates", () => {
+  it("renders one eager and two deferred native video layers", () => {
     const markup = renderExperience();
     const videos = markup.match(/<video\b[^>]*>/g) ?? [];
 
     expect(videos).toHaveLength(3);
-    videos.forEach(video => {
-      expect(video).toContain('preload="auto"');
+    videos.forEach((video, index) => {
+      expect(video).toContain(
+        index === 0 ? 'preload="auto"' : 'preload="metadata"'
+      );
       expect(video).toContain('muted=""');
       expect(video).toContain('playsInline=""');
       expect(video).not.toContain("autoPlay");
@@ -76,6 +137,39 @@ describe("Tetradic Signature scroll-scrubbed film opening", () => {
     expect(markup).not.toContain("Enter the Archive");
     expect(markup).not.toContain("Open the Archive");
     expect(markup).not.toContain("tetradic-archive-interior");
+
+    const compactMarkup = renderExperience(false, true);
+    TETRADIC_SCROLL_FILMS.forEach(film => {
+      expect(compactMarkup).toContain(film.mobileSource);
+    });
+  });
+
+  it("coalesces rapid targets behind one presented-frame seek", () => {
+    const video = new FakeScrubbableVideo();
+    let presentedFrames = 0;
+    const controller = createTetradicVideoSeekController(
+      video as unknown as ScrubbableVideo,
+      {
+        frameStep: 1 / 24,
+        onFramePresented: () => {
+          presentedFrames += 1;
+        },
+      }
+    );
+
+    controller.request(1);
+    controller.request(2);
+    controller.request(3);
+    expect(video.assignments).toEqual([1]);
+
+    video.present(1);
+    expect(video.assignments).toEqual([1, 3]);
+    expect(controller.isPresentedAt(3)).toBe(false);
+
+    video.present(3);
+    expect(controller.isPresentedAt(3)).toBe(true);
+    expect(presentedFrames).toBe(2);
+    controller.dispose();
   });
 
   it("allocates the approved 1100svh natural scroll architecture", () => {
@@ -122,18 +216,22 @@ describe("Tetradic Signature scroll-scrubbed film opening", () => {
     expect(finish.phase).toBe("final-hold");
     expect(finish.activeFilm).toBe(2);
     expect(finish.opacities).toEqual([0, 0, 1]);
-    expect(finish.times[2]).toBeCloseTo(10 - 1 / 24, 5);
+    expect(finish.times[2]).toBeCloseTo(10 - 1 / TETRADIC_VIDEO_FPS, 5);
   });
 
   it("uses exactly one Lenis bridge and one ScrollTrigger controller", () => {
     const hook = readSource(HOOK);
+    const seekController = readSource(SEEK_CONTROLLER);
     const page = readSource(PAGE);
     const sources = [readSource(COMPONENT), hook, page, readSource(CSS)].join(
       "\n"
     );
 
     expect(hook.match(/ScrollTrigger\.create\(/g)).toHaveLength(1);
-    expect(hook).toContain("video.currentTime = target");
+    expect(hook).not.toContain("video.currentTime = target");
+    expect(seekController).toContain("video.currentTime = requestedTime");
+    expect(seekController).toContain("if (disposed || inFlight");
+    expect(seekController).toContain("requestVideoFrameCallback");
     expect(hook).toContain("requestAnimationFrame");
     expect(hook).toContain("TETRADIC_VIDEO_SCROLL_RESTORE_KEY");
     expect(hook).toContain("STORAGE_WRITE_INTERVAL_MS = 250");
@@ -142,7 +240,8 @@ describe("Tetradic Signature scroll-scrubbed film opening", () => {
     expect(page.match(/<ReactLenis/g)).toHaveLength(1);
     expect(page.match(/gsap\.ticker\.add/g)).toHaveLength(1);
     expect(page.match(/gsap\.ticker\.remove/g)).toHaveLength(1);
-    expect(page).toContain("gsap.ticker.lagSmoothing(0)");
+    expect(page).toContain("gsap.ticker.lagSmoothing(500, 33)");
+    expect(page).not.toContain("gsap.ticker.lagSmoothing(0)");
     expect(sources).not.toContain('addEventListener("wheel"');
     expect(sources).not.toContain('addEventListener("touchmove"');
     expect(sources).not.toContain("preventDefault()");

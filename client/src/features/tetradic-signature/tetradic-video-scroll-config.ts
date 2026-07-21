@@ -1,25 +1,35 @@
-export const TETRADIC_VIDEO_FPS = 24;
+export const TETRADIC_VIDEO_FPS = 18;
+export const TETRADIC_VIDEO_MOBILE_FPS = 15;
 
 export const TETRADIC_SCROLL_FILMS = [
   {
     id: "artifact-reveal",
     label: "Artifact Reveal",
     source: "/assets/tetradic-signature/scroll/01first_intro_scrub.mp4",
-    fallbackSource: "/assets/tetradic-signature/01first_intro_vid.mp4",
+    mobileSource:
+      "/assets/tetradic-signature/scroll/01first_intro_scrub-mobile.mp4",
+    fallbackSource:
+      "/assets/tetradic-signature/scroll/01first_intro_scrub-mobile.mp4",
     duration: 10,
   },
   {
     id: "archive-activation",
     label: "Archive Activation",
     source: "/assets/tetradic-signature/scroll/02middle_intro_scrub.mp4",
-    fallbackSource: "/assets/tetradic-signature/02middle_intro_vid.mp4",
+    mobileSource:
+      "/assets/tetradic-signature/scroll/02middle_intro_scrub-mobile.mp4",
+    fallbackSource:
+      "/assets/tetradic-signature/scroll/02middle_intro_scrub-mobile.mp4",
     duration: 8,
   },
   {
     id: "book-opening",
     label: "Book Opening",
     source: "/assets/tetradic-signature/scroll/03last_intro_scrub.mp4",
-    fallbackSource: "/assets/tetradic-signature/03last_intro_vid.mp4",
+    mobileSource:
+      "/assets/tetradic-signature/scroll/03last_intro_scrub-mobile.mp4",
+    fallbackSource:
+      "/assets/tetradic-signature/scroll/03last_intro_scrub-mobile.mp4",
     duration: 10,
   },
 ] as const;
@@ -28,6 +38,7 @@ export const TETRADIC_VIDEO_SCROLL = {
   totalSvh: 1100,
   scrollableSvh: 1000,
   frameStep: 1 / TETRADIC_VIDEO_FPS,
+  mobileFrameStep: 1 / TETRADIC_VIDEO_MOBILE_FPS,
   lenis: {
     lerp: 0.075,
     wheelMultiplier: 0.65,

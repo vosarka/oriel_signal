@@ -10,11 +10,13 @@ import "./tetradic-signature-video.css";
 
 type TetradicSignatureVideoExperienceProps = Readonly<{
   reducedMotion?: boolean;
+  compact?: boolean;
   lenis?: Lenis;
 }>;
 
 export function TetradicSignatureVideoExperience({
   reducedMotion = false,
+  compact = false,
   lenis,
 }: TetradicSignatureVideoExperienceProps) {
   const containerRef = useRef<HTMLElement | null>(null);
@@ -41,6 +43,9 @@ export function TetradicSignatureVideoExperience({
     containerRef,
     videoRefs,
     reducedMotion,
+    mediaFrameStep: compact
+      ? TETRADIC_VIDEO_SCROLL.mobileFrameStep
+      : TETRADIC_VIDEO_SCROLL.frameStep,
     lenis,
   });
 
@@ -79,10 +84,10 @@ export function TetradicSignatureVideoExperience({
               <video
                 ref={node => setVideoRef(index, node)}
                 className="tetradic-video__film"
-                src={film.source}
+                src={compact ? film.mobileSource : film.source}
                 muted
                 playsInline
-                preload="auto"
+                preload={index === 0 ? "auto" : "metadata"}
                 controlsList="nodownload noremoteplayback noplaybackrate"
                 disablePictureInPicture
                 disableRemotePlayback

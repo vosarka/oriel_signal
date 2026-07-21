@@ -8,6 +8,7 @@ import {
   TETRADIC_SCROLL_FILMS,
   TETRADIC_VIDEO_SCROLL,
 } from "./tetradic-video-scroll-config";
+import { createTetradicVideoSeekController } from "./tetradic-video-seek-controller";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,6 +21,7 @@ type TetradicVideoScrubOptions = Readonly<{
   containerRef: RefObject<HTMLElement | null>;
   videoRefs: RefObject<Array<HTMLVideoElement | null>>;
   reducedMotion: boolean;
+  mediaFrameStep: number;
   lenis?: Lenis;
 }>;
 
@@ -49,28 +51,11 @@ function writeStoredProgress(progress: number) {
   }
 }
 
-function setMediaTime(video: HTMLVideoElement, requestedTime: number) {
-  if (video.readyState < HTMLMediaElement.HAVE_METADATA) return;
-
-  const duration = Number.isFinite(video.duration)
-    ? video.duration
-    : requestedTime;
-  const target = Math.min(
-    Math.max(0, requestedTime),
-    Math.max(0, duration - TETRADIC_VIDEO_SCROLL.frameStep)
-  );
-
-  if (Math.abs(video.currentTime - target) < TETRADIC_VIDEO_SCROLL.frameStep) {
-    return;
-  }
-
-  video.currentTime = target;
-}
-
 export function useTetradicVideoScrub({
   containerRef,
   videoRefs,
   reducedMotion,
+  mediaFrameStep,
   lenis,
 }: TetradicVideoScrubOptions) {
   useLayoutEffect(() => {
@@ -118,29 +103,55 @@ export function useTetradicVideoScrub({
     let lastMediaWaiting: boolean | undefined;
     let lastStorageWrite = 0;
     let lastOpacities: readonly number[] = [-1, -1, -1];
+    const preparedFilms = new Set<number>([0]);
+    const layerActivated = [false, false, false];
     const savedProgress = isReloadNavigation()
       ? readStoredProgress()
       : Number.NaN;
     let restoringReload =
       Number.isFinite(savedProgress) && savedProgress > 0 && savedProgress <= 1;
 
+    const controllers = videos.map(video =>
+      createTetradicVideoSeekController(video, {
+        frameStep: mediaFrameStep,
+        onFramePresented: () => queueProgress(latestProgress),
+      })
+    );
+
+    const prepareFilm = (index: number) => {
+      const video = videos[index];
+      if (!video || preparedFilms.has(index)) return;
+      preparedFilms.add(index);
+      if (video.dataset.scrubPrepared === "true") return;
+      video.dataset.scrubPrepared = "true";
+      video.preload = "auto";
+      if (video.networkState === HTMLMediaElement.NETWORK_EMPTY) video.load();
+    };
+
     const applyProgress = (progress: number) => {
       const state = getTetradicVideoScrollState(progress);
       latestProgress = state.progress;
 
-      state.times.forEach((time, index) => {
-        setMediaTime(videos[index], time);
+      prepareFilm(state.activeFilm);
+      if (state.progress >= 0.12) prepareFilm(1);
+      if (state.progress >= 0.44) prepareFilm(2);
+
+      state.opacities.forEach((opacity, index) => {
+        if (opacity <= 0 && index !== state.activeFilm) return;
+        controllers[index].request(state.times[index]);
+        if (controllers[index].isPresentedAt(state.times[index])) {
+          layerActivated[index] = true;
+        }
       });
 
       const opacities = [...state.opacities] as [number, number, number];
       const incomingIndex = opacities.findIndex(
-        (opacity, index) =>
-          opacity > 0 &&
-          index > 0 &&
-          videos[index].readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+        (opacity, index) => opacity > 0 && index > 0 && !layerActivated[index]
       );
 
       if (incomingIndex > 0) {
+        prepareFilm(incomingIndex - 1);
+        controllers[incomingIndex - 1].request(state.times[incomingIndex - 1]);
         opacities.fill(0);
         opacities[incomingIndex - 1] = 1;
       }
@@ -197,20 +208,22 @@ export function useTetradicVideoScrub({
       lastStorageWrite = now;
     };
 
-    const queueProgress = (progress: number) => {
+    function queueProgress(progress: number) {
       latestProgress = progress;
       if (frameRequest) return;
       frameRequest = window.requestAnimationFrame(() => {
         frameRequest = 0;
         applyProgress(latestProgress);
       });
-    };
+    }
 
-    const mediaReady = () => queueProgress(latestProgress);
-    videos.forEach(video => {
-      video.addEventListener("loadedmetadata", mediaReady);
-      video.addEventListener("loadeddata", mediaReady);
-      video.addEventListener("seeked", mediaReady);
+    const mediaReadyHandlers = videos.map((video, index) => () => {
+      controllers[index].syncLoadedFrame();
+      queueProgress(latestProgress);
+    });
+    videos.forEach((video, index) => {
+      video.addEventListener("loadedmetadata", mediaReadyHandlers[index]);
+      video.addEventListener("loadeddata", mediaReadyHandlers[index]);
     });
 
     let trigger!: ScrollTrigger;
@@ -274,16 +287,16 @@ export function useTetradicVideoScrub({
       cancelled = true;
       window.cancelAnimationFrame(frameRequest);
       window.cancelAnimationFrame(refreshFrame);
-      videos.forEach(video => {
-        video.removeEventListener("loadedmetadata", mediaReady);
-        video.removeEventListener("loadeddata", mediaReady);
-        video.removeEventListener("seeked", mediaReady);
+      videos.forEach((video, index) => {
+        video.removeEventListener("loadedmetadata", mediaReadyHandlers[index]);
+        video.removeEventListener("loadeddata", mediaReadyHandlers[index]);
       });
+      controllers.forEach(controller => controller.dispose());
       window.removeEventListener("pageshow", handlePageShow);
       window.removeEventListener("pagehide", handlePageHide);
       persistProgress(latestProgress, true);
       trigger.kill();
       context.revert();
     };
-  }, [containerRef, lenis, reducedMotion, videoRefs]);
+  }, [containerRef, lenis, mediaFrameStep, reducedMotion, videoRefs]);
 }

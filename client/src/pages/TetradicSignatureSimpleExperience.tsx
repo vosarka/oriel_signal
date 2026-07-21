@@ -18,27 +18,28 @@ function TetradicVideoLenisBridge() {
 
     const updateScrollTrigger = () => ScrollTrigger.update();
     const advanceLenis = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.lagSmoothing(0);
+    gsap.ticker.lagSmoothing(500, 33);
     lenis.on("scroll", updateScrollTrigger);
     gsap.ticker.add(advanceLenis, false, true);
 
     return () => {
       lenis.off("scroll", updateScrollTrigger);
       gsap.ticker.remove(advanceLenis);
-      gsap.ticker.lagSmoothing(500, 33);
     };
   }, [lenis]);
 
   return null;
 }
 
-function SmoothTetradicVideoOpening() {
+function SmoothTetradicVideoOpening({
+  compact,
+}: Readonly<{ compact: boolean }>) {
   const lenis = useLenis();
-  return <TetradicSignatureVideoExperience lenis={lenis} />;
+  return <TetradicSignatureVideoExperience compact={compact} lenis={lenis} />;
 }
 
 export default function TetradicSignatureSimpleExperience() {
-  const { reducedMotion } = useTetradicViewport();
+  const { compact, reducedMotion } = useTetradicViewport();
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -49,7 +50,7 @@ export default function TetradicSignatureSimpleExperience() {
   }, []);
 
   if (reducedMotion) {
-    return <TetradicSignatureVideoExperience reducedMotion />;
+    return <TetradicSignatureVideoExperience compact={compact} reducedMotion />;
   }
 
   return (
@@ -64,7 +65,7 @@ export default function TetradicSignatureSimpleExperience() {
       }}
     >
       <TetradicVideoLenisBridge />
-      <SmoothTetradicVideoOpening />
+      <SmoothTetradicVideoOpening compact={compact} />
     </ReactLenis>
   );
 }
