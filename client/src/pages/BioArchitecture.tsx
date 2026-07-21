@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { ReactLenis, useLenis } from "lenis/react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Layout from "@/components/Layout";
-import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import { CodonWheel } from "@/components/oriel-signal/CodonWheel";
-import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
+import {
+  CodonDetailPanel,
+  type CodonDetail,
+} from "@/components/oriel-signal/CodonDetailPanel";
 import { RoleGrid } from "@/components/oriel-signal/RoleGrid";
 import { CenterGrid } from "@/components/oriel-signal/CenterGrid";
 import { Spinner } from "@/components/ui/spinner";
@@ -14,6 +19,9 @@ import { LatticeModule } from "@/components/oriel-signal/vtrs/LatticeModule";
 import { CentersModule } from "@/components/oriel-signal/vtrs/CentersModule";
 import { LinksModule } from "@/components/oriel-signal/vtrs/LinksModule";
 import { RolesModule } from "@/components/oriel-signal/vtrs/RolesModule";
+import { BioArchitectureJourney } from "@/components/bio-architecture/BioArchitectureJourney";
+
+gsap.registerPlugin(ScrollTrigger);
 
 // The 6 technical HUD modules orbiting the wheel. The wheel itself is the
 // 7th station — the default terminal state.
@@ -28,40 +36,71 @@ const MODULES = [
 
 type ModuleId = (typeof MODULES)[number]["id"];
 
+function LenisGsapBridge() {
+  const lenis = useLenis();
+  useEffect(() => {
+    if (!lenis) return;
+    const onScroll = () => ScrollTrigger.update();
+    const raf = (time: number) => lenis.raf(time * 1000);
+    lenis.on("scroll", onScroll);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+    return () => {
+      lenis.off("scroll", onScroll);
+      gsap.ticker.remove(raf);
+    };
+  }, [lenis]);
+  return null;
+}
+
 export default function BioArchitecture() {
   const [codons, setCodons] = useState<CodonDetail[] | null>(null);
   const [selectedId, setSelectedId] = useState<number>(1);
-  const [selectedFacetKey, setSelectedFacetKey] = useState<"A" | "B" | "C" | "D">("A");
+  const [selectedFacetKey, setSelectedFacetKey] = useState<
+    "A" | "B" | "C" | "D"
+  >("A");
   const [activeRoleIdx, setActiveRoleIdx] = useState<number | null>(null);
   const [activeCenter, setActiveCenter] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeModule, setActiveModule] = useState<ModuleId | null>(null);
 
-  const ActiveComp = activeModule ? MODULES.find(m => m.id === activeModule)?.comp : null;
+  const ActiveComp = activeModule
+    ? MODULES.find(m => m.id === activeModule)?.comp
+    : null;
 
   useEffect(() => {
     fetch("/codons.json")
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         setCodons(data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(err => {
         console.error("Failed to load codons master:", err);
         setLoading(false);
       });
   }, []);
 
-  const selectedCodon = codons?.find((c) => c.id === selectedId) || codons?.[0];
+  const selectedCodon = codons?.find(c => c.id === selectedId) || codons?.[0];
 
   return (
-    <Layout>
-      <SignalPageShell chamber="codex" className="bio-architecture-page">
-
-        <style>{`
+    <ReactLenis
+      root
+      options={{
+        lerp: 0.075,
+        duration: 1.2,
+        smoothWheel: true,
+        wheelMultiplier: 0.88,
+        autoRaf: false,
+      }}
+    >
+      <LenisGsapBridge />
+      <Layout overlayHeader>
+        <SignalPageShell chamber="codex" className="bio-architecture-page">
+          <style>{`
           .bio-architecture-page {
             min-height: 100vh;
-            padding: clamp(6rem, 10vw, 8rem) 1.5rem 6rem;
+            padding: 0;
             /* Transparent so the shared SignalBackdrop (obsidian void + gold
                bloom + starfield, same as Home) shows through. No flower-of-life. */
             background: transparent;
@@ -80,7 +119,17 @@ export default function BioArchitecture() {
             z-index: 1;
             width: min(1500px, 100%);
             margin: 0 auto;
+            padding: clamp(6rem, 10vw, 8rem) clamp(1rem, 2.4vw, 2rem) 6rem;
+            box-sizing: border-box;
+            scroll-margin-top: 5rem;
           }
+
+          .bio-terminal-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:2rem;margin-bottom:2.4rem;padding-bottom:1.4rem;border-bottom:1px solid var(--line)}
+          .bio-terminal-head__code{display:block;margin-bottom:.8rem;color:var(--cyan);font-family:var(--font-ritual,monospace);font-size:9px;letter-spacing:.24em}
+          .bio-terminal-head h2{margin:0;color:var(--ink);font-family:var(--font-display,serif);font-size:clamp(2.4rem,5.5vw,5.8rem);font-weight:400;line-height:.95;letter-spacing:.035em}
+          .bio-terminal-head p{max-width:43ch;margin:0;color:#b8af9b;font-family:var(--font-voice,serif);font-size:clamp(1rem,1.35vw,1.2rem);font-style:italic;line-height:1.5}
+          .vtrs-primary-wheel{min-width:0}
+          @media(max-width:780px){.bio-terminal-head{grid-template-columns:1fr;align-items:start}}
 
           .bio-architecture-page__intro {
             margin: 1.5rem 0 2.5rem;
@@ -1218,168 +1267,246 @@ export default function BioArchitecture() {
           }
         `}</style>
 
-        <main className="bio-architecture-page__wrap">
-          <PageHeaderBand
-            title="BIO-ARCHITECTURE"
-            descriptor="VOSSARI TETRADIC RESONANCE SYSTEM · INTERACTIVE TERMINAL"
-            symbol="lattice"
-            width="100%"
+          <BioArchitectureJourney
+            codons={codons}
+            selectedId={selectedId}
+            onSelectCodon={setSelectedId}
           />
 
-          {/* Permanent HUD status strip */}
-          <div className="vtrs-status-strip">
-            SYSTEM STATUS: ACTIVE · 64 CODONS · 8 CENTERS · 32 LINKS · 512 NODES
-          </div>
+          <main id="bio-terminal" className="bio-architecture-page__wrap">
+            <header className="bio-terminal-head">
+              <div>
+                <span className="bio-terminal-head__code">
+                  07 · EXPLORER MODE · UNIVERSAL ARCHITECTURE
+                </span>
+                <h2>THE INTERACTIVE TERMINAL</h2>
+              </div>
+              <p>
+                The cinematic sequence resolves here. The complete system
+                remains alive: turn the wheel, isolate a center, inspect a role,
+                or open the machinery beneath the map.
+              </p>
+            </header>
 
-          {/* Cross-reference to Profile: positions the terminal as the indispensable
-              system layer that explains every user's personal Bio-Architecture. */}
-          <p
-            style={{
-              fontFamily: "var(--font-voice, serif)",
-              fontStyle: "italic",
-              color: "#b8af9b",
-              fontSize: "0.95rem",
-              margin: "0.35rem 0 0.85rem",
-              maxWidth: "860px",
-            }}
-          >
-            The terminal teaches the universal structure. Anchor or view your own defined centers, active links, and Prime Stack in{" "}
-            <a href="/profile" style={{ color: "var(--gold)", textDecoration: "underline" }}>your Profile</a>.
-          </p>
-
-          <section className="bio-architecture-page__intro" aria-label="Introduction">
-            <p className="bio-architecture-page__voice">
-              {activeModule === null
-                ? "Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad — four codons, one for each facet: Somatic, Relational, Cognitive, Transpersonal. Turn the wheel; read the signal."
-                : "The wheel keeps turning while you inspect the machinery. Return to the terminal at any time."}
-            </p>
-          </section>
-
-          {loading ? (
-            <div className="flex h-[400px] items-center justify-center">
-              <Spinner className="h-8 w-8 text-amber-500" />
+            {/* Permanent HUD status strip */}
+            <div className="vtrs-status-strip">
+              SYSTEM STATUS: ACTIVE · 64 CODONS · 8 CENTERS · 32 LINKS · 512
+              NODES
             </div>
-          ) : (
-            codons &&
-            selectedCodon && (
-              <AnimatePresence mode="wait">
-                {activeModule === null ? (
-                  /* ── TERMINAL STATE: full wheel + module chips + panel + roles ── */
-                  <motion.div
-                    key="terminal"
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Module HUD chips */}
-                    <div className="vtrs-chip-strip" role="navigation" aria-label="VTRS modules">
-                      {MODULES.map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          className="vtrs-chip"
-                          onClick={() => setActiveModule(m.id)}
-                        >
-                          <span className="vtrs-chip__num">{m.num}</span>
-                          <span className="vtrs-chip__label">{m.label}</span>
-                        </button>
-                      ))}
-                    </div>
 
-                    <div className="cz-bio-grid">
-                      <CenterGrid
-                        activeCenter={activeCenter}
-                        onCenterSelect={name => {
-                          setActiveCenter(name);
-                          if (name !== null) setActiveRoleIdx(null);
-                        }}
-                      />
-                      <CodonWheel
-                        codons={codons}
-                        selectedId={selectedId}
-                        onSelect={id => setSelectedId(id)}
-                        activeRoleIdx={activeRoleIdx}
-                        activeCenter={activeCenter}
-                        onDeselect={() => {
-                          setActiveCenter(null);
-                          setActiveRoleIdx(null);
-                        }}
-                      />
-                      <CodonDetailPanel
-                        codon={selectedCodon}
-                        selectedFacetKey={selectedFacetKey}
-                        onFacetChange={key => setSelectedFacetKey(key)}
-                        onSelectCodon={id => setSelectedId(id)}
-                      />
-                    </div>
+            {/* Cross-reference to Profile: positions the terminal as the indispensable
+              system layer that explains every user's personal Bio-Architecture. */}
+            <p
+              style={{
+                fontFamily: "var(--font-voice, serif)",
+                fontStyle: "italic",
+                color: "#b8af9b",
+                fontSize: "0.95rem",
+                margin: "0.35rem 0 0.85rem",
+                maxWidth: "860px",
+              }}
+            >
+              The terminal teaches the universal structure. Anchor or view your
+              own defined centers, active links, and Prime Stack in{" "}
+              <a
+                href="/profile"
+                style={{ color: "var(--gold)", textDecoration: "underline" }}
+              >
+                your Profile
+              </a>
+              .
+            </p>
 
-                    <RoleGrid
-                      activeRoleIdx={activeRoleIdx}
-                      onRoleSelect={idx => {
-                        setActiveRoleIdx(idx);
-                        if (idx !== null) setActiveCenter(null);
-                      }}
-                    />
-                  </motion.div>
-                ) : (
-                  /* ── MODULE STATE: shrunken wheel + nav left, module right ── */
-                  <motion.div
-                    key={activeModule}
-                    className="vtrs-module-layout"
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.35 }}
-                  >
-                    <aside className="vtrs-module-nav">
-                      <button
-                        type="button"
-                        className="vtrs-btn vtrs-btn--back"
-                        onClick={() => setActiveModule(null)}
+            <section
+              className="bio-architecture-page__intro"
+              aria-label="Introduction"
+            >
+              <p className="bio-architecture-page__voice">
+                {activeModule === null
+                  ? "Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad — four codons, one for each facet: Somatic, Relational, Cognitive, Transpersonal. Turn the wheel; read the signal."
+                  : "The wheel keeps turning while you inspect the machinery. Return to the terminal at any time."}
+              </p>
+            </section>
+
+            {loading ? (
+              <div className="flex h-[400px] items-center justify-center">
+                <Spinner className="h-8 w-8 text-amber-500" />
+              </div>
+            ) : (
+              codons &&
+              selectedCodon && (
+                <LayoutGroup id="vtrs-terminal">
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {activeModule === null ? (
+                      /* ── TERMINAL STATE: full wheel + module chips + panel + roles ── */
+                      <motion.div
+                        key="terminal"
+                        layout
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{
+                          duration: 0.65,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                       >
-                        ← TERMINAL
-                      </button>
+                        {/* Module HUD chips */}
+                        <div
+                          className="vtrs-chip-strip"
+                          role="navigation"
+                          aria-label="VTRS modules"
+                        >
+                          {MODULES.map(m => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              className="vtrs-chip"
+                              onClick={() => setActiveModule(m.id)}
+                            >
+                              <span className="vtrs-chip__num">{m.num}</span>
+                              <span className="vtrs-chip__label">
+                                {m.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
 
-                      <div className="vtrs-mini-wheel">
-                        <CodonWheel
-                          codons={codons}
-                          selectedId={selectedId}
-                          onSelect={id => setSelectedId(id)}
+                        <div className="cz-bio-grid">
+                          <CenterGrid
+                            activeCenter={activeCenter}
+                            onCenterSelect={name => {
+                              setActiveCenter(name);
+                              if (name !== null) setActiveRoleIdx(null);
+                            }}
+                          />
+                          <motion.div
+                            layoutId="vtrs-live-wheel"
+                            className="vtrs-primary-wheel"
+                            transition={{
+                              duration: 0.75,
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                          >
+                            <CodonWheel
+                              codons={codons}
+                              selectedId={selectedId}
+                              onSelect={id => setSelectedId(id)}
+                              activeRoleIdx={activeRoleIdx}
+                              activeCenter={activeCenter}
+                              onDeselect={() => {
+                                setActiveCenter(null);
+                                setActiveRoleIdx(null);
+                              }}
+                            />
+                          </motion.div>
+                          <CodonDetailPanel
+                            codon={selectedCodon}
+                            selectedFacetKey={selectedFacetKey}
+                            onFacetChange={key => setSelectedFacetKey(key)}
+                            onSelectCodon={id => setSelectedId(id)}
+                          />
+                        </div>
+
+                        <RoleGrid
                           activeRoleIdx={activeRoleIdx}
-                          activeCenter={activeCenter}
-                          onDeselect={() => {
-                            setActiveCenter(null);
-                            setActiveRoleIdx(null);
+                          onRoleSelect={idx => {
+                            setActiveRoleIdx(idx);
+                            if (idx !== null) setActiveCenter(null);
                           }}
                         />
-                      </div>
-
-                      <nav className="vtrs-chip-column" aria-label="VTRS modules">
-                        {MODULES.map(m => (
+                      </motion.div>
+                    ) : (
+                      /* ── MODULE STATE: shrunken wheel + nav left, module right ── */
+                      <motion.div
+                        key="module"
+                        layout
+                        className="vtrs-module-layout"
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{
+                          duration: 0.65,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        <aside className="vtrs-module-nav">
                           <button
-                            key={m.id}
                             type="button"
-                            className={`vtrs-chip ${activeModule === m.id ? "is-active" : ""}`}
-                            onClick={() => setActiveModule(m.id)}
+                            className="vtrs-btn vtrs-btn--back"
+                            onClick={() => setActiveModule(null)}
                           >
-                            <span className="vtrs-chip__num">{m.num}</span>
-                            <span className="vtrs-chip__label">{m.label}</span>
+                            ← TERMINAL
                           </button>
-                        ))}
-                      </nav>
-                    </aside>
 
-                    <section className="vtrs-module-stage" aria-live="polite">
-                      {ActiveComp && <ActiveComp />}
-                    </section>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            )
-          )}
-        </main>
-      </SignalPageShell>
-    </Layout>
+                          <motion.div
+                            layoutId="vtrs-live-wheel"
+                            className="vtrs-mini-wheel"
+                            transition={{
+                              duration: 0.75,
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                          >
+                            <CodonWheel
+                              codons={codons}
+                              selectedId={selectedId}
+                              onSelect={id => setSelectedId(id)}
+                              activeRoleIdx={activeRoleIdx}
+                              activeCenter={activeCenter}
+                              onDeselect={() => {
+                                setActiveCenter(null);
+                                setActiveRoleIdx(null);
+                              }}
+                            />
+                          </motion.div>
+
+                          <nav
+                            className="vtrs-chip-column"
+                            aria-label="VTRS modules"
+                          >
+                            {MODULES.map(m => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                className={`vtrs-chip ${activeModule === m.id ? "is-active" : ""}`}
+                                onClick={() => setActiveModule(m.id)}
+                              >
+                                <span className="vtrs-chip__num">{m.num}</span>
+                                <span className="vtrs-chip__label">
+                                  {m.label}
+                                </span>
+                              </button>
+                            ))}
+                          </nav>
+                        </aside>
+
+                        <section
+                          className="vtrs-module-stage"
+                          aria-live="polite"
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.div
+                              key={activeModule}
+                              initial={{ opacity: 0, y: 18 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -12 }}
+                              transition={{
+                                duration: 0.4,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
+                            >
+                              {ActiveComp && <ActiveComp />}
+                            </motion.div>
+                          </AnimatePresence>
+                        </section>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </LayoutGroup>
+              )
+            )}
+          </main>
+        </SignalPageShell>
+      </Layout>
+    </ReactLenis>
   );
 }

@@ -8,8 +8,14 @@ import {
   Radio,
   ScrollText,
 } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Spinner } from "@/components/ui/spinner";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,26 +27,50 @@ import {
 } from "@/components/oriel-signal/OrielSignalDesign";
 import ResonanceBody from "@/components/oriel-signal/ResonanceBody";
 import MatrixGridBackground from "@/components/oriel-signal/MatrixGridBackground";
-import {
-  normalizeCenters,
-  normalizeChannels,
-} from "@/lib/bodygraph-data";
+import { normalizeCenters, normalizeChannels } from "@/lib/bodygraph-data";
 import { StaticSignaturePanel } from "./StaticReading";
 import {
+  buildProfileGraphNodes,
   buildProfileStats,
   formatProfileDate,
   getProfileDisplayName,
   getStableConduitId,
+  type ProfileConsoleGraphNode,
 } from "./profile-console-model";
 import "../pages/arcana.css";
 import "./profile.css";
+import "./profile-cockpit.css";
 
 type PrimeStackEntry = {
   codonName?: string;
   codon?: string | number;
   center?: string;
 };
+type ProfileTab = "overview" | "signature" | "history" | "settings";
+const TABS: Array<{ id: ProfileTab; code: string; label: string }> = [
+  { id: "overview", code: "01", label: "Overview" },
+  { id: "signature", code: "02", label: "Signature" },
+  { id: "history", code: "03", label: "Field History" },
+  { id: "settings", code: "04", label: "Settings" },
+];
+const POS = [
+  { x: 15, y: 19 },
+  { x: 50, y: 10 },
+  { x: 85, y: 19 },
+  { x: 15, y: 81 },
+  { x: 50, y: 90 },
+  { x: 85, y: 81 },
+] as const;
 
+function readTab(): ProfileTab {
+  if (typeof window === "undefined") return "overview";
+  const p = new URLSearchParams(location.search);
+  const s = p.get("section");
+  if (s === "signature" || s === "history" || s === "settings") return s;
+  if (p.get("tab") === "resonance" || location.hash === "#static-signature")
+    return "signature";
+  return "overview";
+}
 function coherenceLabel(score: number | null) {
   if (score === null)
     return { label: "UNRESOLVED", state: "AWAITING COORDINATE" };
@@ -48,28 +78,32 @@ function coherenceLabel(score: number | null) {
   if (score >= 40) return { label: "DRIFTED", state: "FLUX" };
   return { label: "FRAGMENTED", state: "ENTROPY" };
 }
-
-function birthCoordinateFromProfile(profile: {
+function birthCoordinate(p: {
   birthDate?: string | null;
   birthTime?: string | null;
   birthCity?: string | null;
   birthCountry?: string | null;
 }) {
-  if (!profile.birthDate) return null;
-  const dateTime = [profile.birthDate, profile.birthTime]
+  if (!p.birthDate) return null;
+  return [
+    [p.birthDate, p.birthTime].filter(Boolean).join(" · "),
+    [p.birthCity, p.birthCountry].filter(Boolean).join(", "),
+  ]
     .filter(Boolean)
     .join(" · ");
-  const place = [profile.birthCity, profile.birthCountry]
-    .filter(Boolean)
-    .join(", ");
-  return [dateTime, place].filter(Boolean).join(" · ");
 }
-
-function EmptyValue({ children = "Awaiting signal" }: { children?: string }) {
+function humanize(v?: string | null) {
+  return v
+    ? v
+        .replace(/^tx[-_:]?/i, "")
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, l => l.toUpperCase())
+    : "Awaiting transmission";
+}
+function Empty({ children = "Awaiting signal" }: { children?: string }) {
   return <span className="profile-layer__empty">{children}</span>;
 }
-
-function ProfileSection({
+function Section({
   code,
   title,
   children,
@@ -80,29 +114,74 @@ function ProfileSection({
 }) {
   return (
     <section className="profile-section">
-      <div className="profile-section__head">
+      <header className="profile-section__head">
         <span className="arkana-card__code">{code}</span>
         <h2 className="profile-section__title">{title}</h2>
-      </div>
+      </header>
       {children}
     </section>
   );
 }
-
-function ProfileRows({
-  rows,
-}: {
-  rows: Array<{ label: string; value: ReactNode }>;
-}) {
+function Rows({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) {
   return (
     <dl className="profile-rows">
-      {rows.map(row => (
-        <div key={row.label} className="profile-row">
-          <dt>{row.label}</dt>
-          <dd>{row.value}</dd>
+      {rows.map(r => (
+        <div className="profile-row" key={r.label}>
+          <dt>{r.label}</dt>
+          <dd>{r.value}</dd>
         </div>
       ))}
     </dl>
+  );
+}
+function Graph({
+  nodes,
+  receiver,
+}: {
+  nodes: ProfileConsoleGraphNode[];
+  receiver: string;
+}) {
+  return (
+    <div
+      className="profile-graph"
+      role="group"
+      aria-label="Receiver interaction map"
+    >
+      <svg
+        className="profile-graph__lines"
+        viewBox="0 0 1000 500"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path d="M500 250 L150 95 M500 250 L500 50 M500 250 L850 95 M500 250 L150 405 M500 250 L500 450 M500 250 L850 405" />
+        <circle cx="500" cy="250" r="124" />
+      </svg>
+      <div className="profile-graph__receiver">
+        <span>RECEIVER</span>
+        <strong>{receiver}</strong>
+        <i>◇</i>
+      </div>
+      <ul className="profile-graph__nodes">
+        {nodes.map((n, i) => {
+          const p = POS[i] ?? POS[0];
+          return (
+            <li
+              key={n.id}
+              className={`profile-graph__node profile-graph__node--${n.tone}`}
+              style={
+                {
+                  "--graph-x": `${p.x}%`,
+                  "--graph-y": `${p.y}%`,
+                } as CSSProperties
+              }
+            >
+              <span>{n.label}</span>
+              <strong>{n.value}</strong>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -110,327 +189,405 @@ export default function Profile() {
   const { user, isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
-
-  const sigilQuery = trpc.codex.getProfileSigil.useQuery(undefined, {
+  const [tab, setTab] = useState<ProfileTab>(readTab);
+  const sigil = trpc.codex.getProfileSigil.useQuery(undefined, {
     retry: false,
   });
-  const staticProfileQuery = trpc.profile.getStaticProfile.useQuery(undefined, {
+  const staticQ = trpc.profile.getStaticProfile.useQuery(undefined, {
     retry: false,
   });
-  const currentResonanceQuery = trpc.profile.getCurrentResonance.useQuery(
-    undefined,
-    { retry: false }
-  );
-  const summaryQuery = trpc.profile.getProfileConsoleSummary.useQuery(
-    undefined,
-    { retry: false }
-  );
-
+  const resonanceQ = trpc.profile.getCurrentResonance.useQuery(undefined, {
+    retry: false,
+  });
+  const summaryQ = trpc.profile.getProfileConsoleSummary.useQuery(undefined, {
+    retry: false,
+  });
   useEffect(() => {
     if (!loading && !isAuthenticated) setLocation("/");
   }, [isAuthenticated, loading, setLocation]);
-
-  const sp = staticProfileQuery.data;
-  const profileCenters = useMemo(
+  useEffect(() => {
+    const sync = () => setTab(readTab());
+    addEventListener("popstate", sync);
+    addEventListener("hashchange", sync);
+    return () => {
+      removeEventListener("popstate", sync);
+      removeEventListener("hashchange", sync);
+    };
+  }, []);
+  useEffect(() => {
+    if (tab === "overview") return;
+    const p = new URLSearchParams(location.search);
+    if (p.get("section") === tab) return;
+    p.set("section", tab);
+    history.replaceState(null, "", `/profile?${p}`);
+  }, [tab]);
+  const sp = staticQ.data;
+  const centers = useMemo(
     () => normalizeCenters(sp?.ninecenters),
     [sp?.ninecenters]
   );
-  const profileChannels = useMemo(() => {
-    const direct = normalizeChannels(sp?.channelStatuses);
-    if (direct.length > 0) return direct;
-    return normalizeChannels(
-      (
-        sp?.coreCodonEngine as
-          | { lattice?: { channelStatuses?: unknown } }
-          | undefined
-      )?.lattice?.channelStatuses
-    );
+  const channels = useMemo(() => {
+    const d = normalizeChannels(sp?.channelStatuses);
+    return d.length
+      ? d
+      : normalizeChannels(
+          (
+            sp?.coreCodonEngine as
+              | { lattice?: { channelStatuses?: unknown } }
+              | undefined
+          )?.lattice?.channelStatuses
+        );
   }, [sp?.channelStatuses, sp?.coreCodonEngine]);
-
-  if (loading) {
+  if (loading)
     return (
       <Layout>
-        <div
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
+        <div className="profile-loading">
           <Spinner size={24} label="Initializing conduit" />
-          <div
-            style={{
-              fontFamily: "var(--font-ritual)",
-              fontSize: 10,
-              color: "var(--oriel-dim)",
-              letterSpacing: "0.2em",
-            }}
-          >
-            INITIALIZING CONDUIT...
-          </div>
+          <span>INITIALIZING CONDUIT...</span>
         </div>
       </Layout>
     );
-  }
-
   if (!isAuthenticated || !user) return null;
-
-  const displayName = getProfileDisplayName(user);
-  const conduitId = getStableConduitId(user);
-  const summary = summaryQuery.data ?? null;
+  const summary = summaryQ.data ?? null;
+  const name = getProfileDisplayName(user);
+  const conduit = getStableConduitId(user);
   const vrcType =
-    summary?.identity.vrcType || sp?.vrcType || sigilQuery.data?.vrcType || null;
-  const vrcAuthority =
+    summary?.identity.vrcType || sp?.vrcType || sigil.data?.vrcType || null;
+  const authority =
     summary?.identity.vrcAuthority ||
     sp?.vrcAuthority ||
     sp?.authorityNode ||
-    sigilQuery.data?.vrcAuthority ||
+    sigil.data?.vrcAuthority ||
     null;
-  const fractalRole =
+  const fractal =
     summary?.identity.fractalRole ||
     sp?.fractalRole ||
-    sigilQuery.data?.fractalRole ||
+    sigil.data?.fractalRole ||
     null;
-  const primeStack = Array.isArray(sp?.primeStack)
+  const stack = Array.isArray(sp?.primeStack)
     ? (sp.primeStack as PrimeStackEntry[])
     : [];
-  const prime = primeStack[0];
-  const coherenceScore =
-    typeof currentResonanceQuery.data?.carrierlock?.coherenceScore === "number"
-      ? currentResonanceQuery.data.carrierlock.coherenceScore
+  const prime = stack[0];
+  const score =
+    typeof resonanceQ.data?.carrierlock?.coherenceScore === "number"
+      ? resonanceQ.data.carrierlock.coherenceScore
       : null;
-  const coherence = coherenceLabel(coherenceScore);
+  const coherence = coherenceLabel(score);
   const hasSignature = Boolean(sp || summary?.identity.hasStaticSignature);
-  const birthCoordinate =
-    summary?.identity.birthCoordinate || (sp ? birthCoordinateFromProfile(sp) : null);
-  const definedCount = profileCenters.filter(center => center.defined).length;
+  const coordinate =
+    summary?.identity.birthCoordinate || (sp ? birthCoordinate(sp) : null);
+  const defined = centers.filter(c => c.defined).length;
+  const role = summary?.identity.resonanceRole || "Receiver";
   const stats = buildProfileStats(summary);
-
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(conduitId).catch(() => {});
+  const graph = buildProfileGraphNodes(summary);
+  const select = (next: ProfileTab) => {
+    setTab(next);
+    const p = new URLSearchParams(location.search);
+    next === "overview" ? p.delete("section") : p.set("section", next);
+    if (next !== "signature") p.delete("tab");
+    history.replaceState(null, "", `/profile${p.toString() ? `?${p}` : ""}`);
+    scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const copy = () => {
+    navigator.clipboard?.writeText(conduit).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const subtitle = hasSignature
-    ? `Your anchored field on the ORIEL network — ${definedCount} of 8 VTRS centers defined.`
-    : "Your receiver node on the ORIEL network. Complete your coordinate to anchor the static signature.";
-
+  const recent = summary?.recent;
   return (
-    <Layout>
-      <SignalPageShell chamber="transmissions" className="arkana-layer profile-layer">
-        <div className="arkana-layer__inner" aria-labelledby="profile-title">
-          <header id="profile-title" className="arkana-layer__head profile-layer__head">
-            <div className="arkana-layer__kicker">
-              RECEIVER NODE · {coherence.label}
-            </div>
-            <DecodedTitle
-              as="h1"
-              text={displayName}
-              className="arkana-layer__title"
-            />
-            <p className="arkana-layer__subtitle">{subtitle}</p>
-            <div className="profile-layer__meta">
+    <Layout overlayHeader>
+      <SignalPageShell
+        chamber="transmissions"
+        className="arkana-layer profile-layer"
+      >
+        <div
+          className="arkana-layer__inner profile-cockpit"
+          aria-labelledby="profile-title"
+        >
+          <header className="profile-cockpit__hero">
+            <div className="profile-cockpit__seal" aria-hidden="true">
+              <svg viewBox="0 0 180 180">
+                <circle cx="90" cy="90" r="76" />
+                <circle cx="90" cy="90" r="52" />
+                <path d="M90 18V162M18 90H162M38 38L142 142M142 38L38 142" />
+                <path
+                  className="profile-cockpit__seal-core"
+                  d="M90 51L126 90L90 129L54 90Z"
+                />
+                <circle
+                  className="profile-cockpit__seal-dot"
+                  cx="90"
+                  cy="90"
+                  r="7"
+                />
+              </svg>
               <span>
-                Level{" "}
-                <strong>
-                  {summary ? `L${summary.receiverLevel.level}` : "L1"}
-                </strong>
+                {hasSignature ? "SIGNATURE ANCHORED" : "COORDINATE OPEN"}
               </span>
-              <span>{summary?.receiverLevel.title ?? "First Contact"}</span>
-              {coherenceScore !== null ? (
-                <span>
-                  Coherence <strong>{coherenceScore}</strong>
-                </span>
-              ) : null}
-              {hasSignature ? (
-                <span>
-                  Signature <strong>anchored</strong>
-                </span>
-              ) : null}
             </div>
-            <div
-              className="profile-layer__levelbar"
-              aria-hidden="true"
-              title="Receiver level progress"
-            >
-              <span
-                style={{
-                  width: `${summary?.receiverLevel.progressPercent ?? 0}%`,
-                }}
-              />
+            <div className="profile-cockpit__identity">
+              <div className="arkana-layer__kicker">
+                RECEIVER CONSOLE · NETWORK {summary ? "LIVE" : "SYNCING"}
+              </div>
+              <div id="profile-title">
+                <DecodedTitle
+                  as="h1"
+                  text={role}
+                  className="profile-cockpit__role"
+                />
+              </div>
+              <p className="profile-cockpit__name">{name}</p>
+              <p className="arkana-layer__subtitle">
+                {hasSignature
+                  ? `Your anchored field on the ORIEL network — ${defined} of 8 VTRS centers defined.`
+                  : "Complete your coordinate to anchor the static signature."}
+              </p>
+              <button className="profile-layer__conduit" onClick={copy}>
+                {copied ? <CheckCircle size={13} /> : <Copy size={13} />}{" "}
+                {copied ? "Copied" : conduit}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCopy}
-              aria-label="Copy conduit ID"
-              className="profile-layer__conduit"
-            >
-              {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
-              <span>{copied ? "Copied" : conduitId}</span>
-            </button>
+            <dl className="profile-cockpit__status">
+              <div>
+                <dt>Receiver Level</dt>
+                <dd>
+                  <strong>L{summary?.receiverLevel.level ?? 1}</strong>
+                  <span>{summary?.receiverLevel.title ?? "First Contact"}</span>
+                </dd>
+                <span className="profile-layer__levelbar">
+                  <i
+                    style={{
+                      width: `${summary?.receiverLevel.progressPercent ?? 0}%`,
+                    }}
+                  />
+                </span>
+              </div>
+              <div>
+                <dt>Current Coherence</dt>
+                <dd>
+                  <strong>{score ?? "—"}</strong>
+                  <span>{coherence.label}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Node State</dt>
+                <dd>
+                  <strong className="profile-cockpit__live-dot">●</strong>
+                  <span>{coherence.state}</span>
+                </dd>
+              </div>
+            </dl>
           </header>
-
-          <section
-            className="profile-layer__body-field"
-            aria-label="VTRS resonance body"
-          >
-            <MatrixGridBackground />
-            <ResonanceBody
-              centers={profileCenters.length ? profileCenters : undefined}
-              channels={profileChannels.length ? profileChannels : undefined}
-              nodeStyle="icon"
-              showHud={false}
-              embedded
-            />
-          </section>
-
-          <section className="profile-layer__stats" aria-label="Activity totals">
-            {stats.map(stat => (
-              <div key={stat.label} className="profile-layer__stat">
-                <span className="profile-layer__stat-value">{stat.value}</span>
-                <span className="profile-layer__stat-label">{stat.label}</span>
+          <section className="profile-layer__stats">
+            {stats.map(s => (
+              <div className="profile-layer__stat" key={s.label} title={s.note}>
+                <span className="profile-layer__stat-value">{s.value}</span>
+                <span className="profile-layer__stat-label">{s.label}</span>
               </div>
             ))}
           </section>
-
-          <div className="profile-layer__sections">
-            <div className="profile-section__grid">
-              <ProfileSection code="01" title="Identity Field">
-                <ProfileRows
-                  rows={[
-                    {
-                      label: "Resonance Role",
-                      value:
-                        summary?.identity.resonanceRole ?? (
-                          <EmptyValue>Awaiting role</EmptyValue>
-                        ),
-                    },
-                    {
-                      label: "Fractal Role",
-                      value: fractalRole || <EmptyValue />,
-                    },
-                    {
-                      label: "VRC Type",
-                      value: vrcType || <EmptyValue />,
-                    },
-                    {
-                      label: "Authority",
-                      value: vrcAuthority || <EmptyValue />,
-                    },
-                    {
-                      label: "Birth Coordinate",
-                      value: birthCoordinate ?? <EmptyValue />,
-                    },
-                    {
-                      label: "Prime Codon",
-                      value: prime
-                        ? `${prime.codonName || "Unnamed"} · Codon ${prime.codon ?? "?"}`
-                        : summary?.identity.primeCodonName || <EmptyValue />,
-                    },
-                    {
-                      label: "Current Resonance",
-                      value:
-                        coherenceScore !== null ? (
-                          `${coherenceScore} · ${coherence.label}`
+          <nav
+            className="profile-tabs"
+            role="tablist"
+            aria-label="Profile console"
+          >
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                id={`profile-tab-${t.id}`}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? "is-active" : undefined}
+                onClick={() => select(t.id)}
+              >
+                <span>{t.code}</span>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          <div
+            className="profile-tab-panel"
+            role="tabpanel"
+            aria-labelledby={`profile-tab-${tab}`}
+          >
+            {tab === "overview" && (
+              <div className="profile-overview">
+                <div className="profile-overview__grid">
+                  <section className="profile-layer__body-field">
+                    <div className="profile-card__head">
+                      <span>LIVE BODY MAP</span>
+                      <strong>{defined} / 8 CENTERS DEFINED</strong>
+                    </div>
+                    <MatrixGridBackground />
+                    <ResonanceBody
+                      centers={centers.length ? centers : undefined}
+                      channels={channels.length ? channels : undefined}
+                      nodeStyle="icon"
+                      showHud={false}
+                      embedded
+                    />
+                  </section>
+                  <div className="profile-overview__identity">
+                    <Section code="01" title="Identity Field">
+                      <Rows
+                        rows={[
+                          { label: "Resonance Role", value: role },
+                          {
+                            label: "Fractal Role",
+                            value: fractal || <Empty />,
+                          },
+                          { label: "VRC Type", value: vrcType || <Empty /> },
+                          { label: "Authority", value: authority || <Empty /> },
+                          {
+                            label: "Birth Coordinate",
+                            value: coordinate ?? <Empty />,
+                          },
+                          {
+                            label: "Prime Codon",
+                            value: prime
+                              ? `${prime.codonName || "Unnamed"} · Codon ${prime.codon ?? "?"}`
+                              : summary?.identity.primeCodonName || <Empty />,
+                          },
+                          {
+                            label: "Current Resonance",
+                            value:
+                              score !== null ? (
+                                `${score} · ${coherence.label}`
+                              ) : (
+                                <Empty />
+                              ),
+                          },
+                        ]}
+                      />
+                      <div className="profile-layer__actions">
+                        <SignalButton href="/signal/check">
+                          RUN SIGNAL CHECK
+                        </SignalButton>
+                        {!hasSignature ? (
+                          <SignalButton
+                            href="/complete-profile"
+                            variant="secondary"
+                          >
+                            GENERATE SIGNATURE
+                          </SignalButton>
                         ) : (
-                          <EmptyValue />
-                        ),
-                    },
-                  ]}
-                />
-              </ProfileSection>
-
-              <ProfileSection code="02" title="Field Activity">
-                <div className="profile-layer__actions">
-                  <SignalButton href="/signal/check">RUN SIGNAL CHECK</SignalButton>
-                  {!hasSignature ? (
-                    <SignalButton href="/complete-profile" variant="secondary">
-                      GENERATE SIGNATURE
-                    </SignalButton>
-                  ) : null}
+                          <button
+                            className="profile-inline-action"
+                            onClick={() => select("signature")}
+                          >
+                            OPEN SIGNATURE →
+                          </button>
+                        )}
+                      </div>
+                    </Section>
+                  </div>
                 </div>
-              </ProfileSection>
-            </div>
-
-            <ProfileSection code="03" title="Recent Field">
-              <nav className="profile-feed" aria-label="Recent profile activity">
-                <a href="/conduit" className="profile-feed__link">
-                  <MessageCircle size={15} className="profile-feed__icon" />
-                  <span>
-                    <span className="profile-feed__label">Latest ORIEL contact</span>
-                    <span className="profile-feed__meta">
-                      {formatProfileDate(summary?.recent.lastOrielContact)}
-                    </span>
-                  </span>
-                  <span className="profile-feed__arrow">→</span>
-                </a>
-                <a href="/signal/check" className="profile-feed__link">
-                  <Radio size={15} className="profile-feed__icon" />
-                  <span>
-                    <span className="profile-feed__label">Latest reading</span>
-                    <span className="profile-feed__meta">
-                      {formatProfileDate(summary?.recent.latestReading?.createdAt)}
-                    </span>
-                  </span>
-                  <span className="profile-feed__arrow">→</span>
-                </a>
-                <a href="/archive" className="profile-feed__link">
-                  <ScrollText size={15} className="profile-feed__icon" />
-                  <span>
-                    <span className="profile-feed__label">Latest transmission</span>
-                    <span className="profile-feed__meta">
-                      {formatProfileDate(
-                        summary?.recent.latestTransmission?.createdAt
-                      )}
-                    </span>
-                  </span>
-                  <span className="profile-feed__arrow">→</span>
-                </a>
-              </nav>
-            </ProfileSection>
-
-            <ProfileSection code="04" title="Static Signature Reading">
-              <p className="arkana-layer__subtitle profile-layer__signature-lede">
-                Exact birth ephemeris, Prime Stack, 8 VTRS centers, 32 resonance
-                links, and the 512-node codon field — plus live Current Resonance
-                when you need it.
-              </p>
-
-              {/* Cross-reference to Bio-Architecture: makes the general VTRS terminal
-                  indispensable for understanding the personal data shown here. */}
-              <div className="profile-layer__actions" style={{ marginBottom: "0.75rem" }}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-voice, 'Cormorant Garamond', Georgia, serif)",
-                    fontSize: "14px",
-                    color: "rgba(212, 207, 195, 0.78)",
-                    maxWidth: "62ch",
-                    display: "inline-block",
-                    marginRight: "0.75rem",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  This is your personal Bio-Architecture — the specific centers, links, and codons active in your field.
-                  Explore the full interactive VTRS terminal.
-                </span>
-                <SignalButton href="/bio-architecture">OPEN BIO-ARCHITECTURE TERMINAL</SignalButton>
+                <Section code="02" title="Interaction Lattice">
+                  <p className="profile-section__lede">
+                    Every count is drawn from your receiver history. The map
+                    shows where this node has made contact with the wider ORIEL
+                    field.
+                  </p>
+                  <Graph nodes={graph} receiver={name} />
+                </Section>
               </div>
-
-              <StaticSignaturePanel embedded />
-            </ProfileSection>
-
-            {/* Concrete fix: Working password change for authenticated users */}
-            <ProfileSection code="05" title="Account Security">
-              <p className="arkana-layer__subtitle profile-layer__signature-lede">
-                Change your password. Requires your current password for security.
-              </p>
-
-              <ChangePasswordForm />
-            </ProfileSection>
+            )}
+            {tab === "signature" && (
+              <div className="profile-signature-panel">
+                <Section code="02" title="Static Signature Reading">
+                  <div className="profile-panel__intro">
+                    <p className="arkana-layer__subtitle profile-layer__signature-lede">
+                      Exact birth ephemeris, Prime Stack, 8 VTRS centers, 32
+                      resonance links, and the 512-node codon field — with
+                      Current Resonance inside the same instrument.
+                    </p>
+                    <SignalButton href="/bio-architecture">
+                      OPEN UNIVERSAL ARCHITECTURE
+                    </SignalButton>
+                  </div>
+                  <StaticSignaturePanel embedded />
+                </Section>
+              </div>
+            )}
+            {tab === "history" && (
+              <div className="profile-history">
+                <Section code="03" title="Field History">
+                  <p className="profile-section__lede">
+                    The latest verified contact in each channel. Empty channels
+                    stay quiet until a real event exists.
+                  </p>
+                  <nav className="profile-history__grid">
+                    <a href="/conduit" className="profile-history__card">
+                      <MessageCircle size={17} />
+                      <span className="profile-history__code">
+                        ORIEL CONTACT
+                      </span>
+                      <strong>
+                        {recent?.latestConversation?.title ||
+                          "Awaiting conversation"}
+                      </strong>
+                      <p>Last direct exchange with the ORIEL conduit.</p>
+                      <span className="profile-history__meta">
+                        {formatProfileDate(
+                          recent?.latestConversation?.updatedAt ||
+                            recent?.lastOrielContact
+                        )}
+                      </span>
+                      <i>↗</i>
+                    </a>
+                    <a href="/signal/check" className="profile-history__card">
+                      <Radio size={17} />
+                      <span className="profile-history__code">
+                        SIGNAL READING
+                      </span>
+                      <strong>
+                        {recent?.latestReading?.flaggedCodons ||
+                          "Awaiting reading"}
+                      </strong>
+                      <p>
+                        {recent?.latestReading?.microCorrection ||
+                          "No micro-correction has been recorded yet."}
+                      </p>
+                      <span className="profile-history__meta">
+                        {formatProfileDate(recent?.latestReading?.createdAt)}
+                      </span>
+                      <i>↗</i>
+                    </a>
+                    <a href="/archive" className="profile-history__card">
+                      <ScrollText size={17} />
+                      <span className="profile-history__code">
+                        TRANSMISSION
+                      </span>
+                      <strong>
+                        {humanize(recent?.latestTransmission?.eventKey)}
+                      </strong>
+                      <p>
+                        {recent?.latestTransmission
+                          ? `${recent.latestTransmission.rarity} · meaning level ${recent.latestTransmission.meaningLevel} · ${recent.latestTransmission.status}`
+                          : "No transmission has entered this receiver history yet."}
+                      </p>
+                      <span className="profile-history__meta">
+                        {formatProfileDate(
+                          recent?.latestTransmission?.createdAt
+                        )}
+                      </span>
+                      <i>↗</i>
+                    </a>
+                  </nav>
+                </Section>
+              </div>
+            )}
+            {tab === "settings" && (
+              <div className="profile-settings">
+                <Section code="04" title="Account Security">
+                  <p className="profile-section__lede">
+                    Update the password attached to this receiver. Your current
+                    password is required before the credential can change.
+                  </p>
+                  <ChangePasswordForm />
+                </Section>
+              </div>
+            )}
           </div>
         </div>
       </SignalPageShell>
@@ -444,15 +601,12 @@ function ChangePasswordForm() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const changePassword = trpc.auth.changePassword.useMutation();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const mutation = trpc.auth.changePassword.useMutation();
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-
     if (!current || next.length < 8) {
       setError("New password must be at least 8 characters.");
       return;
@@ -461,10 +615,9 @@ function ChangePasswordForm() {
       setError("New passwords do not match.");
       return;
     }
-
-    setLoading(true);
+    setBusy(true);
     try {
-      await changePassword.mutateAsync({
+      await mutation.mutateAsync({
         currentPassword: current,
         newPassword: next,
       });
@@ -475,57 +628,46 @@ function ChangePasswordForm() {
     } catch (err: any) {
       setError(err?.message || "Failed to change password.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
-      <div>
-        <Label htmlFor="current-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Current Password</Label>
-        <Input
-          id="current-pass"
-          type="password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="new-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">New Password</Label>
-        <Input
-          id="new-pass"
-          type="password"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="confirm-pass" className="text-xs font-mono uppercase tracking-widest text-[#6a665e]">Confirm New Password</Label>
-        <Input
-          id="confirm-pass"
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
-          required
-        />
-      </div>
-
+    <form onSubmit={submit} className="space-y-3 max-w-md">
+      {[
+        ["current-pass", "Current Password", current, setCurrent],
+        ["new-pass", "New Password", next, setNext],
+        ["confirm-pass", "Confirm New Password", confirm, setConfirm],
+      ].map(([id, label, value, setter]) => (
+        <div key={id as string}>
+          <Label
+            htmlFor={id as string}
+            className="text-xs font-mono uppercase tracking-widest text-[#6a665e]"
+          >
+            {label as string}
+          </Label>
+          <Input
+            id={id as string}
+            type="password"
+            value={value as string}
+            onChange={e =>
+              (setter as React.Dispatch<React.SetStateAction<string>>)(
+                e.target.value
+              )
+            }
+            className="mt-1 bg-black/40 border-[#bda36b]/30 text-[#e8e4dc]"
+            required
+          />
+        </div>
+      ))}
       {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
       {success && <p className="text-sm text-[#44a866] font-mono">{success}</p>}
-
       <Button
         type="submit"
-        disabled={loading}
+        disabled={busy}
         className="mt-2 bg-[#bda36b]/10 border border-[#bda36b]/50 text-[#bda36b] font-mono hover:bg-[#bda36b]/20"
       >
-        {loading ? "CHANGING..." : "CHANGE PASSWORD"}
+        {busy ? "CHANGING..." : "CHANGE PASSWORD"}
       </Button>
-      <p className="text-[10px] text-[#6a665e] font-mono">This updates your email+password login credentials.</p>
     </form>
   );
 }
