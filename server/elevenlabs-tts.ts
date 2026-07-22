@@ -1,6 +1,6 @@
 const DEFAULT_VOICE_ID = "OUEHqpmoTxRBAmee8KD3";
 export const ELEVENLABS_SOPHIANIC_VOICE_ID = "RILOU7YmBhvwJGDGjNmP";
-const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
+const DEFAULT_MODEL_ID = "eleven_flash_v2_5";
 const DEFAULT_OUTPUT_FORMAT = "mp3_44100_128";
 
 export async function generateElevenLabsSpeech(

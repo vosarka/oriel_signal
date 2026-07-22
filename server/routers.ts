@@ -1276,7 +1276,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    generateSpeech: rateLimitedProcedure("oriel.tts")
+    generateSpeech: publicProcedure
       .input(
         z.object({
           text: z

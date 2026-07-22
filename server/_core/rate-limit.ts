@@ -2,7 +2,6 @@ import type { TrpcContext } from "./context";
 
 export type RateLimitBucket =
   | "oriel.chat"
-  | "oriel.tts"
   | "oriel.imageLore"
   | "rgp.static";
 
@@ -28,12 +27,6 @@ export const RATE_LIMITS: Record<RateLimitBucket, RateLimitConfig> = {
     anonymous: 5,
     authenticated: 30,
     label: "ORIEL chat",
-  },
-  "oriel.tts": {
-    windowMs: ONE_HOUR_MS,
-    anonymous: 3,
-    authenticated: 60,
-    label: "ORIEL voice synthesis",
   },
   "oriel.imageLore": {
     windowMs: ONE_HOUR_MS,

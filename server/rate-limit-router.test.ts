@@ -285,23 +285,19 @@ describe("expensive public route rate limits", () => {
     ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
   });
 
-  it("blocks anonymous TTS after three generated clips", async () => {
+  it("does not rate limit chunked ORIEL speech", async () => {
     const caller = callerFor("198.51.100.12");
 
-    for (let i = 0; i < 3; i += 1) {
-      await caller.oriel.generateSpeech({
-        text: `Speak this short line ${i}.`,
-        voiceId: "sophianic",
-      });
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        caller.oriel.generateSpeech({
+          text: `Speak this short line ${i}.`,
+          voiceId: "sophianic",
+        })
+      ).resolves.toMatchObject({ success: true });
     }
 
-    await expect(
-      caller.oriel.generateSpeech({
-        text: "This clip should be blocked.",
-        voiceId: "sophianic",
-      })
-    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
-    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(3);
+    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(4);
   });
 
   it("blocks anonymous artifact lore/image generation after two calls", async () => {
