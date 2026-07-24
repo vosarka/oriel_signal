@@ -1,4 +1,4 @@
-﻿import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
@@ -30,7 +30,7 @@ import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 
 import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
-import TetradicSignatureSimpleExperience from "./pages/TetradicSignatureSimpleExperience";
+import TetradicSignatureSacredExperience from "./pages/TetradicSignatureSacredExperience";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -151,7 +151,7 @@ function Router() {
       <Route path={"/cosmichronica"} component={Cosmichronica} />
       <Route
         path={"/tetradic-signature"}
-        component={TetradicSignatureSimpleExperience}
+        component={TetradicSignatureSacredExperience}
       />
       <Route
         path={"/founder-signature-blueprint"}

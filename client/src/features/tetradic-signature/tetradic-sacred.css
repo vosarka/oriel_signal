@@ -1,0 +1,459 @@
+html:has(.tetradic-sacred),
+body:has(.tetradic-sacred),
+#root:has(.tetradic-sacred) {
+  min-height: 100%;
+}
+
+html:has(.tetradic-sacred) {
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #020202;
+}
+
+body:has(.tetradic-sacred) {
+  position: static;
+  height: auto;
+  overflow-x: clip;
+  overflow-y: visible;
+  touch-action: pan-y;
+  background: #020202;
+}
+
+.tetradic-sacred,
+.tetradic-sacred * {
+  box-sizing: border-box;
+}
+
+.tetradic-sacred {
+  position: relative;
+  min-height: var(--tetradic-sacred-scroll-height, 1000svh);
+  color: #eee4cf;
+  background: #020202;
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+}
+
+/* ——— Stage ——— */
+
+.tetradic-sacred__stage {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  width: 100%;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: #020202;
+  isolation: isolate;
+}
+
+.tetradic-sacred__films,
+.tetradic-sacred__film-layer,
+.tetradic-sacred__film,
+.tetradic-sacred__atmosphere,
+.tetradic-sacred__page-reveal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tetradic-sacred__films {
+  z-index: 1;
+  background: #020202;
+}
+
+.tetradic-sacred__film-layer {
+  display: block;
+  margin: 0;
+  will-change: opacity;
+}
+
+.tetradic-sacred__film {
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tetradic-sacred__film-layer figcaption {
+  display: none;
+}
+
+.tetradic-sacred__atmosphere {
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 24%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.56), transparent 28%),
+    radial-gradient(circle at 50% 48%, transparent 38%, rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+/* ——— Chrome (masthead / telemetry / progress / cue) ——— */
+
+.tetradic-sacred__masthead,
+.tetradic-sacred__telemetry,
+.tetradic-sacred__scroll-cue {
+  position: absolute;
+  z-index: 3;
+  color: rgba(229, 211, 173, 0.76);
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
+  transition: opacity 0.55s ease;
+}
+
+.tetradic-sacred__masthead {
+  top: max(28px, env(safe-area-inset-top));
+  right: clamp(24px, 4vw, 68px);
+  left: clamp(24px, 4vw, 68px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.tetradic-sacred__masthead span:last-child {
+  color: rgba(229, 211, 173, 0.5);
+}
+
+.tetradic-sacred__telemetry {
+  right: clamp(24px, 4vw, 68px);
+  bottom: max(44px, calc(env(safe-area-inset-bottom) + 28px));
+  left: clamp(24px, 4vw, 68px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.tetradic-sacred__telemetry div {
+  display: grid;
+  gap: 6px;
+}
+
+.tetradic-sacred__telemetry div span {
+  color: rgba(229, 211, 173, 0.42);
+}
+
+.tetradic-sacred__telemetry div strong {
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: rgba(238, 228, 207, 0.92);
+}
+
+.tetradic-sacred__telemetry p {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tetradic-sacred__progress {
+  position: absolute;
+  z-index: 3;
+  right: clamp(24px, 4vw, 68px);
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 12px));
+  left: clamp(24px, 4vw, 68px);
+  height: 1px;
+  background: rgba(229, 211, 173, 0.16);
+  transition: opacity 0.55s ease;
+}
+
+.tetradic-sacred__progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #bda36b, #f6b05e);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.tetradic-sacred__scroll-cue {
+  left: 50%;
+  bottom: max(72px, calc(env(safe-area-inset-bottom) + 56px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.tetradic-sacred__scroll-cue span {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(246, 176, 94, 0.9);
+  animation: tetradic-sacred-cue-pulse 2.2s ease-in-out infinite;
+}
+
+.tetradic-sacred[data-has-scrolled="true"] .tetradic-sacred__scroll-cue {
+  opacity: 0;
+}
+
+@keyframes tetradic-sacred-cue-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.9);
+    opacity: 1;
+  }
+}
+
+/* Chrome recedes once the page fills the screen */
+
+.tetradic-sacred[data-phase="page-hold"] .tetradic-sacred__masthead,
+.tetradic-sacred[data-phase="page-hold"] .tetradic-sacred__telemetry,
+.tetradic-sacred[data-phase="page-hold"] .tetradic-sacred__progress,
+.tetradic-sacred[data-phase="page-hold"] .tetradic-sacred__scroll-cue,
+.tetradic-sacred[data-phase="page-hold"] .tetradic-sacred__atmosphere {
+  opacity: 0;
+}
+
+/* ——— Page reveal (over the final paper frame) ——— */
+
+.tetradic-sacred__page-reveal {
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vw, 96px);
+  pointer-events: none;
+  text-align: center;
+  color: #2e2718;
+}
+
+.tetradic-sacred__page-reveal-inner {
+  display: grid;
+  justify-items: center;
+  gap: clamp(14px, 2.4vh, 26px);
+  will-change: transform;
+}
+
+.tetradic-sacred__reveal-eyebrow {
+  margin: 0;
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: clamp(8px, 0.85vw, 11px);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(46, 39, 24, 0.58);
+}
+
+.tetradic-sacred__reveal-title {
+  margin: 0;
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(44px, 8.4vw, 128px);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  color: #241e10;
+  text-wrap: balance;
+}
+
+.tetradic-sacred__reveal-rule {
+  display: block;
+  width: clamp(72px, 10vw, 140px);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(140, 112, 56, 0.85),
+    transparent
+  );
+}
+
+.tetradic-sacred__reveal-line {
+  margin: 0;
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(17px, 2vw, 26px);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(46, 39, 24, 0.78);
+  text-wrap: balance;
+}
+
+/* ——— Manuscript (post-pin section) ——— */
+
+.tetradic-sacred__manuscript {
+  position: relative;
+  z-index: 2;
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      rgba(120, 96, 48, 0.14),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #efe6d0 0%, #e9dec4 46%, #e2d4b4 100%);
+  color: #2e2718;
+}
+
+.tetradic-sacred__manuscript-inner {
+  display: grid;
+  justify-items: center;
+  gap: clamp(18px, 3vh, 30px);
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(88px, 16vh, 160px) clamp(24px, 6vw, 48px)
+    clamp(96px, 18vh, 180px);
+  text-align: center;
+}
+
+.tetradic-sacred__sigil {
+  width: clamp(84px, 10vw, 120px);
+  height: auto;
+  stroke: rgba(120, 94, 40, 0.8);
+  fill: rgba(120, 94, 40, 0.8);
+}
+
+.tetradic-sacred__manuscript-eyebrow {
+  margin: 0;
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: clamp(8px, 0.85vw, 11px);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(46, 39, 24, 0.55);
+}
+
+.tetradic-sacred__manuscript-verse {
+  margin: 0;
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(28px, 4.6vw, 52px);
+  font-weight: 400;
+  line-height: 1.18;
+  color: #241e10;
+  text-wrap: balance;
+}
+
+.tetradic-sacred__manuscript-verse em {
+  font-style: italic;
+}
+
+.tetradic-sacred__manuscript-body {
+  margin: 0;
+  max-width: 56ch;
+  font-family: var(--font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 400;
+  line-height: 1.65;
+  color: rgba(46, 39, 24, 0.78);
+  text-wrap: pretty;
+}
+
+.tetradic-sacred__cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: clamp(6px, 1.5vh, 14px);
+  padding: 18px 44px;
+  border: 1px solid rgba(120, 94, 40, 0.55);
+  border-radius: 999px;
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #3a2f16;
+  background: transparent;
+  transition:
+    background-color 0.45s ease,
+    color 0.45s ease,
+    border-color 0.45s ease,
+    box-shadow 0.45s ease;
+}
+
+.tetradic-sacred__cta:hover,
+.tetradic-sacred__cta:focus-visible {
+  background: #2e2718;
+  border-color: #2e2718;
+  color: #f0e7d0;
+  box-shadow: 0 18px 48px rgba(46, 39, 24, 0.28);
+}
+
+.tetradic-sacred__manuscript-note {
+  margin: 0;
+  font-family: var(--font-ritual, "IBM Plex Mono", monospace);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(46, 39, 24, 0.45);
+}
+
+/* ——— Reduced motion ——— */
+
+.tetradic-sacred[data-reduced-motion="true"] {
+  min-height: 0;
+}
+
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__stage {
+  position: relative;
+  height: auto;
+  min-height: 92svh;
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      rgba(120, 96, 48, 0.14),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #efe6d0 0%, #e9dec4 100%);
+}
+
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__films,
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__atmosphere,
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__masthead,
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__telemetry,
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__progress,
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__scroll-cue {
+  display: none;
+}
+
+.tetradic-sacred[data-reduced-motion="true"] .tetradic-sacred__page-reveal {
+  position: relative;
+  opacity: 1 !important;
+}
+
+.tetradic-sacred[data-reduced-motion="true"]
+  .tetradic-sacred__page-reveal-inner {
+  transform: none !important;
+}
+
+/* ——— Screen-reader only ——— */
+
+.tetradic-sacred__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ——— Compact viewports ——— */
+
+@media (max-width: 720px) {
+  .tetradic-sacred__telemetry div strong {
+    font-size: 13px;
+  }
+
+  .tetradic-sacred__manuscript-inner {
+    padding-top: 96px;
+    padding-bottom: 104px;
+  }
+}
