@@ -29,7 +29,6 @@ import Carrierlock from "./pages/Carrierlock";
 import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 
-import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
 import TetradicSignatureSacredExperience from "./pages/TetradicSignatureSacredExperience";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
@@ -90,7 +89,7 @@ function Router() {
         path={"/founding-signature-letter"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -98,7 +97,7 @@ function Router() {
         path={"/oriel-signature-glimpse"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -106,7 +105,7 @@ function Router() {
         path={"/oriel-founding-signature-letter"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -155,7 +154,11 @@ function Router() {
       />
       <Route
         path={"/founder-signature-blueprint"}
-        component={FounderCuratedBlueprint}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/tetradic-signature"), []);
+          return null;
+        }}
       />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
       <Route path={"/signature"} component={SignatureRedirect} />

@@ -196,7 +196,7 @@ function OrielMvpInactivePreview() {
               Open Static Signature Reading
             </SignalButton>
             <SignalButton
-              href="/founder-signature-blueprint"
+              href="/tetradic-signature"
               variant="secondary"
             >
               The Founder-Curated Bio-Signature

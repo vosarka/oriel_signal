@@ -399,7 +399,7 @@ function PurchaseState({
         exact moment of arrival.
       </blockquote>
       <div className="tetradic-editorial__purchase-actions">
-        <a href="/founder-signature-blueprint">BUY THE FOUNDER EDITION</a>
+        <a href="/tetradic-signature">BUY THE FOUNDER EDITION</a>
         <button
           type="button"
           onClick={onReplay}

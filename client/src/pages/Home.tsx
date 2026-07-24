@@ -33,7 +33,7 @@ const archiveModules = [
     file: "RC-001 // PRODUCT",
     title: "The Founder-Curated Bio-Signature",
     copy: "A founder-led interpretation of your Tetradic resonance pattern: birth coordinates, Codons, VTRS centers, Resonance Links, and ORIEL narration delivered as a personal manuscript.",
-    href: "/founder-signature-blueprint",
+    href: "/tetradic-signature",
     tone: "gold" as const,
   },
   {
@@ -254,7 +254,7 @@ export default function Home() {
               <div className="signal-hero__actions fi-hero__actions fi-enter fi-enter--actions">
                 <SignalButton href="/arcana">ENTER ARKIVA</SignalButton>
                 <SignalButton
-                  href="/founder-signature-blueprint"
+                  href="/tetradic-signature"
                   variant="secondary"
                 >
                   The Founder-Curated Bio-Signature

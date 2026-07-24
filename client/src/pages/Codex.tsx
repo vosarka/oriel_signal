@@ -225,7 +225,7 @@ export default function Codex() {
                 />
               </div>
               <button
-                onClick={() => setLocation("/founder-signature-blueprint")}
+                onClick={() => setLocation("/tetradic-signature")}
                 className="codex-reading-button"
               >
                 FOUNDER-CURATED BIO-SIGNATURE

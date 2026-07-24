@@ -407,7 +407,7 @@ export const TETRADIC_SIGNATURE_CONFIG = {
   ctas: {
     exploreSampleLabel: "EXPLORE A SAMPLE",
     generateSignatureLabel: "GENERATE MY SIGNATURE",
-    generateSignatureRoute: "/founder-signature-blueprint",
+    generateSignatureRoute: "/tetradic-signature",
     generateSignatureStatus: "ROUTED_TO_FOUNDER_BLUEPRINT",
     secondaryRoute: null as string | null,
   },

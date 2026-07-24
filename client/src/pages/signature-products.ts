@@ -27,7 +27,7 @@ export const signatureProducts: SignatureProduct[] = [
     price: "€97",
     priceNote: "Founder Launch Price",
     pages: "15–20 page curated manuscript PDF",
-    detailPath: "/founder-signature-blueprint",
+    detailPath: "/tetradic-signature",
     coverSrc: "/oriel-founding-signature-letter.png",
     coverAlt: "The Founder-Curated Bio-Signature — cover artwork",
     description:

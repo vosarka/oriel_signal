@@ -22,6 +22,11 @@ import {
   TETRADIC_SACRED_FPS,
   TETRADIC_SACRED_SCROLL,
 } from "../client/src/features/tetradic-signature/tetradic-sacred-scroll-config";
+import {
+  TETRADIC_BOOK_META,
+  TETRADIC_BOOK_TETRADS,
+  TETRADIC_PAGE_GRAMMAR,
+} from "../client/src/features/tetradic-signature/tetradic-book-flatplan";
 
 const ROOT = process.cwd();
 const COMPONENT =
@@ -140,11 +145,14 @@ describe("Tetradic Signature sacred scroll opening", () => {
     });
     expect(markup).toContain("The Book Opens");
     expect(markup).toContain("Entering the Page");
-    expect(markup).toContain("Open Your Signature");
-    expect(markup).toContain('href="/founder-signature-blueprint"');
+    expect(markup).toContain("Receive Your Signature");
     expect(markup).toContain("You were inscribed.");
+    expect(markup).toContain("The Threshold");
+    expect(markup).toContain("Integration and Archive");
+    expect(markup).toContain("tetradic-book");
     expect(markup).not.toContain("tetradic-archive-interior");
     expect(markup).not.toContain("01first_intro_scrub");
+    expect(markup).not.toContain("/founder-signature-blueprint");
 
     const compactMarkup = renderExperience(false, true);
     TETRADIC_SACRED_FILMS.forEach(film => {
@@ -273,8 +281,21 @@ describe("Tetradic Signature sacred scroll opening", () => {
     expect(markup).toContain('data-active-film="all"');
     expect(markup).toContain("The Tetradic");
     expect(markup).toContain("Signature");
-    expect(markup).toContain("Open Your Signature");
+    expect(markup).toContain("Receive Your Signature");
     expect(markup).toContain("You were inscribed.");
+    expect(markup).toContain("Every Tetrad is four pages.");
     expect(readSource(PAGE)).toContain("if (reducedMotion)");
+  });
+
+  it("encodes the master flatplan as twelve tetrads with four-page grammar", () => {
+    expect(TETRADIC_BOOK_TETRADS).toHaveLength(12);
+    expect(TETRADIC_PAGE_GRAMMAR.map(g => g.role)).toEqual(["A", "B", "C", "D"]);
+    expect(TETRADIC_BOOK_TETRADS[0].title).toBe("The Threshold");
+    expect(TETRADIC_BOOK_TETRADS[11].title).toBe("Integration and Archive");
+    expect(TETRADIC_BOOK_TETRADS.every(t => t.pages.length === 4)).toBe(true);
+    expect(TETRADIC_BOOK_META.purchaseHref).toContain("paypal.com");
+    expect(readSource(APP)).toContain('path={"/founder-signature-blueprint"}');
+    expect(readSource(APP)).toContain('setLoc("/tetradic-signature")');
+    expect(readSource(APP)).not.toContain("FounderCuratedBlueprint");
   });
 });

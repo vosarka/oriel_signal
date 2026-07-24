@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, type CSSProperties } from "react";
 import type Lenis from "lenis";
 
+import { TetradicBookPresentation } from "./TetradicBookPresentation";
 import {
   TETRADIC_SACRED_FILMS,
   TETRADIC_SACRED_SCROLL,
@@ -13,27 +14,6 @@ type TetradicSacredExperienceProps = Readonly<{
   compact?: boolean;
   lenis?: Lenis;
 }>;
-
-function TetradicSigil() {
-  return (
-    <svg
-      className="tetradic-sacred__sigil"
-      viewBox="0 0 120 120"
-      role="img"
-      aria-label="The four-fold tetradic mark"
-    >
-      <circle cx="60" cy="60" r="54" fill="none" strokeWidth="0.75" />
-      <circle cx="60" cy="60" r="34" fill="none" strokeWidth="0.5" />
-      <path d="M60 6v108M6 60h108" strokeWidth="0.5" />
-      <path
-        d="M60 26 76 60 60 94 44 60Z"
-        fill="none"
-        strokeWidth="0.75"
-      />
-      <circle cx="60" cy="60" r="3" />
-    </svg>
-  );
-}
 
 export function TetradicSacredExperience({
   reducedMotion = false,
@@ -189,40 +169,9 @@ export function TetradicSacredExperience({
           Archive film 1 of 2: The Book Opens
         </p>
       </section>
-
       </main>
 
-      <section
-        className="tetradic-sacred__manuscript"
-        aria-label="The Tetradic Signature — Founder Edition"
-      >
-        <div className="tetradic-sacred__manuscript-inner">
-          <TetradicSigil />
-          <p className="tetradic-sacred__manuscript-eyebrow">
-            FOUR FACETS · ONE INSCRIPTION
-          </p>
-          <p className="tetradic-sacred__manuscript-verse">
-            You were not born at random.
-            <br />
-            <em>You were inscribed.</em>
-          </p>
-          <p className="tetradic-sacred__manuscript-body">
-            A founder-led reading of the pattern your name carries — somatic,
-            relational, cognitive, transpersonal — charted by hand through the
-            Oriel Signal archive, sealed as a manuscript, and released only to
-            its reader.
-          </p>
-          <a
-            className="tetradic-sacred__cta"
-            href="/founder-signature-blueprint"
-          >
-            <span>Open Your Signature</span>
-          </a>
-          <p className="tetradic-sacred__manuscript-note">
-            €97 · FOUNDER LAUNCH · 15–20 PAGE MANUSCRIPT, DELIVERED BY HAND
-          </p>
-        </div>
-      </section>
+      <TetradicBookPresentation reducedMotion={reducedMotion} />
     </>
   );
 }

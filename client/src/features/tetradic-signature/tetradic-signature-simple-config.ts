@@ -69,7 +69,7 @@ export const TETRADIC_SIMPLE_PURCHASE = {
   heading: ["RECEIVE YOUR", "TETRADIC SIGNATURE"],
   copy: "A founder-curated reading of the resonance architecture encoded at your exact moment of arrival.",
   label: "BUY THE FOUNDER EDITION",
-  href: "/founder-signature-blueprint",
+  href: "/tetradic-signature",
 } as const;
 
 export const TETRADIC_SIMPLE_PHASES = [
