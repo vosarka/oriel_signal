@@ -1567,10 +1567,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Aliases: Transition from Unity to Diversity, The Paradox of Grandiosity, The Perfect Note
 
 ## [2026-07-24] feature | Tetradic Signature sacred scroll opening
-- Action: rework /tetradic-signature as a two-film scroll-scrubbed experience (book opens on pedestal → camera enters the page → sacred reveal → manuscript section with CTA to /founder-signature-blueprint)
-- Type: client feature
-- Reason: Founder requested an awwwards-style sacred-ad opening using the new 4K book-opening and page-zoom films; replaces the three-film experience at the same route.
-- Files: client/src/features/tetradic-signature/{TetradicSacredExperience.tsx,tetradic-sacred-scroll-config.ts,useTetradicSacredScrub.ts,tetradic-sacred.css}, client/src/pages/TetradicSignatureSacredExperience.tsx, client/src/App.tsx, client/public/assets/tetradic-signature/scroll/04book_opens_scrub(-mobile).mp4 + 05page_zoom_scrub(-mobile).mp4 (1600x900@18fps / 1280x720@15fps, all-I-frame)
+- Reworked `/tetradic-signature` as a two-film scroll-scrubbed sacred ad: book opens on pedestal → camera enters the page → title reveal on paper → manuscript section with CTA to `/founder-signature-blueprint`.
+- Mounted a new Lenis + single ScrollTrigger scrub controller reusing the stabilized seek controller; previous three-film / simple / editorial / V2 mounts remain in the tree as inactive rollback files.
+- Added fast-start all-intra scrub films `04book_opens_scrub` and `05page_zoom_scrub` (desktop 1600×900@18fps, mobile 1280×720@15fps); reduced-motion exposes a readable static document without scrubbing.
+- Files: `client/src/features/tetradic-signature/{TetradicSacredExperience.tsx,tetradic-sacred-scroll-config.ts,useTetradicSacredScrub.ts,tetradic-sacred.css}`, `client/src/pages/TetradicSignatureSacredExperience.tsx`, `client/src/App.tsx`, `server/tetradic-signature-sacred-opening.test.ts`, scroll assets under `client/public/assets/tetradic-signature/scroll/`.
+- Verification: focused sacred tests pass (7/7); production client build passes; Express serves all four scrub assets HTTP 200 with full byte sizes; real Chrome desktop + mobile smoke covers phase progression (film-01 → transition → film-02 → page-hold), reverse scroll, mobile source selection, CTA href, and reports zero console/page errors. Type-check retains the unrelated pre-existing `server/routers.ts:873` `circuitLinks` error when run repository-wide.
 
 ## [2026-07-24] auto-evolve | Silviu
 - Action: update [[entity-silviu]]

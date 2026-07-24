@@ -1,4 +1,4 @@
-import { useCallback, useRef, type CSSProperties } from "react";
+import React, { useCallback, useRef, type CSSProperties } from "react";
 import type Lenis from "lenis";
 
 import {
