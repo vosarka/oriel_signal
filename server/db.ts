@@ -53,7 +53,10 @@ import {
   parseLatticeFields,
   serializeLatticeColumns,
 } from "./canonical-lattice-persistence";
-import type { SignatureOrderStatus } from "./signature-letter-system";
+import {
+  TETRADIC_FOUNDER_EDITION_PRODUCT,
+  type SignatureOrderStatus,
+} from "./signature-letter-system";
 import type { ProfileConsoleActivity } from "./profile-console-summary";
 
 /** Safe JSON parse — returns fallback on invalid/missing JSON instead of crashing. */
@@ -409,14 +412,18 @@ export async function runMigrations() {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_orders\` (
         \`id\` int AUTO_INCREMENT NOT NULL,
         \`userId\` int NOT NULL,
-        \`productType\` enum('glimpse','founding') NOT NULL,
+        \`productType\` enum('glimpse','founding','tetradic_founder_edition') NOT NULL,
         \`priceEur\` decimal(10,2) NOT NULL,
         \`currency\` varchar(8) NOT NULL DEFAULT 'eur',
+        \`paymentProvider\` enum('stripe','paypal') NOT NULL DEFAULT 'stripe',
         \`status\` enum('pending_payment','paid','intake_needed','intake_received','signature_generated','draft_ready','in_curation','pdf_ready','delivered','followup_used','cancelled','refunded') NOT NULL DEFAULT 'pending_payment',
         \`stripeCheckoutSessionId\` varchar(255) NULL,
         \`stripePaymentIntentId\` varchar(255) NULL,
+        \`paypalOrderId\` varchar(255) NULL,
+        \`paypalCaptureId\` varchar(255) NULL,
         \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
         \`paidAt\` timestamp NULL,
+        \`deliveryDueAt\` timestamp NULL,
         \`deliveredAt\` timestamp NULL,
         \`cancelledAt\` timestamp NULL,
         \`refundedAt\` timestamp NULL,
@@ -438,6 +445,35 @@ export async function runMigrations() {
       ignorableFragments: ["Duplicate key name", "already exists"],
     },
     {
+      sql: `ALTER TABLE \`signature_orders\` MODIFY COLUMN \`productType\` enum('glimpse','founding','tetradic_founder_edition') NOT NULL`,
+      successMessage:
+        "[Migrations] Added the Tetradic Founder Edition product type",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paymentProvider\` enum('stripe','paypal') NOT NULL DEFAULT 'stripe'`,
+      ignorableFragments: ["Duplicate column"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
+      ignorableFragments: ["Duplicate column"],
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\` ON \`signature_orders\` (\`paypalOrderId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_capture\` ON \`signature_orders\` (\`paypalCaptureId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_intakes\` (
         \`id\` int AUTO_INCREMENT NOT NULL,
         \`orderId\` int NOT NULL,
@@ -450,6 +486,8 @@ export async function runMigrations() {
         \`birthCountry\` varchar(255) NOT NULL,
         \`timezone\` varchar(128) NOT NULL,
         \`focusQuestion\` text NOT NULL,
+        \`questionOne\` text NULL,
+        \`questionTwo\` text NULL,
         \`preferredTone\` enum('mystical','practical','balanced') NOT NULL,
         \`avoidAssumptions\` text NULL,
         \`consentAccepted\` boolean NOT NULL DEFAULT false,
@@ -467,6 +505,14 @@ export async function runMigrations() {
     {
       sql: `CREATE INDEX \`idx_signature_intakes_user\` ON \`signature_intakes\` (\`userId\`)`,
       ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\` ADD COLUMN \`questionOne\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\` ADD COLUMN \`questionTwo\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
     },
     {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_snapshots\` (
@@ -3338,6 +3384,315 @@ export async function createSignatureOrder(data: InsertSignatureOrder) {
     .orderBy(desc(signatureOrders.createdAt), desc(signatureOrders.id))
     .limit(1);
   return inserted[0];
+}
+
+export type CreateTetradicFounderEditionCheckpointInput = {
+  userId: number;
+  name: string;
+  email: string;
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+  birthCountry: string;
+  questionOne: string;
+  questionTwo: string;
+  consent: true;
+};
+
+export async function createTetradicFounderEditionCheckpoint(
+  input: CreateTetradicFounderEditionCheckpointInput
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const insertedIds = await tx
+      .insert(signatureOrders)
+      .values({
+        userId: input.userId,
+        productType: TETRADIC_FOUNDER_EDITION_PRODUCT.productType,
+        priceEur: TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur,
+        currency: TETRADIC_FOUNDER_EDITION_PRODUCT.currency,
+        paymentProvider: "paypal",
+        status: "pending_payment",
+      })
+      .$returningId();
+    const orderId = insertedIds[0]?.id;
+    if (!orderId) {
+      throw new Error("Founder Edition order insert did not return an ID.");
+    }
+
+    const consentAcceptedAt = new Date();
+    await tx.insert(signatureIntakes).values({
+      orderId,
+      userId: input.userId,
+      name: input.name,
+      email: input.email,
+      birthDate: input.birthDate,
+      birthTime: input.birthTime,
+      birthPlace: input.birthPlace,
+      birthCountry: input.birthCountry,
+      timezone: "pending_resolution",
+      focusQuestion: input.questionOne,
+      questionOne: input.questionOne,
+      questionTwo: input.questionTwo,
+      preferredTone: "balanced",
+      avoidAssumptions: null,
+      consentAccepted: input.consent,
+      consentAcceptedAt,
+      locationResolutionStatus: "unresolved",
+    });
+
+    const orders = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, orderId))
+      .limit(1);
+    const intakes = await tx
+      .select()
+      .from(signatureIntakes)
+      .where(eq(signatureIntakes.orderId, orderId))
+      .limit(1);
+    if (!orders[0] || !intakes[0]) {
+      throw new Error("Founder Edition checkpoint was not fully persisted.");
+    }
+
+    return { order: orders[0], intake: intakes[0] };
+  });
+}
+
+export async function attachTetradicFounderEditionPayPalOrder(input: {
+  orderId: number;
+  userId: number;
+  paypalOrderId: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId)
+        )
+      )
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !==
+        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.paymentProvider !== "paypal" ||
+      order.status !== "pending_payment"
+    ) {
+      throw new Error("Founder Edition order is not awaiting PayPal payment.");
+    }
+    if (
+      order.paypalOrderId &&
+      order.paypalOrderId !== input.paypalOrderId
+    ) {
+      throw new Error("Founder Edition order already has a PayPal order.");
+    }
+
+    if (!order.paypalOrderId) {
+      await tx
+        .update(signatureOrders)
+        .set({ paypalOrderId: input.paypalOrderId })
+        .where(
+          and(
+            eq(signatureOrders.id, input.orderId),
+            eq(signatureOrders.userId, input.userId),
+            eq(signatureOrders.status, "pending_payment"),
+            isNull(signatureOrders.paypalOrderId)
+          )
+        );
+    }
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (updated[0]?.paypalOrderId !== input.paypalOrderId) {
+      throw new Error("PayPal order attachment was not persisted.");
+    }
+    return updated[0];
+  });
+}
+
+export async function getSignatureOrderByPaypalOrderId(
+  paypalOrderId: string
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(signatureOrders)
+    .where(eq(signatureOrders.paypalOrderId, paypalOrderId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+function addUtcCalendarDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+export async function recordTetradicFounderEditionPayPalCapture(input: {
+  orderId: number;
+  userId: number;
+  paypalOrderId: string;
+  paypalCaptureId: string;
+  currency: string;
+  amount: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId),
+          eq(signatureOrders.paypalOrderId, input.paypalOrderId)
+        )
+      )
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !==
+        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.paymentProvider !== "paypal"
+    ) {
+      throw new Error("Founder Edition PayPal order was not found.");
+    }
+    if (
+      order.currency.toUpperCase() !== input.currency.toUpperCase() ||
+      input.currency.toUpperCase() !== "EUR" ||
+      Number(order.priceEur).toFixed(2) !== input.amount ||
+      input.amount !==
+        TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur.toFixed(2)
+    ) {
+      throw new Error("Founder Edition PayPal amount does not match the order.");
+    }
+    if (
+      order.paypalCaptureId &&
+      order.paypalCaptureId !== input.paypalCaptureId
+    ) {
+      throw new Error("Founder Edition order already has another capture.");
+    }
+
+    const completedStatuses: SignatureOrderStatus[] = [
+      "intake_received",
+      "in_curation",
+      "delivered",
+    ];
+    if (
+      order.paypalCaptureId === input.paypalCaptureId &&
+      completedStatuses.includes(order.status)
+    ) {
+      return order;
+    }
+    if (order.status !== "pending_payment") {
+      throw new Error("Founder Edition order is not awaiting payment.");
+    }
+
+    const paidAt = new Date();
+    const deliveryDueAt = addUtcCalendarDays(
+      paidAt,
+      TETRADIC_FOUNDER_EDITION_PRODUCT.deliveryCalendarDays
+    );
+    await tx
+      .update(signatureOrders)
+      .set({
+        paypalCaptureId: input.paypalCaptureId,
+        status: "intake_received",
+        paidAt,
+        deliveryDueAt,
+      })
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId),
+          eq(signatureOrders.paypalOrderId, input.paypalOrderId),
+          eq(signatureOrders.status, "pending_payment")
+        )
+      );
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (
+      updated[0]?.paypalCaptureId !== input.paypalCaptureId ||
+      !completedStatuses.includes(updated[0].status)
+    ) {
+      throw new Error("Founder Edition capture was not persisted.");
+    }
+    return updated[0];
+  });
+}
+
+export async function transitionTetradicFounderEditionStatus(input: {
+  orderId: number;
+  fromStatuses: SignatureOrderStatus[];
+  status: "in_curation" | "delivered";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !==
+        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      !input.fromStatuses.includes(order.status)
+    ) {
+      throw new Error("Founder Edition status transition is not allowed.");
+    }
+
+    if (order.status !== input.status) {
+      await tx
+        .update(signatureOrders)
+        .set({
+          status: input.status,
+          ...(input.status === "delivered"
+            ? { deliveredAt: new Date() }
+            : {}),
+        })
+        .where(
+          and(
+            eq(signatureOrders.id, input.orderId),
+            inArray(signatureOrders.status, input.fromStatuses)
+          )
+        );
+    }
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (updated[0]?.status !== input.status) {
+      throw new Error("Founder Edition status transition was not persisted.");
+    }
+    return updated[0];
+  });
 }
 
 export async function setSignatureOrderCheckoutSession(input: {

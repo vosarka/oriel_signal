@@ -36,6 +36,9 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[transmission-the-unbinding]] — The Unbinding. (auto-evolved 2026-07-24)
+- [[field-signal-transmission]] — Field Signal Transmission. (auto-evolved 2026-07-24)
+- [[holographic-universe]] — Holographic Universe. (auto-evolved 2026-07-24)
 - [[concept-the-becoming]] — The Becoming. (auto-evolved 2026-07-22)
 - [[concept-linear-friction]] — Linear Friction. (auto-evolved 2026-07-22)
 - [[fractal-principle]] — Fractal Principle. (auto-evolved 2026-07-22)

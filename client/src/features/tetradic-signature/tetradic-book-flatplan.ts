@@ -12,11 +12,12 @@ export const TETRADIC_BOOK_META = {
   tetradCount: 12,
   pagesPerTetrad: 4,
   physicalInterior: 52,
-  price: "€97",
-  priceNote: "Founder Launch",
-  delivery: "15–20 page manuscript · delivered by hand",
-  purchaseHref: "https://www.paypal.com/ncp/payment/RFPAFFLR7U5RY",
-  purchaseLabel: "Receive Your Signature",
+  price: "€81.32",
+  priceNote: "Founder Edition",
+  delivery:
+    "48-page Founder Edition · delivered personally by email within 5 calendar days",
+  purchaseHref: "/tetradic-signature#founder-intake",
+  purchaseLabel: "Buy",
 } as const;
 
 export const TETRADIC_PAGE_GRAMMAR = [

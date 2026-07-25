@@ -12,31 +12,45 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 
 const C = {
-  bg: "#050403",
-  panel: "rgba(12,10,8,0.86)",
+  bg: "#050505",
+  panel: "#0a0907",
   border: "rgba(225,198,139,0.18)",
-  gold: "#e1c68b",
-  text: "#f4e7c2",
+  gold: "#d8b56d",
+  text: "#fff7e6",
   muted: "rgba(244,231,194,0.62)",
   red: "#f1b5a8",
 };
 
-type Bundle = {
+type DateValue = Date | string;
+
+export type AdminSignatureLetterBundle = {
   order: {
     id: number;
     userId: number;
-    productType: "glimpse" | "founding";
+    productType:
+      | "glimpse"
+      | "founding"
+      | "tetradic_founder_edition";
     status: string;
     priceEur: number;
-    createdAt: Date;
+    currency: string;
+    paymentProvider: "stripe" | "paypal";
+    paypalOrderId: string | null;
+    paypalCaptureId: string | null;
+    paidAt: DateValue | null;
+    deliveryDueAt: DateValue | null;
+    createdAt: DateValue;
   };
   intake: {
     name: string;
     email: string;
     focusQuestion: string;
+    questionOne: string | null;
+    questionTwo: string | null;
     preferredTone: string;
     avoidAssumptions: string | null;
     consentAccepted: boolean;
+    consentAcceptedAt: DateValue | null;
     birthDate: string;
     birthTime: string;
     birthPlace: string;
@@ -52,6 +66,8 @@ type Bundle = {
     finalPdfStorageKey: string | null;
   } | null;
 };
+
+type Bundle = AdminSignatureLetterBundle;
 
 export default function AdminSignatureLetters() {
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
@@ -108,6 +124,14 @@ export default function AdminSignatureLetters() {
   const followup = trpc.admin.signatureLetters.markFollowupUsed.useMutation({
     onSuccess: refresh,
   });
+  const founderInProgress =
+    trpc.admin.signatureLetters.markFounderEditionInProgress.useMutation({
+      onSuccess: refresh,
+    });
+  const founderDelivered =
+    trpc.admin.signatureLetters.markFounderEditionDelivered.useMutation({
+      onSuccess: refresh,
+    });
 
   useEffect(() => {
     setDraftMarkdown(bundle?.draft?.markdown ?? "");
@@ -124,6 +148,22 @@ export default function AdminSignatureLetters() {
       base64,
     });
   }
+
+  const isFounderEdition =
+    bundle?.order.productType === "tetradic_founder_edition";
+  const workflowError = mutationError(
+    isFounderEdition
+      ? [founderInProgress, founderDelivered]
+      : [
+          generateSnapshot,
+          generateDraft,
+          saveDraft,
+          inCuration,
+          uploadPdf,
+          delivered,
+          followup,
+        ]
+  );
 
   if (loading) {
     return (
@@ -240,38 +280,62 @@ export default function AdminSignatureLetters() {
                         {bundle.order.productType} / {bundle.order.status}
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Action
-                        onClick={() =>
-                          generateSnapshot.mutate({ orderId: bundle.order.id })
-                        }
-                        disabled={
-                          !bundle.intake?.consentAccepted ||
-                          generateSnapshot.isPending
-                        }
-                      >
-                        <Sparkles size={14} /> Snapshot
-                      </Action>
-                      <Action
-                        onClick={() =>
-                          generateDraft.mutate({ orderId: bundle.order.id })
-                        }
-                        disabled={!bundle.snapshot || generateDraft.isPending}
-                      >
-                        <PenLine size={14} /> Draft
-                      </Action>
-                      <Action
-                        onClick={() =>
-                          inCuration.mutate({ orderId: bundle.order.id })
-                        }
-                        disabled={!bundle.draft || inCuration.isPending}
-                      >
-                        In curation
-                      </Action>
-                    </div>
+                    {!isFounderEdition ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Action
+                          onClick={() =>
+                            generateSnapshot.mutate({
+                              orderId: bundle.order.id,
+                            })
+                          }
+                          disabled={
+                            !bundle.intake?.consentAccepted ||
+                            generateSnapshot.isPending
+                          }
+                        >
+                          <Sparkles size={14} /> Snapshot
+                        </Action>
+                        <Action
+                          onClick={() =>
+                            generateDraft.mutate({
+                              orderId: bundle.order.id,
+                            })
+                          }
+                          disabled={!bundle.snapshot || generateDraft.isPending}
+                        >
+                          <PenLine size={14} /> Draft
+                        </Action>
+                        <Action
+                          onClick={() =>
+                            inCuration.mutate({ orderId: bundle.order.id })
+                          }
+                          disabled={!bundle.draft || inCuration.isPending}
+                        >
+                          In curation
+                        </Action>
+                      </div>
+                    ) : null}
                   </div>
 
-                  <div className="grid gap-5 xl:grid-cols-2">
+                  {isFounderEdition ? (
+                    <FounderEditionAdminOrder
+                      bundle={bundle}
+                      startPending={founderInProgress.isPending}
+                      deliveryPending={founderDelivered.isPending}
+                      onStartCuration={() =>
+                        founderInProgress.mutate({
+                          orderId: bundle.order.id,
+                        })
+                      }
+                      onMarkDelivered={() =>
+                        founderDelivered.mutate({
+                          orderId: bundle.order.id,
+                        })
+                      }
+                    />
+                  ) : (
+                    <>
+                      <div className="grid gap-5 xl:grid-cols-2">
                     <Panel title="Intake">
                       {bundle.intake ? (
                         <div
@@ -382,29 +446,15 @@ export default function AdminSignatureLetters() {
                         Follow-up used
                       </Action>
                     </div>
-                  </Panel>
-
-                  {mutationError([
-                    generateSnapshot,
-                    generateDraft,
-                    saveDraft,
-                    inCuration,
-                    uploadPdf,
-                    delivered,
-                    followup,
-                  ]) && (
-                    <div className="mt-4 text-sm" style={{ color: C.red }}>
-                      {mutationError([
-                        generateSnapshot,
-                        generateDraft,
-                        saveDraft,
-                        inCuration,
-                        uploadPdf,
-                        delivered,
-                        followup,
-                      ])}
-                    </div>
+                      </Panel>
+                    </>
                   )}
+
+                  {workflowError ? (
+                    <div className="mt-4 text-sm" style={{ color: C.red }}>
+                      {workflowError}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </main>

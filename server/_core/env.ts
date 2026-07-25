@@ -3,6 +3,10 @@ const runMigrationsEnv = process.env.RUN_MIGRATIONS?.toLowerCase();
 const autonomyRuntimeEnv = process.env.ORIEL_AUTONOMY_RUNTIME?.toLowerCase();
 const llmProviderEnv = process.env.LLM_PROVIDER?.toLowerCase();
 const llmRequestTimeoutEnv = Number(process.env.LLM_REQUEST_TIMEOUT_MS);
+const paypalEnvironmentEnv = (
+  process.env.PAYPAL_ENVIRONMENT ??
+  process.env.PAYPAL_MODE
+)?.toLowerCase();
 
 const resolveRunMigrations = () => {
   if (runMigrationsEnv === "true") return true;
@@ -21,6 +25,9 @@ const resolveLlmRequestTimeoutMs = () =>
   Number.isFinite(llmRequestTimeoutEnv) && llmRequestTimeoutEnv > 0
     ? Math.max(1, Math.floor(llmRequestTimeoutEnv))
     : 45_000;
+const resolvePayPalEnvironment = () =>
+  paypalEnvironmentEnv === "live" ? "live" : "sandbox";
+const paypalEnvironment = resolvePayPalEnvironment();
 
 export const ENV = {
   nodeEnv,
@@ -83,6 +90,16 @@ export const ENV = {
     process.env.STRIPE_SIGNATURE_GLIMPSE_PRICE_ID ?? "",
   stripeFoundingSignaturePriceId:
     process.env.STRIPE_FOUNDING_SIGNATURE_PRICE_ID ?? "",
+
+  // ─── PayPal (Tetradic Signature Founder Edition) ────────────────────────
+  paypalEnvironment,
+  paypalApiBaseUrl:
+    paypalEnvironment === "live"
+      ? "https://api-m.paypal.com"
+      : "https://api-m.sandbox.paypal.com",
+  paypalClientId: process.env.PAYPAL_CLIENT_ID ?? "",
+  paypalClientSecret: process.env.PAYPAL_CLIENT_SECRET ?? "",
+  paypalWebhookId: process.env.PAYPAL_WEBHOOK_ID ?? "",
 
   // ─── S3-Compatible Storage (Signature PDFs) ─────────────────────────────
   s3Endpoint: process.env.S3_ENDPOINT ?? "",

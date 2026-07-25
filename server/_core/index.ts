@@ -12,6 +12,7 @@ import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../db";
 import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
+import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,7 @@ async function startServer() {
   app.all("/api/auth/*", (req, res) => baHandler(req, res));
 
   registerSignatureStripeWebhookRoute(app);
+  registerTetradicSignaturePayPalWebhookRoute(app);
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));

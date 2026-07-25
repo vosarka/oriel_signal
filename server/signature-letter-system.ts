@@ -18,8 +18,25 @@ export const SIGNATURE_ORDER_STATUSES = [
 export type SignatureOrderStatus = (typeof SIGNATURE_ORDER_STATUSES)[number];
 
 export type SignatureProductType = "glimpse" | "founding";
+export type TetradicFounderEditionProductType =
+  "tetradic_founder_edition";
+export type SignatureOrderProductType =
+  | SignatureProductType
+  | TetradicFounderEditionProductType;
 
 export type SignatureTone = "mystical" | "practical" | "balanced";
+
+export const TETRADIC_FOUNDER_EDITION_PRODUCT = {
+  productType: "tetradic_founder_edition",
+  title: "THE TETRADIC SIGNATURE — FOUNDER EDITION",
+  subtitle: "Your Resonance Architecture",
+  priceEur: 81.32,
+  currency: "eur",
+  exactPages: 48,
+  deliveryCalendarDays: 5,
+  fulfillment: "manual_email",
+  generatedPdf: false,
+} as const;
 
 export const SIGNATURE_PRODUCTS = {
   glimpse: {
@@ -329,6 +346,47 @@ export function assertCanMarkDelivered(input: {
   if (input.status !== "pdf_ready" && input.status !== "delivered") {
     throw new Error("Only a PDF-ready order can be delivered.");
   }
+}
+
+function assertTetradicFounderEditionProduct(
+  productType: SignatureOrderProductType
+) {
+  if (productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType) {
+    throw new Error("This operation is only available for the Founder Edition.");
+  }
+}
+
+export function assertCanMarkFounderEditionInProgress(input: {
+  productType: SignatureOrderProductType;
+  status: SignatureOrderStatus;
+}) {
+  assertTetradicFounderEditionProduct(input.productType);
+  if (
+    input.status !== "intake_received" &&
+    input.status !== "in_curation"
+  ) {
+    throw new Error(
+      "Founder Edition curation requires status intake_received."
+    );
+  }
+}
+
+export function assertCanMarkFounderEditionDelivered(input: {
+  productType: SignatureOrderProductType;
+  status: SignatureOrderStatus;
+}) {
+  assertTetradicFounderEditionProduct(input.productType);
+  if (input.status !== "in_curation" && input.status !== "delivered") {
+    throw new Error(
+      "Founder Edition delivery requires status in_curation."
+    );
+  }
+}
+
+export function isLegacySignatureProductType(
+  productType: SignatureOrderProductType
+): productType is SignatureProductType {
+  return productType === "glimpse" || productType === "founding";
 }
 
 function priceEurToStripeCents(priceEur: number) {

@@ -52,6 +52,8 @@ import {
 } from "./oriel-chat-image-service";
 import { stripOrielChatImageBlocks } from "@shared/oriel-chat-images";
 import {
+  attachTetradicFounderEditionPayPalOrder,
+  createTetradicFounderEditionCheckpoint,
   createSignatureCheckout,
   generateSignatureDraftForOrder,
   generateSignatureSnapshotForOrder,
@@ -59,6 +61,8 @@ import {
   getSignatureLetterAdminOrder,
   getSignatureOrderBundleForUser,
   listSignatureLetterAdminOrders,
+  markFounderEditionDelivered,
+  markFounderEditionInProgress,
   markSignatureDelivered,
   markSignatureFollowupUsed,
   markSignatureInCuration,
@@ -163,6 +167,17 @@ const signatureIntakeInputSchema = z.object({
   avoidAssumptions: z.string().optional().default(""),
   consentAccepted: z.boolean(),
 });
+const tetradicFounderEditionIntakeSchema = z
+  .object({
+    birthDate: z.string().trim().min(1).max(32),
+    birthTime: z.string().trim().min(1).max(32),
+    birthPlace: z.string().trim().min(1).max(255),
+    birthCountry: z.string().trim().min(1).max(255),
+    questionOne: z.string().trim().min(1).max(4_000),
+    questionTwo: z.string().trim().min(1).max(4_000),
+    consent: z.literal(true),
+  })
+  .strict();
 
 export const appRouter = router({
   system: systemRouter,
@@ -328,6 +343,34 @@ export const appRouter = router({
   }),
 
   signature: router({
+    createFounderEditionCheckpoint: protectedProcedure
+      .input(tetradicFounderEditionIntakeSchema)
+      .mutation(async ({ ctx, input }) => {
+        return createTetradicFounderEditionCheckpoint({
+          userId: ctx.user.id,
+          userName: ctx.user.name,
+          userEmail: ctx.user.email,
+          intake: input,
+        });
+      }),
+
+    attachFounderEditionPayPalOrder: protectedProcedure
+      .input(
+        z
+          .object({
+            orderId: z.number().int().positive(),
+            paypalOrderId: z.string().trim().min(1).max(255),
+          })
+          .strict()
+      )
+      .mutation(async ({ ctx, input }) => {
+        return attachTetradicFounderEditionPayPalOrder({
+          orderId: input.orderId,
+          userId: ctx.user.id,
+          paypalOrderId: input.paypalOrderId,
+        });
+      }),
+
     createCheckout: protectedProcedure
       .input(
         z.object({
@@ -3092,6 +3135,26 @@ export const appRouter = router({
         )
         .mutation(async ({ input }) => {
           return markSignatureDelivered(input.orderId);
+        }),
+
+      markFounderEditionInProgress: adminProcedure
+        .input(
+          z.object({
+            orderId: z.number().int().positive(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          return markFounderEditionInProgress(input.orderId);
+        }),
+
+      markFounderEditionDelivered: adminProcedure
+        .input(
+          z.object({
+            orderId: z.number().int().positive(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          return markFounderEditionDelivered(input.orderId);
         }),
 
       markFollowupUsed: adminProcedure
