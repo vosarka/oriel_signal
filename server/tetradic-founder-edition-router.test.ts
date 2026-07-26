@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const serviceMocks = vi.hoisted(() => ({
   createCheckpoint: vi.fn(),
-  attachPaypalOrder: vi.fn(),
+  createPaypalOrder: vi.fn(),
+  capturePaypalOrder: vi.fn(),
   markInProgress: vi.fn(),
   markDelivered: vi.fn(),
 }));
@@ -13,8 +14,8 @@ vi.mock("./signature-letter-service", async importOriginal => {
   return {
     ...original,
     createTetradicFounderEditionCheckpoint: serviceMocks.createCheckpoint,
-    attachTetradicFounderEditionPayPalOrder:
-      serviceMocks.attachPaypalOrder,
+    createFounderEditionPayPalOrder: serviceMocks.createPaypalOrder,
+    captureFounderEditionPayPalOrder: serviceMocks.capturePaypalOrder,
     markFounderEditionInProgress: serviceMocks.markInProgress,
     markFounderEditionDelivered: serviceMocks.markDelivered,
   };
@@ -40,9 +41,15 @@ describe("Tetradic Founder Edition router access", () => {
       status: "pending_payment",
       intakeSaved: true,
     });
-    serviceMocks.attachPaypalOrder.mockResolvedValue({
-      id: 91,
+    serviceMocks.createPaypalOrder.mockResolvedValue({
+      orderId: 91,
       paypalOrderId: "PAYPAL-ORDER-91",
+      approveUrl: "https://www.sandbox.paypal.com/checkoutnow?token=91",
+    });
+    serviceMocks.capturePaypalOrder.mockResolvedValue({
+      orderId: 91,
+      captureId: "PAYPAL-CAPTURE-91",
+      status: "intake_received",
     });
     serviceMocks.markInProgress.mockResolvedValue({
       id: 91,
@@ -103,13 +110,10 @@ describe("Tetradic Founder Edition router access", () => {
     expect(serviceMocks.createCheckpoint).not.toHaveBeenCalled();
   });
 
-  it("keeps PayPal attachment owner-protected", async () => {
+  it("creates and captures PayPal orders server-side for the owner", async () => {
     const anonymous = appRouter.createCaller({ user: null } as never);
     await expect(
-      anonymous.signature.attachFounderEditionPayPalOrder({
-        orderId: 91,
-        paypalOrderId: "PAYPAL-ORDER-91",
-      })
+      anonymous.signature.createFounderEditionPayPalOrder({ orderId: 91 })
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 
     const owner = appRouter.createCaller({
@@ -120,15 +124,36 @@ describe("Tetradic Founder Edition router access", () => {
         role: "user",
       },
     } as never);
-    await owner.signature.attachFounderEditionPayPalOrder({
-      orderId: 91,
-      paypalOrderId: "PAYPAL-ORDER-91",
-    });
-    expect(serviceMocks.attachPaypalOrder).toHaveBeenCalledWith({
+    await owner.signature.createFounderEditionPayPalOrder({ orderId: 91 });
+    await owner.signature.captureFounderEditionPayPalOrder({ orderId: 91 });
+
+    expect(serviceMocks.createPaypalOrder).toHaveBeenCalledWith({
       orderId: 91,
       userId: 42,
-      paypalOrderId: "PAYPAL-ORDER-91",
     });
+    expect(serviceMocks.capturePaypalOrder).toHaveBeenCalledWith({
+      orderId: 91,
+      userId: 42,
+    });
+  });
+
+  it("rejects a client-supplied PayPal order ID", async () => {
+    const owner = appRouter.createCaller({
+      user: {
+        id: 42,
+        name: "Elena Ionescu",
+        email: "elena@example.com",
+        role: "user",
+      },
+    } as never);
+
+    await expect(
+      owner.signature.createFounderEditionPayPalOrder({
+        orderId: 91,
+        paypalOrderId: "CLIENT-CONTROLLED-ID",
+      } as never)
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(serviceMocks.createPaypalOrder).not.toHaveBeenCalled();
   });
 
   it("keeps manual fulfillment transitions admin-only", async () => {

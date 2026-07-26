@@ -1,4 +1,9 @@
-import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import React, {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -128,7 +133,6 @@ export function TetradicFounderEdition({
         .from(
           "[data-tfe-tetrad-card]",
           {
-            opacity: 0,
             y: 22,
             duration: 0.72,
             stagger: 0.035,
@@ -138,7 +142,6 @@ export function TetradicFounderEdition({
         .from(
           "[data-tfe-register]",
           {
-            opacity: 0,
             y: 18,
             duration: 0.68,
             stagger: 0.06,
@@ -222,7 +225,7 @@ export function TetradicFounderEdition({
             aria-label="THE TETRADIC SIGNATURE — FOUNDER EDITION"
           >
             <span className="tfe__title-product" aria-hidden="true">
-              THE TETRADIC SIGNATURE
+              THE TETRADIC SIGNATURE —
             </span>
             <span className="tfe__title-edition" aria-hidden="true">
               FOUNDER EDITION

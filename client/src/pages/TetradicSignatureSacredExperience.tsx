@@ -1,12 +1,19 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ReactLenis, useLenis } from "lenis/react";
 import "lenis/dist/lenis.css";
 
-import { TetradicSacredExperience } from "@/features/tetradic-signature/TetradicSacredExperience";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import type { TetradicFounderEditionIntakeValues } from "@/features/tetradic-signature/TetradicFounderEdition";
+import {
+  TetradicSacredExperience,
+  type TetradicSacredExperienceProps,
+} from "@/features/tetradic-signature/TetradicSacredExperience";
 import { TETRADIC_SACRED_SCROLL } from "@/features/tetradic-signature/tetradic-sacred-scroll-config";
 import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
+import { trpc } from "@/lib/trpc";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -33,13 +40,91 @@ function TetradicSacredLenisBridge() {
 
 function SmoothTetradicSacredOpening({
   compact,
-}: Readonly<{ compact: boolean }>) {
+  founderEdition,
+}: Readonly<{
+  compact: boolean;
+  founderEdition: NonNullable<TetradicSacredExperienceProps["founderEdition"]>;
+}>) {
   const lenis = useLenis();
-  return <TetradicSacredExperience compact={compact} lenis={lenis} />;
+  return (
+    <TetradicSacredExperience
+      compact={compact}
+      lenis={lenis}
+      founderEdition={founderEdition}
+    />
+  );
 }
 
 export default function TetradicSignatureSacredExperience() {
   const { compact, reducedMotion } = useTetradicViewport();
+  const { user, isAuthenticated } = useAuth();
+  const checkpointMutation =
+    trpc.signature.createFounderEditionCheckpoint.useMutation();
+  const paypalMutation =
+    trpc.signature.createFounderEditionPayPalOrder.useMutation();
+
+  const requireLogin = useCallback(() => {
+    window.location.assign(
+      getLoginUrl("/tetradic-signature#tetradic-founder-intake")
+    );
+  }, []);
+
+  const createCheckpoint = useCallback(
+    async (values: TetradicFounderEditionIntakeValues) => {
+      if (!values.consentAccepted) {
+        throw new Error("Consent is required before saving your details.");
+      }
+      const checkpoint = await checkpointMutation.mutateAsync({
+        birthDate: values.birthDate,
+        birthTime: values.birthTime,
+        birthPlace: values.birthPlace,
+        birthCountry: values.birthCountry,
+        questionOne: values.questionOne,
+        questionTwo: values.questionTwo,
+        consent: true,
+      });
+      return { orderId: checkpoint.orderId };
+    },
+    [checkpointMutation]
+  );
+
+  const continueToPayPal = useCallback(
+    async (orderId: number) => {
+      const result = await paypalMutation.mutateAsync({ orderId });
+      const approveUrl = new URL(result.approveUrl);
+      const isPayPalHost =
+        approveUrl.hostname === "paypal.com" ||
+        approveUrl.hostname.endsWith(".paypal.com");
+      if (approveUrl.protocol !== "https:" || !isPayPalHost) {
+        throw new Error("PayPal returned an invalid approval address.");
+      }
+      window.location.assign(approveUrl.toString());
+    },
+    [paypalMutation]
+  );
+
+  const founderEdition = useMemo<
+    NonNullable<TetradicSacredExperienceProps["founderEdition"]>
+  >(
+    () => ({
+      isAuthenticated,
+      user:
+        user?.name && user.email
+          ? { name: user.name, email: user.email }
+          : null,
+      onRequireLogin: requireLogin,
+      onCreateCheckpoint: createCheckpoint,
+      onContinueToPayPal: continueToPayPal,
+    }),
+    [
+      continueToPayPal,
+      createCheckpoint,
+      isAuthenticated,
+      requireLogin,
+      user?.email,
+      user?.name,
+    ]
+  );
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -50,7 +135,13 @@ export default function TetradicSignatureSacredExperience() {
   }, []);
 
   if (reducedMotion) {
-    return <TetradicSacredExperience compact={compact} reducedMotion />;
+    return (
+      <TetradicSacredExperience
+        compact={compact}
+        reducedMotion
+        founderEdition={founderEdition}
+      />
+    );
   }
 
   return (
@@ -65,7 +156,10 @@ export default function TetradicSignatureSacredExperience() {
       }}
     >
       <TetradicSacredLenisBridge />
-      <SmoothTetradicSacredOpening compact={compact} />
+      <SmoothTetradicSacredOpening
+        compact={compact}
+        founderEdition={founderEdition}
+      />
     </ReactLenis>
   );
 }

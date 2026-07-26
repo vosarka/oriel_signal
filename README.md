@@ -59,11 +59,18 @@ ELEVENLABS_VOICE_ID=...
 PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_SECRET=...
 PAYPAL_WEBHOOK_ID=...
+PAYPAL_ENVIRONMENT=sandbox
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=...
 AWS_S3_BUCKET=...
 ```
+
+The Tetradic Signature Founder Edition uses the PayPal Orders v2 flow. Register
+`https://yourdomain.com/api/paypal/tetradic-signature/webhook` in the matching
+PayPal app and subscribe it to `CHECKOUT.ORDER.APPROVED` and
+`PAYMENT.CAPTURE.COMPLETED`. Keep `PAYPAL_ENVIRONMENT=sandbox` until the
+return-page capture and verified webhook fallback have both been tested.
 
 For Google OAuth to work locally, add this redirect URI in Google Cloud Console:
 
@@ -130,6 +137,8 @@ appRouter
   ├── archive.transmissions / oracles / bookmarks
   ├── profile.updateConduitId / updateSubscription
   ├── rgp.staticSignature / dynamicState
+  ├── signature.createFounderEditionCheckpoint / createFounderEditionPayPalOrder
+  │         captureFounderEditionPayPalOrder / getOrder
   └── paypal.webhook
 ```
 

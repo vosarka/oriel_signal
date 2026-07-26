@@ -169,7 +169,7 @@ describe("simplified Tetradic Signature editorial experience", () => {
     );
 
     const purchaseLink = markup.match(
-      /<a\b[^>]*href="\/founder-signature-blueprint"[^>]*>[\s\S]*?BUY THE FOUNDER EDITION[\s\S]*?<\/a>/
+      /<a\b[^>]*href="\/tetradic-signature"[^>]*>[\s\S]*?BUY THE FOUNDER EDITION[\s\S]*?<\/a>/
     )?.[0];
     expect(purchaseLink).toBeTruthy();
 
@@ -269,7 +269,9 @@ describe("simplified Tetradic Signature editorial experience", () => {
     expect(deliberateController).toMatch(
       /\.tetradic-editorial\s*\{[^}]*overflow:\s*visible;/s
     );
-    expect(deliberateController).not.toMatch(/overflow-[xy]:\s*(?:clip|hidden)/);
+    expect(deliberateController).not.toMatch(
+      /overflow-[xy]:\s*(?:clip|hidden)/
+    );
     expect(cssSource).toMatch(
       /body:has\(\.tetradic-editorial\)\s*\{[^}]*overflow-x:\s*clip;[^}]*overflow-y:\s*visible;/s
     );

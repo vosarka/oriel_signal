@@ -33,8 +33,7 @@ const runtimeDependencies: TetradicSignaturePayPalWebhookDependencies = {
       },
       fetch: globalThis.fetch,
     }),
-  recordCapture:
-    recordValidatedTetradicFounderEditionCaptureFromWebhook,
+  recordCapture: recordValidatedTetradicFounderEditionCaptureFromWebhook,
 };
 
 function completedOrderFromWebhook(
@@ -46,6 +45,7 @@ function completedOrderFromWebhook(
   return {
     paypalOrderId: event.paypalOrderId,
     captureId: event.captureId,
+    capturedAt: event.capturedAt,
     status: "COMPLETED",
     captureStatus: "COMPLETED",
     customId: event.customId,
@@ -56,8 +56,7 @@ function completedOrderFromWebhook(
 }
 
 export function createTetradicSignaturePayPalWebhookHandler(
-  dependencies: TetradicSignaturePayPalWebhookDependencies =
-    runtimeDependencies
+  dependencies: TetradicSignaturePayPalWebhookDependencies = runtimeDependencies
 ): RequestHandler {
   return async (req: Request, res: Response) => {
     let adapter: ReturnType<

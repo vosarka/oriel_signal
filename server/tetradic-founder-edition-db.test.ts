@@ -184,6 +184,7 @@ describe("Tetradic Founder Edition DB transactions", () => {
       userId: 42,
       paypalOrderId: "PAYPAL-ORDER-91",
       paypalCaptureId: "CAPTURE-91",
+      paidAt: new Date("2026-07-26T08:30:00Z"),
       currency: "EUR",
       amount: "81.32",
     });
@@ -193,8 +194,8 @@ describe("Tetradic Founder Edition DB transactions", () => {
       expect.objectContaining({
         paypalCaptureId: "CAPTURE-91",
         status: "intake_received",
-        paidAt: expect.any(Date),
-        deliveryDueAt: expect.any(Date),
+        paidAt: new Date("2026-07-26T08:30:00Z"),
+        deliveryDueAt: new Date("2026-07-31T08:30:00Z"),
       })
     );
 
@@ -204,6 +205,7 @@ describe("Tetradic Founder Edition DB transactions", () => {
       userId: 42,
       paypalOrderId: "PAYPAL-ORDER-91",
       paypalCaptureId: "CAPTURE-91",
+      paidAt: new Date("2026-07-26T08:30:00Z"),
       currency: "EUR",
       amount: "81.32",
     });
@@ -220,6 +222,7 @@ describe("Tetradic Founder Edition DB transactions", () => {
         userId: 42,
         paypalOrderId: "PAYPAL-ORDER-91",
         paypalCaptureId: "CAPTURE-91",
+        paidAt: new Date("2026-07-26T08:30:00Z"),
         currency: "EUR",
         amount: "81.31",
       })

@@ -21,7 +21,7 @@
     var(--tfe-void-warm) 46%,
     var(--tfe-void) 100%
   );
-  font-family: "Inter", sans-serif;
+  font-family: "Cormorant Garamond", serif;
 }
 
 .tfe,
@@ -713,7 +713,7 @@
   outline: 0;
   color: var(--tfe-ivory);
   background: var(--tfe-void);
-  font-family: "Inter", sans-serif;
+  font-family: "JetBrains Mono", monospace;
   font-size: 0.9rem;
   font-weight: 300;
   letter-spacing: 0;

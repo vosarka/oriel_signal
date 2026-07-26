@@ -16,6 +16,8 @@ const COMPONENT =
   "client/src/features/tetradic-signature/TetradicFounderEdition.tsx";
 const CSS =
   "client/src/features/tetradic-signature/tetradic-founder-edition.css";
+const ORDER_CSS =
+  "client/src/features/tetradic-signature/tetradic-founder-order.css";
 const runtimeGlobal = globalThis as typeof globalThis & {
   React?: typeof React;
 };
@@ -150,6 +152,29 @@ describe("Tetradic Founder Edition post-video page", () => {
     expect(markup).toContain("within 5 calendar days");
   });
 
+  it("uses the ORIEL font stack and keeps the em dash in the visible title", () => {
+    const component = readSource(COMPONENT);
+    const css = readSource(CSS);
+    const orderCss = readSource(ORDER_CSS);
+
+    expect(`${css}\n${orderCss}`).not.toMatch(/\bInter\b/);
+    expect(css).toMatch(
+      /\.tfe \{[\s\S]*?font-family: "Cormorant Garamond", serif;/
+    );
+    expect(css).toMatch(
+      /\.tfe__field input,\s*\.tfe__field textarea \{[\s\S]*?font-family: "JetBrains Mono", monospace;/
+    );
+    expect(orderCss).toMatch(
+      /\.tfe-order \{[\s\S]*?font-family: "Cormorant Garamond", serif;/
+    );
+    expect(component).toMatch(
+      /className="tfe__title-product" aria-hidden="true">\s*THE TETRADIC SIGNATURE —\s*<\/span>/
+    );
+    expect(component).toContain(
+      'aria-label="THE TETRADIC SIGNATURE — FOUNDER EDITION"'
+    );
+  });
+
   it("encodes the save checkpoint then PayPal continuation contract", () => {
     const source = readSource(COMPONENT);
 
@@ -213,6 +238,9 @@ describe("Tetradic Founder Edition post-video page", () => {
     expect(component.match(/scrollTrigger:/g)).toHaveLength(1);
     expect(component).toContain("gsap.context");
     expect(component).toContain("context.revert()");
+    expect(component).not.toMatch(
+      /\[data-tfe-(?:tetrad-card|register)\][\s\S]{0,140}opacity:\s*0/
+    );
   });
 
   it("marks and preserves a readable reduced-motion rendering", () => {

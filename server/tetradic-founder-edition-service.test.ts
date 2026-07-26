@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   recordCapture: vi.fn(),
   getOrderById: vi.fn(),
   transitionStatus: vi.fn(),
+  createPaypalOrder: vi.fn(),
+  capturePaypalOrder: vi.fn(),
 }));
 
 vi.mock("./db", async importOriginal => {
@@ -24,13 +26,38 @@ vi.mock("./db", async importOriginal => {
   };
 });
 
+vi.mock("./_core/env", () => ({
+  ENV: {
+    appBaseUrl: "https://oriel.example",
+    paypalApiBaseUrl: "https://api-m.sandbox.paypal.com",
+    paypalClientId: "test-client-id",
+    paypalClientSecret: "test-client-secret",
+    paypalWebhookId: "test-webhook-id",
+  },
+}));
+
+vi.mock("./tetradic-signature-paypal", async importOriginal => {
+  const original =
+    await importOriginal<typeof import("./tetradic-signature-paypal")>();
+  return {
+    ...original,
+    createTetradicSignaturePayPalAdapter: () => ({
+      createOrder: mocks.createPaypalOrder,
+      captureOrder: mocks.capturePaypalOrder,
+    }),
+  };
+});
+
 import {
-  attachTetradicFounderEditionPayPalOrder,
+  captureFounderEditionPayPalOrder,
+  createFounderEditionPayPalOrder,
   createTetradicFounderEditionCheckpoint,
+  getFinalSignaturePdfUrl,
   markFounderEditionDelivered,
   markFounderEditionInProgress,
   recordValidatedTetradicFounderEditionCaptureForUser,
   recordValidatedTetradicFounderEditionCaptureFromWebhook,
+  uploadFinalSignaturePdf,
 } from "./signature-letter-service";
 
 const pendingOrder = {
@@ -48,6 +75,7 @@ const pendingOrder = {
 const completedCapture = {
   paypalOrderId: "PAYPAL-ORDER-91",
   captureId: "CAPTURE-91",
+  capturedAt: "2026-07-26T08:30:00.000Z",
   status: "COMPLETED" as const,
   captureStatus: "COMPLETED" as const,
   customId: "tetradic-signature-order-91",
@@ -72,6 +100,12 @@ describe("Tetradic Founder Edition persistence service", () => {
     mocks.transitionStatus.mockImplementation(
       async ({ status }: { status: string }) => ({ ...pendingOrder, status })
     );
+    mocks.createPaypalOrder.mockResolvedValue({
+      paypalOrderId: "PAYPAL-ORDER-91",
+      approveUrl: "https://www.sandbox.paypal.com/checkoutnow?token=91",
+      status: "PAYER_ACTION_REQUIRED",
+    });
+    mocks.capturePaypalOrder.mockResolvedValue(completedCapture);
   });
 
   it("persists identity from the authenticated user and leaves the checkpoint pending", async () => {
@@ -109,32 +143,60 @@ describe("Tetradic Founder Edition persistence service", () => {
     });
   });
 
-  it("attaches a PayPal order only to the authenticated owner's pending edition", async () => {
+  it("creates and attaches the PayPal order exclusively on the server", async () => {
     mocks.getOrderForUser.mockResolvedValue({
       ...pendingOrder,
       paypalOrderId: null,
     });
 
-    await attachTetradicFounderEditionPayPalOrder({
+    const result = await createFounderEditionPayPalOrder({
       orderId: 91,
       userId: 42,
-      paypalOrderId: "PAYPAL-ORDER-91",
     });
 
+    expect(mocks.createPaypalOrder).toHaveBeenCalledWith({
+      orderId: 91,
+      returnUrl: "https://oriel.example/signature-order/91?paid=1",
+      cancelUrl: "https://oriel.example/signature-order/91?cancelled=1",
+    });
     expect(mocks.attachPaypalOrder).toHaveBeenCalledWith({
       orderId: 91,
       userId: 42,
       paypalOrderId: "PAYPAL-ORDER-91",
     });
+    expect(result.approveUrl).toContain("sandbox.paypal.com");
 
     mocks.getOrderForUser.mockResolvedValue(null);
     await expect(
-      attachTetradicFounderEditionPayPalOrder({
+      createFounderEditionPayPalOrder({
         orderId: 91,
         userId: 7,
-        paypalOrderId: "PAYPAL-ORDER-91",
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(mocks.createPaypalOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("captures only the PayPal order already attached to the owner", async () => {
+    mocks.getOrderForUser.mockResolvedValue(pendingOrder);
+
+    await captureFounderEditionPayPalOrder({
+      orderId: 91,
+      userId: 42,
+    });
+
+    expect(mocks.capturePaypalOrder).toHaveBeenCalledWith({
+      orderId: 91,
+      paypalOrderId: "PAYPAL-ORDER-91",
+    });
+    expect(mocks.recordCapture).toHaveBeenCalledWith({
+      orderId: 91,
+      userId: 42,
+      paypalOrderId: "PAYPAL-ORDER-91",
+      paypalCaptureId: "CAPTURE-91",
+      paidAt: new Date("2026-07-26T08:30:00.000Z"),
+      currency: "EUR",
+      amount: "81.32",
+    });
   });
 
   it("records only a server-validated capture owned by the current user", async () => {
@@ -151,6 +213,7 @@ describe("Tetradic Founder Edition persistence service", () => {
       userId: 42,
       paypalOrderId: "PAYPAL-ORDER-91",
       paypalCaptureId: "CAPTURE-91",
+      paidAt: new Date("2026-07-26T08:30:00.000Z"),
       currency: "EUR",
       amount: "81.32",
     });
@@ -198,6 +261,7 @@ describe("Tetradic Founder Edition persistence service", () => {
       userId: 42,
       paypalOrderId: "PAYPAL-ORDER-91",
       paypalCaptureId: "CAPTURE-91",
+      paidAt: new Date("2026-07-26T08:30:00.000Z"),
       currency: "EUR",
       amount: "81.32",
     });
@@ -228,6 +292,29 @@ describe("Tetradic Founder Edition persistence service", () => {
       orderId: 91,
       fromStatuses: ["in_curation", "delivered"],
       status: "delivered",
+    });
+  });
+
+  it("keeps Founder Edition orders outside all shared PDF upload and download paths", async () => {
+    mocks.getOrderById.mockResolvedValue(pendingOrder);
+    await expect(
+      uploadFinalSignaturePdf({
+        orderId: 91,
+        fileName: "founder-edition.pdf",
+        mimeType: "application/pdf",
+        base64: "JVBERi0xLjQ=",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringMatching(/manual curation.*not generated PDFs/i),
+    });
+
+    mocks.getOrderForUser.mockResolvedValue(pendingOrder);
+    await expect(
+      getFinalSignaturePdfUrl({ orderId: 91, userId: 42 })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringMatching(/manual curation.*not generated PDFs/i),
     });
   });
 });

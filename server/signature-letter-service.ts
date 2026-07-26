@@ -140,20 +140,24 @@ function assertFounderEditionOrder<
 function validateCompletedFounderEditionCapture(
   orderId: number,
   capture: TetradicSignatureCompletedOrder
-) {
+): Date {
+  const capturedAt = new Date(capture.capturedAt);
   if (
     capture.status !== "COMPLETED" ||
     capture.captureStatus !== "COMPLETED" ||
     capture.customId !== makeTetradicSignaturePayPalCustomId(orderId) ||
     capture.invoiceId !== makeTetradicSignaturePayPalInvoiceId(orderId) ||
     capture.currency !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency ||
-    capture.amount !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount
+    capture.amount !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount ||
+    Number.isNaN(capturedAt.getTime())
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Validated PayPal capture does not match this order.",
     });
   }
+
+  return capturedAt;
 }
 
 function intakePayloadFromRow(
@@ -413,7 +417,7 @@ export async function createFounderEditionPayPalOrder(input: {
   const created = await adapter.createOrder({
     orderId: input.orderId,
     returnUrl: `${appBaseUrl}/signature-order/${input.orderId}?paid=1`,
-    cancelUrl: `${appBaseUrl}/tetradic-signature?cancelled=1`,
+    cancelUrl: `${appBaseUrl}/signature-order/${input.orderId}?cancelled=1`,
   });
   await attachTetradicFounderEditionPayPalOrder({
     orderId: input.orderId,
@@ -439,7 +443,10 @@ export async function recordValidatedTetradicFounderEditionCaptureForUser(
   const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
   assertOwner(order, input.userId);
   assertFounderEditionOrder(order);
-  validateCompletedFounderEditionCapture(input.orderId, input.capture);
+  const paidAt = validateCompletedFounderEditionCapture(
+    input.orderId,
+    input.capture
+  );
   if (order.paypalOrderId !== input.capture.paypalOrderId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -452,6 +459,7 @@ export async function recordValidatedTetradicFounderEditionCaptureForUser(
     userId: input.userId,
     paypalOrderId: input.capture.paypalOrderId,
     paypalCaptureId: input.capture.captureId,
+    paidAt,
     currency: input.capture.currency,
     amount: input.capture.amount,
   });
@@ -498,13 +506,17 @@ export async function recordValidatedTetradicFounderEditionCaptureFromWebhook(
   );
   assertAdminOrder(order);
   assertFounderEditionOrder(order);
-  validateCompletedFounderEditionCapture(order.id, input.capture);
+  const paidAt = validateCompletedFounderEditionCapture(
+    order.id,
+    input.capture
+  );
 
   return db.recordTetradicFounderEditionPayPalCapture({
     orderId: order.id,
     userId: order.userId,
     paypalOrderId: input.capture.paypalOrderId,
     paypalCaptureId: input.capture.captureId,
+    paidAt,
     currency: input.capture.currency,
     amount: input.capture.amount,
   });
@@ -773,6 +785,9 @@ export async function uploadFinalSignaturePdf(input: {
   mimeType: string;
   base64: string;
 }) {
+  const order = await db.getSignatureOrderById(input.orderId);
+  assertAdminOrder(order);
+  requireLegacySignatureProductType(order.productType);
   requirePdfStorageConfig();
 
   if (input.mimeType !== "application/pdf") {
@@ -790,8 +805,6 @@ export async function uploadFinalSignaturePdf(input: {
     });
   }
 
-  const order = await db.getSignatureOrderById(input.orderId);
-  assertAdminOrder(order);
   const storageKey = `signature-letters/${input.orderId}/${randomUUID()}-${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   await storagePut(storageKey, buffer, input.mimeType);
   await db.setSignatureLetterDraftPdf({
@@ -858,6 +871,7 @@ export async function getFinalSignaturePdfUrl(input: {
 }) {
   const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
   assertOwner(order, input.userId);
+  requireLegacySignatureProductType(order.productType);
   const draft = await db.getSignatureLetterDraft(input.orderId);
 
   if (!draft?.finalPdfStorageKey) {

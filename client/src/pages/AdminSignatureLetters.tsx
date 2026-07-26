@@ -27,10 +27,7 @@ export type AdminSignatureLetterBundle = {
   order: {
     id: number;
     userId: number;
-    productType:
-      | "glimpse"
-      | "founding"
-      | "tetradic_founder_edition";
+    productType: "glimpse" | "founding" | "tetradic_founder_edition";
     status: string;
     priceEur: number;
     currency: string;
@@ -336,116 +333,120 @@ export default function AdminSignatureLetters() {
                   ) : (
                     <>
                       <div className="grid gap-5 xl:grid-cols-2">
-                    <Panel title="Intake">
-                      {bundle.intake ? (
-                        <div
-                          className="space-y-2 text-sm leading-6"
-                          style={{ color: C.muted }}
-                        >
-                          <p>
-                            <b style={{ color: C.text }}>
-                              {bundle.intake.name}
-                            </b>{" "}
-                            / {bundle.intake.email}
-                          </p>
-                          <p>
-                            {bundle.intake.birthDate} {bundle.intake.birthTime},{" "}
-                            {bundle.intake.birthPlace},{" "}
-                            {bundle.intake.birthCountry}
-                          </p>
-                          <p>Timezone: {bundle.intake.timezone}</p>
-                          <p>Focus: {bundle.intake.focusQuestion}</p>
-                          <p>Tone: {bundle.intake.preferredTone}</p>
-                          <p>
-                            Avoid: {bundle.intake.avoidAssumptions || "None"}
-                          </p>
-                          <p>
-                            Consent:{" "}
-                            {bundle.intake.consentAccepted ? "yes" : "no"}
-                          </p>
-                        </div>
-                      ) : (
-                        <p style={{ color: C.muted }}>
-                          Intake has not been submitted.
-                        </p>
-                      )}
-                    </Panel>
+                        <Panel title="Intake">
+                          {bundle.intake ? (
+                            <div
+                              className="space-y-2 text-sm leading-6"
+                              style={{ color: C.muted }}
+                            >
+                              <p>
+                                <b style={{ color: C.text }}>
+                                  {bundle.intake.name}
+                                </b>{" "}
+                                / {bundle.intake.email}
+                              </p>
+                              <p>
+                                {bundle.intake.birthDate}{" "}
+                                {bundle.intake.birthTime},{" "}
+                                {bundle.intake.birthPlace},{" "}
+                                {bundle.intake.birthCountry}
+                              </p>
+                              <p>Timezone: {bundle.intake.timezone}</p>
+                              <p>Focus: {bundle.intake.focusQuestion}</p>
+                              <p>Tone: {bundle.intake.preferredTone}</p>
+                              <p>
+                                Avoid:{" "}
+                                {bundle.intake.avoidAssumptions || "None"}
+                              </p>
+                              <p>
+                                Consent:{" "}
+                                {bundle.intake.consentAccepted ? "yes" : "no"}
+                              </p>
+                            </div>
+                          ) : (
+                            <p style={{ color: C.muted }}>
+                              Intake has not been submitted.
+                            </p>
+                          )}
+                        </Panel>
 
-                    <Panel title="Normalized Snapshot">
-                      <pre
-                        className="max-h-80 overflow-auto whitespace-pre-wrap text-xs leading-5"
-                        style={{ color: C.muted }}
-                      >
-                        {bundle.snapshot
-                          ? JSON.stringify(
-                              bundle.snapshot.normalizedSignatureJson,
-                              null,
-                              2
-                            )
-                          : "No snapshot generated yet."}
-                      </pre>
-                    </Panel>
-                  </div>
+                        <Panel title="Normalized Snapshot">
+                          <pre
+                            className="max-h-80 overflow-auto whitespace-pre-wrap text-xs leading-5"
+                            style={{ color: C.muted }}
+                          >
+                            {bundle.snapshot
+                              ? JSON.stringify(
+                                  bundle.snapshot.normalizedSignatureJson,
+                                  null,
+                                  2
+                                )
+                              : "No snapshot generated yet."}
+                          </pre>
+                        </Panel>
+                      </div>
 
-                  <Panel title="Draft markdown">
-                    <textarea
-                      value={draftMarkdown}
-                      onChange={event => setDraftMarkdown(event.target.value)}
-                      rows={18}
-                      className="w-full border bg-transparent p-4 text-sm leading-6 outline-none"
-                      style={{ borderColor: C.border, color: C.text }}
-                    />
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Action
-                        onClick={() =>
-                          saveDraft.mutate({
-                            orderId: bundle.order.id,
-                            markdown: draftMarkdown,
-                          })
-                        }
-                        disabled={!draftMarkdown || saveDraft.isPending}
-                      >
-                        Save draft
-                      </Action>
-                      <label
-                        className="inline-flex items-center gap-2 border px-4 py-2 text-xs uppercase tracking-[0.16em]"
-                        style={{ borderColor: C.border, color: C.gold }}
-                      >
-                        <FileUp size={14} />
-                        Upload final PDF
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          className="hidden"
-                          onChange={onPdfChange}
+                      <Panel title="Draft markdown">
+                        <textarea
+                          value={draftMarkdown}
+                          onChange={event =>
+                            setDraftMarkdown(event.target.value)
+                          }
+                          rows={18}
+                          className="w-full border bg-transparent p-4 text-sm leading-6 outline-none"
+                          style={{ borderColor: C.border, color: C.text }}
                         />
-                      </label>
-                      <Action
-                        onClick={() =>
-                          delivered.mutate({ orderId: bundle.order.id })
-                        }
-                        disabled={
-                          !bundle.draft?.finalPdfStorageKey ||
-                          delivered.isPending
-                        }
-                      >
-                        <MailCheck size={14} /> Mark delivered
-                      </Action>
-                      <Action
-                        onClick={() =>
-                          followup.mutate({
-                            orderId: bundle.order.id,
-                            notes: "Follow-up clarification used.",
-                          })
-                        }
-                        disabled={
-                          bundle.order.productType !== "founding" ||
-                          followup.isPending
-                        }
-                      >
-                        Follow-up used
-                      </Action>
-                    </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Action
+                            onClick={() =>
+                              saveDraft.mutate({
+                                orderId: bundle.order.id,
+                                markdown: draftMarkdown,
+                              })
+                            }
+                            disabled={!draftMarkdown || saveDraft.isPending}
+                          >
+                            Save draft
+                          </Action>
+                          <label
+                            className="inline-flex items-center gap-2 border px-4 py-2 text-xs uppercase tracking-[0.16em]"
+                            style={{ borderColor: C.border, color: C.gold }}
+                          >
+                            <FileUp size={14} />
+                            Upload final PDF
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              className="hidden"
+                              onChange={onPdfChange}
+                            />
+                          </label>
+                          <Action
+                            onClick={() =>
+                              delivered.mutate({ orderId: bundle.order.id })
+                            }
+                            disabled={
+                              !bundle.draft?.finalPdfStorageKey ||
+                              delivered.isPending
+                            }
+                          >
+                            <MailCheck size={14} /> Mark delivered
+                          </Action>
+                          <Action
+                            onClick={() =>
+                              followup.mutate({
+                                orderId: bundle.order.id,
+                                notes: "Follow-up clarification used.",
+                              })
+                            }
+                            disabled={
+                              bundle.order.productType !== "founding" ||
+                              followup.isPending
+                            }
+                          >
+                            Follow-up used
+                          </Action>
+                        </div>
                       </Panel>
                     </>
                   )}
@@ -463,6 +464,214 @@ export default function AdminSignatureLetters() {
       </section>
     </Layout>
   );
+}
+
+export function FounderEditionAdminOrder({
+  bundle,
+  startPending,
+  deliveryPending,
+  onStartCuration,
+  onMarkDelivered,
+}: {
+  bundle: AdminSignatureLetterBundle;
+  startPending: boolean;
+  deliveryPending: boolean;
+  onStartCuration: () => void;
+  onMarkDelivered: () => void;
+}) {
+  const intake = bundle.intake;
+  const isReadyForCuration =
+    bundle.order.status === "intake_received" &&
+    Boolean(bundle.order.paypalCaptureId) &&
+    Boolean(bundle.order.paidAt) &&
+    Boolean(intake?.consentAccepted);
+  const isReadyForDelivery = bundle.order.status === "in_curation";
+
+  return (
+    <section aria-labelledby="founder-edition-fulfillment-title">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Panel title="Founder Edition fulfillment">
+          <h3
+            id="founder-edition-fulfillment-title"
+            className="font-serif text-2xl"
+            style={{ color: C.text }}
+          >
+            Manual founder workflow
+          </h3>
+          <p className="mt-3 text-sm leading-6" style={{ color: C.muted }}>
+            The 48-page edition is authored personally and emailed to the
+            receiver within 5 calendar days after confirmed payment.
+          </p>
+
+          <dl className="mt-6 grid gap-4 text-sm">
+            <AdminDatum label="Payment provider" value="PayPal" />
+            <AdminDatum
+              label="PayPal order"
+              value={bundle.order.paypalOrderId ?? "Not created"}
+            />
+            <AdminDatum
+              label="PayPal capture"
+              value={bundle.order.paypalCaptureId ?? "Not confirmed"}
+            />
+            <AdminDatum
+              label="Paid at"
+              value={formatAdminDate(bundle.order.paidAt, true)}
+            />
+            <AdminDatum
+              label="Delivery due"
+              value={formatAdminDate(bundle.order.deliveryDueAt)}
+            />
+          </dl>
+        </Panel>
+
+        <Panel title="Receiver record">
+          {intake ? (
+            <div className="space-y-6">
+              <div>
+                <div className="font-serif text-xl" style={{ color: C.text }}>
+                  {intake.name}
+                </div>
+                <div className="mt-1 text-sm" style={{ color: C.muted }}>
+                  {intake.email}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  className="text-[10px] uppercase tracking-[0.2em]"
+                  style={{ color: C.gold }}
+                >
+                  Birth details
+                </div>
+                <p
+                  className="mt-2 text-sm leading-6"
+                  style={{ color: C.muted }}
+                >
+                  {intake.birthDate} · {intake.birthTime}
+                  <br />
+                  {intake.birthPlace}, {intake.birthCountry}
+                  <br />
+                  {intake.timezone}
+                </p>
+              </div>
+
+              <AdminQuestion
+                label="Question one"
+                value={intake.questionOne ?? intake.focusQuestion}
+              />
+              <AdminQuestion
+                label="Question two"
+                value={intake.questionTwo ?? "Not provided"}
+              />
+              <AdminDatum
+                label="Consent"
+                value={
+                  intake.consentAccepted
+                    ? `Accepted · ${formatAdminDate(
+                        intake.consentAcceptedAt,
+                        true
+                      )}`
+                    : "Not accepted"
+                }
+              />
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: C.muted }}>
+              Receiver details have not been saved.
+            </p>
+          )}
+        </Panel>
+      </div>
+
+      <section
+        className="mt-5 border p-5"
+        style={{ borderColor: C.border, background: "rgba(216,181,109,0.025)" }}
+        aria-label="Founder Edition workflow actions"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-5">
+          <div>
+            <div
+              className="text-[10px] uppercase tracking-[0.22em]"
+              style={{ color: C.gold }}
+            >
+              Current checkpoint
+            </div>
+            <p className="mt-2 text-sm" style={{ color: C.muted }}>
+              {bundle.order.status}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Action
+              onClick={onStartCuration}
+              disabled={!isReadyForCuration || startPending}
+            >
+              Start curation
+            </Action>
+            <Action
+              onClick={onMarkDelivered}
+              disabled={!isReadyForDelivery || deliveryPending}
+            >
+              <MailCheck size={14} /> Mark delivered
+            </Action>
+          </div>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function AdminDatum({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <dt
+        className="text-[10px] uppercase tracking-[0.18em]"
+        style={{ color: C.gold }}
+      >
+        {label}
+      </dt>
+      <dd
+        className="m-0 break-all font-mono text-xs leading-5"
+        style={{ color: C.text }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function AdminQuestion({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        className="text-[10px] uppercase tracking-[0.2em]"
+        style={{ color: C.gold }}
+      >
+        {label}
+      </div>
+      <p className="mt-2 text-sm leading-6" style={{ color: C.muted }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatAdminDate(value: DateValue | null, includeTime = false) {
+  if (!value) return "Not confirmed";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    ...(includeTime
+      ? {
+          hour: "2-digit" as const,
+          minute: "2-digit" as const,
+          timeZoneName: "short" as const,
+        }
+      : {}),
+  }).format(date);
 }
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {

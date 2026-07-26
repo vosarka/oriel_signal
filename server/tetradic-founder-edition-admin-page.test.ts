@@ -3,14 +3,7 @@ import { resolve } from "node:path";
 
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/components/Layout", () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
@@ -87,9 +80,7 @@ function renderFounderEdition(
       bundle: {
         ...bundle,
         order: { ...bundle.order, ...overrides },
-        intake: bundle.intake
-          ? { ...bundle.intake, consentAccepted }
-          : null,
+        intake: bundle.intake ? { ...bundle.intake, consentAccepted } : null,
       },
       startPending: false,
       deliveryPending: false,
@@ -161,25 +152,17 @@ describe("Tetradic Founder Edition admin page", () => {
       { status: "intake_received" },
       false
     );
-    expect(
-      isDisabled(buttonWithLabel(withoutConsent, "Start curation"))
-    ).toBe(true);
+    expect(isDisabled(buttonWithLabel(withoutConsent, "Start curation"))).toBe(
+      true
+    );
 
     const curating = renderFounderEdition({ status: "in_curation" });
-    expect(
-      isDisabled(buttonWithLabel(curating, "Start curation"))
-    ).toBe(true);
-    expect(
-      isDisabled(buttonWithLabel(curating, "Mark delivered"))
-    ).toBe(false);
+    expect(isDisabled(buttonWithLabel(curating, "Start curation"))).toBe(true);
+    expect(isDisabled(buttonWithLabel(curating, "Mark delivered"))).toBe(false);
 
     const delivered = renderFounderEdition({ status: "delivered" });
-    expect(
-      isDisabled(buttonWithLabel(delivered, "Start curation"))
-    ).toBe(true);
-    expect(
-      isDisabled(buttonWithLabel(delivered, "Mark delivered"))
-    ).toBe(true);
+    expect(isDisabled(buttonWithLabel(delivered, "Start curation"))).toBe(true);
+    expect(isDisabled(buttonWithLabel(delivered, "Mark delivered"))).toBe(true);
   });
 
   it("keeps the legacy workflow controls and uses only local Visual Law tokens", () => {
@@ -189,7 +172,9 @@ describe("Tetradic Founder Edition admin page", () => {
     expect(source).toContain("generateDraft.mutate");
     expect(source).toContain("Upload final PDF");
     expect(source).toContain("Follow-up used");
-    expect(source).toContain('productType: "glimpse" | "founding"');
+    expect(source).toContain(
+      'productType: "glimpse" | "founding" | "tetradic_founder_edition"'
+    );
 
     expect(source).toContain('bg: "#050505"');
     expect(source).toContain('panel: "#0a0907"');

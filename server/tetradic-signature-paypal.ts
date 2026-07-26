@@ -61,6 +61,7 @@ export class TetradicSignaturePayPalError extends Error {
 export interface TetradicSignatureCompletedOrder {
   paypalOrderId: string;
   captureId: string;
+  capturedAt: string;
   status: "COMPLETED";
   captureStatus: "COMPLETED";
   customId: string;
@@ -103,15 +104,31 @@ export interface TetradicSignaturePayPalAdapter {
   captureOrder(
     input: CaptureTetradicSignatureOrderInput
   ): Promise<TetradicSignatureCompletedOrder>;
-  verifyWebhook(
-    input: VerifyTetradicSignatureWebhookInput
-  ): Promise<boolean>;
+  verifyWebhook(input: VerifyTetradicSignatureWebhookInput): Promise<boolean>;
 }
 
 type JsonRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requirePayPalCaptureTimestamp(capture: JsonRecord): string {
+  const rawTimestamp =
+    typeof capture.update_time === "string"
+      ? capture.update_time
+      : capture.create_time;
+  const timestamp =
+    typeof rawTimestamp === "string" ? new Date(rawTimestamp) : null;
+
+  if (!timestamp || Number.isNaN(timestamp.getTime())) {
+    throw new TetradicSignaturePayPalError(
+      "MALFORMED_CAPTURE_RESPONSE",
+      "The PayPal capture response does not contain a valid capture timestamp."
+    );
+  }
+
+  return timestamp.toISOString();
 }
 
 function requireOrderId(orderId: number): number {
@@ -307,15 +324,11 @@ function requireSingleArrayItem(
   return value[0];
 }
 
-export function makeTetradicSignaturePayPalCustomId(
-  orderId: number
-): string {
+export function makeTetradicSignaturePayPalCustomId(orderId: number): string {
   return `tetradic-signature-order-${requireOrderId(orderId)}`;
 }
 
-export function makeTetradicSignaturePayPalInvoiceId(
-  orderId: number
-): string {
+export function makeTetradicSignaturePayPalInvoiceId(orderId: number): string {
   return `TETRADIC-SIGNATURE-${requireOrderId(orderId)}`;
 }
 
@@ -399,9 +412,7 @@ export function validateTetradicSignatureCompletedOrder(
     "The PayPal capture amount is malformed."
   );
 
-  if (
-    amount.currency_code !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency
-  ) {
+  if (amount.currency_code !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency) {
     throw new TetradicSignaturePayPalError(
       "PAYPAL_CAPTURE_CURRENCY_MISMATCH",
       "The PayPal capture currency does not match the product currency."
@@ -421,10 +432,12 @@ export function validateTetradicSignatureCompletedOrder(
       "The PayPal capture response does not contain a capture ID."
     );
   }
+  const capturedAt = requirePayPalCaptureTimestamp(capture);
 
   return {
     paypalOrderId: expectedPayPalOrderId,
     captureId: capture.id,
+    capturedAt,
     status: "COMPLETED",
     captureStatus: "COMPLETED",
     customId: expectedCustomId,
@@ -555,8 +568,7 @@ export function createTetradicSignaturePayPalAdapter({
               invoice_id: makeTetradicSignaturePayPalInvoiceId(orderId),
               description: TETRADIC_SIGNATURE_PAYPAL_PRODUCT.description,
               amount: {
-                currency_code:
-                  TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency,
+                currency_code: TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency,
                 value: TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount,
               },
             },
@@ -707,10 +719,7 @@ export function createTetradicSignaturePayPalAdapter({
   async function verifyWebhook(
     input: VerifyTetradicSignatureWebhookInput
   ): Promise<boolean> {
-    const authAlgo = readWebhookHeader(
-      input.headers,
-      "PAYPAL-AUTH-ALGO"
-    );
+    const authAlgo = readWebhookHeader(input.headers, "PAYPAL-AUTH-ALGO");
     const certUrl = readWebhookHeader(input.headers, "PAYPAL-CERT-URL");
     const transmissionId = readWebhookHeader(
       input.headers,

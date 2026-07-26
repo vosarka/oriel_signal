@@ -380,7 +380,7 @@ describe("Tetradic Signature scroll timeline", () => {
       archiveId: "ORL-TDS-001",
     });
     expect(TETRADIC_SIGNATURE_CONFIG.ctas.generateSignatureRoute).toBe(
-      "/founder-signature-blueprint"
+      "/tetradic-signature"
     );
     expect(TETRADIC_SIGNATURE_CONFIG.ctas.exploreSampleLabel).toBe(
       "EXPLORE A SAMPLE"
@@ -452,7 +452,7 @@ describe("Tetradic Signature scroll timeline", () => {
       'class="tetradic-signature__reduced-visual-copy" aria-hidden="true"'
     );
     expect(markup).toContain("GENERATE MY SIGNATURE");
-    expect(markup).toContain('href="/founder-signature-blueprint"');
+    expect(markup).toContain('href="/tetradic-signature"');
     expect(markup).toContain("EXPLORE A SAMPLE");
     expect(markup).toContain("88.0000 degrees behind the birth Sun");
     expect(TETRAD_THREE_TIMING_STATES[1].title).toBe("88.0000°");

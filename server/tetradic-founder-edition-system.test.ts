@@ -37,6 +37,14 @@ describe("Tetradic Founder Edition contract", () => {
     );
   });
 
+  it("keeps the Founder Edition schema change out of runtime DDL", () => {
+    const runtimeDb = readFileSync(new URL("./db.ts", import.meta.url), "utf8");
+
+    expect(runtimeDb).not.toMatch(/ALTER TABLE[^\n]+tetradic_founder_edition/);
+    expect(runtimeDb).not.toMatch(/ALTER TABLE[^\n]+paypal(?:Order|Capture)Id/);
+    expect(runtimeDb).not.toMatch(/ALTER TABLE[^\n]+question(?:One|Two)/);
+  });
+
   it("only starts manual curation after a paid intake has been received", () => {
     expect(() =>
       assertCanMarkFounderEditionInProgress({

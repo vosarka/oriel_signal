@@ -97,10 +97,7 @@ function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
 
 function isMissingTableError(error: unknown, tableName: string) {
   if (
-    hasMigrationErrorFragment(error, [
-      "ER_BAD_FIELD_ERROR",
-      "Unknown column",
-    ])
+    hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])
   ) {
     return false;
   }
@@ -362,7 +359,8 @@ export async function runMigrations() {
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`activations\` text NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added userStaticProfiles.activations column",
+      successMessage:
+        "[Migrations] Added userStaticProfiles.activations column",
     },
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`channelStatuses\` text NULL`,
@@ -385,7 +383,8 @@ export async function runMigrations() {
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`specVersion\` varchar(32) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added userStaticProfiles.specVersion column",
+      successMessage:
+        "[Migrations] Added userStaticProfiles.specVersion column",
     },
     {
       sql: `ALTER TABLE \`userStaticProfiles\` MODIFY COLUMN \`specVersion\` varchar(128) NULL`,
@@ -412,18 +411,14 @@ export async function runMigrations() {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_orders\` (
         \`id\` int AUTO_INCREMENT NOT NULL,
         \`userId\` int NOT NULL,
-        \`productType\` enum('glimpse','founding','tetradic_founder_edition') NOT NULL,
+        \`productType\` enum('glimpse','founding') NOT NULL,
         \`priceEur\` decimal(10,2) NOT NULL,
         \`currency\` varchar(8) NOT NULL DEFAULT 'eur',
-        \`paymentProvider\` enum('stripe','paypal') NOT NULL DEFAULT 'stripe',
         \`status\` enum('pending_payment','paid','intake_needed','intake_received','signature_generated','draft_ready','in_curation','pdf_ready','delivered','followup_used','cancelled','refunded') NOT NULL DEFAULT 'pending_payment',
         \`stripeCheckoutSessionId\` varchar(255) NULL,
         \`stripePaymentIntentId\` varchar(255) NULL,
-        \`paypalOrderId\` varchar(255) NULL,
-        \`paypalCaptureId\` varchar(255) NULL,
         \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
         \`paidAt\` timestamp NULL,
-        \`deliveryDueAt\` timestamp NULL,
         \`deliveredAt\` timestamp NULL,
         \`cancelledAt\` timestamp NULL,
         \`refundedAt\` timestamp NULL,
@@ -445,35 +440,6 @@ export async function runMigrations() {
       ignorableFragments: ["Duplicate key name", "already exists"],
     },
     {
-      sql: `ALTER TABLE \`signature_orders\` MODIFY COLUMN \`productType\` enum('glimpse','founding','tetradic_founder_edition') NOT NULL`,
-      successMessage:
-        "[Migrations] Added the Tetradic Founder Edition product type",
-    },
-    {
-      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paymentProvider\` enum('stripe','paypal') NOT NULL DEFAULT 'stripe'`,
-      ignorableFragments: ["Duplicate column"],
-    },
-    {
-      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
-      ignorableFragments: ["Duplicate column"],
-    },
-    {
-      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
-      ignorableFragments: ["Duplicate column"],
-    },
-    {
-      sql: `ALTER TABLE \`signature_orders\` ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
-      ignorableFragments: ["Duplicate column"],
-    },
-    {
-      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\` ON \`signature_orders\` (\`paypalOrderId\`)`,
-      ignorableFragments: ["Duplicate key name", "already exists"],
-    },
-    {
-      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_capture\` ON \`signature_orders\` (\`paypalCaptureId\`)`,
-      ignorableFragments: ["Duplicate key name", "already exists"],
-    },
-    {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_intakes\` (
         \`id\` int AUTO_INCREMENT NOT NULL,
         \`orderId\` int NOT NULL,
@@ -486,8 +452,6 @@ export async function runMigrations() {
         \`birthCountry\` varchar(255) NOT NULL,
         \`timezone\` varchar(128) NOT NULL,
         \`focusQuestion\` text NOT NULL,
-        \`questionOne\` text NULL,
-        \`questionTwo\` text NULL,
         \`preferredTone\` enum('mystical','practical','balanced') NOT NULL,
         \`avoidAssumptions\` text NULL,
         \`consentAccepted\` boolean NOT NULL DEFAULT false,
@@ -505,14 +469,6 @@ export async function runMigrations() {
     {
       sql: `CREATE INDEX \`idx_signature_intakes_user\` ON \`signature_intakes\` (\`userId\`)`,
       ignorableFragments: ["Duplicate key name", "already exists"],
-    },
-    {
-      sql: `ALTER TABLE \`signature_intakes\` ADD COLUMN \`questionOne\` text NULL`,
-      ignorableFragments: ["Duplicate column"],
-    },
-    {
-      sql: `ALTER TABLE \`signature_intakes\` ADD COLUMN \`questionTwo\` text NULL`,
-      ignorableFragments: ["Duplicate column"],
     },
     {
       sql: `CREATE TABLE IF NOT EXISTS \`signature_snapshots\` (
@@ -1454,7 +1410,10 @@ export async function getProfileConsoleActivity(
         .select({ total: count() })
         .from(orielMemories)
         .where(
-          and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
+          and(
+            eq(orielMemories.userId, userId),
+            eq(orielMemories.isActive, true)
+          )
         ),
       db
         .select({ total: count() })
@@ -3242,7 +3201,9 @@ export async function upsertUserStaticProfile(
       );
     }
 
-    if (hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])) {
+    if (
+      hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])
+    ) {
       console.warn(
         "[Database] userStaticProfiles schema is out of date. Apply migrations before saving natal profiles."
       );
@@ -3483,17 +3444,13 @@ export async function attachTetradicFounderEditionPayPalOrder(input: {
     const order = rows[0];
     if (
       !order ||
-      order.productType !==
-        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
       order.paymentProvider !== "paypal" ||
       order.status !== "pending_payment"
     ) {
       throw new Error("Founder Edition order is not awaiting PayPal payment.");
     }
-    if (
-      order.paypalOrderId &&
-      order.paypalOrderId !== input.paypalOrderId
-    ) {
+    if (order.paypalOrderId && order.paypalOrderId !== input.paypalOrderId) {
       throw new Error("Founder Edition order already has a PayPal order.");
     }
 
@@ -3523,9 +3480,7 @@ export async function attachTetradicFounderEditionPayPalOrder(input: {
   });
 }
 
-export async function getSignatureOrderByPaypalOrderId(
-  paypalOrderId: string
-) {
+export async function getSignatureOrderByPaypalOrderId(paypalOrderId: string) {
   const db = await getDb();
   if (!db) return null;
   const rows = await db
@@ -3547,11 +3502,15 @@ export async function recordTetradicFounderEditionPayPalCapture(input: {
   userId: number;
   paypalOrderId: string;
   paypalCaptureId: string;
+  paidAt: Date;
   currency: string;
   amount: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (!(input.paidAt instanceof Date) || Number.isNaN(input.paidAt.getTime())) {
+    throw new Error("Founder Edition PayPal capture time is invalid.");
+  }
 
   return db.transaction(async tx => {
     const rows = await tx
@@ -3568,8 +3527,7 @@ export async function recordTetradicFounderEditionPayPalCapture(input: {
     const order = rows[0];
     if (
       !order ||
-      order.productType !==
-        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
       order.paymentProvider !== "paypal"
     ) {
       throw new Error("Founder Edition PayPal order was not found.");
@@ -3578,10 +3536,11 @@ export async function recordTetradicFounderEditionPayPalCapture(input: {
       order.currency.toUpperCase() !== input.currency.toUpperCase() ||
       input.currency.toUpperCase() !== "EUR" ||
       Number(order.priceEur).toFixed(2) !== input.amount ||
-      input.amount !==
-        TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur.toFixed(2)
+      input.amount !== TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur.toFixed(2)
     ) {
-      throw new Error("Founder Edition PayPal amount does not match the order.");
+      throw new Error(
+        "Founder Edition PayPal amount does not match the order."
+      );
     }
     if (
       order.paypalCaptureId &&
@@ -3605,7 +3564,7 @@ export async function recordTetradicFounderEditionPayPalCapture(input: {
       throw new Error("Founder Edition order is not awaiting payment.");
     }
 
-    const paidAt = new Date();
+    const paidAt = new Date(input.paidAt);
     const deliveryDueAt = addUtcCalendarDays(
       paidAt,
       TETRADIC_FOUNDER_EDITION_PRODUCT.deliveryCalendarDays
@@ -3659,8 +3618,7 @@ export async function transitionTetradicFounderEditionStatus(input: {
     const order = rows[0];
     if (
       !order ||
-      order.productType !==
-        TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
       !input.fromStatuses.includes(order.status)
     ) {
       throw new Error("Founder Edition status transition is not allowed.");
@@ -3671,9 +3629,7 @@ export async function transitionTetradicFounderEditionStatus(input: {
         .update(signatureOrders)
         .set({
           status: input.status,
-          ...(input.status === "delivered"
-            ? { deliveredAt: new Date() }
-            : {}),
+          ...(input.status === "delivered" ? { deliveredAt: new Date() } : {}),
         })
         .where(
           and(

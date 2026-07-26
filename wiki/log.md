@@ -1621,3 +1621,13 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Type: concept
 - Reason: ORIEL introduces a detailed new transmission example called 'The Unbinding', featuring specific geometric, sonic, and catalyst components that define a process of spiritual/psychological release.
 - Aliases: The Unbinding Transmission, Transmission: The Unbinding
+
+## [2026-07-26] feature | Tetradic Signature Founder Edition checkout
+- Preserved the validated two-film scroll-scrub opening on `/tetradic-signature`, then replaced the long twelve-section tetrad walkthrough with a compact desktop field and a swipeable mobile rail derived from the approved `Downloads/dist` direction.
+- Locked the offer to `THE TETRADIC SIGNATURE — FOUNDER EDITION`, `Your Resonance Architecture`, 48 authored pages, EUR 81.32, and personal email delivery within five calendar days after confirmed payment. No PDF is generated or exposed.
+- Added mandatory account gating, a resumable intake checkpoint for birth date, exact birth time, birth place and country, two authored questions, consent, and server-derived account identity.
+- Added server-created PayPal Orders v2 checkout, server-side capture, verified webhook reconciliation, strict amount/currency/order ownership checks, and idempotent paid-state persistence. The five-day deadline is anchored to PayPal's verified capture timestamp; PayPal secrets remain server-only.
+- Added the protected `/signature-order/:orderId` checkpoint/status route and the admin curation view with intake, PayPal order/capture references, payment time, delivery due date, and manual curation/delivery states.
+- Blocked Founder Edition orders from the legacy PDF generation, upload, and download paths; the product only uses the manual curation and personal-email workflow.
+- Proposed additive migration `drizzle/0013_tetradic_founder_edition_checkout.sql`; the feature adds no runtime DDL, no migration was executed, and no production credentials were used.
+- Verification: 14 focused files pass (129/129 tests); production build passes; real Chrome desktop/mobile checks cover forward and reverse video scrubbing, the twelve-card compact field, horizontal mobile overflow without body overflow, reduced motion, mandatory-login return preservation, and zero browser errors. Repository-wide tests retain two unrelated pre-existing failures (731/733 pass), and repository-wide type-check retains the pre-existing `circuitLinks` mismatch in `server/routers.ts`.

@@ -20,10 +20,8 @@ const approvedEvent = {
     status: "APPROVED",
     purchase_units: [
       {
-        custom_id:
-          makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
-        invoice_id:
-          makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
+        custom_id: makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
+        invoice_id: makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
         amount: { currency_code: "EUR", value: "81.32" },
       },
     ],
@@ -36,10 +34,9 @@ const captureEvent = {
   resource: {
     id: PAYPAL_CAPTURE_ID,
     status: "COMPLETED",
-    custom_id:
-      makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
-    invoice_id:
-      makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
+    update_time: "2026-07-26T08:30:00Z",
+    custom_id: makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
+    invoice_id: makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
     amount: { currency_code: "EUR", value: "81.32" },
     supplementary_data: {
       related_ids: { order_id: PAYPAL_ORDER_ID },
@@ -50,12 +47,11 @@ const captureEvent = {
 const completedCapture = {
   paypalOrderId: PAYPAL_ORDER_ID,
   captureId: PAYPAL_CAPTURE_ID,
+  capturedAt: "2026-07-26T08:30:00.000Z",
   status: "COMPLETED" as const,
   captureStatus: "COMPLETED" as const,
-  customId:
-    makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
-  invoiceId:
-    makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
+  customId: makeTetradicSignaturePayPalCustomId(INTERNAL_ORDER_ID),
+  invoiceId: makeTetradicSignaturePayPalInvoiceId(INTERNAL_ORDER_ID),
   currency: "EUR" as const,
   amount: "81.32" as const,
 };
@@ -89,8 +85,7 @@ async function postWebhook(event: unknown) {
         headers: {
           "content-type": "application/json",
           "paypal-auth-algo": "SHA256withRSA",
-          "paypal-cert-url":
-            "https://api-m.sandbox.paypal.com/cert.pem",
+          "paypal-cert-url": "https://api-m.sandbox.paypal.com/cert.pem",
           "paypal-transmission-id": "transmission-91",
           "paypal-transmission-sig": "signature-91",
           "paypal-transmission-time": "2026-07-25T10:00:00Z",

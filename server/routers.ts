@@ -52,7 +52,8 @@ import {
 } from "./oriel-chat-image-service";
 import { stripOrielChatImageBlocks } from "@shared/oriel-chat-images";
 import {
-  attachTetradicFounderEditionPayPalOrder,
+  captureFounderEditionPayPalOrder,
+  createFounderEditionPayPalOrder,
   createTetradicFounderEditionCheckpoint,
   createSignatureCheckout,
   generateSignatureDraftForOrder,
@@ -354,20 +355,33 @@ export const appRouter = router({
         });
       }),
 
-    attachFounderEditionPayPalOrder: protectedProcedure
+    createFounderEditionPayPalOrder: protectedProcedure
       .input(
         z
           .object({
             orderId: z.number().int().positive(),
-            paypalOrderId: z.string().trim().min(1).max(255),
           })
           .strict()
       )
       .mutation(async ({ ctx, input }) => {
-        return attachTetradicFounderEditionPayPalOrder({
+        return createFounderEditionPayPalOrder({
           orderId: input.orderId,
           userId: ctx.user.id,
-          paypalOrderId: input.paypalOrderId,
+        });
+      }),
+
+    captureFounderEditionPayPalOrder: protectedProcedure
+      .input(
+        z
+          .object({
+            orderId: z.number().int().positive(),
+          })
+          .strict()
+      )
+      .mutation(async ({ ctx, input }) => {
+        return captureFounderEditionPayPalOrder({
+          orderId: input.orderId,
+          userId: ctx.user.id,
         });
       }),
 

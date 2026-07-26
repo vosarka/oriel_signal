@@ -6,14 +6,14 @@ import {
 } from "./tetradic-signature-paypal";
 import { parseVerifiedTetradicSignaturePayPalWebhook } from "./tetradic-signature-paypal-webhook";
 
-const WEBHOOK_EVENT_ID =
-  "WH-3F562076HD293871E-75F399086E414290U";
+const WEBHOOK_EVENT_ID = "WH-3F562076HD293871E-75F399086E414290U";
 const PAYPAL_ORDER_ID = "5O190127TN364715T";
 const PAYPAL_CAPTURE_ID = "3Y662965014333303";
 const INTERNAL_ORDER_ID = 91;
 
 interface EventOverrides {
   amount?: string;
+  capturedAt?: string;
   currency?: string;
   customId?: string;
   invoiceId?: string;
@@ -52,6 +52,7 @@ function completedCaptureEvent(overrides: EventOverrides = {}) {
     resource: {
       id: PAYPAL_CAPTURE_ID,
       status: overrides.status ?? "COMPLETED",
+      update_time: overrides.capturedAt ?? "2026-07-26T08:30:00Z",
       amount: {
         currency_code: overrides.currency ?? "EUR",
         value: overrides.amount ?? "81.32",
@@ -94,9 +95,7 @@ describe("verified Tetradic Signature PayPal webhook parser", () => {
 
   it("accepts a minimal PAYMENT.CAPTURE.COMPLETED payload", () => {
     expect(
-      parseVerifiedTetradicSignaturePayPalWebhook(
-        completedCaptureEvent()
-      )
+      parseVerifiedTetradicSignaturePayPalWebhook(completedCaptureEvent())
     ).toEqual({
       kind: "accepted",
       event: {
@@ -108,6 +107,7 @@ describe("verified Tetradic Signature PayPal webhook parser", () => {
         customId: "tetradic-signature-order-91",
         invoiceId: "TETRADIC-SIGNATURE-91",
         captureId: PAYPAL_CAPTURE_ID,
+        capturedAt: "2026-07-26T08:30:00.000Z",
         currency: "EUR",
         amount: "81.32",
       },
@@ -120,11 +120,7 @@ describe("verified Tetradic Signature PayPal webhook parser", () => {
       completedCaptureEvent({ currency: "USD" }),
       "CURRENCY_MISMATCH",
     ],
-    [
-      "amount",
-      completedCaptureEvent({ amount: "81.31" }),
-      "AMOUNT_MISMATCH",
-    ],
+    ["amount", completedCaptureEvent({ amount: "81.31" }), "AMOUNT_MISMATCH"],
     [
       "custom ID",
       completedCaptureEvent({ customId: "another-product-order-91" }),
@@ -137,18 +133,15 @@ describe("verified Tetradic Signature PayPal webhook parser", () => {
       }),
       "INVOICE_ID_MISMATCH",
     ],
-  ])("ignores a relevant event with a mismatched %s", (
-    _label,
-    event,
-    reason
-  ) => {
-    expect(
-      parseVerifiedTetradicSignaturePayPalWebhook(event)
-    ).toEqual({
-      kind: "ignored",
-      reason,
-    });
-  });
+  ])(
+    "ignores a relevant event with a mismatched %s",
+    (_label, event, reason) => {
+      expect(parseVerifiedTetradicSignaturePayPalWebhook(event)).toEqual({
+        kind: "ignored",
+        reason,
+      });
+    }
+  );
 
   it("ignores an event whose resource status contradicts its type", () => {
     expect(
@@ -181,10 +174,9 @@ describe("verified Tetradic Signature PayPal webhook parser", () => {
         supplementary_data: {},
       },
     },
+    completedCaptureEvent({ capturedAt: "not-a-date" }),
   ])("ignores a malformed relevant payload", event => {
-    expect(
-      parseVerifiedTetradicSignaturePayPalWebhook(event)
-    ).toEqual({
+    expect(parseVerifiedTetradicSignaturePayPalWebhook(event)).toEqual({
       kind: "ignored",
       reason: "MALFORMED_EVENT",
     });

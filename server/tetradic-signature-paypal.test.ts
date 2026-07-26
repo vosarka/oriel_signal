@@ -50,6 +50,7 @@ function completedOrder(overrides: Record<string, unknown> = {}) {
             {
               id: "CAPTURE-91",
               status: "COMPLETED",
+              update_time: "2026-07-26T08:30:00Z",
               amount: {
                 currency_code: "EUR",
                 value: "81.32",
@@ -74,7 +75,9 @@ describe("Tetradic Signature PayPal adapter", () => {
     );
     const adapter = createTetradicSignaturePayPalAdapter({ config, fetch });
 
-    await expect(adapter.getAccessToken()).resolves.toBe("sandbox-access-token");
+    await expect(adapter.getAccessToken()).resolves.toBe(
+      "sandbox-access-token"
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
@@ -159,8 +162,7 @@ describe("Tetradic Signature PayPal adapter", () => {
         paypal: {
           experience_context: {
             brand_name: "ORIEL",
-            return_url:
-              "https://orielsignal.space/signature-order/91?paid=1",
+            return_url: "https://orielsignal.space/signature-order/91?paid=1",
             cancel_url:
               "https://orielsignal.space/tetradic-signature?cancelled=1",
             user_action: "PAY_NOW",
@@ -210,6 +212,7 @@ describe("Tetradic Signature PayPal adapter", () => {
     ).resolves.toEqual({
       paypalOrderId: "PAYPAL-ORDER-91",
       captureId: "CAPTURE-91",
+      capturedAt: "2026-07-26T08:30:00.000Z",
       status: "COMPLETED",
       captureStatus: "COMPLETED",
       customId: "tetradic-signature-order-91",
@@ -287,9 +290,9 @@ describe("Tetradic Signature PayPal adapter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const [captureUrl, captureInit] = fetchMock.mock.calls[1];
     expect(captureUrl).toContain("/PAYPAL-ORDER-91/capture");
-    expect(
-      new Headers(captureInit?.headers).get("paypal-request-id")
-    ).toBe("tetradic-signature-capture-91");
+    expect(new Headers(captureInit?.headers).get("paypal-request-id")).toBe(
+      "tetradic-signature-capture-91"
+    );
 
     const [lookupUrl, lookupInit] = fetchMock.mock.calls[2];
     expect(lookupUrl).toBe(

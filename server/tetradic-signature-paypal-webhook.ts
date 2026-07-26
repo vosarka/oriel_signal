@@ -43,6 +43,7 @@ export interface TetradicSignaturePayPalCaptureCompletedWebhookEvent
   kind: "capture_completed";
   eventType: "PAYMENT.CAPTURE.COMPLETED";
   captureId: string;
+  capturedAt: string;
 }
 
 export type TetradicSignaturePayPalWebhookEvent =
@@ -77,10 +78,19 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPayPalResourceId(value: unknown): value is string {
   return (
-    isNonEmptyString(value) &&
-    value.length <= 64 &&
-    /^[A-Z0-9]+$/.test(value)
+    isNonEmptyString(value) && value.length <= 64 && /^[A-Z0-9]+$/.test(value)
   );
+}
+
+function parsePayPalCaptureTimestamp(resource: JsonRecord): string | null {
+  const rawTimestamp =
+    typeof resource.update_time === "string"
+      ? resource.update_time
+      : resource.create_time;
+  if (typeof rawTimestamp !== "string") return null;
+
+  const timestamp = new Date(rawTimestamp);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
 }
 
 function parseInternalOrderId(customId: string): number | null {
@@ -95,9 +105,7 @@ function parseInternalOrderId(customId: string): number | null {
     : null;
 }
 
-function validateReconciliationFields(
-  source: JsonRecord
-):
+function validateReconciliationFields(source: JsonRecord):
   | {
       kind: "valid";
       orderId: number;
@@ -126,9 +134,7 @@ function validateReconciliationFields(
     return { kind: "invalid", reason: "MALFORMED_EVENT" };
   }
 
-  if (
-    source.invoice_id !== makeTetradicSignaturePayPalInvoiceId(orderId)
-  ) {
+  if (source.invoice_id !== makeTetradicSignaturePayPalInvoiceId(orderId)) {
     return { kind: "invalid", reason: "INVOICE_ID_MISMATCH" };
   }
 
@@ -141,8 +147,7 @@ function validateReconciliationFields(
   }
 
   if (
-    source.amount.currency_code !==
-    TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency
+    source.amount.currency_code !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency
   ) {
     return { kind: "invalid", reason: "CURRENCY_MISMATCH" };
   }
@@ -151,9 +156,7 @@ function validateReconciliationFields(
     return { kind: "invalid", reason: "MALFORMED_EVENT" };
   }
 
-  if (
-    source.amount.value !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount
-  ) {
+  if (source.amount.value !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount) {
     return { kind: "invalid", reason: "AMOUNT_MISMATCH" };
   }
 
@@ -235,10 +238,12 @@ function parseCaptureCompleted(
   if (
     !isRecord(resource.supplementary_data) ||
     !isRecord(resource.supplementary_data.related_ids) ||
-    !isPayPalResourceId(
-      resource.supplementary_data.related_ids.order_id
-    )
+    !isPayPalResourceId(resource.supplementary_data.related_ids.order_id)
   ) {
+    return ignored("MALFORMED_EVENT");
+  }
+  const capturedAt = parsePayPalCaptureTimestamp(resource);
+  if (!capturedAt) {
     return ignored("MALFORMED_EVENT");
   }
 
@@ -254,12 +259,12 @@ function parseCaptureCompleted(
       kind: "capture_completed",
       webhookEventId,
       eventType: "PAYMENT.CAPTURE.COMPLETED",
-      paypalOrderId:
-        resource.supplementary_data.related_ids.order_id,
+      paypalOrderId: resource.supplementary_data.related_ids.order_id,
       orderId: reconciliation.orderId,
       customId: reconciliation.customId,
       invoiceId: reconciliation.invoiceId,
       captureId: resource.id,
+      capturedAt,
       currency: reconciliation.currency,
       amount: reconciliation.amount,
     },
