@@ -52,5 +52,5 @@ The `solar-arc-engine` calculates the unconscious somatic timestamp ($T_{\text{d
 
 ## 8. TEST STRATEGY
 
-- **Calibration Vector Test**: Input $T_{\text{birth}} =$ `2024-01-01 12:00:00 UTC` ($\lambda_{\text{conscious\_sun}} \approx 280.44^\circ$). Verify target longitude is $\approx 192.44^\circ$, and output $T_{\text{design}}$ matches the exact second in October 2023 when the Sun reached that coordinate.
+- **Calibration Vector Test**: Input $T_{\text{birth}} =$ `2024-01-01 12:00:00 UTC` ($\lambda_{\text{conscious\_sun}} \approx 280.55^\circ$). Verify target longitude is $\approx 192.55^\circ$, and output $T_{\text{design}}$ matches the exact second in October 2023 when the Sun reached that coordinate.
 - **Precision Validation**: Assert that the Sun longitude calculated at the output timestamp converges exactly.

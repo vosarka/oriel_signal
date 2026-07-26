@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => ({
   calculateBirthChart: vi.fn(),
   generateStaticSignature: vi.fn(),
   generateORIELDynamicTransmission: vi.fn(),
+  getTimezoneForLocalDateTime: vi.fn(() => ({
+    tzId: "UTC",
+    offsetHours: 0,
+  })),
 }));
 
 vi.mock("./db", () => ({
@@ -80,7 +84,9 @@ vi.mock("./rgp-256-codon-engine", () => ({
 
 vi.mock("./paypal-webhook", () => ({}));
 vi.mock("./oriel-diagnostic-engine", () => ({}));
-vi.mock("./geocoding", () => ({}));
+vi.mock("./geocoding", () => ({
+  getTimezoneForLocalDateTime: mocks.getTimezoneForLocalDateTime,
+}));
 vi.mock("./static-profile-service", () => ({
   summarizeStoredStaticProfile: vi.fn(() => "Stored Static Signature summary"),
   buildUserStaticProfile: vi.fn(),

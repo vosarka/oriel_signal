@@ -1,6 +1,6 @@
 # VRC Static Signature Codex: CANON MASTER (Source of Truth)
 
-> **Legacy center/link notice (2026-07-07):** Where this document describes **9 centers** or **36 resonance links**, live canon is superseded by the Consciousness Lattice v2 / VTRS model (**8 Tetradic centers**, **32 resonance links**). Mathematical spine (Mandala, 512-node lattice, Prime Stack, Solar Arc, SLI, Carrierlock) remains authoritative. Live constants: `server/data/vrc-engine-constants.json`, `server/vrc-mandala.ts`. Wiki: `wiki/sources/source-consciousness-lattice-v2.md`.
+> **Legacy center/link notice (updated 2026-07-26):** Where this document describes **9 centers** or **36 resonance links**, live canon is superseded by Consciousness Lattice v2.1 / VTRS (**8 Tetradic centers**, **32 resonance links**). Part VI's unique 8×8 codon roster is authoritative for every link endpoint; Part VII is authoritative for the 32 codon pairs. Mathematical spine (Mandala, 512-node lattice, Prime Stack, Solar Arc, SLI, Carrierlock) remains authoritative. Live constants: `server/data/vrc-engine-constants.json`, `server/vrc-mandala.ts`. Wiki: `wiki/sources/source-consciousness-lattice-v2.md`.
 
 This is the single authoritative source of truth for the Vossari Resonance Codex (VRC) / Resonance Genetics Protocol (RGP) calculations, naming systems, and structural hierarchies. Downstream engines, reports, and voice modules must defer to the math and rules defined in this document.
 
@@ -55,7 +55,7 @@ $$\text{Segment Width} = \frac{360^\circ}{64} = 5.625^\circ$$
 
 ### The Resonance Mandala Sequence
 
-Codons are mapped around the wheel (from 0° Aries to 360°) according to the non-sequential Resonance Mandala sequence:
+Codons are mapped around the tropical zodiac according to the non-sequential Resonance Mandala sequence. In v2.1, slot 0 (Codon 51) begins at the canonical wheel offset $\theta_0 = 11.25^\circ$; this offset is required by the UTC validation vector.
 
 - **Quadrant 1 (Initiation)**: `51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39`
 - **Quadrant 2 (Civilization)**: `53, 62, 56, 31, 33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48`
@@ -65,9 +65,11 @@ Codons are mapped around the wheel (from 0° Aries to 360°) according to the no
 ### Longitude-to-Codon Conversion Algorithm
 
 1. Normalize longitude $\lambda$ to satisfy $0^\circ \le \lambda < 360^\circ$.
-2. Calculate the codon wheel index:
-   $$\text{codon\_index} = \lfloor \frac{\lambda}{5.625} \rfloor$$
-3. Resolve the Codon ID using the Mandala Sequence:
+2. Rotate the tropical longitude by the canonical wheel offset:
+   $$\lambda_{\text{wheel}} = (\lambda - 11.25^\circ) \pmod{360^\circ}$$
+3. Calculate the codon wheel index:
+   $$\text{codon\_index} = \lfloor \frac{\lambda_{\text{wheel}}}{5.625} \rfloor$$
+4. Resolve the Codon ID using the Mandala Sequence:
    $$\text{codon\_id} = \text{MandalaSequence}[\text{codon\_index}]$$
 
 ---
@@ -239,9 +241,9 @@ To calibrate calculations, the engine must return this exact output for the vali
 
 - **Test UTC Time**: `2024-01-01 12:00:00 UTC`
 - **Test Coordinates**: $0^\circ \text{N}, 0^\circ \text{E}$ (Geocentric)
-- **Calculated Sun Longitude**: $\sim 280.44^\circ$ (Capricorn)
+- **Calculated Sun Longitude**: $\sim 280.55^\circ$ (Capricorn)
 - **Conscious Sun Codon Mapping**: Codon `38` (traditional: _Struggle_, validation alias: _The Fighter_)
-- **Design Sun Calculation**: Target longitude $\sim 192.44^\circ$ (Libra).
+- **Design Sun Calculation**: Target longitude $\sim 192.55^\circ$ (Libra).
 - **Design Sun Codon Mapping**: Codon `57` (traditional: _Intuition_, validation alias: _Intuitive Clarity_)
 - **Design Sun Solar Arc Offset**: exactly $88.0000^\circ$ behind the Conscious Sun.
 

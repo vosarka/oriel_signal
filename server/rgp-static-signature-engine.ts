@@ -1,11 +1,11 @@
 /**
- * RGP Static Signature Engine — VRC v1.0
+ * RGP Static Signature Engine — Consciousness Lattice v2.1
  *
  * Orchestrates the full reading pipeline:
  *   1. Accept both Conscious and Design chart data
  *   2. Calculate the 9-position Prime Stack (VRC Two-Timing Algorithm)
- *   3. Evaluate Bio-Circuitry (36 channels → 9 centers → Type & Authority)
- *   4. Calculate 9-Center Resonance Map
+ *   3. Evaluate 32 Resonance Links → 8 centers → Type & Authority
+ *   4. Calculate the 8-Center Resonance Map
  *   5. Generate SLI micro-corrections
  *   6. Generate ORIEL diagnostic transmission
  */
@@ -143,8 +143,9 @@ const REQUIRED_EXACT_PLANETS = [
   "Earth",
 ] as const;
 
-const CONSCIOUSNESS_LATTICE_SPEC_VERSION =
-  "Consciousness Lattice Unified Specification v1";
+export const CONSCIOUSNESS_LATTICE_SPEC_VERSION =
+  "Consciousness Lattice Unified Specification v2.1";
+export const STATIC_SIGNATURE_ENGINE_VERSION = 3;
 
 // ─── Planet record helper ─────────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ export async function generateStaticSignature(
   );
   const primeStack = primeStackMap.positions;
 
-  // ── 9-Center Resonance Map ─────────────────────────────────────────────────
+  // ── 8-Center Resonance Map ─────────────────────────────────────────────────
   const nineCenterRaw = calculateCenterMap(primeStackMap);
   const ninecenters: StaticSignatureReading["ninecenters"] = {};
   for (const [name, data] of Object.entries(nineCenterRaw)) {
@@ -413,7 +414,7 @@ export async function generateStaticSignature(
     status: calculationStatus === "exact" ? "confirmed" : "draft",
     calculationStatus,
     specVersion: CONSCIOUSNESS_LATTICE_SPEC_VERSION,
-    version: 2,
+    version: STATIC_SIGNATURE_ENGINE_VERSION,
   };
 }
 

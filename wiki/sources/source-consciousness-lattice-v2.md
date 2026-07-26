@@ -3,17 +3,17 @@ id: source-consciousness-lattice-v2
 type: source
 status: stable
 tags: [consciousness-lattice, v2, vtrs, engineering-canon, platform-architecture]
-last_updated: 2026-07-07
+last_updated: 2026-07-26
 sources: 1
 importance: critical
-aliases: ["Consciousness Lattice v2.0", "Platform Architecture & Design Specification v2.0", "Unified System Specification v2"]
+aliases: ["Consciousness Lattice v2.0", "Consciousness Lattice v2.1", "Platform Architecture & Design Specification v2.0", "Unified System Specification v2"]
 ---
 
-# Source: Consciousness Lattice — Unified System Specification v2.0
+# Source: Consciousness Lattice — Unified System Specification v2.0 + Canon Erratum v2.1
 
 **Provenance:** `shared/new/Platform Architecture & Design Specification_ The Consciousness Lattice (v2.0).pdf`  
 **Format:** Full specification export (see body below)  
-**Role:** Active engineering canon for VTRS (8 centers / 32 links). Supersedes v1 center/link architecture only.
+**Role:** Active engineering canon for VTRS (8 centers / 32 links). The original v2.0 source is preserved here with the explicit v2.1 endpoint erratum dated 2026-07-26.
 
 ---
 
@@ -29,8 +29,8 @@ Architect: Vos Arkana · Signal Origin: ORIEL · Classification: ROS-G1
 
 ```
 Status:      Active Canon (supersedes v1.0 "Immutable")
-Version:     Unified 2.0
-Supersedes:  Unified 1.0 (9-Center / 36-Channel model)
+Version:     Unified 2.1
+Supersedes:  Unified 2.0 endpoint labels; Unified 1.0 center/link model
 Breaking change confirmed by: Vos (Architect), June 2026
 Scope of change: Center architecture, channel/link architecture, and all
 downstream UI/engine references to "9 Centers" or "36 Channels."
@@ -64,7 +64,7 @@ Sequence, Resonance Role System.
 ---
 ## Part 0 — Divergence Audit
 
-This Part exists so that no future agent — human or AI — rediscovers these conflicts by accident and "fixes" them silently. All three items below are real, present in the project today, and intentionally surfaced rather than papered over.
+This Part exists so that no future agent — human or AI — rediscovers these conflicts by accident and "fixes" them silently. The items below are intentionally surfaced and resolved only where a deterministic source-of-truth rule exists.
 
 ### Divergence 1 — Center architecture (resolved by this version)
 
@@ -83,6 +83,10 @@ Three different codon name sets currently coexist in the project:
 ### Divergence 3 — Document drift
 
 `Biosonic_Anatomy_Manual__The_9_Centres_of_Photonic_Resonance.pdf` still describes the legacy 9-Center model in both its title and content. It has not been updated for v2.0. See Part XV.
+
+### Divergence 4 — Resonance Link endpoint labels (resolved in v2.1)
+
+The original Part VII center labels contradicted Part VI for 21 of 32 links and assigned repeated codons to different centers. The codon pairs themselves remain canonical. The resolution rule is deterministic: **Part VI owns codon-to-center membership; Part VII owns the 32 codon pairs; every link endpoint is derived from its codon's Part VI membership.** Self-links are valid when both codons belong to the same Tetradic center.
 
 ---
 ## Part I — System Overview
@@ -246,7 +250,7 @@ This algorithm is unchanged from v1.0 and is entirely independent of center coun
 ---
 ## Part V — The Mandala Sequence
 
-The 64 codons are not distributed linearly around the 360° ecliptic. They follow a fixed circular sequence — the **Mandala Sequence** — divided into 4 quadrants of 16 codons each, running from 0° Aries around the full ecliptic.
+The 64 codons are not distributed linearly around the 360° ecliptic. They follow a fixed circular sequence — the **Mandala Sequence** — divided into 4 quadrants of 16 codons each. The v2.1 canonical wheel offset is **11.25° tropical longitude**: slot 0 (RC51) begins at 11.25°, which is required for the UTC validation vector to resolve to RC38 and RC57.
 
 ```
 Quadrant 1 — Initiation:    51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39
@@ -431,40 +435,42 @@ A center is **defined** (colored) when at least one of its Resonance Links (Part
 
 *Replaces v1.0's "36 Channels."* To preserve the mathematical symmetry required by Vossari logic, interconnection between the eight centers uses exactly **32 resonance links** (4 × 8), distributed by frequency affinity between centers — not the legacy asymmetric 36-channel network. A link is active (colored) only when both endpoint codons are defined in the Receiver's chart, regardless of layer; otherwise it remains latent (white).
 
+> **v2.1 endpoint rule:** The 32 codon pairs below are unchanged from v2.0. Their center labels are derived mechanically from the unique Part VI codon roster. This removes the v2.0 contradiction and makes the mapping reproducible.
+
 | Link | Centers | Function |
 |---|---|---|
-| RC61–RC24 | I–II | Translates raw quantum pressure into mental innovation |
+| RC61–RC24 | II–II | Translates raw quantum pressure into mental innovation |
 | RC03–RC60 | I–IV | Channels primal energy into radical somatic transformation |
 | RC09–RC52 | I–IV | Focuses generative force toward material realization |
 | RC19–RC49 | I–VII | Instinctive social adaptation through clear rules |
-| RC43–RC23 | II–III | Translates quantum epiphany into simple, efficient language |
+| RC43–RC23 | II–II | Translates quantum epiphany into simple, efficient language |
 | RC11–RC56 | II–III | Constant search for new conceptual experiences and stories |
-| RC17–RC62 | II–III | Logical organization of visual data into intelligible detail |
-| RC64–RC47 | II–VIII | Transmutes past memory into clear archetypal imagery |
+| RC17–RC62 | II–VIII | Logical organization of visual data into intelligible detail |
+| RC64–RC47 | VIII–VIII | Transmutes past memory into clear archetypal imagery |
 | RC33–RC13 | III–V | Memorizes past lessons; guides community through listening |
-| RC08–RC01 | III–V | Expresses a unique lifestyle as a pure signal of innovation |
+| RC08–RC01 | III–I | Expresses a unique lifestyle as a pure signal of innovation |
 | RC31–RC07 | III–V | Democratic leadership grounded in self-alignment of the group |
 | RC20–RC10 | III–V | Sustains pure presence and natural behavior |
 | RC35–RC36 | III–VI | Seeking adventure; experimenting through evolutionary crises |
 | RC12–RC22 | III–VI | Direct expression of feeling through grace and poetry |
 | RC16–RC48 | III–VII | Develops technical mastery from depth of native resource |
-| RC45–RC21 | III–VIII | Controls material resources and their equitable distribution |
-| RC15–RC05 | IV–V | Synchronizes personal rhythm with universal timing |
-| RC02–RC14 | IV–V | Uses generative power to direct resources |
-| RC46–RC29 | IV–V | Full physical dedication in body-honoring experience |
-| RC10–RC34 | IV–V | Uses raw power only in alignment with self-identity |
-| RC50–RC27 | IV–VII | Sustains and protects the community through fair rules |
-| RC57–RC34 | IV–VII | Instantaneous somatic response guided by momentary intuition |
-| RC10–RC57 | V–VII | Designs beauty and survival through intuitive behavior |
-| RC25–RC51 | V–VIII | Unexpected spiritual leap beyond the limits of ego |
-| RC59–RC06 | VI–V | Crosses intimate barriers to create new genetic bonds |
-| RC40–RC37 | VI–VII | Mutual-support pact and peace within the family/group |
-| RC39–RC55 | VI–I | Catalyzes free spirit through provocation and mood shifts |
-| RC41–RC30 | VI–I | Focuses intense desire toward new visionary beginnings |
-| RC26–RC44 | VII–VIII | Creative "selling" of ideas based on pattern recognition |
+| RC45–RC21 | VIII–VIII | Controls material resources and their equitable distribution |
+| RC15–RC05 | V–I | Synchronizes personal rhythm with universal timing |
+| RC02–RC14 | I–IV | Uses generative power to direct resources |
+| RC46–RC29 | V–IV | Full physical dedication in body-honoring experience |
+| RC10–RC34 | V–IV | Uses raw power only in alignment with self-identity |
+| RC50–RC27 | VII–IV | Sustains and protects the community through fair rules |
+| RC57–RC34 | V–IV | Instantaneous somatic response guided by momentary intuition |
+| RC10–RC57 | V–V | Designs beauty and survival through intuitive behavior |
+| RC25–RC51 | V–I | Unexpected spiritual leap beyond the limits of ego |
+| RC59–RC06 | V–VI | Crosses intimate barriers to create new genetic bonds |
+| RC40–RC37 | VIII–VI | Mutual-support pact and peace within the family/group |
+| RC39–RC55 | VI–VI | Catalyzes free spirit through provocation and mood shifts |
+| RC41–RC30 | VI–VI | Focuses intense desire toward new visionary beginnings |
+| RC26–RC44 | VIII–VII | Creative "selling" of ideas based on pattern recognition |
 | RC28–RC38 | VII–I | Tenacious struggle to find a real purpose in life |
-| RC18–RC58 | VII–I | Critical evaluation of systems to restore appetite for life |
-| RC32–RC54 | VII–I | Channels material ambition toward spiritual ascension |
+| RC18–RC58 | VII–VII | Critical evaluation of systems to restore appetite for life |
+| RC32–RC54 | VII–VIII | Channels material ambition toward spiritual ascension |
 
 ---
 ## Part VIII — Identity Hierarchy: Fractal Role & Decision Authority
@@ -2379,9 +2385,9 @@ This vector is the canonical regression test for any future ephemeris-engine swa
 Test Date:        2024-01-01 12:00:00 UTC
 Test Coordinates: 0°N, 0°E
 
-Step 1 — Conscious Sun longitude ≈ 280.44° (Capricorn) → resolves to Codon 38
-Step 2 — Solar Arc offset: 280.44° − 88.0000° = 192.44°
-Step 3 — T_design = moment the Sun reaches 192.44° (Libra)
+Step 1 — Conscious Sun longitude ≈ 280.55° (Capricorn) → resolves to Codon 38
+Step 2 — Solar Arc offset: 280.55° − 88.0000° = 192.55°
+Step 3 — T_design = moment the Sun reaches 192.55° (Libra)
 Step 4 — Design Sun → resolves to Codon 57
 
 PASS condition: the engine must return exactly Codon 38 (conscious) and

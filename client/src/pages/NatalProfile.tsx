@@ -115,7 +115,6 @@ export default function NatalProfile() {
         latitude: geocodeResult.latitude,
         longitude: geocodeResult.longitude,
         timezoneId: geocodeResult.tzId,
-        timezoneOffset: geocodeResult.offsetHours,
       });
       await refresh();
       setSuccess("Your Static Signature Reading has been calculated and saved.");

@@ -50,18 +50,19 @@ The `codon-mapping-engine` maps the 26 planetary longitudes (13 conscious, 13 de
 1. **Zodiac Partitioning**: Each codon segment is exactly $5.625^\circ$.
 2. **Sequential Mapping Warning**: Ecliptic degrees must NOT map to sequential codon numbers. They must map using the Resonance Mandala Sequence:
    `[51, 42, 3, 27, 24, 2, ...]` (complete sequence in `CANON_MASTER.md`).
-3. **Formula**:
-   $$\text{index} = \lfloor \frac{\lambda}{5.625} \rfloor$$
+3. **Formula (v2.1 canonical wheel offset)**:
+   $$\lambda_{\text{wheel}} = (\lambda - 11.25^\circ) \pmod{360^\circ}$$
+   $$\text{index} = \lfloor \frac{\lambda_{\text{wheel}}}{5.625} \rfloor$$
    $$\text{codon\_id} = \text{MandalaSequence}[\text{index}]$$
-   $$\text{local\_offset} = \lambda \pmod{5.625}$$
+   $$\text{local\_offset} = \lambda_{\text{wheel}} \pmod{5.625}$$
 
 ---
 
 ## 8. TEST STRATEGY
 
 - **Mandala Boundary Tests**:
-  - Longitude $0.0^\circ$ must map to `RC51` (first element of Quadrant 1).
-  - Longitude $359.99^\circ$ must map to `RC21` (last element of Quadrant 4).
+  - Longitude $11.25^\circ$ must map to `RC51` (first element of Quadrant 1).
+  - Longitude immediately below $11.25^\circ$ must map to `RC21` (last element of Quadrant 4).
 - **Validation Vector Verification**:
-  - Conscious Sun longitude $280.44^\circ$ must map to `RC38`.
-  - Design Sun longitude $192.44^\circ$ must map to `RC57`.
+  - Conscious Sun longitude $280.55^\circ$ must map to `RC38`.
+  - Design Sun longitude $192.55^\circ$ must map to `RC57`.

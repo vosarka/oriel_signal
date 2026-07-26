@@ -2,7 +2,7 @@
   {
     "id": "61-24",
     "name": "Link L01",
-    "center_a": "I",
+    "center_a": "II",
     "center_b": "II",
     "codon_a": 61,
     "codon_b": 24
@@ -35,7 +35,7 @@
     "id": "43-23",
     "name": "Link L05",
     "center_a": "II",
-    "center_b": "III",
+    "center_b": "II",
     "codon_a": 43,
     "codon_b": 23
   },
@@ -51,14 +51,14 @@
     "id": "17-62",
     "name": "Link L07",
     "center_a": "II",
-    "center_b": "III",
+    "center_b": "VIII",
     "codon_a": 17,
     "codon_b": 62
   },
   {
     "id": "64-47",
     "name": "Link L08",
-    "center_a": "II",
+    "center_a": "VIII",
     "center_b": "VIII",
     "codon_a": 64,
     "codon_b": 47
@@ -75,7 +75,7 @@
     "id": "08-01",
     "name": "Link L10",
     "center_a": "III",
-    "center_b": "V",
+    "center_b": "I",
     "codon_a": 8,
     "codon_b": 1
   },
@@ -122,7 +122,7 @@
   {
     "id": "45-21",
     "name": "Link L16",
-    "center_a": "III",
+    "center_a": "VIII",
     "center_b": "VIII",
     "codon_a": 45,
     "codon_b": 21
@@ -130,48 +130,48 @@
   {
     "id": "15-05",
     "name": "Link L17",
-    "center_a": "IV",
-    "center_b": "V",
+    "center_a": "V",
+    "center_b": "I",
     "codon_a": 15,
     "codon_b": 5
   },
   {
     "id": "02-14",
     "name": "Link L18",
-    "center_a": "IV",
-    "center_b": "V",
+    "center_a": "I",
+    "center_b": "IV",
     "codon_a": 2,
     "codon_b": 14
   },
   {
     "id": "46-29",
     "name": "Link L19",
-    "center_a": "IV",
-    "center_b": "V",
+    "center_a": "V",
+    "center_b": "IV",
     "codon_a": 46,
     "codon_b": 29
   },
   {
     "id": "10-34",
     "name": "Link L20",
-    "center_a": "IV",
-    "center_b": "V",
+    "center_a": "V",
+    "center_b": "IV",
     "codon_a": 10,
     "codon_b": 34
   },
   {
     "id": "50-27",
     "name": "Link L21",
-    "center_a": "IV",
-    "center_b": "VII",
+    "center_a": "VII",
+    "center_b": "IV",
     "codon_a": 50,
     "codon_b": 27
   },
   {
     "id": "57-34",
     "name": "Link L22",
-    "center_a": "IV",
-    "center_b": "VII",
+    "center_a": "V",
+    "center_b": "IV",
     "codon_a": 57,
     "codon_b": 34
   },
@@ -179,7 +179,7 @@
     "id": "10-57",
     "name": "Link L23",
     "center_a": "V",
-    "center_b": "VII",
+    "center_b": "V",
     "codon_a": 10,
     "codon_b": 57
   },
@@ -187,23 +187,23 @@
     "id": "25-51",
     "name": "Link L24",
     "center_a": "V",
-    "center_b": "VIII",
+    "center_b": "I",
     "codon_a": 25,
     "codon_b": 51
   },
   {
     "id": "59-06",
     "name": "Link L25",
-    "center_a": "VI",
-    "center_b": "V",
+    "center_a": "V",
+    "center_b": "VI",
     "codon_a": 59,
     "codon_b": 6
   },
   {
     "id": "40-37",
     "name": "Link L26",
-    "center_a": "VI",
-    "center_b": "VII",
+    "center_a": "VIII",
+    "center_b": "VI",
     "codon_a": 40,
     "codon_b": 37
   },
@@ -211,7 +211,7 @@
     "id": "39-55",
     "name": "Link L27",
     "center_a": "VI",
-    "center_b": "I",
+    "center_b": "VI",
     "codon_a": 39,
     "codon_b": 55
   },
@@ -219,15 +219,15 @@
     "id": "41-30",
     "name": "Link L28",
     "center_a": "VI",
-    "center_b": "I",
+    "center_b": "VI",
     "codon_a": 41,
     "codon_b": 30
   },
   {
     "id": "26-44",
     "name": "Link L29",
-    "center_a": "VII",
-    "center_b": "VIII",
+    "center_a": "VIII",
+    "center_b": "VII",
     "codon_a": 26,
     "codon_b": 44
   },
@@ -243,7 +243,7 @@
     "id": "18-58",
     "name": "Link L31",
     "center_a": "VII",
-    "center_b": "I",
+    "center_b": "VII",
     "codon_a": 18,
     "codon_b": 58
   },
@@ -251,7 +251,7 @@
     "id": "32-54",
     "name": "Link L32",
     "center_a": "VII",
-    "center_b": "I",
+    "center_b": "VIII",
     "codon_a": 32,
     "codon_b": 54
   }

@@ -324,20 +324,38 @@ async function findDesignJD(
  * Parse a birth date + time string into a UTC Date object.
  * VRC § 1: all user inputs MUST be converted to UTC before calculation.
  */
-function parseBirthDateTime(
+export function birthLocalDateTimeToUtc(
   birthDate: Date,
   birthTime: string,
   timezoneOffsetHours: number
 ): Date {
-  const timeParts = birthTime.split(":");
-  const hours = parseInt(timeParts[0], 10);
-  const minutes = parseInt(timeParts[1], 10);
-  const seconds = parseInt(timeParts[2] || "0", 10);
+  const match = birthTime
+    .trim()
+    .match(/^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+  if (!match) {
+    throw new Error(
+      "Birth time must use a valid 24-hour HH:MM or HH:MM:SS format."
+    );
+  }
+  if (
+    Number.isNaN(birthDate.getTime()) ||
+    !Number.isFinite(timezoneOffsetHours)
+  ) {
+    throw new Error(
+      "A valid birth date and timezone offset are required for UTC conversion."
+    );
+  }
 
-  // Apply timezone correction to get UTC
-  const utc = new Date(birthDate);
-  utc.setHours(hours - timezoneOffsetHours, minutes, seconds, 0);
-  return utc;
+  const localTimestamp = Date.UTC(
+    birthDate.getUTCFullYear(),
+    birthDate.getUTCMonth(),
+    birthDate.getUTCDate(),
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3] ?? "0"),
+    0
+  );
+  return new Date(localTimestamp - timezoneOffsetHours * 3_600_000);
 }
 
 /**
@@ -354,7 +372,7 @@ export async function calculateBirthChart(
   try {
     const se = await initEphemeris();
 
-    const utcDate = parseBirthDateTime(birthDate, birthTime, timezone);
+    const utcDate = birthLocalDateTimeToUtc(birthDate, birthTime, timezone);
 
     const year = utcDate.getUTCFullYear();
     const month = utcDate.getUTCMonth() + 1;
@@ -411,7 +429,7 @@ export async function calculateBothCharts(
 ): Promise<{ conscious: BirthChart; design: BirthChart }> {
   const se = await initEphemeris();
 
-  const utcDate = parseBirthDateTime(birthDate, birthTime, timezone);
+  const utcDate = birthLocalDateTimeToUtc(birthDate, birthTime, timezone);
   const year = utcDate.getUTCFullYear();
   const month = utcDate.getUTCMonth() + 1;
   const day = utcDate.getUTCDate();

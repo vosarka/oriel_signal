@@ -73,6 +73,6 @@ The `ephemeris-service` is the astronomical foundation of the system. It is resp
 
 ## 8. TEST STRATEGY
 
-- **Calibration Vector Test**: Pass `2024-01-01 12:00:00 UTC` at $0^\circ \text{N}, 0^\circ \text{E}$. Verify Sun longitude returns $\approx 280.44^\circ$.
+- **Calibration Vector Test**: Pass `2024-01-01 12:00:00 UTC` at $0^\circ \text{N}, 0^\circ \text{E}$. Verify Sun longitude returns $\approx 280.55^\circ$.
 - **Timezone Boundary Checks**: Test birthdates spanning Daylight Savings transitions to verify correct UTC conversion.
 - **Geocentric Symmetry Test**: Verify that Earth and South Node are exactly $180.00^\circ$ apart from Sun and North Node respectively.

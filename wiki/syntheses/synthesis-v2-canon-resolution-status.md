@@ -3,7 +3,7 @@ id: synthesis-v2-canon-resolution-status
 type: synthesis
 status: living
 tags: [vtrs, v2, migration, canon, checklist]
-last_updated: 2026-07-07
+last_updated: 2026-07-26
 sources: 4
 importance: critical
 aliases: ["V2 Canon Resolution Status", "Canon v2 alignment checklist"]
@@ -30,6 +30,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 | UI | Current Resonance as tab on `/signature` (not orphan route); redirects from `/current-resonance`, `/resonance`, `/reading/dynamic/:id` | Done |
 | 4 | `oriel-diagnostic-engine.ts` migrated off `vossari-codex-knowledge.ts` → `rgp-coherence`, `rgp-256-codon-engine`, `vrc-codon-library`, VTRS center names | Done |
 | Ingest | [[source-unified-signal-comprehensive-guide]] (receiver digest, not new engineering canon) | Done |
+| v2.1 | Resolved all 32 endpoints from the Part VI codon roster; corrected UTC birth conversion, historical DST resolution, validation vector, Catalyst links, and runtime versioning (`specVersion` v2.1 / engine v3) | Done |
 
 **Tests:** 608/608 passing (includes `oriel-diagnostic-engine.test.ts`, `vrc-engine-constants.test.ts`).
 
@@ -44,7 +45,7 @@ Living checklist for aligning live code, UI, and wiki with [[source-consciousnes
 | Item | Layer | Notes |
 |------|--------|-------|
 | ~~`rgp-engine.ts` + `vossari-codex-knowledge.ts`~~ | Runtime | **Removed** 2026-07-07; tests migrated to `rgp-coherence`, `vrc-codon-library`, existing static/SLI suites |
-| `codex/vrc_static_signature/` | Docs | CANON_MASTER and siblings still describe 9/36; needs legacy banners or archive |
+| `codex/vrc_static_signature/` | Docs | Legacy 9/36 sections remain historical under the v2.1 supersession banner; active center/link data and validation docs are aligned |
 | `ninecenters` / `circuitLinks` DB fields | Schema | Legacy names; store v2 data alongside `channelStatuses`; rename via proposed Drizzle migration only |
 | `CurrentResonance.tsx` | Client | Unrouted; superseded by signature tab |
 | `ResonanceBody.tsx` | Client | `/resonance-body` legacy lab (9-center visualization) |

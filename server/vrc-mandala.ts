@@ -9,8 +9,8 @@
  *
  * Wheel offset θ₀ = 11.25°  (verified by VRC Appendix B validation vector)
  *   T_birth = 2024-01-01 12:00:00 UTC, 0°N 0°E
- *   Conscious Sun ≈ 280.44° → slot 47 → Codon 38 (The Fighter)      ✓
- *   Design Sun   ≈ 192.44° → slot 32 → Codon 57 (Intuitive Clarity)  ✓
+ *   Conscious Sun ≈ 280.55° → slot 47 → Codon 38 (The Fighter)      ✓
+ *   Design Sun   ≈ 192.55° → slot 32 → Codon 57 (Intuitive Clarity)  ✓
  *
  * Facet conversion formula (VRC § 3):
  *   localPos   = (longitude − startDegreeOfCodon)
@@ -132,7 +132,7 @@ export const CODON_NAMES: Record<number, string> = {
 };
 
 /**
- * 8 Tetradic Center names (VTRS v2.0 — supersedes legacy 9-Center model).
+ * 8 Tetradic Center names (VTRS v2.1 — supersedes legacy 9-Center model).
  * Source of truth: Consciousness Lattice Unified Specification v2, Part VI.
  */
 export type CenterName =
@@ -233,28 +233,32 @@ export const CODON_CENTER_MAP: Record<number, CenterName> = {
 };
 
 /**
- * The 32 Resonance Links (VTRS v2.0 — supersedes legacy 36-Channel model).
+ * The 32 Resonance Links (VTRS v2.1 — supersedes legacy 36-Channel model).
  * Each link is a pair [codonA, codonB] connecting two Tetradic Centers.
  * A link is ACTIVE when both endpoint codons are defined in the Receiver's chart.
  * Source of truth: Consciousness Lattice Unified Specification v2, Part VII.
  */
 export const VRC_CHANNELS: readonly [number, number][] = [
-  // I–II
+  // II–II
   [61, 24],
   // I–IV
   [3, 60],
   [9, 52],
   // I–VII
   [19, 49],
-  // II–III
+  // II–II
   [43, 23],
+  // II–III
   [11, 56],
-  [17, 62],
   // II–VIII
+  [17, 62],
+  // VIII–VIII
   [64, 47],
   // III–V
   [33, 13],
+  // III–I
   [8, 1],
+  // III–V
   [31, 7],
   [20, 10],
   // III–VI
@@ -262,32 +266,37 @@ export const VRC_CHANNELS: readonly [number, number][] = [
   [12, 22],
   // III–VII
   [16, 48],
-  // III–VIII
+  // VIII–VIII
   [45, 21],
-  // IV–V
+  // V–I
   [15, 5],
+  // I–IV
   [2, 14],
+  // V–IV
   [46, 29],
   [10, 34],
-  // IV–VII
+  // VII–IV
   [50, 27],
+  // V–IV
   [57, 34],
-  // V–VII
+  // V–V
   [10, 57],
-  // V–VIII
+  // V–I
   [25, 51],
-  // VI–V
+  // V–VI
   [59, 6],
-  // VI–VII
+  // VIII–VI
   [40, 37],
-  // VI–I
+  // VI–VI
   [39, 55],
   [41, 30],
-  // VII–VIII
+  // VIII–VII
   [26, 44],
   // VII–I
   [28, 38],
+  // VII–VII
   [18, 58],
+  // VII–VIII
   [32, 54],
 ];
 
@@ -415,15 +424,14 @@ export type VrcAuthority =
   | "Environment";
 
 /**
- * Motor-to-Collapse link pairs (VTRS v2 — Catalyst determination).
+ * Motor-to-Collapse link pairs (VTRS v2.1 — Catalyst determination).
  * A Catalyst requires Saturation (IV) OPEN and at least one of these links ACTIVE,
  * where a motor center (VI Becoming or VIII Omega) connects directly to Collapse (III).
- * Motor links to Collapse: III–VI (35-36, 12-22) and III–VIII (45-21).
+ * Motor links to Collapse derived from Part VI: III–VI (35-36, 12-22).
  */
 const MOTOR_TO_COLLAPSE_LINKS: ReadonlyArray<readonly [number, number]> = [
   [35, 36], // Collapse ↔ Becoming
   [12, 22], // Collapse ↔ Becoming
-  [45, 21], // Collapse ↔ Omega
 ] as const;
 
 /**

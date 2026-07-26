@@ -15,6 +15,8 @@ import {
   determineAuthority,
   determineFacetFromLongitude,
   determineType,
+  evaluateCenters,
+  evaluateChannels,
   longitudeToCodonFacet,
   getFacetFrequency,
   calculateWeightedFrequency,
@@ -198,27 +200,27 @@ describe("RGP 256-Codon Resolution Engine", () => {
       }
     });
 
-    it("VRC validation vector - Conscious Sun 280.44 -> Codon 38 / Transpersonal / Root", () => {
-      // Slot 47 → start = 47*5.625 + 11.25 = 275.625°; 280.44 - 275.625 = 4.815°
-      // 4.815 / 1.40625 = 3.42 → facetIndex 3 = Transpersonal = D
-      const resolved = longitudeToCodonFacet(280.44);
+    it("VRC validation vector - Conscious Sun 280.55 -> Codon 38 / Transpersonal / Origin", () => {
+      // Slot 47 → start = 47*5.625 + 11.25 = 275.625°; 280.55 - 275.625 = 4.925°
+      // 4.925 / 1.40625 = 3.50 → facetIndex 3 = Transpersonal = D
+      const resolved = longitudeToCodonFacet(280.55);
       expect(resolved.codon).toBe(38);
       expect(resolved.facet).toBe("Transpersonal");
       expect(resolved.center).toBe("Origin");
-      expect(determineFacetFromLongitude(280.44)).toBe("D");
+      expect(determineFacetFromLongitude(280.55)).toBe("D");
     });
 
-    it("VRC validation vector - Design Sun 192.44 -> Codon 57 / Somatic / Bridge", () => {
-      const resolved = longitudeToCodonFacet(192.44);
+    it("VRC validation vector - Design Sun 192.55 -> Codon 57 / Somatic / Bridge", () => {
+      const resolved = longitudeToCodonFacet(192.55);
       expect(resolved.codon).toBe(57);
       expect(resolved.facet).toBe("Somatic");
       expect(resolved.center).toBe("Bridge");
-      expect(determineFacetFromLongitude(192.44)).toBe("A");
+      expect(determineFacetFromLongitude(192.55)).toBe("A");
     });
   });
 
   describe("Canonical Codon Center Map", () => {
-    it("matches Consciousness Lattice Unified Specification v1 for all 64 codons", () => {
+    it("matches Consciousness Lattice Unified Specification v2.1 for all 64 codons", () => {
       const actualCodons = Object.keys(CODON_CENTER_MAP)
         .map(Number)
         .sort((a, b) => a - b);
@@ -256,6 +258,21 @@ describe("RGP 256-Codon Resolution Engine", () => {
       expect(VRC_CHANNELS).toHaveLength(32);
       expect(new Set(channelIds).size).toBe(32);
     });
+
+    it("does not treat an Omega-to-Omega self-link as a motor link to Collapse", () => {
+      const channels = evaluateChannels(new Set([45, 21]));
+      const centers = evaluateCenters(channels);
+
+      expect(
+        channels.find(channel => channel.gateA === 45 && channel.gateB === 21)
+      ).toMatchObject({
+        active: true,
+        centerA: "Omega",
+        centerB: "Omega",
+      });
+      expect(centers.Saturation).toBe("open");
+      expect(determineType(centers, channels)).toBe("Harmonizer");
+    });
   });
 
   describe("VRC Authority Hierarchy", () => {
@@ -268,7 +285,9 @@ describe("RGP 256-Codon Resolution Engine", () => {
     });
 
     it("returns Environment for mental/no-inner authority cases", () => {
-      expect(determineType(centersWith(["Origin", "Mental"]))).toBe("Harmonizer");
+      expect(determineType(centersWith(["Origin", "Mental"]))).toBe(
+        "Harmonizer"
+      );
       expect(
         determineAuthority(centersWith(["Origin", "Mental"]), "Harmonizer")
       ).toBe("Environment");

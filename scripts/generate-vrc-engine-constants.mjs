@@ -29,7 +29,7 @@ const planetary_inputs = [
   { id: 'earth', name: 'Earth', swiss_eph_id: 'CALCULATED (Opposite of Sun)' },
 ];
 const doc = {
-  meta: { system: 'Vossari Resonance Codex', version: '2.0', description: 'VTRS v2 immutable data arrays — 8 Tetradic centers, 32 resonance links.', architecture: 'VTRS', supersedes: '1.0 (9-center / 36-channel legacy)' },
+  meta: { system: 'Vossari Resonance Codex', version: '2.1', description: 'VTRS v2.1 immutable data arrays — 8 Tetradic centers, 32 resonance links, endpoints derived from the Part VI codon roster.', architecture: 'VTRS', supersedes: '2.0 (corrects inconsistent center labels in Part VII)' },
   planetary_inputs,
   centers: VTRS_CENTERS.map(c => ({ id: c.id.toUpperCase(), name: c.name, type: c.phaseSyntax, roman: c.roman, codons: c.codons })),
   channels: VTRS_LINKS.map(l => ({ id: l.codonA + '-' + l.codonB, name: l.name, gate_a: l.codonA, gate_b: l.codonB, connects: [l.centerA.toUpperCase(), l.centerB.toUpperCase()], circuit: l.circuit, link_id: l.id })),
