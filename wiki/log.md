@@ -1639,3 +1639,8 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Corrected the `2024-01-01 12:00:00 UTC` Swiss Ephemeris vector to Sun `280.55°`, Design Sun `192.55°`, exact `88.0000°` solar arc, retaining Codons 38 and 57 and the 11.25° Mandala offset.
 - Versioned new calculations as `Consciousness Lattice Unified Specification v2.1`, engine version `3`. No database migration or profile backfill was run.
 - Verification: 7 focused files pass in both Europe/Bucharest and `TZ=UTC` (134/134); canonical data audit reports 8 centers, 32 links, 0 endpoint mismatches; production build passes. The repository-wide suite passes 740/742 tests, retaining the two documented pre-existing terminology failures, and type-check retains the unrelated pre-existing `circuitLinks` mismatch in `server/routers.ts`. Wiki lint was run and still reports 52 pre-existing ghost targets in unrelated auto-evolved pages.
+
+## [2026-07-26] model-upgrade | ORIEL Gemini 3.6 Flash
+- Changed the default ORIEL provider from hosted Gemma 4 to Google Gemini and advanced the Gemini fallback from `gemini-2.5-flash` to the stable `gemini-3.6-flash`.
+- Preserved Gemma 4 and Forge as provider fallbacks; no API keys or production variables were changed or recorded.
+- Omitted the deprecated `temperature` request parameter for Gemini 3.x models while retaining it for compatible fallback providers.

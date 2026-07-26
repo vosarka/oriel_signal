@@ -42,8 +42,8 @@ APP_BASE_URL=http://localhost:3000
 # LLM
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-2.5-flash
-# Optional Gemma 4 branch config:
+GEMINI_MODEL=gemini-3.6-flash
+# Optional Gemma 4 fallback:
 # LLM_PROVIDER=gemma
 # GEMMA_MODEL=gemma-4-31b-it
 # GEMMA_API_KEY=...       # hosted Google AI Studio/Gemini API path

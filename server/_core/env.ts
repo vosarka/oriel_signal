@@ -20,7 +20,7 @@ const resolveLlmProvider = () =>
   llmProviderEnv === "gemini" ||
   llmProviderEnv === "forge"
     ? llmProviderEnv
-    : "gemma";
+    : "gemini";
 const resolveLlmRequestTimeoutMs = () =>
   Number.isFinite(llmRequestTimeoutEnv) && llmRequestTimeoutEnv > 0
     ? Math.max(1, Math.floor(llmRequestTimeoutEnv))
