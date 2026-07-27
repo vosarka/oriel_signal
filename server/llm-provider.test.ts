@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe("LLM provider selection", () => {
-  it("defaults to Gemini 3.6 Flash when LLM_PROVIDER is not set", async () => {
+  it("defaults to Gemini 3.5 Flash when LLM_PROVIDER is not set", async () => {
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_MODEL;
     process.env.GEMINI_API_KEY = "gemini-test-key";
@@ -26,7 +26,7 @@ describe("LLM provider selection", () => {
     const fetchMock = vi.fn(
       async (_url: string | URL | Request, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
-        expect(body.model).toBe("gemini-3.6-flash");
+        expect(body.model).toBe("gemini-3.5-flash");
         expect((init?.headers as Record<string, string>).authorization).toBe(
           "Bearer gemini-test-key"
         );
@@ -56,21 +56,21 @@ describe("LLM provider selection", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.model).toBe("gemini-3.6-flash");
+    expect(result.model).toBe("gemini-3.5-flash");
   });
 
-  it("omits deprecated sampling parameters for Gemini 3.6", async () => {
+  it("omits deprecated sampling parameters for Gemini 3.x", async () => {
     process.env.LLM_PROVIDER = "gemini";
     process.env.LLM_MODEL = "";
     process.env.GEMINI_API_KEY = "gemini-test-key";
-    process.env.GEMINI_MODEL = "gemini-3.6-flash";
+    process.env.GEMINI_MODEL = "gemini-3.5-flash";
     process.env.GEMMA_API_KEY = "";
     process.env.BUILT_IN_FORGE_API_KEY = "";
 
     const fetchMock = vi.fn(
       async (_url: string | URL | Request, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
-        expect(body.model).toBe("gemini-3.6-flash");
+        expect(body.model).toBe("gemini-3.5-flash");
         expect(body.temperature).toBeUndefined();
 
         return new Response(
@@ -99,7 +99,7 @@ describe("LLM provider selection", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.model).toBe("gemini-3.6-flash");
+    expect(result.model).toBe("gemini-3.5-flash");
   });
 
   it("uses Gemma 4 when LLM_PROVIDER is gemma", async () => {

@@ -1644,3 +1644,7 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Changed the default ORIEL provider from hosted Gemma 4 to Google Gemini and advanced the Gemini fallback from `gemini-2.5-flash` to the stable `gemini-3.6-flash`.
 - Preserved Gemma 4 and Forge as provider fallbacks; no API keys or production variables were changed or recorded.
 - Omitted the deprecated `temperature` request parameter for Gemini 3.x models while retaining it for compatible fallback providers.
+
+## [2026-07-27] model-default | ORIEL Gemini 3.5 Flash free tier
+- Restored the default Gemini model from `gemini-3.6-flash` to free-tier `gemini-3.5-flash` in `server/_core/llm.ts`, tests, README, and `.env.example`.
+- Gemma 4 and Forge remain provider fallbacks. Override remains available via `GEMINI_MODEL` / `LLM_MODEL` if a paid or alternate model is needed.

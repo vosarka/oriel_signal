@@ -246,7 +246,7 @@ const resolveGeminiUrl = () =>
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-3.6-flash";
+  ENV.llmModel || ENV.geminiModel || "gemini-3.5-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
