@@ -51,13 +51,23 @@ export async function geocodeCity(city: string): Promise<GeocodeResult> {
 }
 
 /**
+ * Look up the IANA timezone ID for a coordinate pair. No offset is computed:
+ * an offset is only meaningful relative to a specific instant, and callers that
+ * need one must use getTimezoneForLocalDateTime() with the Receiver's birth moment.
+ */
+export function getTimezoneIdForCoords(lat: number, lon: number): string {
+  const tzIds = tzFind(lat, lon);
+  return tzIds[0] ?? "UTC";
+}
+
+/**
  * Look up the IANA timezone ID for a coordinate pair using geo-tz (embedded data, no API call).
  * Then compute the UTC offset in decimal hours at the given reference date.
  */
 export function getTimezoneForCoords(
   lat: number,
   lon: number,
-  referenceDate: Date = new Date()
+  referenceDate: Date
 ): TimezoneResult {
   const tzIds = tzFind(lat, lon);
   const tzId = tzIds[0] ?? "UTC";

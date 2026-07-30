@@ -52,6 +52,7 @@ export type ProfileConsoleActivity = {
 
 export type ProfileConsoleSignature = {
   fractalRole?: string | null;
+  resonanceRole?: string | null;
   vrcType?: string | null;
   vrcAuthority?: string | null;
   authorityNode?: string | null;
@@ -202,9 +203,9 @@ export function buildProfileConsoleSummary(
   };
   const prime = firstPrimeEntry(input.staticProfile?.primeStack);
 
-  // Derive Resonance Role (Primary + Secondary) from the static profile.
-  // calculateResonanceRole returns a real role name whenever usable codon data exists.
-  // "Awaiting role" only for accounts with no signature data.
+  // Resonance Role (Primary + Secondary) from the static profile. The primary is
+  // persisted at calculation time; recompute only for profiles saved before the
+  // column existed. "Awaiting role" only for accounts with no signature data.
   const sp = input.staticProfile;
   const roleResult = sp ? calculateResonanceRole(sp as any) : { primaryRole: "Awaiting role", secondaryRole: undefined, confidence: 0 };
 
@@ -212,7 +213,7 @@ export function buildProfileConsoleSummary(
     identity: {
       userId: input.userId,
       knownName: input.activity.knownName,
-      resonanceRole: roleResult.primaryRole,
+      resonanceRole: sp?.resonanceRole ?? roleResult.primaryRole,
       secondaryRole: roleResult.secondaryRole ?? null,
       roleConfidence: roleResult.confidence ?? 0,
       fractalRole: input.staticProfile?.fractalRole ?? null,

@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { formatLinkCenters } from "./vrc-mandala";
 
 export const SIGNATURE_ORDER_STATUSES = [
   "pending_payment",
@@ -468,7 +469,7 @@ export function normalizeSignatureSnapshot(
       const gateB = stringValue(channel.gateB, "?");
       const centerA = stringValue(channel.centerA, "?");
       const centerB = stringValue(channel.centerB, "?");
-      return `Codon ${gateA}-Codon ${gateB}: ${centerA} to ${centerB}`;
+      return `Codon ${gateA}-Codon ${gateB}: ${formatLinkCenters(centerA, centerB, "to")}`;
     });
 
   const correctionProtocols = asArray(raw.microCorrections).map(item => {

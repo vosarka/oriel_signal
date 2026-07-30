@@ -363,6 +363,12 @@ export async function runMigrations() {
         "[Migrations] Added userStaticProfiles.activations column",
     },
     {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`resonanceRole\` varchar(128) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage:
+        "[Migrations] Added userStaticProfiles.resonanceRole column",
+    },
+    {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`channelStatuses\` text NULL`,
       ignorableFragments: ["Duplicate column"],
       successMessage:
@@ -3103,6 +3109,7 @@ type UserStaticProfilePayload = {
   primeStack?: unknown;
   ninecenters?: unknown;
   fractalRole?: string;
+  resonanceRole?: string;
   authorityNode?: string;
   vrcType?: string;
   vrcAuthority?: string;
@@ -3153,6 +3160,7 @@ export async function upsertUserStaticProfile(
         ? JSON.stringify(profile.ninecenters)
         : null,
       fractalRole: profile.fractalRole ?? null,
+      resonanceRole: profile.resonanceRole ?? null,
       authorityNode: profile.authorityNode ?? null,
       vrcType: profile.vrcType ?? null,
       vrcAuthority: profile.vrcAuthority ?? null,

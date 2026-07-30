@@ -19,7 +19,7 @@ import {
 } from "./oriel-diagnostic-engine";
 import { generateChunkedSpeech, audioToDataUrl } from "./inworld-tts";
 import { rgpRouter } from "./rgp-router";
-import { geocodeCity, getTimezoneForCoords } from "./geocoding";
+import { geocodeCity, getTimezoneIdForCoords } from "./geocoding";
 import {
   formatOrielResponse,
   generateOrielGreeting,
@@ -151,7 +151,6 @@ const natalProfileInputSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   timezoneId: z.string().optional(),
-  timezoneOffset: z.number().optional(),
 });
 
 const signatureProductTypeSchema = z.enum(["glimpse", "founding"]);
@@ -191,12 +190,8 @@ export const appRouter = router({
         const { displayName, latitude, longitude } = await geocodeCity(
           input.city
         );
-        const { tzId, offsetHours } = getTimezoneForCoords(
-          latitude,
-          longitude,
-          new Date()
-        );
-        return { displayName, latitude, longitude, tzId, offsetHours };
+        const tzId = getTimezoneIdForCoords(latitude, longitude);
+        return { displayName, latitude, longitude, tzId };
       }),
   }),
 
@@ -2955,7 +2950,6 @@ export const appRouter = router({
           latitude: z.number().default(0),
           longitude: z.number().default(0),
           timezoneId: z.string().optional(),
-          timezoneOffset: z.number().optional(),
           primeStack: z.unknown().optional(),
           ninecenters: z.unknown().optional(),
           fractalRole: z.string().optional(),

@@ -1,6 +1,7 @@
 import { calculateBothCharts } from "./ephemeris-service";
 import { getTimezoneForLocalDateTime } from "./geocoding";
 import { generateStaticSignature } from "./rgp-static-signature-engine";
+import { formatLinkCenters } from "./vrc-mandala";
 
 export interface NatalProfileInput {
   birthDate: string;
@@ -341,6 +342,7 @@ export async function buildUserStaticProfile(
     primeStack: reading.primeStack,
     ninecenters: reading.ninecenters,
     fractalRole: reading.fractalRole,
+    resonanceRole: reading.resonanceRole,
     authorityNode: reading.authorityNode,
     vrcType: reading.vrcType,
     vrcAuthority: reading.vrcAuthority,
@@ -423,7 +425,7 @@ export function summarizeStoredStaticProfile(profile: {
       .filter(channel => channel?.active && channel.gateA && channel.gateB)
       .map(
         channel =>
-          `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${channel.centerA ?? "?"} ↔ ${channel.centerB ?? "?"}`
+          `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${formatLinkCenters(channel.centerA ?? "?", channel.centerB ?? "?")}`
       )
       .join("\n") || "None";
   const legacyLinks = profile.legacyCircuitLinks ?? profile.circuitLinks;

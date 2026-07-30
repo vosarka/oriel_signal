@@ -15,6 +15,7 @@ import {
   calculateCenterMap,
   calculateFractalRole,
   calculateAuthorityNode,
+  calculateResonanceRole,
   type PrimeStackMap,
   type PrimeStackCodon,
   type CoreCodonEngine,
@@ -89,7 +90,10 @@ export interface StaticSignatureReading {
       defined?: boolean;
     }
   >;
+  /** 4-value identity layer, derived from Center definition. */
   fractalRole: string;
+  /** 16-value identity layer, derived from the strongest four-codon activation cluster. */
+  resonanceRole: string;
   authorityNode: string;
   activations: PlanetaryActivation[];
   channelStatuses: PrimeStackMap["channelStatuses"];
@@ -307,6 +311,9 @@ export async function generateStaticSignature(
   // ── Fractal Role & Authority ────────────────────────────────────────────────
   const fractalRoleData = calculateFractalRole(primeStackMap);
   const fractalRole = fractalRoleData.role;
+  // Independent of Fractal Role: the 16-value layer, weighted by the canon
+  // default planetary weights carried on the activations.
+  const resonanceRole = calculateResonanceRole(primeStackMap).primaryRole;
   const authorityData = calculateAuthorityNode(primeStackMap);
   const authorityNode = authorityData.node;
   const legacyCircuitLinks = primeStackMap.circuitLinks.map(
@@ -399,6 +406,7 @@ export async function generateStaticSignature(
     primeStack,
     ninecenters,
     fractalRole,
+    resonanceRole,
     authorityNode,
     activations: primeStackMap.activations,
     channelStatuses: primeStackMap.channelStatuses,

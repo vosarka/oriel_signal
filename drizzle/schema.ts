@@ -745,6 +745,8 @@ export const userStaticProfiles = mysqlTable("userStaticProfiles", {
   coreCodonEngine: text("coreCodonEngine"),
   activations: text("activations"),
   channelStatuses: text("channelStatuses"),
+  /** 16-value Resonance Role — independent of the 4-value fractalRole above. */
+  resonanceRole: varchar("resonanceRole", { length: 128 }),
   calculationStatus: varchar("calculationStatus", { length: 32 }),
   calculationContext: text("calculationContext"),
   specVersion: varchar("specVersion", { length: 128 }),

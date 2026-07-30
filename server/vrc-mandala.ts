@@ -356,12 +356,21 @@ export function earthLongitude(sunLongitude: number): number {
 
 // ─── Bio-Circuitry evaluation ─────────────────────────────────────────────────
 
+/**
+ * "intra" — both endpoint codons sit in the same Center. Eight of the 32 links
+ * are intra links; when active they define that single Center rather than
+ * bridging two. They must never be rendered as "X ↔ X".
+ * "inter" — the link bridges two distinct Centers.
+ */
+export type LinkType = "intra" | "inter";
+
 export interface ChannelStatus {
   gateA: number;
   gateB: number;
   active: boolean; // true = both gates are defined
   centerA: CenterName;
   centerB: CenterName;
+  linkType: LinkType;
 }
 
 /**
@@ -371,13 +380,32 @@ export interface ChannelStatus {
  * (regardless of whether they come from the Conscious or Design chart).
  */
 export function evaluateChannels(definedGates: Set<number>): ChannelStatus[] {
-  return VRC_CHANNELS.map(([gateA, gateB]) => ({
-    gateA,
-    gateB,
-    active: definedGates.has(gateA) && definedGates.has(gateB),
-    centerA: CODON_CENTER_MAP[gateA] ?? "Root",
-    centerB: CODON_CENTER_MAP[gateB] ?? "Root",
-  }));
+  return VRC_CHANNELS.map(([gateA, gateB]) => {
+    const centerA = CODON_CENTER_MAP[gateA] ?? "Root";
+    const centerB = CODON_CENTER_MAP[gateB] ?? "Root";
+    return {
+      gateA,
+      gateB,
+      active: definedGates.has(gateA) && definedGates.has(gateB),
+      centerA,
+      centerB,
+      linkType: centerA === centerB ? ("intra" as const) : ("inter" as const),
+    };
+  });
+}
+
+/**
+ * Render one Resonance Link's Centers as display text.
+ * Intra links name their single Center; inter links show the bridge.
+ */
+export function formatLinkCenters(
+  centerA: string,
+  centerB: string,
+  separator = "↔"
+): string {
+  return centerA === centerB
+    ? `within ${centerA}`
+    : `${centerA} ${separator} ${centerB}`;
 }
 
 /**
