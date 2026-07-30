@@ -51,6 +51,7 @@ import {
   normalizeImageReferences,
 } from "./oriel-chat-image-service";
 import { stripOrielChatImageBlocks } from "@shared/oriel-chat-images";
+import { parseActivations } from "@shared/codon-wheel";
 import {
   captureFounderEditionPayPalOrder,
   createFounderEditionPayPalOrder,
@@ -80,6 +81,26 @@ function hashResetCode(email: string, code: string) {
   return createHash("sha256")
     .update(`${normalizeEmail(email)}:${code}`)
     .digest("hex");
+}
+
+function setPrivateWheelCacheHeaders(
+  res: { setHeader?: (name: string, value: string) => void } | undefined,
+  receiverId: number,
+  calculatedAt: Date | null
+) {
+  res?.setHeader?.("Vary", "Cookie");
+
+  if (!calculatedAt) {
+    res?.setHeader?.("Cache-Control", "private, no-store");
+    return;
+  }
+
+  const cacheKey = createHash("sha256")
+    .update(`${receiverId}:${calculatedAt.toISOString()}`)
+    .digest("hex");
+  res?.setHeader?.("Cache-Control", "private, no-cache");
+  res?.setHeader?.("ETag", `"wheel-${cacheKey}"`);
+  res?.setHeader?.("X-Wheel-Cache-Key", cacheKey);
 }
 
 function normalizeOptionalText(
@@ -2307,6 +2328,32 @@ export const appRouter = router({
 
   // User profile and subscription management
   profile: router({
+    getWheelField: publicProcedure.query(() => ({ state: "field" as const })),
+
+    getMyWheel: protectedProcedure.query(async ({ ctx }) => {
+      // ctx.user is the legacy Receiver row resolved exclusively from the
+      // authenticated Better Auth session in createContext. This procedure
+      // intentionally has no input and can never select another Receiver.
+      const receiverId = ctx.user.id;
+      const record = await db.getUserStaticProfileForWheel(receiverId);
+
+      if (!record) {
+        setPrivateWheelCacheHeaders(ctx.res, receiverId, null);
+        return { state: "none" as const };
+      }
+
+      const activations = parseActivations(record.activations);
+      const calculatedAt = record.updatedAt ?? record.createdAt;
+      setPrivateWheelCacheHeaders(ctx.res, receiverId, calculatedAt);
+
+      return {
+        state: "ready" as const,
+        calculatedAt,
+        engineVersion: record.engineVersion,
+        activations,
+      };
+    }),
+
     getNatalCompletionStatus: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) {
         throw new Error("Authentication required");

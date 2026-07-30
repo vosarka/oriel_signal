@@ -6,6 +6,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { MY_WHEEL_QUERY_KEY } from "@shared/codon-wheel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const C = {
   void: "#0a0a0e",
@@ -45,6 +47,7 @@ function InputField(props: React.InputHTMLAttributes<HTMLInputElement>) {
 
 export default function NatalProfile() {
   const { user, loading, isAuthenticated, refresh } = useAuth();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const [birthDate, setBirthDate] = useState("");
@@ -116,7 +119,10 @@ export default function NatalProfile() {
         longitude: geocodeResult.longitude,
         timezoneId: geocodeResult.tzId,
       });
-      await refresh();
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: MY_WHEEL_QUERY_KEY }),
+      ]);
       setSuccess("Your Static Signature Reading has been calculated and saved.");
       window.location.href = "/profile#static-signature";
     } catch (mutationError) {

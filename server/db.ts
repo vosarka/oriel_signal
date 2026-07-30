@@ -3260,6 +3260,26 @@ export async function getUserStaticProfile(userId: number) {
   }
 }
 
+/**
+ * Wheel boundary reader. Unlike the broad profile helper above, infrastructure
+ * failures must reach the route so the client can render its retry state
+ * instead of misreporting a database failure as "no calculation".
+ */
+export async function getUserStaticProfileForWheel(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(userStaticProfiles)
+    .where(eq(userStaticProfiles.userId, userId))
+    .limit(1);
+
+  return result[0] ? parseUserStaticProfileRow(result[0]) : null;
+}
+
 export async function hasUserStaticProfile(userId: number): Promise<boolean> {
   const profile = await getUserStaticProfile(userId);
   return Boolean(profile);

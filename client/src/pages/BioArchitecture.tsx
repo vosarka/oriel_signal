@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
-import { CodonWheel } from "@/components/oriel-signal/CodonWheel";
+import {
+  CodonWheel,
+  type Codon,
+} from "@/components/oriel-signal/CodonWheel";
 import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
 import { RoleGrid } from "@/components/oriel-signal/RoleGrid";
 import { CenterGrid } from "@/components/oriel-signal/CenterGrid";
-import { Spinner } from "@/components/ui/spinner";
 import { TetradModule } from "@/components/oriel-signal/vtrs/TetradModule";
 import { TwoTimingModule } from "@/components/oriel-signal/vtrs/TwoTimingModule";
 import { LatticeModule } from "@/components/oriel-signal/vtrs/LatticeModule";
@@ -27,6 +29,23 @@ const MODULES = [
 ] as const;
 
 type ModuleId = (typeof MODULES)[number]["id"];
+
+const NEUTRAL_FIELD_CODONS: Codon[] = Array.from(
+  { length: 64 },
+  (_, index) => {
+    const id = index + 1;
+    return {
+      id,
+      code: `RC${String(id).padStart(2, "0")}`,
+      name: `Codon ${id}`,
+      traditional_name: "",
+      binary: id.toString(2).padStart(6, "0"),
+      chemical_marker: "",
+      archetype_role: "",
+      somatic_marker: "",
+    };
+  }
+);
 
 export default function BioArchitecture() {
   const [codons, setCodons] = useState<CodonDetail[] | null>(null);
@@ -1255,14 +1274,37 @@ export default function BioArchitecture() {
             </p>
           </section>
 
-          {loading ? (
-            <div className="flex h-[400px] items-center justify-center">
-              <Spinner className="h-8 w-8 text-amber-500" />
+          {loading || !codons || !selectedCodon ? (
+            <div style={{ maxWidth: 680, margin: "0 auto" }}>
+              <CodonWheel
+                codons={NEUTRAL_FIELD_CODONS}
+                selectedId={selectedId}
+                onSelect={id => setSelectedId(id)}
+                activeRoleIdx={activeRoleIdx}
+                activeCenter={activeCenter}
+                onDeselect={() => {
+                  setActiveCenter(null);
+                  setActiveRoleIdx(null);
+                }}
+              />
+              <p
+                role="status"
+                style={{
+                  margin: "8px 0 0",
+                  textAlign: "center",
+                  color: "var(--mut)",
+                  fontFamily: "var(--font-voice, serif)",
+                  fontSize: 12,
+                  fontStyle: "italic",
+                }}
+              >
+                {loading
+                  ? "Codon names and glyph detail are arriving…"
+                  : "Codon detail is unavailable; the universal field remains open."}
+              </p>
             </div>
           ) : (
-            codons &&
-            selectedCodon && (
-              <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait">
                 {activeModule === null ? (
                   /* ── TERMINAL STATE: full wheel + module chips + panel + roles ── */
                   <motion.div
@@ -1375,8 +1417,7 @@ export default function BioArchitecture() {
                     </section>
                   </motion.div>
                 )}
-              </AnimatePresence>
-            )
+            </AnimatePresence>
           )}
         </main>
       </SignalPageShell>
