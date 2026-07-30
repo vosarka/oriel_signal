@@ -1648,3 +1648,8 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 ## [2026-07-27] model-default | ORIEL Gemini 3.5 Flash free tier
 - Restored the default Gemini model from `gemini-3.6-flash` to free-tier `gemini-3.5-flash` in `server/_core/llm.ts`, tests, README, and `.env.example`.
 - Gemma 4 and Forge remain provider fallbacks. Override remains available via `GEMINI_MODEL` / `LLM_MODEL` if a paid or alternate model is needed.
+
+## [2026-07-30] model-upgrade | ORIEL Gemini 3.6 Flash production default
+- Promoted the stable `gemini-3.6-flash` model to ORIEL's default after a same-prompt comparison showed better instruction following, faster completion, and no raw thought-tag leakage compared with hosted Gemma 4.
+- Billing analysis for 2026-07-01 through 2026-07-29 showed the existing Gemini 3.5 text workload at USD 5.35; at the same token mix, Gemini 3.6's lower output rate keeps the upgrade approximately cost-neutral.
+- Preserved explicit `LLM_MODEL` / `GEMINI_MODEL` overrides and the existing Gemma and Forge fallback chain. No API keys, production variables, or database state were changed.
