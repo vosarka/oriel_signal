@@ -412,11 +412,6 @@ export function CodonWheelPlate({
   );
   const selectedCodon = codonById.get(selectedId) ?? codons[0];
   const selectedRoleIdx = Math.floor((selectedId - 1) / 4);
-  const litSet = useMemo(() => buildLitSet(activations), [activations]);
-  const bothLayers = useMemo(
-    () => buildBothLayers(activations),
-    [activations]
-  );
   const visibleActivations = useMemo(() => {
     if (effectiveView.kind === "field" || !signatureContextVisible) return [];
     return activations;
@@ -616,14 +611,13 @@ export function CodonWheelPlate({
 
         {/* Deduplicated activated cell overlays. */}
         <g aria-hidden="true">
-          {[...litSet].map(key => {
+          {[...visibleLitSet].map(key => {
             const [codonText, facetText, layerText] = key.split("-");
             const codonId = Number(codonText);
             const facet = facetText as Facet;
             const layer = layerText as Layer;
             const radii = BAND_RADII[layer];
             const start = cellAngle(codonId, facet);
-            const isVisibleActivation = visibleLitSet.has(key);
             const delay =
               wheelMotion.staggerMs === 0
                 ? 0
@@ -646,16 +640,8 @@ export function CodonWheelPlate({
                   start,
                   start + FACET_SPAN
                 )}
-                fill={
-                  !isVisibleActivation
-                    ? NEUTRAL_HUE
-                    : CENTER_HUE[CODON_CENTER[codonId]]
-                }
-                fillOpacity={
-                  isVisibleActivation
-                    ? cellOpacity(true, effectiveView, codonId)
-                    : 0
-                }
+                fill={CENTER_HUE[CODON_CENTER[codonId]]}
+                fillOpacity={cellOpacity(true, effectiveView, codonId)}
                 stroke="none"
                 style={{
                   transition: cellTransition,
@@ -704,24 +690,21 @@ export function CodonWheelPlate({
 
         {/* One marker for each codon occupied in both layers. */}
         <g aria-hidden="true">
-          {[...bothLayers].map(codonId => {
+          {[...visibleBothLayers].map(codonId => {
             const midAngle = (codonId - 0.5) * SEG;
             const point = polar(CX, CY, BOTH_LAYER_RADIUS, midAngle);
             const focused =
               effectiveView.kind === "focus" &&
               effectiveView.codonId === codonId;
-            const isVisible = visibleBothLayers.has(codonId);
             return (
               <circle
                 key={`both-${codonId}`}
                 data-both-layer-codon={codonId}
                 cx={point.x}
                 cy={point.y}
-                r={focused && isVisible ? 4.2 : 2.6}
+                r={focused ? 4.2 : 2.6}
                 fill={CENTER_HUE[CODON_CENTER[codonId]]}
-                opacity={
-                  isVisible ? markerOpacity(effectiveView, codonId) : 0
-                }
+                opacity={markerOpacity(effectiveView, codonId)}
                 style={{ transition: markerTransition }}
               />
             );
@@ -962,7 +945,7 @@ export function CodonWheelPlate({
                 <td>{CODON_CENTER[codonId]}</td>
                 <td>{conscious.length ? conscious.join(", ") : "None"}</td>
                 <td>{design.length ? design.join(", ") : "None"}</td>
-                <td>{bothLayers.has(codonId) ? "Yes" : "No"}</td>
+                <td>{visibleBothLayers.has(codonId) ? "Yes" : "No"}</td>
               </tr>
             );
           })}

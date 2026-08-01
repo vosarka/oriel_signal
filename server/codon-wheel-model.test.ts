@@ -653,6 +653,10 @@ describe("two-layer codon wheel model", () => {
     expect(
       mineMarkup.match(/data-cell-kind="lit"/g)?.length
     ).toBe(buildLitSet(RECEIVER_ACTIVATIONS).size);
+    expect(
+      mineMarkup.match(/data-both-layer-codon/g)?.length
+    ).toBe(buildBothLayers(RECEIVER_ACTIVATIONS).size);
+    expect(mineMarkup).toContain("<td>Yes</td>");
     expect(mineMarkup).toContain(
       "transition:fill-opacity 420ms ease-out"
     );
@@ -673,15 +677,11 @@ describe("two-layer codon wheel model", () => {
 
   it("keeps the field neutral even when personal data has loaded", () => {
     const markup = renderPlate(RECEIVER_ACTIVATIONS, { kind: "field" });
-    const litPaths = [
-      ...markup.matchAll(/<path data-cell-kind="lit"[^>]+>/g),
-    ].map(match => match[0]);
 
-    expect(litPaths).toHaveLength(buildLitSet(RECEIVER_ACTIVATIONS).size);
-    for (const path of litPaths) {
-      expect(path).toContain(`fill="${NEUTRAL_HUE}"`);
-      expect(path).toContain('fill-opacity="0"');
-    }
+    expect(markup).not.toContain('data-cell-kind="lit"');
+    expect(markup).not.toContain('data-both-layer-codon');
+    expect(markup).not.toContain('data-cell-key="15-A-conscious"');
+    expect(markup).not.toContain("<td>Yes</td>");
     expect(markup).toContain(
       'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
     );
@@ -707,12 +707,10 @@ describe("two-layer codon wheel model", () => {
       expect(path).toContain(`fill="${CENTER_HUE.Bridge}"`);
       expect(path).toContain('fill-opacity="1"');
     }
-    expect(markup).toMatch(
-      /data-cell-key="15-A-conscious"[^>]*fill-opacity="0"/
-    );
-    expect(markup).toMatch(
-      /data-cell-key="29-A-conscious"[^>]*fill-opacity="0"/
-    );
+    expect(markup).not.toContain('data-cell-kind="lit"');
+    expect(markup).not.toContain('data-both-layer-codon');
+    expect(markup).not.toContain('data-cell-key="15-A-conscious"');
+    expect(markup).not.toContain("<td>Yes</td>");
     expect(markup).toContain(
       'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
     );
