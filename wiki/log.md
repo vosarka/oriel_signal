@@ -1661,6 +1661,18 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Added neutral-first loading, no-record, ready, and retry states; `SHOW MY SIGNATURE` / `SHOW THE FULL FIELD`; single-image keyboard accessibility; and a visually hidden 64-row activation table.
 - Verification: 24 focused wheel tests pass, including angular/map/record integrity, exact band placement, five both-layer codons, deduplicated mine cells, focus composition, route isolation, malformed-row and storage-failure propagation, and no-record rendering. Production client and server builds pass, and the anonymous neutral field was checked in real Chrome on localhost. Repository-wide Vitest passes 765/767 tests, retaining two unrelated source-expectation failures, and type-check retains the pre-existing `server/routers.ts` `circuitLinks` mismatch.
 
+## [2026-07-31] documentation | Gail Gibson Tetradic Signature manuscript
+- Created the complete English Founder Edition production manuscript for Gail Gibson from the approved 48-page Master Flatplan v2 and her stored calculation export.
+- Authored all 36 B/C/D text pages in the Vos Arkana founder voice, with explicit evidence boundaries around Gail's reported fatigue, mental fog, and right hip/leg pain.
+- Added twelve illustration-only Page A prompt sets for Lovart/Midjourney, exact vector-overlay instructions, deterministic diagram briefs, and the complete 26-activation production ledger.
+- Kept certification and archive identity pending, excluded quarantined intake, and made no application, database, calculation, or production-credential changes.
+
+## [2026-08-01] auto-evolve | The Display and The Depth
+- Action: create [[concept-display-and-depth]]
+- Type: concept
+- Reason: Introduces 'The Display and The Depth' as a core Vossari concept distinguishing static noun-based ontology from continuous relational verb-based ontology.
+- Aliases: The Display, The Depth, Display-Depth Duality, The Verb
+
 ## [2026-08-01] feature | Codon wheel field and signature switch
 - Replaced the single wheel toggle with an accessible two-position `Full Field` / `My Signature` control; signature mode remains unavailable until an exact stored Receiver signature is ready.
 - Full Field clicks now color one complete codon at a time across all four facets and both conscious/design layers, using the codon's canonical center hue without exposing or mutating personal activations.
