@@ -23,6 +23,21 @@ export interface Activation {
   longitude: number;
 }
 
+export type CodonLayerPresence = "none" | "conscious" | "design" | "both";
+
+export interface CodonLayerActivationSummary {
+  facets: Facet[];
+  activations: Activation[];
+}
+
+export interface CodonSignatureSummary {
+  codonId: number;
+  presence: CodonLayerPresence;
+  conscious: CodonLayerActivationSummary;
+  design: CodonLayerActivationSummary;
+  exactSharedFacets: Facet[];
+}
+
 export type WheelView =
   | { kind: "field" }
   | { kind: "mine" }
@@ -294,6 +309,55 @@ export function buildBothLayers(
       .filter(([, layers]) => layers.size === 2)
       .map(([codonId]) => codonId)
   );
+}
+
+/**
+ * Retains the raw activation rows for one codon while deriving layer and facet
+ * presence. Codon-level convergence does not imply the same facet in both
+ * layers, and duplicate planets in one cell remain visible to the reader.
+ */
+export function summarizeCodonActivations(
+  activations: readonly Activation[],
+  codonId: number
+): CodonSignatureSummary {
+  const consciousActivations = activations.filter(
+    activation =>
+      activation.codonId === codonId && activation.layer === "conscious"
+  );
+  const designActivations = activations.filter(
+    activation =>
+      activation.codonId === codonId && activation.layer === "design"
+  );
+  const consciousFacets = FACETS.filter(facet =>
+    consciousActivations.some(activation => activation.facet === facet)
+  );
+  const designFacets = FACETS.filter(facet =>
+    designActivations.some(activation => activation.facet === facet)
+  );
+  const presence: CodonLayerPresence =
+    consciousActivations.length > 0 && designActivations.length > 0
+      ? "both"
+      : consciousActivations.length > 0
+        ? "conscious"
+        : designActivations.length > 0
+          ? "design"
+          : "none";
+
+  return {
+    codonId,
+    presence,
+    conscious: {
+      facets: consciousFacets,
+      activations: consciousActivations,
+    },
+    design: {
+      facets: designFacets,
+      activations: designActivations,
+    },
+    exactSharedFacets: consciousFacets.filter(facet =>
+      designFacets.includes(facet)
+    ),
+  };
 }
 
 export function cellOpacity(

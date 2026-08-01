@@ -14,7 +14,6 @@ import {
   GROUND_HUE,
   LAYERS,
   NEUTRAL_HUE,
-  OUTER_RADIUS,
   SEG,
   boundaryOpacity,
   buildBothLayers,
@@ -26,9 +25,11 @@ import {
   polar,
   resolveWheelKey,
   resolveWheelMotion,
+  summarizeCodonActivations,
   wedge,
   type Activation,
   type CenterName,
+  type CodonSignatureSummary,
   type Facet,
   type Layer,
   type WheelView,
@@ -38,6 +39,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import * as React from "react";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -49,6 +51,7 @@ export {
   CODON_CENTER,
   type Activation,
   type CenterName,
+  type CodonSignatureSummary,
   type Facet,
   type Layer,
   type WheelView,
@@ -209,6 +212,12 @@ export interface CodonWheelProps {
   codons: Codon[];
   selectedId: number;
   onSelect: (id: number) => void;
+  selectedFacet?: Facet;
+  selectedLayer?: Layer;
+  viewPreference?: BaseView | null;
+  onCellSelect?: (selection: WheelCellSelection) => void;
+  onViewPreferenceChange?: (view: BaseView) => void;
+  onSignatureContextChange?: (context: WheelSignatureContext) => void;
   activeRoleIdx?: number | null;
   activeCenter?: string | null;
   onDeselect?: () => void;
@@ -221,6 +230,44 @@ export type WheelLoadState =
   | "ready"
   | "error";
 export type BaseView = "field" | "mine";
+const EMPTY_ACTIVATIONS: readonly Activation[] = [];
+
+export function resolveBaseView(
+  loadState: WheelLoadState,
+  viewPreference: BaseView | null | undefined,
+  automaticView: BaseView
+): BaseView {
+  if (loadState !== "ready") return "field";
+  return viewPreference ?? automaticView;
+}
+
+export interface WheelCellSelection {
+  codonId: number;
+  facet: Facet;
+  layer: Layer;
+}
+
+export interface WheelSignatureContext {
+  mode: BaseView;
+  state: WheelLoadState;
+  summary: CodonSignatureSummary | null;
+}
+
+export function resolveWheelSignatureContext(
+  loadState: WheelLoadState,
+  baseView: BaseView,
+  activations: readonly Activation[],
+  selectedId: number
+): WheelSignatureContext {
+  const signatureMode = loadState === "ready" && baseView === "mine";
+  return {
+    mode: signatureMode ? "mine" : "field",
+    state: loadState,
+    summary: signatureMode
+      ? summarizeCodonActivations(activations, selectedId)
+      : null,
+  };
+}
 
 export function resolveWheelView(
   loadState: WheelLoadState,
@@ -282,7 +329,7 @@ export function WheelSignatureControl({
 }: {
   state: WheelLoadState;
   baseView: BaseView;
-  onToggle: () => void;
+  onToggle: (nextView: BaseView) => void;
   onRetry?: () => void;
 }) {
   const ready = state === "ready";
@@ -311,7 +358,7 @@ export function WheelSignatureControl({
           }`}
           aria-pressed={baseView === "field"}
           onClick={() => {
-            if (baseView !== "field") onToggle();
+            if (baseView !== "field") onToggle("field");
           }}
         >
           <span className="cz-wheel-mode-node" aria-hidden="true" />
@@ -326,7 +373,7 @@ export function WheelSignatureControl({
           disabled={!ready}
           title={tooltip}
           onClick={() => {
-            if (ready && baseView !== "mine") onToggle();
+            if (ready && baseView !== "mine") onToggle("mine");
           }}
         >
           <span className="cz-wheel-mode-node" aria-hidden="true" />
@@ -365,9 +412,12 @@ export function WheelSignatureControl({
 export interface CodonWheelPlateProps {
   codons: Codon[];
   selectedId: number;
+  selectedFacet?: Facet;
+  selectedLayer?: Layer;
   activations: readonly Activation[];
   view: WheelView;
   onFocus?: (codonId: number) => void;
+  onCellSelect?: (selection: WheelCellSelection) => void;
   onLeaveFocus?: () => void;
   showSignatureContext?: boolean;
   activeRoleIdx?: number | null;
@@ -378,9 +428,12 @@ export interface CodonWheelPlateProps {
 export function CodonWheelPlate({
   codons,
   selectedId,
+  selectedFacet = "A",
+  selectedLayer = "conscious",
   activations,
   view,
   onFocus,
+  onCellSelect,
   onLeaveFocus,
   showSignatureContext,
   activeRoleIdx,
@@ -429,10 +482,15 @@ export function CodonWheelPlate({
       new Set(visibleActivations.map(activation => activation.codonId)),
     [visibleActivations]
   );
-  const ariaLabel = `Codon wheel. 64 codons in two layers. ${occupiedCodons.size} codons activated. ${visibleBothLayers.size} present in both layers.`;
+  const selectedCode = `RC${String(selectedId).padStart(2, "0")}`;
+  const ariaLabel = `Codon wheel. 64 codons in two layers. ${occupiedCodons.size} codons activated. ${visibleBothLayers.size} present in both layers. Selected ${selectedCode}, facet ${selectedFacet}, ${selectedLayer} layer.`;
   const transition = `opacity ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
   const cellTransition = `fill-opacity ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
   const markerTransition = `${transition}, r ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
+  const selectionRadii = BAND_RADII[selectedLayer];
+  const selectionStart = cellAngle(selectedId, selectedFacet);
+  const selectionHue =
+    selectedLayer === "conscious" ? "#e8c477" : "#6fb7c7";
 
   const handleKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
     const currentCodonId =
@@ -853,39 +911,81 @@ export function CodonWheelPlate({
           </g>
         )}
 
-        {/* One mouse hit target per codon; no additional tab stops. */}
-        <g fill="transparent" stroke="none" aria-hidden="true">
-          {CODON_IDS.map(codonId => {
-            const start = (codonId - 1) * SEG;
-            return (
-              <path
-                key={`hit-${codonId}`}
-                data-hit-codon={codonId}
-                d={wedge(
-                  CX,
-                  CY,
-                  DESIGN_INNER_RADIUS,
-                  OUTER_RADIUS,
-                  start,
-                  start + SEG
-                )}
-                pointerEvents="all"
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHoveredId(codonId)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={event => {
-                  event.stopPropagation();
-                  onFocus?.(codonId);
-                }}
-              >
-                <title>
-                  {codonById.get(codonId)
-                    ? `${codonById.get(codonId)!.code} · ${codonById.get(codonId)!.name}`
-                    : `Codon ${codonId}`}
-                </title>
-              </path>
-            );
-          })}
+        {/* Exact selected address remains visible over neutral and lit cells. */}
+        <path
+          data-cell-kind="selection"
+          data-codon-id={selectedId}
+          data-facet={selectedFacet}
+          data-layer={selectedLayer}
+          d={wedge(
+            CX,
+            CY,
+            selectionRadii.inner,
+            selectionRadii.outer,
+            selectionStart,
+            selectionStart + FACET_SPAN
+          )}
+          fill={selectionHue}
+          fillOpacity="0.14"
+          stroke={selectionHue}
+          strokeWidth="2.1"
+          vectorEffect="non-scaling-stroke"
+          pointerEvents="none"
+          aria-hidden="true"
+        />
+
+        {/* One pointer target per exact cell; keyboard control stays on the SVG. */}
+        <g
+          fill="transparent"
+          stroke="none"
+          aria-hidden="true"
+          onMouseLeave={() => setHoveredId(null)}
+        >
+          {LAYERS.flatMap(layer =>
+            CODON_IDS.flatMap(codonId =>
+              FACETS.map(facet => {
+                const start = cellAngle(codonId, facet);
+                const radii = BAND_RADII[layer];
+                const hitInnerRadius =
+                  layer === "conscious" ? BOTH_LAYER_RADIUS : radii.inner;
+                const hitOuterRadius =
+                  layer === "design" ? BOTH_LAYER_RADIUS : radii.outer;
+                const codon = codonById.get(codonId);
+                return (
+                  <path
+                    key={`hit-${codonId}-${facet}-${layer}`}
+                    data-cell-kind="hit"
+                    data-hit-codon={codonId}
+                    data-hit-facet={facet}
+                    data-hit-layer={layer}
+                    data-hit-inner-radius={hitInnerRadius}
+                    data-hit-outer-radius={hitOuterRadius}
+                    d={wedge(
+                      CX,
+                      CY,
+                      hitInnerRadius,
+                      hitOuterRadius,
+                      start,
+                      start + FACET_SPAN
+                    )}
+                    pointerEvents="all"
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setHoveredId(codonId)}
+                    onClick={event => {
+                      event.stopPropagation();
+                      onCellSelect?.({ codonId, facet, layer });
+                    }}
+                  >
+                    <title>
+                      {codon
+                        ? `${codon.code} · ${codon.name} · Facet ${facet} · ${layer === "conscious" ? "Conscious" : "Design"}`
+                        : `Codon ${codonId} · Facet ${facet} · ${layer}`}
+                    </title>
+                  </path>
+                );
+              })
+            )
+          )}
         </g>
       </svg>
 
@@ -959,6 +1059,12 @@ export function CodonWheel({
   codons,
   selectedId,
   onSelect,
+  selectedFacet = "A",
+  selectedLayer = "conscious",
+  viewPreference,
+  onCellSelect,
+  onViewPreferenceChange,
+  onSignatureContextChange,
   activeRoleIdx,
   activeCenter,
   onDeselect,
@@ -982,7 +1088,8 @@ export function CodonWheel({
     refetchOnReconnect: false,
     retry: false,
   });
-  const [baseView, setBaseView] = useState<BaseView>("field");
+  const [automaticBaseView, setAutomaticBaseView] =
+    useState<BaseView>("field");
   const [focusedCodonId, setFocusedCodonId] = useState<number | null>(null);
   const loadedCalculation = useRef<string | null>(null);
   const previousSelectedId = useRef(selectedId);
@@ -998,10 +1105,15 @@ export function CodonWheel({
           : wheelQuery.data?.state === "none"
             ? "none"
             : "loading";
-  const activations =
+  const baseView = resolveBaseView(
+    loadState,
+    viewPreference,
+    automaticBaseView
+  );
+  const activations: readonly Activation[] =
     loadState === "ready" && wheelQuery.data?.state === "ready"
       ? wheelQuery.data.activations
-      : [];
+      : EMPTY_ACTIVATIONS;
   const calculationKey =
     loadState === "ready" && wheelQuery.data?.state === "ready"
       ? `${receiverId}:${String(wheelQuery.data.calculatedAt)}`
@@ -1010,12 +1122,12 @@ export function CodonWheel({
   useEffect(() => {
     if (!calculationKey || loadedCalculation.current === calculationKey) return;
     loadedCalculation.current = calculationKey;
-    setBaseView("mine");
+    setAutomaticBaseView("mine");
     setFocusedCodonId(null);
   }, [calculationKey]);
 
   useEffect(() => {
-    if (loadState !== "ready") setBaseView("field");
+    if (loadState !== "ready") setAutomaticBaseView("field");
   }, [loadState]);
 
   useEffect(() => {
@@ -1025,10 +1137,36 @@ export function CodonWheel({
   }, [selectedId]);
 
   const view = resolveWheelView(loadState, baseView, focusedCodonId);
+  const signatureContext = useMemo(
+    () =>
+      resolveWheelSignatureContext(
+        loadState,
+        baseView,
+        activations,
+        selectedId
+      ),
+    [activations, baseView, loadState, selectedId]
+  );
+  const signatureMode = signatureContext.mode === "mine";
+
+  useLayoutEffect(() => {
+    onSignatureContextChange?.(signatureContext);
+  }, [onSignatureContextChange, signatureContext]);
 
   const focusCodon = (codonId: number) => {
     setFocusedCodonId(codonId);
     onSelect(codonId);
+    onCellSelect?.({
+      codonId,
+      facet: selectedFacet,
+      layer: selectedLayer,
+    });
+  };
+
+  const selectCell = (selection: WheelCellSelection) => {
+    setFocusedCodonId(selection.codonId);
+    onSelect(selection.codonId);
+    onCellSelect?.(selection);
   };
 
   return (
@@ -1036,8 +1174,17 @@ export function CodonWheel({
       <WheelSignatureControl
         state={loadState}
         baseView={baseView}
-        onToggle={() => {
-          setBaseView(current => (current === "field" ? "mine" : "field"));
+        onToggle={nextBaseView => {
+          onSignatureContextChange?.(
+            resolveWheelSignatureContext(
+              loadState,
+              nextBaseView,
+              activations,
+              selectedId
+            )
+          );
+          setAutomaticBaseView(nextBaseView);
+          onViewPreferenceChange?.(nextBaseView);
           setFocusedCodonId(null);
         }}
         onRetry={() => {
@@ -1047,9 +1194,12 @@ export function CodonWheel({
       <CodonWheelPlate
         codons={codons}
         selectedId={selectedId}
+        selectedFacet={selectedFacet}
+        selectedLayer={selectedLayer}
         activations={activations}
         view={view}
         onFocus={focusCodon}
+        onCellSelect={selectCell}
         onLeaveFocus={() => setFocusedCodonId(null)}
         showSignatureContext={loadState === "ready" && baseView === "mine"}
         activeRoleIdx={activeRoleIdx}

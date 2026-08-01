@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   CodonWheelPlate,
   WheelSignatureControl,
+  resolveBaseView,
+  resolveWheelSignatureContext,
   resolveWheelView,
   type Codon,
 } from "../client/src/components/oriel-signal/CodonWheel";
@@ -30,6 +32,7 @@ import {
   parseActivations,
   resolveWheelKey,
   resolveWheelMotion,
+  summarizeCodonActivations,
   validateActivations,
   type Activation,
 } from "../shared/codon-wheel";
@@ -394,6 +397,63 @@ describe("two-layer codon wheel model", () => {
     );
   });
 
+  it("keeps codon-level both-layer presence distinct from exact facet convergence", () => {
+    const differentFacets = summarizeCodonActivations(
+      RECEIVER_ACTIVATIONS,
+      29
+    );
+    const exactFacet = summarizeCodonActivations(RECEIVER_ACTIVATIONS, 39);
+
+    expect(differentFacets.presence).toBe("both");
+    expect(differentFacets.conscious.facets).toEqual(["A"]);
+    expect(differentFacets.design.facets).toEqual(["C"]);
+    expect(differentFacets.exactSharedFacets).toEqual([]);
+    expect(exactFacet.presence).toBe("both");
+    expect(exactFacet.exactSharedFacets).toEqual(["B"]);
+  });
+
+  it("removes every personal activation from Full Field context", () => {
+    const signatureContext = resolveWheelSignatureContext(
+      "ready",
+      "mine",
+      RECEIVER_ACTIVATIONS,
+      29
+    );
+    const fieldContext = resolveWheelSignatureContext(
+      "ready",
+      "field",
+      RECEIVER_ACTIVATIONS,
+      29
+    );
+
+    expect(signatureContext.mode).toBe("mine");
+    expect(signatureContext.summary?.presence).toBe("both");
+    expect(fieldContext).toEqual({
+      mode: "field",
+      state: "ready",
+      summary: null,
+    });
+  });
+
+  it("keeps an explicit wheel view across wheel remounts", () => {
+    expect(resolveBaseView("ready", "field", "mine")).toBe("field");
+    expect(resolveBaseView("ready", "mine", "field")).toBe("mine");
+    expect(resolveBaseView("ready", null, "mine")).toBe("mine");
+    expect(resolveBaseView("anonymous", "mine", "mine")).toBe("field");
+  });
+
+  it("retains every planet when multiple activations occupy one selected cell", () => {
+    const summary = summarizeCodonActivations(RECEIVER_ACTIVATIONS, 15);
+
+    expect(summary.presence).toBe("conscious");
+    expect(summary.conscious.facets).toEqual(["A"]);
+    expect(summary.conscious.activations.map(row => row.planet)).toEqual([
+      "Sun",
+      "Mercury",
+    ]);
+    expect(summary.design.activations).toEqual([]);
+  });
+
   it("deduplicates same-cell collisions in mine view", () => {
     const lit = buildLitSet(RECEIVER_ACTIVATIONS);
 
@@ -417,6 +477,37 @@ describe("two-layer codon wheel model", () => {
     expect(BOTH_LAYER_RADIUS).toBe(297.216);
     expect(DESIGN_OUTER_RADIUS).toBe(286.896);
     expect(DESIGN_INNER_RADIUS).toBe(249.744);
+  });
+
+  it("exposes one pointer target for every codon-facet-layer cell", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CodonWheelPlate, {
+        codons: TEST_CODONS,
+        selectedId: 29,
+        selectedFacet: "C",
+        selectedLayer: "design",
+        activations: [],
+        view: { kind: "focus", codonId: 29 },
+      })
+    );
+
+    expect(markup.match(/data-cell-kind="hit"/g)?.length).toBe(512);
+    expect(markup).toMatch(
+      new RegExp(
+        `data-cell-kind="hit" data-hit-codon="29" data-hit-facet="A" data-hit-layer="conscious" data-hit-inner-radius="${BOTH_LAYER_RADIUS}" data-hit-outer-radius="${CONSCIOUS_OUTER_RADIUS}"`
+      )
+    );
+    expect(markup).toMatch(
+      new RegExp(
+        `data-cell-kind="hit" data-hit-codon="29" data-hit-facet="C" data-hit-layer="design" data-hit-inner-radius="${DESIGN_INNER_RADIUS}" data-hit-outer-radius="${BOTH_LAYER_RADIUS}"`
+      )
+    );
+    expect(markup).toMatch(
+      /data-cell-kind="selection" data-codon-id="29" data-facet="C" data-layer="design"/
+    );
+    expect(markup).toContain(
+      "Selected RC29, facet C, design layer."
+    );
   });
 
   it("resolves keyboard focus without creating 64 tab stops", () => {
@@ -683,7 +774,7 @@ describe("two-layer codon wheel model", () => {
     expect(markup).not.toContain('data-cell-key="15-A-conscious"');
     expect(markup).not.toContain("<td>Yes</td>");
     expect(markup).toContain(
-      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
+      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers. Selected RC15, facet A, conscious layer."'
     );
     expect(markup).toMatch(
       /data-cell-kind="neutral" data-codon-id="15" data-facet="A" data-layer="conscious"[^>]*fill-opacity="0.1"/
@@ -712,7 +803,7 @@ describe("two-layer codon wheel model", () => {
     expect(markup).not.toContain('data-cell-key="15-A-conscious"');
     expect(markup).not.toContain("<td>Yes</td>");
     expect(markup).toContain(
-      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
+      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers. Selected RC15, facet A, conscious layer."'
     );
   });
 
@@ -768,7 +859,7 @@ describe("two-layer codon wheel model", () => {
     expect(markup.match(/data-cell-kind="neutral"/g)?.length).toBe(512);
     expect(markup).not.toContain('data-cell-kind="lit"');
     expect(markup).toContain(
-      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
+      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers. Selected RC01, facet A, conscious layer."'
     );
   });
 });

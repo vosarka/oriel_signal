@@ -5,7 +5,12 @@ import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import {
   CodonWheel,
+  type BaseView,
   type Codon,
+  type Facet,
+  type Layer,
+  type WheelCellSelection,
+  type WheelSignatureContext,
 } from "@/components/oriel-signal/CodonWheel";
 import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
 import { RoleGrid } from "@/components/oriel-signal/RoleGrid";
@@ -50,7 +55,16 @@ const NEUTRAL_FIELD_CODONS: Codon[] = Array.from(
 export default function BioArchitecture() {
   const [codons, setCodons] = useState<CodonDetail[] | null>(null);
   const [selectedId, setSelectedId] = useState<number>(1);
-  const [selectedFacetKey, setSelectedFacetKey] = useState<"A" | "B" | "C" | "D">("A");
+  const [selectedFacetKey, setSelectedFacetKey] = useState<Facet>("A");
+  const [selectedLayer, setSelectedLayer] = useState<Layer>("conscious");
+  const [wheelViewPreference, setWheelViewPreference] =
+    useState<BaseView | null>(null);
+  const [wheelSignatureContext, setWheelSignatureContext] =
+    useState<WheelSignatureContext>({
+      mode: "field",
+      state: "loading",
+      summary: null,
+    });
   const [activeRoleIdx, setActiveRoleIdx] = useState<number | null>(null);
   const [activeCenter, setActiveCenter] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -72,6 +86,11 @@ export default function BioArchitecture() {
   }, []);
 
   const selectedCodon = codons?.find((c) => c.id === selectedId) || codons?.[0];
+  const selectWheelCell = (selection: WheelCellSelection) => {
+    setSelectedId(selection.codonId);
+    setSelectedFacetKey(selection.facet);
+    setSelectedLayer(selection.layer);
+  };
 
   return (
     <Layout>
@@ -394,6 +413,199 @@ export default function BioArchitecture() {
             border-bottom: none;
           }
 
+          .cz-cell-address {
+            padding-bottom: 16px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--line);
+          }
+
+          .cz-layer-picker {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 10px;
+            border: 1px solid rgba(205, 161, 74, 0.22);
+            background: rgba(8, 7, 11, 0.48);
+          }
+
+          .cz-layer-btn {
+            min-width: 0;
+            padding: 9px 10px 8px;
+            border: 0;
+            background: transparent;
+            color: var(--mut);
+            cursor: pointer;
+            text-align: left;
+            font-family: var(--font-ritual, monospace);
+            transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+          }
+
+          .cz-layer-btn + .cz-layer-btn {
+            border-left: 1px solid rgba(205, 161, 74, 0.18);
+          }
+
+          .cz-layer-btn > span {
+            display: block;
+            font-size: 9px;
+            letter-spacing: 0.15em;
+          }
+
+          .cz-layer-btn small {
+            display: block;
+            margin-top: 3px;
+            color: inherit;
+            opacity: 0.62;
+            font-size: 7.5px;
+            letter-spacing: 0.1em;
+          }
+
+          .cz-layer-btn.is-conscious.is-active {
+            color: var(--gold2);
+            background: rgba(205, 161, 74, 0.1);
+            box-shadow: inset 0 -1px var(--gold2);
+          }
+
+          .cz-layer-btn.is-design.is-active {
+            color: var(--cyan);
+            background: rgba(111, 183, 199, 0.1);
+            box-shadow: inset 0 -1px var(--cyan);
+          }
+
+          .cz-facet-picker {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 4px;
+            margin-top: 7px;
+          }
+
+          .cz-facet-btn {
+            min-width: 0;
+            min-height: 42px;
+            padding: 6px 3px;
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--mut);
+            cursor: pointer;
+            font-family: var(--font-ritual, monospace);
+            transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+          }
+
+          .cz-facet-btn b,
+          .cz-facet-btn span {
+            display: block;
+          }
+
+          .cz-facet-btn b {
+            color: inherit;
+            font-size: 10px;
+            font-weight: 500;
+          }
+
+          .cz-facet-btn span {
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 7px;
+            letter-spacing: 0.04em;
+          }
+
+          .cz-facet-btn.is-active {
+            border-color: rgba(232, 196, 119, 0.72);
+            background: rgba(205, 161, 74, 0.08);
+            color: var(--gold2);
+          }
+
+          .cz-layer-btn:hover,
+          .cz-facet-btn:hover,
+          .cz-tetrad-btn:hover {
+            color: var(--ink);
+          }
+
+          .cz-layer-btn:focus-visible,
+          .cz-facet-btn:focus-visible,
+          .cz-tetrad-btn:focus-visible {
+            outline: 1px solid currentColor;
+            outline-offset: -2px;
+          }
+
+          .cz-signature-context {
+            position: relative;
+            margin: 0 0 16px;
+            padding: 11px 12px 10px;
+            border-left: 2px solid var(--cyan);
+            background: rgba(111, 183, 199, 0.035);
+            font-family: var(--font-ritual, monospace);
+          }
+
+          .cz-signature-context.is-mine {
+            border-left-color: var(--gold2);
+            background: rgba(205, 161, 74, 0.045);
+          }
+
+          .cz-signature-status,
+          .cz-selected-cell-status,
+          .cz-current-reading {
+            font-size: 8px;
+            letter-spacing: 0.12em;
+          }
+
+          .cz-signature-status {
+            color: var(--gold2);
+          }
+
+          .cz-signature-context.is-field .cz-signature-status,
+          .cz-current-reading {
+            color: var(--cyan);
+          }
+
+          .cz-selected-cell-status {
+            color: var(--mut);
+            text-align: right;
+          }
+
+          .cz-layer-readout {
+            display: grid;
+            gap: 6px;
+            margin: 9px 0 0;
+          }
+
+          .cz-layer-readout > div {
+            display: grid;
+            grid-template-columns: 78px minmax(0, 1fr);
+            gap: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(205, 161, 74, 0.12);
+          }
+
+          .cz-layer-readout dt,
+          .cz-layer-readout dd {
+            margin: 0;
+            font-size: 8px;
+            line-height: 1.45;
+          }
+
+          .cz-layer-readout dt {
+            color: var(--mut);
+            letter-spacing: 0.12em;
+          }
+
+          .cz-layer-readout dd {
+            color: #cbc1ac;
+          }
+
+          .cz-convergence-copy {
+            margin: 8px 0 0;
+            color: #b8af9b;
+            font-family: var(--font-voice, serif);
+            font-size: 12.5px;
+            font-style: italic;
+            line-height: 1.4;
+          }
+
+          .cz-current-reading {
+            display: block;
+            margin-top: 9px;
+          }
+
           .cz-facet-desc {
             font-size: 14.5px;
             color: #cbc1ac;
@@ -425,6 +637,13 @@ export default function BioArchitecture() {
             line-height: 1.45;
             font-style: italic;
             font-family: var(--font-voice, serif);
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .cz-layer-btn,
+            .cz-facet-btn {
+              transition-duration: 120ms;
+            }
           }
 
           /* ── 16 Role Grid Styles (matching prototype) ────────────────── */
@@ -1269,7 +1488,7 @@ export default function BioArchitecture() {
           <section className="bio-architecture-page__intro" aria-label="Introduction">
             <p className="bio-architecture-page__voice">
               {activeModule === null
-                ? "Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad — four codons, one for each facet: Somatic, Relational, Cognitive, Transpersonal. Turn the wheel; read the signal."
+                ? "Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad of four codons; every codon contains four facets expressed through Conscious and Design layers. Turn the wheel; read the signal."
                 : "The wheel keeps turning while you inspect the machinery. Return to the terminal at any time."}
             </p>
           </section>
@@ -1280,6 +1499,12 @@ export default function BioArchitecture() {
                 codons={NEUTRAL_FIELD_CODONS}
                 selectedId={selectedId}
                 onSelect={id => setSelectedId(id)}
+                selectedFacet={selectedFacetKey}
+                selectedLayer={selectedLayer}
+                viewPreference={wheelViewPreference}
+                onCellSelect={selectWheelCell}
+                onViewPreferenceChange={setWheelViewPreference}
+                onSignatureContextChange={setWheelSignatureContext}
                 activeRoleIdx={activeRoleIdx}
                 activeCenter={activeCenter}
                 onDeselect={() => {
@@ -1341,6 +1566,12 @@ export default function BioArchitecture() {
                         codons={codons}
                         selectedId={selectedId}
                         onSelect={id => setSelectedId(id)}
+                        selectedFacet={selectedFacetKey}
+                        selectedLayer={selectedLayer}
+                        viewPreference={wheelViewPreference}
+                        onCellSelect={selectWheelCell}
+                        onViewPreferenceChange={setWheelViewPreference}
+                        onSignatureContextChange={setWheelSignatureContext}
                         activeRoleIdx={activeRoleIdx}
                         activeCenter={activeCenter}
                         onDeselect={() => {
@@ -1351,7 +1582,10 @@ export default function BioArchitecture() {
                       <CodonDetailPanel
                         codon={selectedCodon}
                         selectedFacetKey={selectedFacetKey}
+                        selectedLayer={selectedLayer}
+                        signatureContext={wheelSignatureContext}
                         onFacetChange={key => setSelectedFacetKey(key)}
+                        onLayerChange={layer => setSelectedLayer(layer)}
                         onSelectCodon={id => setSelectedId(id)}
                       />
                     </div>
@@ -1388,6 +1622,12 @@ export default function BioArchitecture() {
                           codons={codons}
                           selectedId={selectedId}
                           onSelect={id => setSelectedId(id)}
+                          selectedFacet={selectedFacetKey}
+                          selectedLayer={selectedLayer}
+                          viewPreference={wheelViewPreference}
+                          onCellSelect={selectWheelCell}
+                          onViewPreferenceChange={setWheelViewPreference}
+                          onSignatureContextChange={setWheelSignatureContext}
                           activeRoleIdx={activeRoleIdx}
                           activeCenter={activeCenter}
                           onDeselect={() => {
