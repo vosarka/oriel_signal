@@ -214,8 +214,24 @@ export interface CodonWheelProps {
   onDeselect?: () => void;
 }
 
-type WheelLoadState = "anonymous" | "loading" | "none" | "ready" | "error";
-type BaseView = "field" | "mine";
+export type WheelLoadState =
+  | "anonymous"
+  | "loading"
+  | "none"
+  | "ready"
+  | "error";
+export type BaseView = "field" | "mine";
+
+export function resolveWheelView(
+  loadState: WheelLoadState,
+  baseView: BaseView,
+  focusedCodonId: number | null
+): WheelView {
+  if (focusedCodonId !== null) {
+    return { kind: "focus", codonId: focusedCodonId };
+  }
+  return loadState === "ready" ? { kind: baseView } : { kind: "field" };
+}
 
 const CX = 380;
 const CY = 380;
@@ -270,8 +286,6 @@ export function WheelSignatureControl({
   onRetry?: () => void;
 }) {
   const ready = state === "ready";
-  const label =
-    baseView === "mine" ? "SHOW THE FULL FIELD" : "SHOW MY SIGNATURE";
   const tooltip =
     state === "anonymous"
       ? "Sign in and calculate your Receiver record to reveal your signature."
@@ -285,15 +299,40 @@ export function WheelSignatureControl({
 
   return (
     <div className="cz-wheel-controls">
-      <button
-        type="button"
-        className="cz-wheel-signature-button"
-        disabled={!ready}
-        title={tooltip}
-        onClick={onToggle}
+      <div
+        className="cz-wheel-mode-switch"
+        role="group"
+        aria-label="Codon wheel view"
       >
-        {label}
-      </button>
+        <button
+          type="button"
+          className={`cz-wheel-mode-option cz-wheel-mode-option--field ${
+            baseView === "field" ? "is-active" : ""
+          }`}
+          aria-pressed={baseView === "field"}
+          onClick={() => {
+            if (baseView !== "field") onToggle();
+          }}
+        >
+          <span className="cz-wheel-mode-node" aria-hidden="true" />
+          Full Field
+        </button>
+        <button
+          type="button"
+          className={`cz-wheel-mode-option cz-wheel-mode-option--mine ${
+            baseView === "mine" ? "is-active" : ""
+          }`}
+          aria-pressed={baseView === "mine"}
+          disabled={!ready}
+          title={tooltip}
+          onClick={() => {
+            if (ready && baseView !== "mine") onToggle();
+          }}
+        >
+          <span className="cz-wheel-mode-node" aria-hidden="true" />
+          My Signature
+        </button>
+      </div>
       {state === "loading" && (
         <span className="cz-wheel-status">Receiving your stored signature…</span>
       )}
@@ -354,6 +393,8 @@ export function CodonWheelPlate({
     hoveredId === null ? view : { kind: "focus", codonId: hoveredId };
   const signatureContextVisible =
     showSignatureContext ?? view.kind !== "field";
+  const fieldSelectionId =
+    !signatureContextVisible && view.kind === "focus" ? view.codonId : null;
   const previousView = useRef<WheelView>(effectiveView);
   const wheelMotion = resolveWheelMotion(
     previousView.current,
@@ -377,12 +418,8 @@ export function CodonWheelPlate({
     [activations]
   );
   const visibleActivations = useMemo(() => {
-    if (effectiveView.kind === "field") return [];
-    if (signatureContextVisible) return activations;
-    if (effectiveView.kind !== "focus") return [];
-    return activations.filter(
-      activation => activation.codonId === effectiveView.codonId
-    );
+    if (effectiveView.kind === "field" || !signatureContextVisible) return [];
+    return activations;
   }, [activations, effectiveView, signatureContextVisible]);
   const visibleLitSet = useMemo(
     () => buildLitSet(visibleActivations),
@@ -469,6 +506,7 @@ export function CodonWheelPlate({
                 const key =
                   `${codonId}-${facet}-${layer}` as const;
                 const isVisibleActivation = visibleLitSet.has(key);
+                const isFieldSelection = fieldSelectionId === codonId;
                 return (
                   <path
                     key={`neutral-${codonId}-${facet}-${layer}`}
@@ -488,7 +526,7 @@ export function CodonWheelPlate({
                     )}
                     fill={NEUTRAL_HUE}
                     fillOpacity={
-                      isVisibleActivation
+                      isVisibleActivation || isFieldSelection
                         ? 0
                         : cellOpacity(false, effectiveView, codonId)
                     }
@@ -627,6 +665,42 @@ export function CodonWheelPlate({
             );
           })}
         </g>
+
+        {/* Full Field exploration colors one complete codon without borrowing or
+            mutating any facet from the Receiver's stored signature. */}
+        {fieldSelectionId !== null && (
+          <g aria-hidden="true">
+            {LAYERS.flatMap(layer =>
+              FACETS.map(facet => {
+                const radii = BAND_RADII[layer];
+                const start = cellAngle(fieldSelectionId, facet);
+                return (
+                  <path
+                    key={`field-selection-${fieldSelectionId}-${facet}-${layer}`}
+                    data-cell-kind="field-selection"
+                    data-codon-id={fieldSelectionId}
+                    data-facet={facet}
+                    data-layer={layer}
+                    d={wedge(
+                      CX,
+                      CY,
+                      radii.inner,
+                      radii.outer,
+                      start,
+                      start + FACET_SPAN
+                    )}
+                    fill={CENTER_HUE[CODON_CENTER[fieldSelectionId]]}
+                    fillOpacity={1}
+                    stroke={GROUND_HUE}
+                    strokeWidth="0.35"
+                    vectorEffect="non-scaling-stroke"
+                    style={{ transition: cellTransition }}
+                  />
+                );
+              })
+            )}
+          </g>
+        )}
 
         {/* One marker for each codon occupied in both layers. */}
         <g aria-hidden="true">
@@ -803,6 +877,7 @@ export function CodonWheelPlate({
             return (
               <path
                 key={`hit-${codonId}`}
+                data-hit-codon={codonId}
                 d={wedge(
                   CX,
                   CY,
@@ -957,17 +1032,16 @@ export function CodonWheel({
   }, [calculationKey]);
 
   useEffect(() => {
+    if (loadState !== "ready") setBaseView("field");
+  }, [loadState]);
+
+  useEffect(() => {
     if (previousSelectedId.current === selectedId) return;
     previousSelectedId.current = selectedId;
     setFocusedCodonId(selectedId);
   }, [selectedId]);
 
-  const view: WheelView =
-    loadState !== "ready"
-      ? { kind: "field" }
-      : focusedCodonId === null
-        ? { kind: baseView }
-        : { kind: "focus", codonId: focusedCodonId };
+  const view = resolveWheelView(loadState, baseView, focusedCodonId);
 
   const focusCodon = (codonId: number) => {
     setFocusedCodonId(codonId);
@@ -1017,27 +1091,69 @@ export function CodonWheel({
           margin-bottom: 12px;
           text-align: center;
         }
-        .cz-wheel-signature-button {
+        .cz-wheel-mode-switch {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(118px, 1fr));
+          width: min(100%, 300px);
+          padding: 2px;
+          border: 1px solid rgba(205, 161, 74, 0.3);
+          background:
+            linear-gradient(90deg, rgba(205, 161, 74, 0.045), rgba(111, 183, 199, 0.035)),
+            rgba(8, 7, 11, 0.72);
+          box-shadow: 0 0 24px rgba(205, 161, 74, 0.055);
+        }
+        .cz-wheel-mode-option {
+          min-height: 34px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
           font-family: var(--font-ritual, "JetBrains Mono", monospace);
           font-size: 9px;
           letter-spacing: 0.17em;
-          padding: 9px 16px;
-          border: 1px solid rgba(111, 183, 199, 0.46);
-          background: rgba(111, 183, 199, 0.025);
-          color: var(--cyan, #6fb7c7);
-          box-shadow: 0 0 18px rgba(111, 183, 199, 0.08);
+          text-transform: uppercase;
+          padding: 8px 12px;
+          border: 0;
+          background: transparent;
+          color: rgba(184, 175, 155, 0.52);
           cursor: pointer;
-          transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+          transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease;
         }
-        .cz-wheel-signature-button:hover:not(:disabled),
-        .cz-wheel-signature-button:focus-visible {
-          border-color: var(--cyan, #6fb7c7);
-          background: rgba(111, 183, 199, 0.08);
-          box-shadow: 0 0 24px rgba(111, 183, 199, 0.16);
-          outline: none;
+        .cz-wheel-mode-option + .cz-wheel-mode-option {
+          border-left: 1px solid rgba(205, 161, 74, 0.18);
         }
-        .cz-wheel-signature-button:disabled {
-          opacity: 0.38;
+        .cz-wheel-mode-option--field.is-active {
+          color: var(--gold2, #e8c477);
+          background: rgba(205, 161, 74, 0.11);
+          box-shadow: inset 0 -1px rgba(232, 196, 119, 0.62);
+        }
+        .cz-wheel-mode-option--mine.is-active {
+          color: var(--cyan, #6fb7c7);
+          background: rgba(111, 183, 199, 0.1);
+          box-shadow: inset 0 -1px rgba(111, 183, 199, 0.68);
+        }
+        .cz-wheel-mode-node {
+          width: 5px;
+          height: 5px;
+          border: 1px solid currentColor;
+          transform: rotate(45deg);
+          opacity: 0.7;
+          transition: background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+        }
+        .cz-wheel-mode-option.is-active .cz-wheel-mode-node {
+          background: currentColor;
+          box-shadow: 0 0 8px currentColor;
+          opacity: 1;
+        }
+        .cz-wheel-mode-option:hover:not(:disabled) {
+          color: var(--ink, #e8e4dc);
+        }
+        .cz-wheel-mode-option:focus-visible {
+          outline: 1px solid currentColor;
+          outline-offset: -2px;
+        }
+        .cz-wheel-mode-option:disabled {
+          opacity: 0.3;
           cursor: default;
           box-shadow: none;
         }
@@ -1145,7 +1261,8 @@ export function CodonWheel({
           border: 0;
         }
         @media (prefers-reduced-motion: reduce) {
-          .cz-wheel-signature-button {
+          .cz-wheel-mode-option,
+          .cz-wheel-mode-node {
             transition-duration: 120ms;
           }
         }

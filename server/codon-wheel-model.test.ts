@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   CodonWheelPlate,
   WheelSignatureControl,
+  resolveWheelView,
   type Codon,
 } from "../client/src/components/oriel-signal/CodonWheel";
 import {
@@ -689,22 +690,45 @@ describe("two-layer codon wheel model", () => {
     );
   });
 
-  it("does not reveal mine context when focus starts from the full field", () => {
+  it("colors the complete clicked codon without revealing mine context in the full field", () => {
     const markup = renderPlate(
       RECEIVER_ACTIVATIONS,
       { kind: "focus", codonId: 15 },
       false
     );
+    const selectedCells = [
+      ...markup.matchAll(
+        /<path data-cell-kind="field-selection" data-codon-id="15"[^>]+>/g
+      ),
+    ].map(match => match[0]);
 
+    expect(selectedCells).toHaveLength(FACETS.length * 2);
+    for (const path of selectedCells) {
+      expect(path).toContain(`fill="${CENTER_HUE.Bridge}"`);
+      expect(path).toContain('fill-opacity="1"');
+    }
     expect(markup).toMatch(
-      /data-cell-key="15-A-conscious"[^>]*fill-opacity="1"/
+      /data-cell-key="15-A-conscious"[^>]*fill-opacity="0"/
     );
     expect(markup).toMatch(
       /data-cell-key="29-A-conscious"[^>]*fill-opacity="0"/
     );
     expect(markup).toContain(
-      'aria-label="Codon wheel. 64 codons in two layers. 1 codons activated. 0 present in both layers."'
+      'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers."'
     );
+  });
+
+  it("keeps a clicked codon focus available without a personal wheel record", () => {
+    expect(resolveWheelView("anonymous", "field", 15)).toEqual({
+      kind: "focus",
+      codonId: 15,
+    });
+    expect(resolveWheelView("none", "field", 29)).toEqual({
+      kind: "focus",
+      codonId: 29,
+    });
+    expect(resolveWheelView("ready", "mine", null)).toEqual({ kind: "mine" });
+    expect(resolveWheelView("error", "mine", null)).toEqual({ kind: "field" });
   });
 
   it("scopes immutable client cache entries by authenticated Receiver", () => {
@@ -739,7 +763,9 @@ describe("two-layer codon wheel model", () => {
 
     expect(markup).toContain("<button");
     expect(markup).toContain("disabled");
-    expect(markup).toContain("SHOW MY SIGNATURE");
+    expect(markup).toContain("Full Field");
+    expect(markup).toContain("My Signature");
+    expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain("Calculate your Receiver record");
     expect(markup.match(/data-cell-kind="neutral"/g)?.length).toBe(512);
     expect(markup).not.toContain('data-cell-kind="lit"');
