@@ -11,6 +11,7 @@ import {
   type Facet,
   type Layer,
   type WheelCellSelection,
+  type WheelGeometry,
   type WheelSignatureContext,
 } from "@/components/oriel-signal/CodonWheel";
 import { CodonDetailPanel, type CodonDetail } from "@/components/oriel-signal/CodonDetailPanel";
@@ -60,6 +61,8 @@ export default function BioArchitecture() {
   const [selectedLayer, setSelectedLayer] = useState<Layer>("conscious");
   const [wheelViewPreference, setWheelViewPreference] =
     useState<BaseView | null>(null);
+  const [wheelGeometry, setWheelGeometry] =
+    useState<WheelGeometry>("numeric");
   const [wheelSignatureContext, setWheelSignatureContext] =
     useState<WheelSignatureContext>({
       mode: "field",
@@ -1523,8 +1526,10 @@ export default function BioArchitecture() {
                 selectedFacet={selectedFacetKey}
                 selectedLayer={selectedLayer}
                 viewPreference={wheelViewPreference}
+                geometryPreference={wheelGeometry}
                 onCellSelect={selectWheelCell}
                 onViewPreferenceChange={setWheelViewPreference}
+                onGeometryPreferenceChange={setWheelGeometry}
                 onSignatureContextChange={setWheelSignatureContext}
                 activeRoleIdx={activeRoleIdx}
                 activeCenter={activeCenter}
@@ -1588,8 +1593,10 @@ export default function BioArchitecture() {
                         selectedFacet={selectedFacetKey}
                         selectedLayer={selectedLayer}
                         viewPreference={wheelViewPreference}
+                        geometryPreference={wheelGeometry}
                         onCellSelect={selectWheelCell}
                         onViewPreferenceChange={setWheelViewPreference}
+                        onGeometryPreferenceChange={setWheelGeometry}
                         onSignatureContextChange={setWheelSignatureContext}
                         activeRoleIdx={activeRoleIdx}
                         activeCenter={activeCenter}
@@ -1645,8 +1652,10 @@ export default function BioArchitecture() {
                           selectedFacet={selectedFacetKey}
                           selectedLayer={selectedLayer}
                           viewPreference={wheelViewPreference}
+                          geometryPreference={wheelGeometry}
                           onCellSelect={selectWheelCell}
                           onViewPreferenceChange={setWheelViewPreference}
+                          onGeometryPreferenceChange={setWheelGeometry}
                           onSignatureContextChange={setWheelSignatureContext}
                           activeRoleIdx={activeRoleIdx}
                           activeCenter={activeCenter}

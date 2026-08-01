@@ -3,6 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  CODON_ARC as SERVER_CODON_ARC,
+  FACET_ARC as SERVER_FACET_ARC,
+  VRC_MANDALA as SERVER_VRC_MANDALA,
+  WHEEL_OFFSET as SERVER_WHEEL_OFFSET,
+} from "./vrc-mandala";
+
+import {
   CodonWheelPlate,
   WheelSignatureControl,
   resolveBaseView,
@@ -25,17 +32,23 @@ import {
   FACET_SPAN,
   FIELD_CELL_OPACITY,
   SEG,
+  VRC_MANDALA,
+  WHEEL_OFFSET,
   assertCodonCenterIntegrity,
   buildBothLayers,
   buildLitSet,
   cellAngle,
   cellOpacity,
+  codonMidAngle,
+  codonStartAngle,
   myWheelQueryKey,
   parseActivations,
   resolveWheelKey,
   resolveWheelMotion,
   summarizeCodonActivations,
   validateActivations,
+  wedge,
+  wheelSlotIndex,
   type Activation,
 } from "../shared/codon-wheel";
 
@@ -318,7 +331,7 @@ function pathTags(markup: string, kind: string) {
 }
 
 function attribute(tag: string, name: string) {
-  return tag.match(new RegExp(`${name}="([^"]+)"`))?.[1];
+  return tag.match(new RegExp(`(?:^|\\s)${name}="([^"]+)"`))?.[1];
 }
 
 describe("two-layer codon wheel model", () => {
@@ -338,6 +351,42 @@ describe("two-layer codon wheel model", () => {
     );
     expect(cellAngle(1, "A")).toBe(0);
     expect(cellAngle(64, "D") + FACET_SPAN).toBe(360);
+  });
+
+  it("shares one canonical astronomical Mandala with the server", () => {
+    expect(VRC_MANDALA).toHaveLength(64);
+    expect(new Set(VRC_MANDALA)).toHaveLength(64);
+    expect([...VRC_MANDALA].sort((a, b) => a - b)).toEqual(CODON_IDS);
+    expect(SERVER_VRC_MANDALA).toBe(VRC_MANDALA);
+    expect(WHEEL_OFFSET).toBe(11.25);
+    expect(SERVER_WHEEL_OFFSET).toBe(WHEEL_OFFSET);
+    expect(SERVER_CODON_ARC).toBe(SEG);
+    expect(SERVER_FACET_ARC).toBe(FACET_SPAN);
+  });
+
+  it("places the astronomical Mandala at its exact canonical slots", () => {
+    expect(wheelSlotIndex(51, "astronomical")).toBe(0);
+    expect(wheelSlotIndex(53, "astronomical")).toBe(16);
+    expect(wheelSlotIndex(57, "astronomical")).toBe(32);
+    expect(wheelSlotIndex(54, "astronomical")).toBe(48);
+    expect(wheelSlotIndex(1, "astronomical")).toBe(37);
+
+    expect(codonStartAngle(51, "astronomical")).toBe(0);
+    expect(codonStartAngle(53, "astronomical")).toBe(90);
+    expect(codonStartAngle(57, "astronomical")).toBe(180);
+    expect(codonStartAngle(54, "astronomical")).toBe(270);
+    expect(codonStartAngle(1, "astronomical")).toBe(208.125);
+    expect(codonMidAngle(51, "astronomical")).toBe(SEG / 2);
+    expect(cellAngle(21, "D", "astronomical") + FACET_SPAN).toBe(360);
+  });
+
+  it("keeps numeric geometry as the default and explicit regression path", () => {
+    expect(wheelSlotIndex(1)).toBe(0);
+    expect(wheelSlotIndex(64, "numeric")).toBe(63);
+    expect(codonStartAngle(1)).toBe(0);
+    expect(codonMidAngle(64, "numeric")).toBe(360 - SEG / 2);
+    expect(cellAngle(1, "A")).toBe(cellAngle(1, "A", "numeric"));
+    expect(cellAngle(64, "D", "numeric") + FACET_SPAN).toBe(360);
   });
 
   it("contains every codon exactly once and eight codons per centre", () => {
@@ -568,6 +617,29 @@ describe("two-layer codon wheel model", () => {
     expect(resolveWheelKey("Enter", 37)).toBeNull();
   });
 
+  it("moves keyboard focus through visible astronomical neighbours", () => {
+    expect(resolveWheelKey("Home", 1, "astronomical")).toEqual({
+      kind: "focus",
+      codonId: 51,
+    });
+    expect(resolveWheelKey("ArrowRight", 51, "astronomical")).toEqual({
+      kind: "focus",
+      codonId: 42,
+    });
+    expect(resolveWheelKey("ArrowDown", 21, "astronomical")).toEqual({
+      kind: "focus",
+      codonId: 51,
+    });
+    expect(resolveWheelKey("ArrowLeft", 51, "astronomical")).toEqual({
+      kind: "focus",
+      codonId: 21,
+    });
+    expect(resolveWheelKey("ArrowUp", 42, "astronomical")).toEqual({
+      kind: "focus",
+      codonId: 51,
+    });
+  });
+
   it("uses only the specified motion timings", () => {
     expect(
       resolveWheelMotion({ kind: "field" }, { kind: "mine" }, false)
@@ -640,11 +712,17 @@ describe("two-layer codon wheel model", () => {
     }
 
     expect(
-      renderedCells.map(({ layer, inner, outer }) => ({
-        layer,
-        inner,
-        outer,
-      }))
+      renderedCells
+        .map(({ layer, inner, outer }) => ({
+          layer,
+          inner,
+          outer,
+        }))
+        .sort(
+          (left, right) =>
+            (left.layer === "conscious" ? 0 : 1) -
+            (right.layer === "conscious" ? 0 : 1)
+        )
     ).toMatchInlineSnapshot(`
       [
         {
@@ -922,6 +1000,99 @@ describe("two-layer codon wheel model", () => {
     ).toEqual(Array(8).fill(8));
   });
 
+  it("renders exact astronomical cells and hit areas without exposing signature data", () => {
+    const withRecord = renderPlate(
+      RECEIVER_ACTIVATIONS,
+      { kind: "field" },
+      false,
+      { geometry: "astronomical" }
+    );
+    const withoutRecord = renderPlate([], { kind: "field" }, false, {
+      geometry: "astronomical",
+    });
+    const neutralCells = pathTags(withRecord, "neutral");
+    const hitCells = pathTags(withRecord, "hit");
+    const rc51ConsciousA = neutralCells.find(
+      cell =>
+        attribute(cell, "data-codon-id") === "51" &&
+        attribute(cell, "data-facet") === "A" &&
+        attribute(cell, "data-layer") === "conscious"
+    );
+    const rc51ConsciousAHit = hitCells.find(
+      cell =>
+        attribute(cell, "data-hit-codon") === "51" &&
+        attribute(cell, "data-hit-facet") === "A" &&
+        attribute(cell, "data-hit-layer") === "conscious"
+    );
+
+    expect(withRecord).toContain('data-wheel-geometry="astronomical"');
+    expect(withRecord).toContain(
+      'data-quadrant-name="INITIATION" data-quadrant-anchor-codon="51" data-quadrant-geometry="astronomical"'
+    );
+    expect(withRecord).toContain(
+      'data-quadrant-name="CIVILIZATION" data-quadrant-anchor-codon="53" data-quadrant-geometry="astronomical"'
+    );
+    expect(withRecord).toContain(
+      'data-quadrant-name="DUALITY" data-quadrant-anchor-codon="57" data-quadrant-geometry="astronomical"'
+    );
+    expect(withRecord).toContain(
+      'data-quadrant-name="MUTATION" data-quadrant-anchor-codon="54" data-quadrant-geometry="astronomical"'
+    );
+    expect(withRecord).toContain(
+      'data-codon-base="51" data-codon-base-rotation="78.75" transform="rotate(78.75 380 380)"'
+    );
+    expect(withRecord.match(/data-wheel-upright=/g)).toHaveLength(192);
+    expect(withRecord).toContain(
+      'data-wheel-upright="codon" data-upright-codon="51"'
+    );
+    expect(withRecord).toContain("transform:rotate(-78.75deg)");
+    expect(neutralCells).toHaveLength(512);
+    expect(hitCells).toHaveLength(512);
+    expect(attribute(rc51ConsciousA!, "d")).toBe(
+      wedge(
+        380,
+        380,
+        CONSCIOUS_INNER_RADIUS,
+        CONSCIOUS_OUTER_RADIUS,
+        codonStartAngle(51, "numeric"),
+        codonStartAngle(51, "numeric") + FACET_SPAN
+      )
+    );
+    expect(attribute(rc51ConsciousAHit!, "d")).toBe(
+      wedge(
+        380,
+        380,
+        BOTH_LAYER_RADIUS,
+        CONSCIOUS_OUTER_RADIUS,
+        codonStartAngle(51, "numeric"),
+        codonStartAngle(51, "numeric") + FACET_SPAN
+      )
+    );
+    expect(withRecord).toBe(withoutRecord);
+  });
+
+  it("brightens the exact selected facet in its conscious or design ring", () => {
+    const conscious = renderPlate([], { kind: "focus", codonId: 15 }, false, {
+      selectedFacet: "B",
+      selectedLayer: "conscious",
+    });
+    const design = renderPlate([], { kind: "focus", codonId: 15 }, false, {
+      selectedFacet: "D",
+      selectedLayer: "design",
+    });
+    const consciousSelection = pathTags(conscious, "selection")[0];
+    const designSelection = pathTags(design, "selection")[0];
+
+    expect(attribute(consciousSelection, "data-facet")).toBe("B");
+    expect(attribute(consciousSelection, "data-layer")).toBe("conscious");
+    expect(attribute(consciousSelection, "fill")).toBe("#e8c477");
+    expect(attribute(consciousSelection, "fill-opacity")).toBe("0.3");
+    expect(attribute(designSelection, "data-facet")).toBe("D");
+    expect(attribute(designSelection, "data-layer")).toBe("design");
+    expect(attribute(designSelection, "fill")).toBe("#6fb7c7");
+    expect(attribute(designSelection, "fill-opacity")).toBe("0.3");
+  });
+
   it("separates the centered hub symbol from its copy", () => {
     const markup = renderPlate([], { kind: "field" });
 
@@ -976,6 +1147,7 @@ describe("two-layer codon wheel model", () => {
     expect(markup).toContain("disabled");
     expect(markup).toContain("Full Field");
     expect(markup).toContain("My Signature");
+    expect(markup).toContain("Canonical / Astronomical");
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain("Calculate your Receiver record");
     expect(markup.match(/data-cell-kind="neutral"/g)?.length).toBe(512);

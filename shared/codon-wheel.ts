@@ -12,6 +12,7 @@ export const CENTER_HUE = {
 export type CenterName = keyof typeof CENTER_HUE;
 export type Facet = "A" | "B" | "C" | "D";
 export type Layer = "conscious" | "design";
+export type WheelGeometry = "numeric" | "astronomical";
 
 export interface Activation {
   planet: string;
@@ -44,11 +45,22 @@ export type WheelView =
   | { kind: "focus"; codonId: number };
 
 export const CODON_IDS = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-  37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
-  54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+  42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+  61, 62, 63, 64,
 ] as const;
+
+/** Tropical longitude at which astronomical Mandala slot 0 begins. */
+export const WHEEL_OFFSET = 11.25;
+
+/** Canonical 64-codon astronomical Mandala order, clockwise from slot 0. */
+export const VRC_MANDALA: readonly number[] = [
+  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39, 53, 62, 56, 31,
+  33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48, 57, 32, 50, 28, 44, 1, 43, 14,
+  34, 9, 5, 26, 11, 10, 58, 38, 54, 61, 60, 41, 19, 13, 49, 30, 55, 37, 63, 22,
+  36, 25, 17, 21,
+];
 
 type CodonId = (typeof CODON_IDS)[number];
 
@@ -142,6 +154,35 @@ export const MY_WHEEL_QUERY_KEY = [
   "receiver",
 ] as const;
 
+function orderForGeometry(geometry: WheelGeometry): readonly number[] {
+  return geometry === "astronomical" ? VRC_MANDALA : CODON_IDS;
+}
+
+export function wheelSlotIndex(
+  codonId: number,
+  geometry: WheelGeometry = "numeric"
+): number {
+  const slotIndex = orderForGeometry(geometry).indexOf(codonId);
+  if (slotIndex === -1) {
+    throw new RangeError(`Codon ${codonId} is outside the 64-codon wheel`);
+  }
+  return slotIndex;
+}
+
+export function codonStartAngle(
+  codonId: number,
+  geometry: WheelGeometry = "numeric"
+): number {
+  return wheelSlotIndex(codonId, geometry) * SEG;
+}
+
+export function codonMidAngle(
+  codonId: number,
+  geometry: WheelGeometry = "numeric"
+): number {
+  return codonStartAngle(codonId, geometry) + SEG / 2;
+}
+
 export function myWheelQueryKey(receiverId: number | null) {
   return [...MY_WHEEL_QUERY_KEY, receiverId ?? "anonymous"] as const;
 }
@@ -219,8 +260,14 @@ export function wedge(
 }
 
 /** Start angle of one facet cell. */
-export function cellAngle(codonId: number, facet: Facet): number {
-  return (codonId - 1) * SEG + FACETS.indexOf(facet) * FACET_SPAN;
+export function cellAngle(
+  codonId: number,
+  facet: Facet,
+  geometry: WheelGeometry = "numeric"
+): number {
+  return (
+    codonStartAngle(codonId, geometry) + FACETS.indexOf(facet) * FACET_SPAN
+  );
 }
 
 function activationError(index: number, field: string): Error {
@@ -283,9 +330,7 @@ export function parseActivations(value: unknown): Activation[] {
   return activations;
 }
 
-export function buildLitSet(
-  activations: readonly Activation[]
-): Set<CellKey> {
+export function buildLitSet(activations: readonly Activation[]): Set<CellKey> {
   const lit = new Set<CellKey>();
   for (const activation of activations) {
     lit.add(
@@ -412,10 +457,12 @@ export type WheelKeyAction =
 
 export function resolveWheelKey(
   key: string,
-  currentCodonId: number
+  currentCodonId: number,
+  geometry: WheelGeometry = "numeric"
 ): WheelKeyAction | null {
   if (key === "Escape") return { kind: "leave-focus" };
-  if (key === "Home") return { kind: "focus", codonId: 1 };
+  const order = orderForGeometry(geometry);
+  if (key === "Home") return { kind: "focus", codonId: order[0] };
 
   const delta =
     key === "ArrowRight" || key === "ArrowDown"
@@ -425,6 +472,7 @@ export function resolveWheelKey(
         : 0;
   if (delta === 0) return null;
 
-  const codonId = ((currentCodonId - 1 + delta + 64) % 64) + 1;
+  const currentSlot = wheelSlotIndex(currentCodonId, geometry);
+  const codonId = order[(currentSlot + delta + order.length) % order.length];
   return { kind: "focus", codonId };
 }

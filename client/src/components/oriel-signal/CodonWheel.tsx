@@ -21,6 +21,8 @@ import {
   buildLitSet,
   cellAngle,
   cellOpacity,
+  codonMidAngle,
+  codonStartAngle,
   markerOpacity,
   myWheelQueryKey,
   polar,
@@ -33,10 +35,12 @@ import {
   type CodonSignatureSummary,
   type Facet,
   type Layer,
+  type WheelGeometry,
   type WheelView,
 } from "@shared/codon-wheel";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { gsap } from "gsap";
 import * as React from "react";
 import {
   useEffect,
@@ -50,11 +54,13 @@ import {
 export {
   CENTER_HUE,
   CODON_CENTER,
+  VRC_MANDALA,
   type Activation,
   type CenterName,
   type CodonSignatureSummary,
   type Facet,
   type Layer,
+  type WheelGeometry,
   type WheelView,
 } from "@shared/codon-wheel";
 
@@ -62,15 +68,6 @@ export {
 export const CENTER_COLORS: Readonly<Record<string, string>> = CENTER_HUE;
 export const CODON_CENTER_MAP: Readonly<Record<number, CenterName>> =
   CODON_CENTER;
-
-// Retained for the separate ProfileCodonMandala. The two-layer Receiver wheel
-// below deliberately uses numeric codon order to match the print geometry.
-export const VRC_MANDALA: readonly number[] = [
-  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39, 53, 62, 56,
-  31, 33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48, 57, 32, 50, 28, 44, 1,
-  43, 14, 34, 9, 5, 26, 11, 10, 58, 38, 54, 61, 60, 41, 19, 13, 49, 30, 55,
-  37, 63, 22, 36, 25, 17, 21,
-];
 
 export const CENTERS = [
   { name: "Origin", desc: "the initiating pressure beneath all form" },
@@ -216,8 +213,10 @@ export interface CodonWheelProps {
   selectedFacet?: Facet;
   selectedLayer?: Layer;
   viewPreference?: BaseView | null;
+  geometryPreference?: WheelGeometry;
   onCellSelect?: (selection: WheelCellSelection) => void;
   onViewPreferenceChange?: (view: BaseView) => void;
+  onGeometryPreferenceChange?: (geometry: WheelGeometry) => void;
   onSignatureContextChange?: (context: WheelSignatureContext) => void;
   activeRoleIdx?: number | null;
   activeCenter?: CenterName | null;
@@ -310,10 +309,10 @@ const CY = 380;
 const CENTER_BAND_OUTER = 244;
 const CENTER_BAND_INNER = 206;
 const QUADRANTS = [
-  { name: "INITIATION", startCodon: 1 },
-  { name: "CIVILIZATION", startCodon: 17 },
-  { name: "DUALITY", startCodon: 33 },
-  { name: "MUTATION", startCodon: 49 },
+  { name: "INITIATION", numericAnchor: 1, astronomicalAnchor: 51 },
+  { name: "CIVILIZATION", numericAnchor: 17, astronomicalAnchor: 53 },
+  { name: "DUALITY", numericAnchor: 33, astronomicalAnchor: 57 },
+  { name: "MUTATION", numericAnchor: 49, astronomicalAnchor: 54 },
 ] as const;
 
 function labelArcPath(
@@ -346,15 +345,25 @@ function facetsForCodon(
   );
 }
 
+function shortestAngularDelta(fromAngle: number, toAngle: number) {
+  const raw = toAngle - fromAngle;
+  const delta = ((raw + 540) % 360) - 180;
+  return delta === -180 && raw > 0 ? 180 : delta;
+}
+
 export function WheelSignatureControl({
   state,
   baseView,
+  geometry = "numeric",
   onToggle,
+  onGeometryToggle = () => undefined,
   onRetry,
 }: {
   state: WheelLoadState;
   baseView: BaseView;
+  geometry?: WheelGeometry;
   onToggle: (nextView: BaseView) => void;
+  onGeometryToggle?: (geometry: WheelGeometry) => void;
   onRetry?: () => void;
 }) {
   const ready = state === "ready";
@@ -405,8 +414,26 @@ export function WheelSignatureControl({
           My Signature
         </button>
       </div>
+      <button
+        type="button"
+        className={`cz-wheel-mode-option cz-wheel-geometry-toggle ${
+          geometry === "astronomical" ? "is-active" : ""
+        }`}
+        aria-pressed={geometry === "astronomical"}
+        aria-label="Use canonical astronomical Mandala geometry"
+        onClick={() =>
+          onGeometryToggle(
+            geometry === "astronomical" ? "numeric" : "astronomical"
+          )
+        }
+      >
+        <span className="cz-wheel-mode-node" aria-hidden="true" />
+        Canonical / Astronomical
+      </button>
       {state === "loading" && (
-        <span className="cz-wheel-status">Receiving your stored signature…</span>
+        <span className="cz-wheel-status">
+          Receiving your stored signature…
+        </span>
       )}
       {state === "anonymous" && (
         <span className="cz-wheel-status">
@@ -421,11 +448,7 @@ export function WheelSignatureControl({
       {state === "error" && (
         <span className="cz-wheel-status">
           Your signature could not be read.{" "}
-          <button
-            type="button"
-            className="cz-wheel-retry"
-            onClick={onRetry}
-          >
+          <button type="button" className="cz-wheel-retry" onClick={onRetry}>
             Retry
           </button>
         </span>
@@ -439,6 +462,7 @@ export interface CodonWheelPlateProps {
   selectedId: number;
   selectedFacet?: Facet;
   selectedLayer?: Layer;
+  geometry?: WheelGeometry;
   activations: readonly Activation[];
   view: WheelView;
   onFocus?: (codonId: number) => void;
@@ -456,6 +480,7 @@ export function CodonWheelPlate({
   selectedId,
   selectedFacet = "A",
   selectedLayer = "conscious",
+  geometry = "numeric",
   activations,
   view,
   onFocus,
@@ -468,14 +493,17 @@ export function CodonWheelPlate({
   onDeselect,
 }: CodonWheelPlateProps) {
   const reducedMotion = Boolean(useReducedMotion());
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const geometryTimeline = useRef<gsap.core.Timeline | null>(null);
+  const renderedGeometry = useRef<WheelGeometry>(geometry);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [geometryAnimating, setGeometryAnimating] = useState(false);
   const effectiveView: WheelView =
     hoveredId === null ? view : { kind: "focus", codonId: hoveredId };
-  const signatureContextVisible =
-    showSignatureContext ?? view.kind !== "field";
+  const signatureContextVisible = showSignatureContext ?? view.kind !== "field";
   const fullFieldVisible = !signatureContextVisible;
   const fieldCenterSelection =
-    fullFieldVisible && view.kind !== "focus" ? activeCenter ?? null : null;
+    fullFieldVisible && view.kind !== "focus" ? (activeCenter ?? null) : null;
   const fieldSelectionId =
     fullFieldVisible && fieldCenterSelection === null && view.kind === "focus"
       ? view.codonId
@@ -490,6 +518,183 @@ export function CodonWheelPlate({
   useEffect(() => {
     previousView.current = effectiveView;
   }, [effectiveView]);
+
+  useEffect(
+    () => () => {
+      geometryTimeline.current?.kill();
+    },
+    []
+  );
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const previousGeometry = renderedGeometry.current;
+    const orbitGroups = Array.from(
+      svg.querySelectorAll<SVGGElement>("[data-codon-orbit]")
+    );
+    const uprightGlyphs = Array.from(
+      svg.querySelectorAll<SVGImageElement>("[data-wheel-upright]")
+    );
+    if (reducedMotion) {
+      geometryTimeline.current?.kill();
+      delete svg.dataset.geometryAnimating;
+      setGeometryAnimating(false);
+      gsap.set(orbitGroups, {
+        clearProps: "transform",
+      });
+      for (const glyph of uprightGlyphs) {
+        const codonId = Number(glyph.dataset.uprightCodon);
+        const baseRotation = shortestAngularDelta(
+          codonStartAngle(codonId, "numeric"),
+          codonStartAngle(codonId, geometry)
+        );
+        gsap.set(glyph, { rotation: -baseRotation });
+      }
+      svg.style.removeProperty("--wheel-secondary-opacity");
+      svg.style.removeProperty("--wheel-central-opacity");
+      renderedGeometry.current = geometry;
+      geometryTimeline.current = null;
+      return;
+    }
+
+    if (previousGeometry === geometry) return;
+
+    const primaryOrbitByCodon = new Map<number, SVGGElement>();
+
+    for (const group of orbitGroups) {
+      const codonId = Number(group.dataset.codonOrbit);
+      if (!primaryOrbitByCodon.has(codonId)) {
+        primaryOrbitByCodon.set(codonId, group);
+      }
+    }
+
+    const inverseRotationByCodon = new Map<number, number>();
+    for (const codonId of CODON_IDS) {
+      const primaryOrbit = primaryOrbitByCodon.get(codonId);
+      const currentRotation = primaryOrbit
+        ? Number(gsap.getProperty(primaryOrbit, "rotation")) || 0
+        : 0;
+      const currentVisualAngle =
+        codonStartAngle(codonId, previousGeometry) + currentRotation;
+      inverseRotationByCodon.set(
+        codonId,
+        shortestAngularDelta(
+          codonStartAngle(codonId, geometry),
+          currentVisualAngle
+        )
+      );
+    }
+
+    geometryTimeline.current?.kill();
+    renderedGeometry.current = geometry;
+    svg.dataset.geometryAnimating = "true";
+    setGeometryAnimating(true);
+    if (!svg.style.getPropertyValue("--wheel-secondary-opacity")) {
+      svg.style.setProperty("--wheel-secondary-opacity", "1");
+    }
+    if (!svg.style.getPropertyValue("--wheel-central-opacity")) {
+      svg.style.setProperty("--wheel-central-opacity", "1");
+    }
+
+    for (const group of orbitGroups) {
+      const codonId = Number(group.dataset.codonOrbit);
+      gsap.set(group, {
+        rotation: inverseRotationByCodon.get(codonId) ?? 0,
+        svgOrigin: `${CX} ${CY}`,
+      });
+    }
+    for (const glyph of uprightGlyphs) {
+      const codonId = Number(glyph.dataset.uprightCodon);
+      const baseRotation = shortestAngularDelta(
+        codonStartAngle(codonId, "numeric"),
+        codonStartAngle(codonId, geometry)
+      );
+      gsap.set(glyph, {
+        rotation: -(baseRotation + (inverseRotationByCodon.get(codonId) ?? 0)),
+      });
+    }
+    const timeline = gsap.timeline({
+      onComplete: () => {
+        if (geometryTimeline.current !== timeline) return;
+        delete svg.dataset.geometryAnimating;
+        setGeometryAnimating(false);
+        gsap.set(orbitGroups, {
+          clearProps: "transform",
+        });
+        svg.style.removeProperty("--wheel-secondary-opacity");
+        svg.style.removeProperty("--wheel-central-opacity");
+        geometryTimeline.current = null;
+      },
+    });
+    geometryTimeline.current = timeline;
+
+    timeline
+      .to(
+        svg,
+        {
+          "--wheel-secondary-opacity": 0.2,
+          duration: 0.18,
+          ease: "power1.out",
+        },
+        0
+      )
+      .to(
+        svg,
+        {
+          "--wheel-central-opacity": 0.32,
+          duration: 0.22,
+          ease: "power1.out",
+        },
+        0
+      )
+      .to(
+        orbitGroups,
+        {
+          rotation: 0,
+          svgOrigin: `${CX} ${CY}`,
+          duration: 1,
+          ease: "power3.inOut",
+          overwrite: "auto",
+        },
+        0.1
+      )
+      .to(
+        uprightGlyphs,
+        {
+          rotation: (_index, glyph: SVGImageElement) => {
+            const codonId = Number(glyph.dataset.uprightCodon);
+            return -shortestAngularDelta(
+              codonStartAngle(codonId, "numeric"),
+              codonStartAngle(codonId, geometry)
+            );
+          },
+          duration: 1,
+          ease: "power3.inOut",
+          overwrite: "auto",
+        },
+        0.1
+      )
+      .to(
+        svg,
+        {
+          "--wheel-central-opacity": 1,
+          duration: 0.28,
+          ease: "power1.out",
+        },
+        0.88
+      )
+      .to(
+        svg,
+        {
+          "--wheel-secondary-opacity": 1,
+          duration: 0.22,
+          ease: "power1.out",
+        },
+        0.98
+      );
+  }, [geometry, reducedMotion]);
 
   const codonById = useMemo(
     () => new Map(codons.map(codon => [codon.id, codon])),
@@ -510,8 +715,7 @@ export function CodonWheelPlate({
     [visibleActivations]
   );
   const occupiedCodons = useMemo(
-    () =>
-      new Set(visibleActivations.map(activation => activation.codonId)),
+    () => new Set(visibleActivations.map(activation => activation.codonId)),
     [visibleActivations]
   );
   const selectedCode = `RC${String(selectedId).padStart(2, "0")}`;
@@ -520,14 +724,13 @@ export function CodonWheelPlate({
   const cellTransition = `fill-opacity ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
   const markerTransition = `${transition}, r ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
   const selectionRadii = BAND_RADII[selectedLayer];
-  const selectionStart = cellAngle(selectedId, selectedFacet);
-  const selectionHue =
-    selectedLayer === "conscious" ? "#e8c477" : "#6fb7c7";
+  const selectionStart = cellAngle(selectedId, selectedFacet, "numeric");
+  const selectionHue = selectedLayer === "conscious" ? "#e8c477" : "#6fb7c7";
 
   const handleKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
     const currentCodonId =
       effectiveView.kind === "focus" ? effectiveView.codonId : selectedId;
-    const action = resolveWheelKey(event.key, currentCodonId);
+    const action = resolveWheelKey(event.key, currentCodonId, geometry);
     if (!action) return;
     event.preventDefault();
     if (action.kind === "leave-focus") {
@@ -540,8 +743,10 @@ export function CodonWheelPlate({
   return (
     <div className="cz-wheel-aspect">
       <svg
+        ref={svgRef}
         viewBox="0 0 760 760"
         className="cz-wheel-svg"
+        data-wheel-geometry={geometry}
         role="group"
         aria-label={ariaLabel}
         tabIndex={0}
@@ -560,11 +765,18 @@ export function CodonWheelPlate({
             <stop offset="100%" stopColor="rgba(8,7,11,0)" />
           </radialGradient>
           {QUADRANTS.map(quadrant => {
-            const midAngle = (quadrant.startCodon - 1) * SEG + 45;
+            const anchorCodon =
+              geometry === "astronomical"
+                ? quadrant.astronomicalAnchor
+                : quadrant.numericAnchor;
+            const midAngle = codonStartAngle(anchorCodon, geometry) + 45;
             return (
               <path
                 key={quadrant.name}
-                id={`quadrant-arc-${quadrant.startCodon}`}
+                id={`quadrant-arc-${quadrant.name.toLowerCase()}`}
+                data-quadrant-name={quadrant.name}
+                data-quadrant-anchor-codon={anchorCodon}
+                data-quadrant-geometry={geometry}
                 d={labelArcPath(CX, CY, 366, midAngle, 24)}
                 fill="none"
               />
@@ -581,122 +793,432 @@ export function CodonWheelPlate({
           aria-hidden="true"
         />
 
-        {/* Neutral cells: two bands × 64 codons × four facets. */}
+        {/* One composite transform per codon keeps all visible facets, marks,
+            activations, and selection overlays on the same circular route. */}
         <g aria-hidden="true">
-          {LAYERS.flatMap(layer =>
-            CODON_IDS.flatMap(codonId =>
-              FACETS.map(facet => {
-                const start = cellAngle(codonId, facet);
-                const radii = BAND_RADII[layer];
-                const key =
-                  `${codonId}-${facet}-${layer}` as const;
-                const isVisibleActivation = visibleLitSet.has(key);
-                const isFieldSelection = fieldSelectionId === codonId;
-                const isCenterSelection =
-                  fieldCenterSelection === CODON_CENTER[codonId];
-                return (
-                  <path
-                    key={`neutral-${codonId}-${facet}-${layer}`}
-                    data-cell-kind="neutral"
-                    data-codon-id={codonId}
-                    data-facet={facet}
-                    data-layer={layer}
-                    data-inner-radius={radii.inner}
-                    data-outer-radius={radii.outer}
-                    d={wedge(
-                      CX,
-                      CY,
-                      radii.inner,
-                      radii.outer,
-                      start,
-                      start + FACET_SPAN
-                    )}
-                    fill={
-                      fullFieldVisible
-                        ? CENTER_HUE[CODON_CENTER[codonId]]
-                        : NEUTRAL_HUE
-                    }
-                    fillOpacity={
-                      isVisibleActivation || isFieldSelection
-                        ? 0
-                        : fullFieldVisible
-                          ? isCenterSelection
-                            ? 1
-                            : FIELD_CELL_OPACITY
-                          : cellOpacity(false, effectiveView, codonId)
-                    }
-                    stroke="none"
-                    style={{ transition: cellTransition }}
-                  />
-                );
-              })
-            )
-          )}
-        </g>
-
-        {/* Facet hairlines stay inside their own band. */}
-        <g
-          fill="none"
-          stroke={GROUND_HUE}
-          strokeWidth="0.55"
-          vectorEffect="non-scaling-stroke"
-          aria-hidden="true"
-        >
-          {LAYERS.flatMap(layer =>
-            CODON_IDS.flatMap(codonId =>
-              FACETS.slice(1).map(facet => {
-                const angle = cellAngle(codonId, facet);
-                const radii = BAND_RADII[layer];
-                const p0 = polar(CX, CY, radii.inner, angle);
-                const p1 = polar(CX, CY, radii.outer, angle);
-                return (
-                  <line
-                    key={`facet-line-${codonId}-${facet}-${layer}`}
-                    x1={p0.x}
-                    y1={p0.y}
-                    x2={p1.x}
-                    y2={p1.y}
-                  />
-                );
-              })
-            )
-          )}
-        </g>
-
-        {/* Codon boundaries cross both bands and their intervening gap. */}
-        <g
-          fill="none"
-          stroke={NEUTRAL_HUE}
-          strokeWidth="0.7"
-          vectorEffect="non-scaling-stroke"
-          aria-hidden="true"
-        >
           {CODON_IDS.map(codonId => {
-            const angle = (codonId - 1) * SEG;
-            const p0 = polar(CX, CY, DESIGN_INNER_RADIUS, angle);
-            const p1 = polar(CX, CY, CONSCIOUS_OUTER_RADIUS, angle);
+            const codon = codonById.get(codonId);
+            const codonStart = codonStartAngle(codonId, "numeric");
+            const midAngle = codonMidAngle(codonId, "numeric");
+            const baseRotation = shortestAngularDelta(
+              codonStart,
+              codonStartAngle(codonId, geometry)
+            );
+            const center = CODON_CENTER[codonId];
+            const isFieldSelection = fieldSelectionId === codonId;
+            const isCenterSelection = fieldCenterSelection === center;
+            const centerDimmed =
+              fieldCenterSelection !== null && !isCenterSelection;
+            const focused =
+              effectiveView.kind === "focus" &&
+              effectiveView.codonId === codonId;
+            const roleIndex = Math.floor((codonId - 1) / 4);
+            const roleActive =
+              activeRoleIdx === null ||
+              activeRoleIdx === undefined ||
+              activeRoleIdx === roleIndex;
+            const centerActive = !activeCenter || activeCenter === center;
+            const glyphPoint = polar(
+              CX,
+              CY,
+              (CONSCIOUS_INNER_RADIUS + CONSCIOUS_OUTER_RADIUS) / 2,
+              midAngle
+            );
+            const rolePoint = polar(CX, CY, DESIGN_INNER_RADIUS - 11, midAngle);
+            const bothPoint = polar(CX, CY, BOTH_LAYER_RADIUS, midAngle);
+            const centerPoint = polar(
+              CX,
+              CY,
+              (CENTER_BAND_INNER + CENTER_BAND_OUTER) / 2,
+              midAngle
+            );
+            const boundaryInner = polar(
+              CX,
+              CY,
+              DESIGN_INNER_RADIUS,
+              codonStart
+            );
+            const boundaryOuter = polar(
+              CX,
+              CY,
+              CONSCIOUS_OUTER_RADIUS,
+              codonStart
+            );
+
             return (
-              <line
-                key={`boundary-${codonId}`}
-                data-boundary-codon={codonId}
-                x1={p0.x}
-                y1={p0.y}
-                x2={p1.x}
-                y2={p1.y}
-                opacity={boundaryOpacity(effectiveView, codonId)}
-                style={{ transition }}
-              />
+              <g
+                key={`codon-base-${codonId}`}
+                data-codon-base={codonId}
+                data-codon-base-rotation={baseRotation}
+                transform={`rotate(${baseRotation} ${CX} ${CY})`}
+              >
+                <g data-codon-orbit={codonId}>
+                  {LAYERS.flatMap(layer =>
+                    FACETS.map(facet => {
+                      const start = cellAngle(codonId, facet, "numeric");
+                      const radii = BAND_RADII[layer];
+                      const key = `${codonId}-${facet}-${layer}` as const;
+                      const isVisibleActivation = visibleLitSet.has(key);
+                      return (
+                        <path
+                          key={`neutral-${codonId}-${facet}-${layer}`}
+                          data-cell-kind="neutral"
+                          data-codon-id={codonId}
+                          data-facet={facet}
+                          data-layer={layer}
+                          data-inner-radius={radii.inner}
+                          data-outer-radius={radii.outer}
+                          d={wedge(
+                            CX,
+                            CY,
+                            radii.inner,
+                            radii.outer,
+                            start,
+                            start + FACET_SPAN
+                          )}
+                          fill={
+                            fullFieldVisible ? CENTER_HUE[center] : NEUTRAL_HUE
+                          }
+                          fillOpacity={
+                            isVisibleActivation || isFieldSelection
+                              ? 0
+                              : fullFieldVisible
+                                ? isCenterSelection
+                                  ? 1
+                                  : FIELD_CELL_OPACITY
+                                : cellOpacity(false, effectiveView, codonId)
+                          }
+                          stroke="none"
+                          style={{ transition: cellTransition }}
+                        />
+                      );
+                    })
+                  )}
+
+                  <g
+                    fill="none"
+                    stroke={GROUND_HUE}
+                    strokeWidth="0.55"
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {LAYERS.flatMap(layer =>
+                      FACETS.slice(1).map(facet => {
+                        const angle = cellAngle(codonId, facet, "numeric");
+                        const radii = BAND_RADII[layer];
+                        const p0 = polar(CX, CY, radii.inner, angle);
+                        const p1 = polar(CX, CY, radii.outer, angle);
+                        return (
+                          <line
+                            key={`facet-line-${codonId}-${facet}-${layer}`}
+                            x1={p0.x}
+                            y1={p0.y}
+                            x2={p1.x}
+                            y2={p1.y}
+                          />
+                        );
+                      })
+                    )}
+                  </g>
+
+                  <line
+                    data-boundary-codon={codonId}
+                    x1={boundaryInner.x}
+                    y1={boundaryInner.y}
+                    x2={boundaryOuter.x}
+                    y2={boundaryOuter.y}
+                    fill="none"
+                    stroke={NEUTRAL_HUE}
+                    strokeWidth="0.7"
+                    vectorEffect="non-scaling-stroke"
+                    opacity={boundaryOpacity(effectiveView, codonId)}
+                    style={{ transition }}
+                  />
+
+                  {LAYERS.flatMap(layer =>
+                    FACETS.map(facet => {
+                      const key = `${codonId}-${facet}-${layer}` as const;
+                      if (!visibleLitSet.has(key)) return null;
+                      const radii = BAND_RADII[layer];
+                      const start = cellAngle(codonId, facet, "numeric");
+                      const delay =
+                        wheelMotion.staggerMs === 0
+                          ? 0
+                          : (codonId - 1) * wheelMotion.staggerMs;
+                      return (
+                        <path
+                          key={`lit-${key}`}
+                          data-cell-kind="lit"
+                          data-cell-key={key}
+                          data-codon-id={codonId}
+                          data-facet={facet}
+                          data-layer={layer}
+                          data-inner-radius={radii.inner}
+                          data-outer-radius={radii.outer}
+                          d={wedge(
+                            CX,
+                            CY,
+                            radii.inner,
+                            radii.outer,
+                            start,
+                            start + FACET_SPAN
+                          )}
+                          fill={CENTER_HUE[center]}
+                          fillOpacity={cellOpacity(
+                            true,
+                            effectiveView,
+                            codonId
+                          )}
+                          stroke="none"
+                          style={{
+                            transition: cellTransition,
+                            transitionDelay: `${delay}ms`,
+                          }}
+                        />
+                      );
+                    })
+                  )}
+
+                  {isFieldSelection &&
+                    LAYERS.flatMap(layer =>
+                      FACETS.map(facet => {
+                        const radii = BAND_RADII[layer];
+                        const start = cellAngle(codonId, facet, "numeric");
+                        return (
+                          <path
+                            key={`field-selection-${codonId}-${facet}-${layer}`}
+                            data-cell-kind="field-selection"
+                            data-codon-id={codonId}
+                            data-facet={facet}
+                            data-layer={layer}
+                            d={wedge(
+                              CX,
+                              CY,
+                              radii.inner,
+                              radii.outer,
+                              start,
+                              start + FACET_SPAN
+                            )}
+                            fill={CENTER_HUE[center]}
+                            fillOpacity={1}
+                            stroke={GROUND_HUE}
+                            strokeWidth="0.35"
+                            vectorEffect="non-scaling-stroke"
+                            style={{ transition: cellTransition }}
+                          />
+                        );
+                      })
+                    )}
+
+                  {visibleBothLayers.has(codonId) && (
+                    <circle
+                      data-both-layer-codon={codonId}
+                      cx={bothPoint.x}
+                      cy={bothPoint.y}
+                      r={focused ? 4.2 : 2.6}
+                      fill={CENTER_HUE[center]}
+                      opacity={markerOpacity(effectiveView, codonId)}
+                      style={{ transition: markerTransition }}
+                    />
+                  )}
+
+                  {codon && (
+                    <g data-wheel-secondary="glyphs" pointerEvents="none">
+                      <g opacity={roleActive && centerActive ? 0.72 : 0.22}>
+                        <image
+                          data-wheel-upright="codon"
+                          data-upright-codon={codonId}
+                          href={`/symbols/${codon.code}.png`}
+                          x={glyphPoint.x - 7}
+                          y={glyphPoint.y - 7}
+                          width="14"
+                          height="14"
+                          preserveAspectRatio="xMidYMid meet"
+                          style={{
+                            filter: "brightness(0)",
+                            transform: `rotate(${-baseRotation}deg)`,
+                            transformBox: "fill-box",
+                            transformOrigin: "center",
+                          }}
+                        />
+                        <image
+                          data-wheel-upright="role"
+                          data-upright-codon={codonId}
+                          href={ROLE_VECTORS[roleIndex]}
+                          x={rolePoint.x - 4.5}
+                          y={rolePoint.y - 4.5}
+                          width="9"
+                          height="9"
+                          preserveAspectRatio="xMidYMid meet"
+                          style={{
+                            filter: "brightness(0)",
+                            transform: `rotate(${-baseRotation}deg)`,
+                            transformBox: "fill-box",
+                            transformOrigin: "center",
+                          }}
+                        />
+                      </g>
+                    </g>
+                  )}
+
+                  <g
+                    data-wheel-central-highlight="center-band"
+                    pointerEvents="none"
+                  >
+                    <path
+                      d={wedge(
+                        CX,
+                        CY,
+                        CENTER_BAND_INNER,
+                        CENTER_BAND_OUTER,
+                        codonStart,
+                        codonStart + SEG
+                      )}
+                      fill={
+                        isCenterSelection ? CENTER_HUE[center] : NEUTRAL_HUE
+                      }
+                      fillOpacity={isCenterSelection ? 0.34 : 0.035}
+                      stroke={GROUND_HUE}
+                      strokeWidth="0.4"
+                    />
+                    <image
+                      data-wheel-upright="center"
+                      data-upright-codon={codonId}
+                      href={`/9-centers/${CENTER_SYMBOL[center]}.png`}
+                      x={centerPoint.x - 6}
+                      y={centerPoint.y - 6}
+                      width="12"
+                      height="12"
+                      preserveAspectRatio="xMidYMid meet"
+                      opacity={
+                        isCenterSelection ? 0.96 : centerDimmed ? 0.18 : 0.42
+                      }
+                      style={{
+                        filter: "brightness(0) invert(0.72)",
+                        transform: `rotate(${-baseRotation}deg)`,
+                        transformBox: "fill-box",
+                        transformOrigin: "center",
+                      }}
+                    />
+                  </g>
+
+                  {focused && (
+                    <g
+                      data-focus-codon={codonId}
+                      fill="none"
+                      stroke="#fff8ec"
+                      strokeWidth="1.15"
+                      opacity="0.72"
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                    >
+                      {LAYERS.map(layer => {
+                        const radii = BAND_RADII[layer];
+                        return (
+                          <path
+                            key={`focus-${layer}`}
+                            d={wedge(
+                              CX,
+                              CY,
+                              radii.inner,
+                              radii.outer,
+                              codonStart,
+                              codonStart + SEG
+                            )}
+                            style={{ transition }}
+                          />
+                        );
+                      })}
+                    </g>
+                  )}
+
+                  {fieldCenterSelection === null && selectedId === codonId && (
+                    <path
+                      data-cell-kind="selection"
+                      data-codon-id={selectedId}
+                      data-facet={selectedFacet}
+                      data-layer={selectedLayer}
+                      d={wedge(
+                        CX,
+                        CY,
+                        selectionRadii.inner,
+                        selectionRadii.outer,
+                        selectionStart,
+                        selectionStart + FACET_SPAN
+                      )}
+                      fill={selectionHue}
+                      fillOpacity="0.3"
+                      stroke={selectionHue}
+                      strokeWidth="2.35"
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                    />
+                  )}
+
+                  <g
+                    className="cz-cell-hit-layer"
+                    fill="transparent"
+                    stroke="none"
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    {LAYERS.flatMap(layer =>
+                      FACETS.map(facet => {
+                        const start = cellAngle(codonId, facet, "numeric");
+                        const radii = BAND_RADII[layer];
+                        const hitInnerRadius =
+                          layer === "conscious"
+                            ? BOTH_LAYER_RADIUS
+                            : radii.inner;
+                        const hitOuterRadius =
+                          layer === "design" ? BOTH_LAYER_RADIUS : radii.outer;
+                        return (
+                          <path
+                            key={`hit-${codonId}-${facet}-${layer}`}
+                            data-cell-kind="hit"
+                            data-hit-codon={codonId}
+                            data-hit-facet={facet}
+                            data-hit-layer={layer}
+                            data-hit-inner-radius={hitInnerRadius}
+                            data-hit-outer-radius={hitOuterRadius}
+                            d={wedge(
+                              CX,
+                              CY,
+                              hitInnerRadius,
+                              hitOuterRadius,
+                              start,
+                              start + FACET_SPAN
+                            )}
+                            pointerEvents="all"
+                            style={{ cursor: "pointer" }}
+                            onMouseEnter={() => setHoveredId(codonId)}
+                            onClick={event => {
+                              event.stopPropagation();
+                              onCellSelect?.({ codonId, facet, layer });
+                            }}
+                          >
+                            <title>
+                              {codon
+                                ? `${codon.code} · ${codon.name} · Facet ${facet} · ${layer === "conscious" ? "Conscious" : "Design"}`
+                                : `Codon ${codonId} · Facet ${facet} · ${layer}`}
+                            </title>
+                          </path>
+                        );
+                      })
+                    )}
+                  </g>
+                </g>
+              </g>
             );
           })}
         </g>
 
-        {/* Exact band edges. */}
+        {/* Exact band edges remain fixed while codons travel beneath them. */}
         <g
           fill="none"
           stroke={NEUTRAL_HUE}
           strokeWidth="0.7"
           opacity="0.4"
           vectorEffect="non-scaling-stroke"
+          pointerEvents="none"
           aria-hidden="true"
         >
           {[
@@ -709,204 +1231,16 @@ export function CodonWheelPlate({
           ))}
         </g>
 
-        {/* Deduplicated activated cell overlays. */}
-        <g aria-hidden="true">
-          {[...visibleLitSet].map(key => {
-            const [codonText, facetText, layerText] = key.split("-");
-            const codonId = Number(codonText);
-            const facet = facetText as Facet;
-            const layer = layerText as Layer;
-            const radii = BAND_RADII[layer];
-            const start = cellAngle(codonId, facet);
-            const delay =
-              wheelMotion.staggerMs === 0
-                ? 0
-                : (codonId - 1) * wheelMotion.staggerMs;
-            return (
-              <path
-                key={`lit-${key}`}
-                data-cell-kind="lit"
-                data-cell-key={key}
-                data-codon-id={codonId}
-                data-facet={facet}
-                data-layer={layer}
-                data-inner-radius={radii.inner}
-                data-outer-radius={radii.outer}
-                d={wedge(
-                  CX,
-                  CY,
-                  radii.inner,
-                  radii.outer,
-                  start,
-                  start + FACET_SPAN
-                )}
-                fill={CENTER_HUE[CODON_CENTER[codonId]]}
-                fillOpacity={cellOpacity(true, effectiveView, codonId)}
-                stroke="none"
-                style={{
-                  transition: cellTransition,
-                  transitionDelay: `${delay}ms`,
-                }}
-              />
-            );
-          })}
-        </g>
-
-        {/* Full Field exploration colors one complete codon without borrowing or
-            mutating any facet from the Receiver's stored signature. */}
-        {fieldSelectionId !== null && (
-          <g aria-hidden="true">
-            {LAYERS.flatMap(layer =>
-              FACETS.map(facet => {
-                const radii = BAND_RADII[layer];
-                const start = cellAngle(fieldSelectionId, facet);
-                return (
-                  <path
-                    key={`field-selection-${fieldSelectionId}-${facet}-${layer}`}
-                    data-cell-kind="field-selection"
-                    data-codon-id={fieldSelectionId}
-                    data-facet={facet}
-                    data-layer={layer}
-                    d={wedge(
-                      CX,
-                      CY,
-                      radii.inner,
-                      radii.outer,
-                      start,
-                      start + FACET_SPAN
-                    )}
-                    fill={CENTER_HUE[CODON_CENTER[fieldSelectionId]]}
-                    fillOpacity={1}
-                    stroke={GROUND_HUE}
-                    strokeWidth="0.35"
-                    vectorEffect="non-scaling-stroke"
-                    style={{ transition: cellTransition }}
-                  />
-                );
-              })
-            )}
-          </g>
-        )}
-
-        {/* One marker for each codon occupied in both layers. */}
-        <g aria-hidden="true">
-          {[...visibleBothLayers].map(codonId => {
-            const midAngle = (codonId - 0.5) * SEG;
-            const point = polar(CX, CY, BOTH_LAYER_RADIUS, midAngle);
-            const focused =
-              effectiveView.kind === "focus" &&
-              effectiveView.codonId === codonId;
-            return (
-              <circle
-                key={`both-${codonId}`}
-                data-both-layer-codon={codonId}
-                cx={point.x}
-                cy={point.y}
-                r={focused ? 4.2 : 2.6}
-                fill={CENTER_HUE[CODON_CENTER[codonId]]}
-                opacity={markerOpacity(effectiveView, codonId)}
-                style={{ transition: markerTransition }}
-              />
-            );
-          })}
-        </g>
-
-        {/* Neutral codon and centre glyphs preserve the existing visual language. */}
-        <g aria-hidden="true" pointerEvents="none">
-          {CODON_IDS.map(codonId => {
-            const codon = codonById.get(codonId);
-            if (!codon) return null;
-            const midAngle = (codonId - 0.5) * SEG;
-            const glyphPoint = polar(
-              CX,
-              CY,
-              (CONSCIOUS_INNER_RADIUS + CONSCIOUS_OUTER_RADIUS) / 2,
-              midAngle
-            );
-            const rolePoint = polar(CX, CY, DESIGN_INNER_RADIUS - 11, midAngle);
-            const roleIndex = Math.floor((codonId - 1) / 4);
-            const roleActive =
-              activeRoleIdx === null ||
-              activeRoleIdx === undefined ||
-              activeRoleIdx === roleIndex;
-            const centerActive =
-              !activeCenter || activeCenter === CODON_CENTER[codonId];
-            return (
-              <g
-                key={`glyph-${codonId}`}
-                opacity={roleActive && centerActive ? 0.72 : 0.22}
-              >
-                <image
-                  href={`/symbols/${codon.code}.png`}
-                  x={glyphPoint.x - 7}
-                  y={glyphPoint.y - 7}
-                  width="14"
-                  height="14"
-                  preserveAspectRatio="xMidYMid meet"
-                  style={{ filter: "brightness(0)" }}
-                />
-                <image
-                  href={ROLE_VECTORS[roleIndex]}
-                  x={rolePoint.x - 4.5}
-                  y={rolePoint.y - 4.5}
-                  width="9"
-                  height="9"
-                  preserveAspectRatio="xMidYMid meet"
-                  style={{ filter: "brightness(0)" }}
-                />
-              </g>
-            );
-          })}
-        </g>
-
-        <g aria-hidden="true" pointerEvents="none">
-          {CODON_IDS.map(codonId => {
-            const start = (codonId - 1) * SEG;
-            const center = CODON_CENTER[codonId];
-            const centerSelected = fieldCenterSelection === center;
-            const centerDimmed =
-              fieldCenterSelection !== null && !centerSelected;
-            const path = wedge(
-              CX,
-              CY,
-              CENTER_BAND_INNER,
-              CENTER_BAND_OUTER,
-              start,
-              start + SEG
-            );
-            const point = polar(
-              CX,
-              CY,
-              (CENTER_BAND_INNER + CENTER_BAND_OUTER) / 2,
-              start + SEG / 2
-            );
-            return (
-              <g key={`center-glyph-${codonId}`}>
-                <path
-                  d={path}
-                  fill={centerSelected ? CENTER_HUE[center] : NEUTRAL_HUE}
-                  fillOpacity={centerSelected ? 0.34 : 0.035}
-                  stroke={GROUND_HUE}
-                  strokeWidth="0.4"
-                />
-                <image
-                  href={`/9-centers/${CENTER_SYMBOL[center]}.png`}
-                  x={point.x - 6}
-                  y={point.y - 6}
-                  width="12"
-                  height="12"
-                  preserveAspectRatio="xMidYMid meet"
-                  opacity={centerSelected ? 0.96 : centerDimmed ? 0.18 : 0.42}
-                  style={{ filter: "brightness(0) invert(0.72)" }}
-                />
-              </g>
-            );
-          })}
-        </g>
-
         {/* Eight logical controls span the 64 repeated center-symbol wedges. */}
-        {fullFieldVisible && onCenterSelect && (
-          <g className="cz-center-hit-layer">
+        {onCenterSelect && (
+          <g
+            className="cz-center-hit-layer"
+            aria-hidden={!fullFieldVisible}
+            style={{
+              pointerEvents: fullFieldVisible ? "auto" : "none",
+              visibility: fullFieldVisible ? "visible" : "hidden",
+            }}
+          >
             {CENTERS.map(center => {
               const isSelected = fieldCenterSelection === center.name;
               return (
@@ -914,20 +1248,36 @@ export function CodonWheelPlate({
                   key={`center-control-${center.name}`}
                   className="cz-center-hit-control"
                   data-center-control={center.name}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSelected}
+                  role={fullFieldVisible ? "button" : undefined}
+                  tabIndex={fullFieldVisible ? 0 : -1}
+                  aria-pressed={fullFieldVisible ? isSelected : undefined}
+                  aria-disabled={
+                    fullFieldVisible && geometryAnimating ? true : undefined
+                  }
                   aria-label={`${center.name} center — highlight its eight codons`}
                   onClick={event => {
+                    if (
+                      !fullFieldVisible ||
+                      svgRef.current?.dataset.geometryAnimating === "true"
+                    )
+                      return;
                     event.stopPropagation();
                     onCenterSelect(isSelected ? null : center.name);
                   }}
                   onKeyDown={event => {
-                    event.stopPropagation();
-                    if (
+                    if (!fullFieldVisible) return;
+                    const isActivationKey =
                       !event.repeat &&
-                      (event.key === "Enter" || event.key === " ")
-                    ) {
+                      (event.key === "Enter" || event.key === " ");
+                    if (svgRef.current?.dataset.geometryAnimating === "true") {
+                      if (isActivationKey) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }
+                      return;
+                    }
+                    event.stopPropagation();
+                    if (isActivationKey) {
                       event.preventDefault();
                       onCenterSelect(isSelected ? null : center.name);
                     }
@@ -936,30 +1286,31 @@ export function CodonWheelPlate({
                   {CODON_IDS.filter(
                     codonId => CODON_CENTER[codonId] === center.name
                   ).map(codonId => {
-                    const start = (codonId - 1) * SEG;
+                    const start = codonStartAngle(codonId, geometry);
                     return (
-                      <path
-                        key={`center-hit-${center.name}-${codonId}`}
-                        data-center-kind="hit"
-                        data-center-name={center.name}
-                        data-center-codon={codonId}
-                        data-hit-inner-radius={CENTER_BAND_INNER}
-                        data-hit-outer-radius={CENTER_BAND_OUTER}
-                        d={wedge(
-                          CX,
-                          CY,
-                          CENTER_BAND_INNER,
-                          CENTER_BAND_OUTER,
-                          start,
-                          start + SEG
-                        )}
-                        fill="transparent"
-                        stroke="none"
-                        pointerEvents="all"
-                        style={{ cursor: "pointer" }}
-                      >
-                        <title>{`${center.name} center · highlight eight codons`}</title>
-                      </path>
+                      <g key={`center-hit-${center.name}-${codonId}`}>
+                        <path
+                          data-center-kind="hit"
+                          data-center-name={center.name}
+                          data-center-codon={codonId}
+                          data-hit-inner-radius={CENTER_BAND_INNER}
+                          data-hit-outer-radius={CENTER_BAND_OUTER}
+                          d={wedge(
+                            CX,
+                            CY,
+                            CENTER_BAND_INNER,
+                            CENTER_BAND_OUTER,
+                            start,
+                            start + SEG
+                          )}
+                          fill="transparent"
+                          stroke="none"
+                          pointerEvents="all"
+                          style={{ cursor: "pointer" }}
+                        >
+                          <title>{`${center.name} center · highlight eight codons`}</title>
+                        </path>
+                      </g>
                     );
                   })}
                 </g>
@@ -968,7 +1319,11 @@ export function CodonWheelPlate({
           </g>
         )}
 
-        <g pointerEvents="none" aria-hidden="true">
+        <g
+          data-wheel-secondary="quadrant-labels"
+          pointerEvents="none"
+          aria-hidden="true"
+        >
           {QUADRANTS.map(quadrant => (
             <text
               key={quadrant.name}
@@ -979,125 +1334,13 @@ export function CodonWheelPlate({
               fill="rgba(232,196,119,0.6)"
             >
               <textPath
-                href={`#quadrant-arc-${quadrant.startCodon}`}
+                href={`#quadrant-arc-${quadrant.name.toLowerCase()}`}
                 startOffset="50%"
               >
                 {quadrant.name}
               </textPath>
             </text>
           ))}
-        </g>
-
-        {/* Focus overlay is the final painted layer. */}
-        {effectiveView.kind === "focus" && (
-          <g
-            data-focus-codon={effectiveView.codonId}
-            fill="none"
-            stroke="#fff8ec"
-            strokeWidth="1.15"
-            opacity="0.72"
-            vectorEffect="non-scaling-stroke"
-            pointerEvents="none"
-            aria-hidden="true"
-          >
-            {LAYERS.map(layer => {
-              const start = (effectiveView.codonId - 1) * SEG;
-              const radii = BAND_RADII[layer];
-              return (
-                <path
-                  key={`focus-${layer}`}
-                  d={wedge(
-                    CX,
-                    CY,
-                    radii.inner,
-                    radii.outer,
-                    start,
-                    start + SEG
-                  )}
-                  style={{ transition }}
-                />
-              );
-            })}
-          </g>
-        )}
-
-        {/* Exact selected address remains visible over neutral and lit cells. */}
-        {fieldCenterSelection === null && (
-          <path
-            data-cell-kind="selection"
-            data-codon-id={selectedId}
-            data-facet={selectedFacet}
-            data-layer={selectedLayer}
-            d={wedge(
-              CX,
-              CY,
-              selectionRadii.inner,
-              selectionRadii.outer,
-              selectionStart,
-              selectionStart + FACET_SPAN
-            )}
-            fill={selectionHue}
-            fillOpacity="0.14"
-            stroke={selectionHue}
-            strokeWidth="2.1"
-            vectorEffect="non-scaling-stroke"
-            pointerEvents="none"
-            aria-hidden="true"
-          />
-        )}
-
-        {/* One pointer target per exact cell; keyboard control stays on the SVG. */}
-        <g
-          fill="transparent"
-          stroke="none"
-          aria-hidden="true"
-          onMouseLeave={() => setHoveredId(null)}
-        >
-          {LAYERS.flatMap(layer =>
-            CODON_IDS.flatMap(codonId =>
-              FACETS.map(facet => {
-                const start = cellAngle(codonId, facet);
-                const radii = BAND_RADII[layer];
-                const hitInnerRadius =
-                  layer === "conscious" ? BOTH_LAYER_RADIUS : radii.inner;
-                const hitOuterRadius =
-                  layer === "design" ? BOTH_LAYER_RADIUS : radii.outer;
-                const codon = codonById.get(codonId);
-                return (
-                  <path
-                    key={`hit-${codonId}-${facet}-${layer}`}
-                    data-cell-kind="hit"
-                    data-hit-codon={codonId}
-                    data-hit-facet={facet}
-                    data-hit-layer={layer}
-                    data-hit-inner-radius={hitInnerRadius}
-                    data-hit-outer-radius={hitOuterRadius}
-                    d={wedge(
-                      CX,
-                      CY,
-                      hitInnerRadius,
-                      hitOuterRadius,
-                      start,
-                      start + FACET_SPAN
-                    )}
-                    pointerEvents="all"
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={() => setHoveredId(codonId)}
-                    onClick={event => {
-                      event.stopPropagation();
-                      onCellSelect?.({ codonId, facet, layer });
-                    }}
-                  >
-                    <title>
-                      {codon
-                        ? `${codon.code} · ${codon.name} · Facet ${facet} · ${layer === "conscious" ? "Conscious" : "Design"}`
-                        : `Codon ${codonId} · Facet ${facet} · ${layer}`}
-                    </title>
-                  </path>
-                );
-              })
-            )
-          )}
         </g>
       </svg>
 
@@ -1113,10 +1356,7 @@ export function CodonWheelPlate({
               className="cz-wheel-hub-content"
             >
               <div className="cz-wheel-hub-symbol">
-                <img
-                  src={`/symbols/${selectedCodon.code}.png`}
-                  alt=""
-                />
+                <img src={`/symbols/${selectedCodon.code}.png`} alt="" />
               </div>
               <div className="cz-wheel-hub-copy">
                 <span className="cz-wheel-hub-code">{selectedCodon.code}</span>
@@ -1176,8 +1416,10 @@ export function CodonWheel({
   selectedFacet = "A",
   selectedLayer = "conscious",
   viewPreference,
+  geometryPreference,
   onCellSelect,
   onViewPreferenceChange,
+  onGeometryPreferenceChange,
   onSignatureContextChange,
   activeRoleIdx,
   activeCenter,
@@ -1203,8 +1445,9 @@ export function CodonWheel({
     refetchOnReconnect: false,
     retry: false,
   });
-  const [automaticBaseView, setAutomaticBaseView] =
-    useState<BaseView>("field");
+  const [automaticBaseView, setAutomaticBaseView] = useState<BaseView>("field");
+  const [automaticGeometry, setAutomaticGeometry] =
+    useState<WheelGeometry>("numeric");
   const [focusedCodonId, setFocusedCodonId] = useState<number | null>(null);
   const loadedCalculation = useRef<string | null>(null);
   const previousSelectedId = useRef(selectedId);
@@ -1225,6 +1468,7 @@ export function CodonWheel({
     viewPreference,
     automaticBaseView
   );
+  const geometry = geometryPreference ?? automaticGeometry;
   const activations: readonly Activation[] =
     loadState === "ready" && wheelQuery.data?.state === "ready"
       ? wheelQuery.data.activations
@@ -1317,6 +1561,7 @@ export function CodonWheel({
       <WheelSignatureControl
         state={loadState}
         baseView={baseView}
+        geometry={geometry}
         onToggle={nextBaseView => {
           onSignatureContextChange?.(
             resolveWheelSignatureContext(
@@ -1330,6 +1575,10 @@ export function CodonWheel({
           onViewPreferenceChange?.(nextBaseView);
           setFocusedCodonId(null);
         }}
+        onGeometryToggle={nextGeometry => {
+          setAutomaticGeometry(nextGeometry);
+          onGeometryPreferenceChange?.(nextGeometry);
+        }}
         onRetry={() => {
           void wheelQuery.refetch();
         }}
@@ -1339,6 +1588,7 @@ export function CodonWheel({
         selectedId={selectedId}
         selectedFacet={selectedFacet}
         selectedLayer={selectedLayer}
+        geometry={geometry}
         activations={activations}
         view={view}
         onFocus={focusCodon}
@@ -1416,6 +1666,25 @@ export function CodonWheel({
           background: rgba(111, 183, 199, 0.1);
           box-shadow: inset 0 -1px rgba(111, 183, 199, 0.68);
         }
+        .cz-wheel-geometry-toggle {
+          min-width: min(100%, 204px);
+          min-height: 40px;
+          border: 1px solid rgba(151, 96, 122, 0.42);
+          background:
+            linear-gradient(135deg, rgba(151, 96, 122, 0.075), rgba(122, 90, 146, 0.045)),
+            rgba(8, 7, 11, 0.72);
+          white-space: nowrap;
+          box-shadow: 0 0 24px rgba(122, 90, 146, 0.055);
+        }
+        .cz-wheel-geometry-toggle.is-active {
+          color: #d7c7e8;
+          background:
+            linear-gradient(135deg, rgba(151, 96, 122, 0.18), rgba(122, 90, 146, 0.14)),
+            rgba(8, 7, 11, 0.78);
+          box-shadow:
+            inset 0 -1px rgba(215, 199, 232, 0.7),
+            0 0 18px rgba(122, 90, 146, 0.16);
+        }
         .cz-wheel-mode-node {
           width: 5px;
           height: 5px;
@@ -1473,6 +1742,16 @@ export function CodonWheel({
         }
         .cz-wheel-svg:focus-visible {
           filter: drop-shadow(0 0 6px rgba(111, 183, 199, 0.22));
+        }
+        .cz-wheel-svg [data-wheel-secondary] {
+          opacity: var(--wheel-secondary-opacity, 1);
+        }
+        .cz-wheel-svg [data-wheel-central-highlight] {
+          opacity: var(--wheel-central-opacity, 1);
+        }
+        .cz-wheel-svg[data-geometry-animating="true"] .cz-cell-hit-layer *,
+        .cz-wheel-svg[data-geometry-animating="true"] .cz-center-hit-layer * {
+          pointer-events: none !important;
         }
         .cz-center-hit-control {
           outline: none;

@@ -1,3 +1,5 @@
+import { VRC_MANDALA, WHEEL_OFFSET } from "../shared/codon-wheel";
+
 /**
  * VRC Mandala Engine
  * Implements the Vossari Resonance Codex mapping grid per VRC Master Implementation Protocol v1.0
@@ -25,9 +27,10 @@ export const FACET_ARC = 1.40625;
 
 /**
  * Tropical longitude at which the Mandala wheel begins (slot 0 = Codon 51).
- * Derived analytically from the VRC validation vector — do not change.
+ * The canonical value is shared with wheel geometry and re-exported here to
+ * preserve the existing VRC engine API.
  */
-export const WHEEL_OFFSET = 11.25;
+export { WHEEL_OFFSET };
 
 /** Facet names in order of facetIndex 0–3 (VRC § 3). */
 export type FacetName =
@@ -52,16 +55,7 @@ export const FACET_NAMES: readonly FacetName[] = [
  * Q3 (191.25°–281.25°): 57,32,50,28,44, 1,43,14,34, 9, 5,26,11,10,58,38
  * Q4 (281.25°–011.25°): 54,61,60,41,19,13,49,30,55,37,63,22,36,25,17,21
  */
-export const VRC_MANDALA: readonly number[] = [
-  // Q1  (slots  0–15)
-  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39,
-  // Q2  (slots 16–31)
-  53, 62, 56, 31, 33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48,
-  // Q3  (slots 32–47)
-  57, 32, 50, 28, 44, 1, 43, 14, 34, 9, 5, 26, 11, 10, 58, 38,
-  // Q4  (slots 48–63)
-  54, 61, 60, 41, 19, 13, 49, 30, 55, 37, 63, 22, 36, 25, 17, 21,
-];
+export { VRC_MANDALA };
 
 /** Names for all 64 Codons (I Ching / VRC). Index = codon number − 1. */
 export const CODON_NAMES: Record<number, string> = {
