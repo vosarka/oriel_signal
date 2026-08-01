@@ -15,6 +15,7 @@ import {
 import type { WheelSignatureContext } from "../client/src/components/oriel-signal/CodonWheel";
 import {
   summarizeCodonActivations,
+  validateActivations,
   type Activation,
   type Facet,
   type Layer,
@@ -220,12 +221,14 @@ describe("codon signature layer copy", () => {
         codonId: 15,
         facet: "A",
         planet: "Sun",
+        center: "Bridge",
       },
       {
         ...bothDifferent[0],
         codonId: 15,
         facet: "A",
         planet: "Mercury",
+        center: "Bridge",
       },
     ];
     const markup = renderToStaticMarkup(
@@ -242,6 +245,7 @@ describe("codon signature layer copy", () => {
       )
     );
 
+    expect(() => validateActivations(duplicatePlanets)).not.toThrow();
     expect(markup).toContain("A · Sun, Mercury");
     expect(markup).toContain("SELECTED CELL · Sun, Mercury");
   });
