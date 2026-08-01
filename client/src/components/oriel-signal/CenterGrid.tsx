@@ -1,8 +1,13 @@
-import { CENTERS, CENTER_COLORS, CENTER_SYMBOL } from "./CodonWheel";
+import {
+  CENTERS,
+  CENTER_COLORS,
+  CENTER_SYMBOL,
+  type CenterName,
+} from "./CodonWheel";
 
 export interface CenterGridProps {
-  activeCenter: string | null;
-  onCenterSelect: (name: string | null) => void;
+  activeCenter: CenterName | null;
+  onCenterSelect: (name: CenterName | null) => void;
 }
 
 // Compact vertical sidebar — sits to the left of the wheel, one center per row.
@@ -17,8 +22,10 @@ export function CenterGrid({ activeCenter, onCenterSelect }: CenterGridProps) {
           const color = CENTER_COLORS[center.name];
 
           return (
-            <div
+            <button
+              type="button"
               key={center.name}
+              aria-pressed={isActive}
               onClick={() => onCenterSelect(isActive ? null : center.name)}
               className={`cz-center-card ${isActive ? "is-active" : ""}`}
               style={{
@@ -49,7 +56,7 @@ export function CenterGrid({ activeCenter, onCenterSelect }: CenterGridProps) {
                 <span className="cz-center-card-name">{center.name}</span>
               </span>
               <span className="cz-center-card-sub">{center.desc}</span>
-            </div>
+            </button>
           );
         })}
       </div>

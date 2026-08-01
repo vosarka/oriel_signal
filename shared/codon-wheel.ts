@@ -133,6 +133,7 @@ export const CONSCIOUS_OUTER_RADIUS = OUTER_RADIUS;
 export const BOTH_LAYER_RADIUS = OUTER_RADIUS * 0.864;
 export const DESIGN_INNER_RADIUS = OUTER_RADIUS * 0.726;
 export const DESIGN_OUTER_RADIUS = OUTER_RADIUS * 0.834;
+export const FIELD_CELL_OPACITY = 0.28;
 export const NEUTRAL_HUE = "#6d5c37";
 export const GROUND_HUE = "#08070b";
 export const MY_WHEEL_QUERY_KEY = [

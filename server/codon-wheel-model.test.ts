@@ -6,8 +6,10 @@ import {
   CodonWheelPlate,
   WheelSignatureControl,
   resolveBaseView,
+  resolveWheelExplorationSelection,
   resolveWheelSignatureContext,
   resolveWheelView,
+  type CodonWheelPlateProps,
   type Codon,
 } from "../client/src/components/oriel-signal/CodonWheel";
 import {
@@ -21,7 +23,7 @@ import {
   DESIGN_OUTER_RADIUS,
   FACETS,
   FACET_SPAN,
-  NEUTRAL_HUE,
+  FIELD_CELL_OPACITY,
   SEG,
   assertCodonCenterIntegrity,
   buildBothLayers,
@@ -292,7 +294,8 @@ const TEST_CODONS: Codon[] = CODON_IDS.map(codonId => ({
 function renderPlate(
   activations: readonly Activation[],
   view: Parameters<typeof CodonWheelPlate>[0]["view"],
-  showSignatureContext = view.kind !== "field"
+  showSignatureContext = view.kind !== "field",
+  overrides: Partial<CodonWheelPlateProps> = {}
 ) {
   return renderToStaticMarkup(
     createElement(CodonWheelPlate, {
@@ -301,8 +304,21 @@ function renderPlate(
       activations,
       view,
       showSignatureContext,
+      ...overrides,
     })
   );
+}
+
+function pathTags(markup: string, kind: string) {
+  return [
+    ...markup.matchAll(
+      new RegExp(`<path data-cell-kind="${kind}"[^>]*>`, "g")
+    ),
+  ].map(match => match[0]);
+}
+
+function attribute(tag: string, name: string) {
+  return tag.match(new RegExp(`${name}="([^"]+)"`))?.[1];
 }
 
 describe("two-layer codon wheel model", () => {
@@ -469,6 +485,27 @@ describe("two-layer codon wheel model", () => {
     expect(cellOpacity(false, focus, 15)).toBe(0.24);
     expect(cellOpacity(true, focus, 29)).toBe(0.22);
     expect(cellOpacity(false, focus, 29)).toBe(0.06);
+  });
+
+  it("keeps center and codon exploration mutually exclusive", () => {
+    expect(
+      resolveWheelExplorationSelection(
+        { focusedCodonId: 15, activeCenter: null },
+        { kind: "center", center: "Origin" }
+      )
+    ).toEqual({ focusedCodonId: null, activeCenter: "Origin" });
+    expect(
+      resolveWheelExplorationSelection(
+        { focusedCodonId: null, activeCenter: "Bridge" },
+        { kind: "center", center: "Bridge" }
+      )
+    ).toEqual({ focusedCodonId: null, activeCenter: null });
+    expect(
+      resolveWheelExplorationSelection(
+        { focusedCodonId: null, activeCenter: "Bridge" },
+        { kind: "codon", codonId: 29 }
+      )
+    ).toEqual({ focusedCodonId: 29, activeCenter: null });
   });
 
   it("uses the required concentric band placement", () => {
@@ -766,9 +803,24 @@ describe("two-layer codon wheel model", () => {
     expect(mineMarkup).not.toContain(`fill="${CENTER_HUE.Mental}"`);
   });
 
-  it("keeps the field neutral even when personal data has loaded", () => {
+  it("renders every Full Field cell in its canonical darkened center color", () => {
     const markup = renderPlate(RECEIVER_ACTIVATIONS, { kind: "field" });
+    const cells = pathTags(markup, "neutral");
+    const hueCounts = new Map<string, number>();
 
+    expect(cells).toHaveLength(512);
+    for (const cell of cells) {
+      const codonId = Number(attribute(cell, "data-codon-id"));
+      const fill = attribute(cell, "fill");
+      expect(fill).toBe(CENTER_HUE[CODON_CENTER[codonId]]);
+      expect(Number(attribute(cell, "fill-opacity"))).toBe(
+        FIELD_CELL_OPACITY
+      );
+      hueCounts.set(fill!, (hueCounts.get(fill!) ?? 0) + 1);
+    }
+    expect(Object.values(CENTER_HUE).map(hue => hueCounts.get(hue))).toEqual(
+      Array(8).fill(64)
+    );
     expect(markup).not.toContain('data-cell-kind="lit"');
     expect(markup).not.toContain('data-both-layer-codon');
     expect(markup).not.toContain('data-cell-key="15-A-conscious"');
@@ -776,9 +828,7 @@ describe("two-layer codon wheel model", () => {
     expect(markup).toContain(
       'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers. Selected RC15, facet A, conscious layer."'
     );
-    expect(markup).toMatch(
-      /data-cell-kind="neutral" data-codon-id="15" data-facet="A" data-layer="conscious"[^>]*fill-opacity="0.1"/
-    );
+    expect(markup).toBe(renderPlate([], { kind: "field" }));
   });
 
   it("colors the complete clicked codon without revealing mine context in the full field", () => {
@@ -798,6 +848,11 @@ describe("two-layer codon wheel model", () => {
       expect(path).toContain(`fill="${CENTER_HUE.Bridge}"`);
       expect(path).toContain('fill-opacity="1"');
     }
+    expect(markup).toMatch(
+      new RegExp(
+        `data-cell-kind="neutral" data-codon-id="29" data-facet="A" data-layer="conscious"[^>]*fill="${CENTER_HUE.Saturation}" fill-opacity="${FIELD_CELL_OPACITY}"`
+      )
+    );
     expect(markup).not.toContain('data-cell-kind="lit"');
     expect(markup).not.toContain('data-both-layer-codon');
     expect(markup).not.toContain('data-cell-key="15-A-conscious"');
@@ -805,6 +860,73 @@ describe("two-layer codon wheel model", () => {
     expect(markup).toContain(
       'aria-label="Codon wheel. 64 codons in two layers. 0 codons activated. 0 present in both layers. Selected RC15, facet A, conscious layer."'
     );
+    expect(markup).toBe(
+      renderPlate([], { kind: "focus", codonId: 15 }, false)
+    );
+  });
+
+  it("lights exactly the eight codons belonging to a selected center", () => {
+    const markup = renderPlate(
+      RECEIVER_ACTIVATIONS,
+      { kind: "field" },
+      false,
+      { activeCenter: "Bridge" }
+    );
+    const cells = pathTags(markup, "neutral");
+    const brightCells = cells.filter(
+      cell => Number(attribute(cell, "fill-opacity")) === 1
+    );
+    const darkCells = cells.filter(
+      cell => Number(attribute(cell, "fill-opacity")) === FIELD_CELL_OPACITY
+    );
+    const brightCodons = [
+      ...new Set(
+        brightCells.map(cell => Number(attribute(cell, "data-codon-id")))
+      ),
+    ].sort((a, b) => a - b);
+
+    expect(brightCells).toHaveLength(64);
+    expect(darkCells).toHaveLength(448);
+    expect(brightCodons).toEqual([7, 10, 13, 15, 25, 46, 57, 59]);
+    expect(
+      brightCells.every(
+        cell => attribute(cell, "fill") === CENTER_HUE.Bridge
+      )
+    ).toBe(true);
+    expect(markup).toBe(
+      renderPlate([], { kind: "field" }, false, { activeCenter: "Bridge" })
+    );
+  });
+
+  it("exposes the center-symbol band as eight controls over 64 mapped wedges", () => {
+    const markup = renderPlate([], { kind: "field" }, false, {
+      onCenterSelect: () => undefined,
+    });
+    const hits = [
+      ...markup.matchAll(/<path data-center-kind="hit"[^>]*>/g),
+    ].map(match => match[0]);
+    const centerCounts = new Map<string, number>();
+
+    expect(markup.match(/data-center-control=/g)?.length).toBe(8);
+    expect(hits).toHaveLength(64);
+    for (const hit of hits) {
+      const center = attribute(hit, "data-center-name")!;
+      const codonId = Number(attribute(hit, "data-center-codon"));
+      expect(center).toBe(CODON_CENTER[codonId]);
+      expect(attribute(hit, "data-hit-inner-radius")).toBe("206");
+      expect(attribute(hit, "data-hit-outer-radius")).toBe("244");
+      centerCounts.set(center, (centerCounts.get(center) ?? 0) + 1);
+    }
+    expect(
+      Object.keys(CENTER_HUE).map(center => centerCounts.get(center))
+    ).toEqual(Array(8).fill(8));
+  });
+
+  it("separates the centered hub symbol from its copy", () => {
+    const markup = renderPlate([], { kind: "field" });
+
+    expect(markup).toContain('class="cz-wheel-hub-symbol"');
+    expect(markup).toContain('class="cz-wheel-hub-copy"');
   });
 
   it("keeps a clicked codon focus available without a personal wheel record", () => {

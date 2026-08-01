@@ -6,6 +6,7 @@ import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import {
   CodonWheel,
   type BaseView,
+  type CenterName,
   type Codon,
   type Facet,
   type Layer,
@@ -66,7 +67,7 @@ export default function BioArchitecture() {
       summary: null,
     });
   const [activeRoleIdx, setActiveRoleIdx] = useState<number | null>(null);
-  const [activeCenter, setActiveCenter] = useState<string | null>(null);
+  const [activeCenter, setActiveCenter] = useState<CenterName | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeModule, setActiveModule] = useState<ModuleId | null>(null);
 
@@ -86,10 +87,19 @@ export default function BioArchitecture() {
   }, []);
 
   const selectedCodon = codons?.find((c) => c.id === selectedId) || codons?.[0];
+  const selectCodon = (codonId: number) => {
+    setSelectedId(codonId);
+    if (wheelSignatureContext.mode === "field") setActiveCenter(null);
+  };
   const selectWheelCell = (selection: WheelCellSelection) => {
     setSelectedId(selection.codonId);
     setSelectedFacetKey(selection.facet);
     setSelectedLayer(selection.layer);
+    if (wheelSignatureContext.mode === "field") setActiveCenter(null);
+  };
+  const selectCenter = (center: CenterName | null) => {
+    setActiveCenter(center);
+    if (center !== null) setActiveRoleIdx(null);
   };
 
   return (
@@ -170,7 +180,13 @@ export default function BioArchitecture() {
           }
 
           .cz-center-card {
+            appearance: none;
+            width: 100%;
             padding: 10px 12px;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            text-align: left;
             cursor: pointer;
             transition: all 0.25s ease;
             background: rgba(20, 17, 12, 0.35);
@@ -178,6 +194,11 @@ export default function BioArchitecture() {
 
           .cz-center-card:hover {
             background: #15120c !important;
+          }
+
+          .cz-center-card:focus-visible {
+            outline: 1px solid var(--gold2);
+            outline-offset: -2px;
           }
 
           .cz-center-card-header {
@@ -1498,7 +1519,7 @@ export default function BioArchitecture() {
               <CodonWheel
                 codons={NEUTRAL_FIELD_CODONS}
                 selectedId={selectedId}
-                onSelect={id => setSelectedId(id)}
+                onSelect={selectCodon}
                 selectedFacet={selectedFacetKey}
                 selectedLayer={selectedLayer}
                 viewPreference={wheelViewPreference}
@@ -1507,6 +1528,7 @@ export default function BioArchitecture() {
                 onSignatureContextChange={setWheelSignatureContext}
                 activeRoleIdx={activeRoleIdx}
                 activeCenter={activeCenter}
+                onCenterSelect={selectCenter}
                 onDeselect={() => {
                   setActiveCenter(null);
                   setActiveRoleIdx(null);
@@ -1557,15 +1579,12 @@ export default function BioArchitecture() {
                     <div className="cz-bio-grid">
                       <CenterGrid
                         activeCenter={activeCenter}
-                        onCenterSelect={name => {
-                          setActiveCenter(name);
-                          if (name !== null) setActiveRoleIdx(null);
-                        }}
+                        onCenterSelect={selectCenter}
                       />
                       <CodonWheel
                         codons={codons}
                         selectedId={selectedId}
-                        onSelect={id => setSelectedId(id)}
+                        onSelect={selectCodon}
                         selectedFacet={selectedFacetKey}
                         selectedLayer={selectedLayer}
                         viewPreference={wheelViewPreference}
@@ -1574,6 +1593,7 @@ export default function BioArchitecture() {
                         onSignatureContextChange={setWheelSignatureContext}
                         activeRoleIdx={activeRoleIdx}
                         activeCenter={activeCenter}
+                        onCenterSelect={selectCenter}
                         onDeselect={() => {
                           setActiveCenter(null);
                           setActiveRoleIdx(null);
@@ -1586,7 +1606,7 @@ export default function BioArchitecture() {
                         signatureContext={wheelSignatureContext}
                         onFacetChange={key => setSelectedFacetKey(key)}
                         onLayerChange={layer => setSelectedLayer(layer)}
-                        onSelectCodon={id => setSelectedId(id)}
+                        onSelectCodon={selectCodon}
                       />
                     </div>
 
@@ -1621,7 +1641,7 @@ export default function BioArchitecture() {
                         <CodonWheel
                           codons={codons}
                           selectedId={selectedId}
-                          onSelect={id => setSelectedId(id)}
+                          onSelect={selectCodon}
                           selectedFacet={selectedFacetKey}
                           selectedLayer={selectedLayer}
                           viewPreference={wheelViewPreference}
@@ -1630,6 +1650,7 @@ export default function BioArchitecture() {
                           onSignatureContextChange={setWheelSignatureContext}
                           activeRoleIdx={activeRoleIdx}
                           activeCenter={activeCenter}
+                          onCenterSelect={selectCenter}
                           onDeselect={() => {
                             setActiveCenter(null);
                             setActiveRoleIdx(null);

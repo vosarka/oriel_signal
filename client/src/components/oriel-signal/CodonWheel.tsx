@@ -11,6 +11,7 @@ import {
   DESIGN_OUTER_RADIUS,
   FACETS,
   FACET_SPAN,
+  FIELD_CELL_OPACITY,
   GROUND_HUE,
   LAYERS,
   NEUTRAL_HUE,
@@ -219,7 +220,8 @@ export interface CodonWheelProps {
   onViewPreferenceChange?: (view: BaseView) => void;
   onSignatureContextChange?: (context: WheelSignatureContext) => void;
   activeRoleIdx?: number | null;
-  activeCenter?: string | null;
+  activeCenter?: CenterName | null;
+  onCenterSelect?: (center: CenterName | null) => void;
   onDeselect?: () => void;
 }
 
@@ -278,6 +280,29 @@ export function resolveWheelView(
     return { kind: "focus", codonId: focusedCodonId };
   }
   return loadState === "ready" ? { kind: baseView } : { kind: "field" };
+}
+
+export interface WheelExplorationSelection {
+  focusedCodonId: number | null;
+  activeCenter: CenterName | null;
+}
+
+export type WheelExplorationAction =
+  | { kind: "codon"; codonId: number }
+  | { kind: "center"; center: CenterName };
+
+export function resolveWheelExplorationSelection(
+  selection: WheelExplorationSelection,
+  action: WheelExplorationAction
+): WheelExplorationSelection {
+  if (action.kind === "codon") {
+    return { focusedCodonId: action.codonId, activeCenter: null };
+  }
+  return {
+    focusedCodonId: null,
+    activeCenter:
+      selection.activeCenter === action.center ? null : action.center,
+  };
 }
 
 const CX = 380;
@@ -421,7 +446,8 @@ export interface CodonWheelPlateProps {
   onLeaveFocus?: () => void;
   showSignatureContext?: boolean;
   activeRoleIdx?: number | null;
-  activeCenter?: string | null;
+  activeCenter?: CenterName | null;
+  onCenterSelect?: (center: CenterName | null) => void;
   onDeselect?: () => void;
 }
 
@@ -438,6 +464,7 @@ export function CodonWheelPlate({
   showSignatureContext,
   activeRoleIdx,
   activeCenter,
+  onCenterSelect,
   onDeselect,
 }: CodonWheelPlateProps) {
   const reducedMotion = Boolean(useReducedMotion());
@@ -446,8 +473,13 @@ export function CodonWheelPlate({
     hoveredId === null ? view : { kind: "focus", codonId: hoveredId };
   const signatureContextVisible =
     showSignatureContext ?? view.kind !== "field";
+  const fullFieldVisible = !signatureContextVisible;
+  const fieldCenterSelection =
+    fullFieldVisible && view.kind !== "focus" ? activeCenter ?? null : null;
   const fieldSelectionId =
-    !signatureContextVisible && view.kind === "focus" ? view.codonId : null;
+    fullFieldVisible && fieldCenterSelection === null && view.kind === "focus"
+      ? view.codonId
+      : null;
   const previousView = useRef<WheelView>(effectiveView);
   const wheelMotion = resolveWheelMotion(
     previousView.current,
@@ -510,7 +542,7 @@ export function CodonWheelPlate({
       <svg
         viewBox="0 0 760 760"
         className="cz-wheel-svg"
-        role="img"
+        role="group"
         aria-label={ariaLabel}
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -560,6 +592,8 @@ export function CodonWheelPlate({
                   `${codonId}-${facet}-${layer}` as const;
                 const isVisibleActivation = visibleLitSet.has(key);
                 const isFieldSelection = fieldSelectionId === codonId;
+                const isCenterSelection =
+                  fieldCenterSelection === CODON_CENTER[codonId];
                 return (
                   <path
                     key={`neutral-${codonId}-${facet}-${layer}`}
@@ -577,11 +611,19 @@ export function CodonWheelPlate({
                       start,
                       start + FACET_SPAN
                     )}
-                    fill={NEUTRAL_HUE}
+                    fill={
+                      fullFieldVisible
+                        ? CENTER_HUE[CODON_CENTER[codonId]]
+                        : NEUTRAL_HUE
+                    }
                     fillOpacity={
                       isVisibleActivation || isFieldSelection
                         ? 0
-                        : cellOpacity(false, effectiveView, codonId)
+                        : fullFieldVisible
+                          ? isCenterSelection
+                            ? 1
+                            : FIELD_CELL_OPACITY
+                          : cellOpacity(false, effectiveView, codonId)
                     }
                     stroke="none"
                     style={{ transition: cellTransition }}
@@ -820,6 +862,10 @@ export function CodonWheelPlate({
         <g aria-hidden="true" pointerEvents="none">
           {CODON_IDS.map(codonId => {
             const start = (codonId - 1) * SEG;
+            const center = CODON_CENTER[codonId];
+            const centerSelected = fieldCenterSelection === center;
+            const centerDimmed =
+              fieldCenterSelection !== null && !centerSelected;
             const path = wedge(
               CX,
               CY,
@@ -838,25 +884,89 @@ export function CodonWheelPlate({
               <g key={`center-glyph-${codonId}`}>
                 <path
                   d={path}
-                  fill={NEUTRAL_HUE}
-                  fillOpacity="0.035"
+                  fill={centerSelected ? CENTER_HUE[center] : NEUTRAL_HUE}
+                  fillOpacity={centerSelected ? 0.34 : 0.035}
                   stroke={GROUND_HUE}
                   strokeWidth="0.4"
                 />
                 <image
-                  href={`/9-centers/${CENTER_SYMBOL[CODON_CENTER[codonId]]}.png`}
+                  href={`/9-centers/${CENTER_SYMBOL[center]}.png`}
                   x={point.x - 6}
                   y={point.y - 6}
                   width="12"
                   height="12"
                   preserveAspectRatio="xMidYMid meet"
-                  opacity="0.42"
+                  opacity={centerSelected ? 0.96 : centerDimmed ? 0.18 : 0.42}
                   style={{ filter: "brightness(0) invert(0.72)" }}
                 />
               </g>
             );
           })}
         </g>
+
+        {/* Eight logical controls span the 64 repeated center-symbol wedges. */}
+        {fullFieldVisible && onCenterSelect && (
+          <g className="cz-center-hit-layer">
+            {CENTERS.map(center => {
+              const isSelected = fieldCenterSelection === center.name;
+              return (
+                <g
+                  key={`center-control-${center.name}`}
+                  className="cz-center-hit-control"
+                  data-center-control={center.name}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`${center.name} center — highlight its eight codons`}
+                  onClick={event => {
+                    event.stopPropagation();
+                    onCenterSelect(isSelected ? null : center.name);
+                  }}
+                  onKeyDown={event => {
+                    event.stopPropagation();
+                    if (
+                      !event.repeat &&
+                      (event.key === "Enter" || event.key === " ")
+                    ) {
+                      event.preventDefault();
+                      onCenterSelect(isSelected ? null : center.name);
+                    }
+                  }}
+                >
+                  {CODON_IDS.filter(
+                    codonId => CODON_CENTER[codonId] === center.name
+                  ).map(codonId => {
+                    const start = (codonId - 1) * SEG;
+                    return (
+                      <path
+                        key={`center-hit-${center.name}-${codonId}`}
+                        data-center-kind="hit"
+                        data-center-name={center.name}
+                        data-center-codon={codonId}
+                        data-hit-inner-radius={CENTER_BAND_INNER}
+                        data-hit-outer-radius={CENTER_BAND_OUTER}
+                        d={wedge(
+                          CX,
+                          CY,
+                          CENTER_BAND_INNER,
+                          CENTER_BAND_OUTER,
+                          start,
+                          start + SEG
+                        )}
+                        fill="transparent"
+                        stroke="none"
+                        pointerEvents="all"
+                        style={{ cursor: "pointer" }}
+                      >
+                        <title>{`${center.name} center · highlight eight codons`}</title>
+                      </path>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </g>
+        )}
 
         <g pointerEvents="none" aria-hidden="true">
           {QUADRANTS.map(quadrant => (
@@ -912,27 +1022,29 @@ export function CodonWheelPlate({
         )}
 
         {/* Exact selected address remains visible over neutral and lit cells. */}
-        <path
-          data-cell-kind="selection"
-          data-codon-id={selectedId}
-          data-facet={selectedFacet}
-          data-layer={selectedLayer}
-          d={wedge(
-            CX,
-            CY,
-            selectionRadii.inner,
-            selectionRadii.outer,
-            selectionStart,
-            selectionStart + FACET_SPAN
-          )}
-          fill={selectionHue}
-          fillOpacity="0.14"
-          stroke={selectionHue}
-          strokeWidth="2.1"
-          vectorEffect="non-scaling-stroke"
-          pointerEvents="none"
-          aria-hidden="true"
-        />
+        {fieldCenterSelection === null && (
+          <path
+            data-cell-kind="selection"
+            data-codon-id={selectedId}
+            data-facet={selectedFacet}
+            data-layer={selectedLayer}
+            d={wedge(
+              CX,
+              CY,
+              selectionRadii.inner,
+              selectionRadii.outer,
+              selectionStart,
+              selectionStart + FACET_SPAN
+            )}
+            fill={selectionHue}
+            fillOpacity="0.14"
+            stroke={selectionHue}
+            strokeWidth="2.1"
+            vectorEffect="non-scaling-stroke"
+            pointerEvents="none"
+            aria-hidden="true"
+          />
+        )}
 
         {/* One pointer target per exact cell; keyboard control stays on the SVG. */}
         <g
@@ -1006,11 +1118,13 @@ export function CodonWheelPlate({
                   alt=""
                 />
               </div>
-              <span className="cz-wheel-hub-code">{selectedCodon.code}</span>
-              <span className="cz-wheel-hub-name">{selectedCodon.name}</span>
-              <span className="cz-wheel-hub-role">
-                {ROLES[selectedRoleIdx]?.name}
-              </span>
+              <div className="cz-wheel-hub-copy">
+                <span className="cz-wheel-hub-code">{selectedCodon.code}</span>
+                <span className="cz-wheel-hub-name">{selectedCodon.name}</span>
+                <span className="cz-wheel-hub-role">
+                  {ROLES[selectedRoleIdx]?.name}
+                </span>
+              </div>
             </motion.div>
           </AnimatePresence>
         )}
@@ -1067,6 +1181,7 @@ export function CodonWheel({
   onSignatureContextChange,
   activeRoleIdx,
   activeCenter,
+  onCenterSelect,
   onDeselect,
 }: CodonWheelProps) {
   const trpcUtils = trpc.useUtils();
@@ -1136,6 +1251,10 @@ export function CodonWheel({
     setFocusedCodonId(selectedId);
   }, [selectedId]);
 
+  useEffect(() => {
+    if (activeCenter && baseView === "field") setFocusedCodonId(null);
+  }, [activeCenter, baseView]);
+
   const view = resolveWheelView(loadState, baseView, focusedCodonId);
   const signatureContext = useMemo(
     () =>
@@ -1153,8 +1272,23 @@ export function CodonWheel({
     onSignatureContextChange?.(signatureContext);
   }, [onSignatureContextChange, signatureContext]);
 
+  const selectExplorationCodon = (codonId: number) => {
+    if (baseView !== "field") {
+      setFocusedCodonId(codonId);
+      return;
+    }
+    const nextSelection = resolveWheelExplorationSelection(
+      { focusedCodonId, activeCenter: activeCenter ?? null },
+      { kind: "codon", codonId }
+    );
+    setFocusedCodonId(nextSelection.focusedCodonId);
+    if (nextSelection.activeCenter !== (activeCenter ?? null)) {
+      onCenterSelect?.(nextSelection.activeCenter);
+    }
+  };
+
   const focusCodon = (codonId: number) => {
-    setFocusedCodonId(codonId);
+    selectExplorationCodon(codonId);
     onSelect(codonId);
     onCellSelect?.({
       codonId,
@@ -1164,9 +1298,18 @@ export function CodonWheel({
   };
 
   const selectCell = (selection: WheelCellSelection) => {
-    setFocusedCodonId(selection.codonId);
+    selectExplorationCodon(selection.codonId);
     onSelect(selection.codonId);
     onCellSelect?.(selection);
+  };
+
+  const selectCenter = (center: CenterName) => {
+    const nextSelection = resolveWheelExplorationSelection(
+      { focusedCodonId, activeCenter: activeCenter ?? null },
+      { kind: "center", center }
+    );
+    setFocusedCodonId(nextSelection.focusedCodonId);
+    onCenterSelect?.(nextSelection.activeCenter);
   };
 
   return (
@@ -1204,6 +1347,14 @@ export function CodonWheel({
         showSignatureContext={loadState === "ready" && baseView === "mine"}
         activeRoleIdx={activeRoleIdx}
         activeCenter={activeCenter}
+        onCenterSelect={center => {
+          if (center === null) {
+            setFocusedCodonId(null);
+            onCenterSelect?.(null);
+            return;
+          }
+          selectCenter(center);
+        }}
         onDeselect={onDeselect}
       />
 
@@ -1323,6 +1474,14 @@ export function CodonWheel({
         .cz-wheel-svg:focus-visible {
           filter: drop-shadow(0 0 6px rgba(111, 183, 199, 0.22));
         }
+        .cz-center-hit-control {
+          outline: none;
+        }
+        .cz-center-hit-control:focus-visible path {
+          stroke: #fff8ec;
+          stroke-width: 1.15;
+          vector-effect: non-scaling-stroke;
+        }
         .cz-wheel-hub {
           position: absolute;
           top: 50%;
@@ -1336,12 +1495,13 @@ export function CodonWheel({
           pointer-events: none;
         }
         .cz-wheel-hub-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
         }
         .cz-wheel-hub-symbol {
+          box-sizing: border-box;
           width: 78px;
           height: 78px;
           display: flex;
@@ -1360,8 +1520,20 @@ export function CodonWheel({
           filter: brightness(0) invert(1);
           opacity: 0.8;
         }
+        .cz-wheel-hub-copy {
+          position: absolute;
+          top: calc(50% + 47px);
+          left: 50%;
+          width: max-content;
+          max-width: 220px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform: translateX(-50%);
+          text-align: center;
+        }
         .cz-wheel-hub-code {
-          margin-top: 8px;
+          margin-top: 0;
           color: var(--gold, #cda14a);
           font-family: var(--font-ritual, "JetBrains Mono", monospace);
           font-size: 9px;
