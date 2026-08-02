@@ -8,13 +8,13 @@
     },
     "expected_outputs": {
       "conscious_sun": {
-        "longitude": 280.44,
+        "longitude": 280.547679,
         "codon_id": 38,
         "codon_traditional_name": "Struggle",
         "validation_alias": "The Fighter"
       },
       "design_sun": {
-        "longitude": 192.44,
+        "longitude": 192.547679,
         "codon_id": 57,
         "codon_traditional_name": "Intuition",
         "validation_alias": "Intuitive Clarity",

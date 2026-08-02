@@ -52,6 +52,7 @@ export type ProfileConsoleActivity = {
 
 export type ProfileConsoleSignature = {
   fractalRole?: string | null;
+  resonanceRole?: string | null;
   vrcType?: string | null;
   vrcAuthority?: string | null;
   authorityNode?: string | null;
@@ -76,6 +77,8 @@ export type ProfileConsoleSummary = {
     userId: number;
     knownName: string | null;
     resonanceRole: string | null;
+    secondaryRole: string | null;
+    roleConfidence: number;
     fractalRole: string | null;
     vrcType: string | null;
     vrcAuthority: string | null;
@@ -200,22 +203,19 @@ export function buildProfileConsoleSummary(
   };
   const prime = firstPrimeEntry(input.staticProfile?.primeStack);
 
-  // Derive Resonance Role from available data (prefer full 26 activations)
-  let resonanceRole: string | null = null;
+  // Resonance Role (Primary + Secondary) from the static profile. The primary is
+  // persisted at calculation time; recompute only for profiles saved before the
+  // column existed. "Awaiting role" only for accounts with no signature data.
   const sp = input.staticProfile;
-  if (sp) {
-    // Pass the full object so calculateResonanceRole can extract .activations if present
-    const result = calculateResonanceRole(sp as any);
-    if (result.primaryRole && result.primaryRole !== "Awaiting role") {
-      resonanceRole = result.primaryRole;
-    }
-  }
+  const roleResult = sp ? calculateResonanceRole(sp as any) : { primaryRole: "Awaiting role", secondaryRole: undefined, confidence: 0 };
 
   return {
     identity: {
       userId: input.userId,
       knownName: input.activity.knownName,
-      resonanceRole,
+      resonanceRole: sp?.resonanceRole ?? roleResult.primaryRole,
+      secondaryRole: roleResult.secondaryRole ?? null,
+      roleConfidence: roleResult.confidence ?? 0,
       fractalRole: input.staticProfile?.fractalRole ?? null,
       vrcType: input.staticProfile?.vrcType ?? null,
       vrcAuthority:

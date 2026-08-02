@@ -1,3 +1,5 @@
+import { VRC_MANDALA, WHEEL_OFFSET } from "../shared/codon-wheel";
+
 /**
  * VRC Mandala Engine
  * Implements the Vossari Resonance Codex mapping grid per VRC Master Implementation Protocol v1.0
@@ -9,8 +11,8 @@
  *
  * Wheel offset θ₀ = 11.25°  (verified by VRC Appendix B validation vector)
  *   T_birth = 2024-01-01 12:00:00 UTC, 0°N 0°E
- *   Conscious Sun ≈ 280.44° → slot 47 → Codon 38 (The Fighter)      ✓
- *   Design Sun   ≈ 192.44° → slot 32 → Codon 57 (Intuitive Clarity)  ✓
+ *   Conscious Sun ≈ 280.55° → slot 47 → Codon 38 (The Fighter)      ✓
+ *   Design Sun   ≈ 192.55° → slot 32 → Codon 57 (Intuitive Clarity)  ✓
  *
  * Facet conversion formula (VRC § 3):
  *   localPos   = (longitude − startDegreeOfCodon)
@@ -25,9 +27,10 @@ export const FACET_ARC = 1.40625;
 
 /**
  * Tropical longitude at which the Mandala wheel begins (slot 0 = Codon 51).
- * Derived analytically from the VRC validation vector — do not change.
+ * The canonical value is shared with wheel geometry and re-exported here to
+ * preserve the existing VRC engine API.
  */
-export const WHEEL_OFFSET = 11.25;
+export { WHEEL_OFFSET };
 
 /** Facet names in order of facetIndex 0–3 (VRC § 3). */
 export type FacetName =
@@ -52,16 +55,7 @@ export const FACET_NAMES: readonly FacetName[] = [
  * Q3 (191.25°–281.25°): 57,32,50,28,44, 1,43,14,34, 9, 5,26,11,10,58,38
  * Q4 (281.25°–011.25°): 54,61,60,41,19,13,49,30,55,37,63,22,36,25,17,21
  */
-export const VRC_MANDALA: readonly number[] = [
-  // Q1  (slots  0–15)
-  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39,
-  // Q2  (slots 16–31)
-  53, 62, 56, 31, 33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48,
-  // Q3  (slots 32–47)
-  57, 32, 50, 28, 44, 1, 43, 14, 34, 9, 5, 26, 11, 10, 58, 38,
-  // Q4  (slots 48–63)
-  54, 61, 60, 41, 19, 13, 49, 30, 55, 37, 63, 22, 36, 25, 17, 21,
-];
+export { VRC_MANDALA };
 
 /** Names for all 64 Codons (I Ching / VRC). Index = codon number − 1. */
 export const CODON_NAMES: Record<number, string> = {
@@ -132,7 +126,7 @@ export const CODON_NAMES: Record<number, string> = {
 };
 
 /**
- * 8 Tetradic Center names (VTRS v2.0 — supersedes legacy 9-Center model).
+ * 8 Tetradic Center names (VTRS v2.1 — supersedes legacy 9-Center model).
  * Source of truth: Consciousness Lattice Unified Specification v2, Part VI.
  */
 export type CenterName =
@@ -233,28 +227,32 @@ export const CODON_CENTER_MAP: Record<number, CenterName> = {
 };
 
 /**
- * The 32 Resonance Links (VTRS v2.0 — supersedes legacy 36-Channel model).
+ * The 32 Resonance Links (VTRS v2.1 — supersedes legacy 36-Channel model).
  * Each link is a pair [codonA, codonB] connecting two Tetradic Centers.
  * A link is ACTIVE when both endpoint codons are defined in the Receiver's chart.
  * Source of truth: Consciousness Lattice Unified Specification v2, Part VII.
  */
 export const VRC_CHANNELS: readonly [number, number][] = [
-  // I–II
+  // II–II
   [61, 24],
   // I–IV
   [3, 60],
   [9, 52],
   // I–VII
   [19, 49],
-  // II–III
+  // II–II
   [43, 23],
+  // II–III
   [11, 56],
-  [17, 62],
   // II–VIII
+  [17, 62],
+  // VIII–VIII
   [64, 47],
   // III–V
   [33, 13],
+  // III–I
   [8, 1],
+  // III–V
   [31, 7],
   [20, 10],
   // III–VI
@@ -262,32 +260,37 @@ export const VRC_CHANNELS: readonly [number, number][] = [
   [12, 22],
   // III–VII
   [16, 48],
-  // III–VIII
+  // VIII–VIII
   [45, 21],
-  // IV–V
+  // V–I
   [15, 5],
+  // I–IV
   [2, 14],
+  // V–IV
   [46, 29],
   [10, 34],
-  // IV–VII
+  // VII–IV
   [50, 27],
+  // V–IV
   [57, 34],
-  // V–VII
+  // V–V
   [10, 57],
-  // V–VIII
+  // V–I
   [25, 51],
-  // VI–V
+  // V–VI
   [59, 6],
-  // VI–VII
+  // VIII–VI
   [40, 37],
-  // VI–I
+  // VI–VI
   [39, 55],
   [41, 30],
-  // VII–VIII
+  // VIII–VII
   [26, 44],
   // VII–I
   [28, 38],
+  // VII–VII
   [18, 58],
+  // VII–VIII
   [32, 54],
 ];
 
@@ -347,12 +350,21 @@ export function earthLongitude(sunLongitude: number): number {
 
 // ─── Bio-Circuitry evaluation ─────────────────────────────────────────────────
 
+/**
+ * "intra" — both endpoint codons sit in the same Center. Eight of the 32 links
+ * are intra links; when active they define that single Center rather than
+ * bridging two. They must never be rendered as "X ↔ X".
+ * "inter" — the link bridges two distinct Centers.
+ */
+export type LinkType = "intra" | "inter";
+
 export interface ChannelStatus {
   gateA: number;
   gateB: number;
   active: boolean; // true = both gates are defined
   centerA: CenterName;
   centerB: CenterName;
+  linkType: LinkType;
 }
 
 /**
@@ -362,13 +374,32 @@ export interface ChannelStatus {
  * (regardless of whether they come from the Conscious or Design chart).
  */
 export function evaluateChannels(definedGates: Set<number>): ChannelStatus[] {
-  return VRC_CHANNELS.map(([gateA, gateB]) => ({
-    gateA,
-    gateB,
-    active: definedGates.has(gateA) && definedGates.has(gateB),
-    centerA: CODON_CENTER_MAP[gateA] ?? "Root",
-    centerB: CODON_CENTER_MAP[gateB] ?? "Root",
-  }));
+  return VRC_CHANNELS.map(([gateA, gateB]) => {
+    const centerA = CODON_CENTER_MAP[gateA] ?? "Root";
+    const centerB = CODON_CENTER_MAP[gateB] ?? "Root";
+    return {
+      gateA,
+      gateB,
+      active: definedGates.has(gateA) && definedGates.has(gateB),
+      centerA,
+      centerB,
+      linkType: centerA === centerB ? ("intra" as const) : ("inter" as const),
+    };
+  });
+}
+
+/**
+ * Render one Resonance Link's Centers as display text.
+ * Intra links name their single Center; inter links show the bridge.
+ */
+export function formatLinkCenters(
+  centerA: string,
+  centerB: string,
+  separator = "↔"
+): string {
+  return centerA === centerB
+    ? `within ${centerA}`
+    : `${centerA} ${separator} ${centerB}`;
 }
 
 /**
@@ -415,15 +446,14 @@ export type VrcAuthority =
   | "Environment";
 
 /**
- * Motor-to-Collapse link pairs (VTRS v2 — Catalyst determination).
+ * Motor-to-Collapse link pairs (VTRS v2.1 — Catalyst determination).
  * A Catalyst requires Saturation (IV) OPEN and at least one of these links ACTIVE,
  * where a motor center (VI Becoming or VIII Omega) connects directly to Collapse (III).
- * Motor links to Collapse: III–VI (35-36, 12-22) and III–VIII (45-21).
+ * Motor links to Collapse derived from Part VI: III–VI (35-36, 12-22).
  */
 const MOTOR_TO_COLLAPSE_LINKS: ReadonlyArray<readonly [number, number]> = [
   [35, 36], // Collapse ↔ Becoming
   [12, 22], // Collapse ↔ Becoming
-  [45, 21], // Collapse ↔ Omega
 ] as const;
 
 /**

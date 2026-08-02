@@ -9,16 +9,28 @@ import { storageGet, storagePut } from "./storage";
 import { buildUserStaticProfile } from "./static-profile-service";
 import {
   SIGNATURE_PRODUCTS,
+  TETRADIC_FOUNDER_EDITION_PRODUCT,
   assertCanAccessIntake,
+  assertCanMarkFounderEditionDelivered,
+  assertCanMarkFounderEditionInProgress,
   assertCanGenerateSnapshot,
   assertCanMarkDelivered,
   buildStripeCheckoutSessionRequest,
   generateSignatureLetterDraftMarkdown,
+  isLegacySignatureProductType,
   normalizeSignatureSnapshot,
   type NormalizedSignatureSnapshot,
   type SignatureIntakePayload,
+  type SignatureOrderProductType,
   type SignatureProductType,
 } from "./signature-letter-system";
+import {
+  TETRADIC_SIGNATURE_PAYPAL_PRODUCT,
+  createTetradicSignaturePayPalAdapter,
+  makeTetradicSignaturePayPalCustomId,
+  makeTetradicSignaturePayPalInvoiceId,
+  type TetradicSignatureCompletedOrder,
+} from "./tetradic-signature-paypal";
 
 const MAX_FINAL_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -39,6 +51,29 @@ function requireAppBaseUrl() {
     });
   }
   return ENV.appBaseUrl.replace(/\/+$/, "");
+}
+
+function createFounderEditionPayPalAdapter() {
+  if (
+    !ENV.paypalClientId ||
+    !ENV.paypalClientSecret ||
+    !ENV.paypalWebhookId
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "PayPal checkout is not configured.",
+    });
+  }
+
+  return createTetradicSignaturePayPalAdapter({
+    config: {
+      apiBaseUrl: ENV.paypalApiBaseUrl,
+      clientId: ENV.paypalClientId,
+      clientSecret: ENV.paypalClientSecret,
+      webhookId: ENV.paypalWebhookId,
+    },
+    fetch,
+  });
 }
 
 function requirePdfStorageConfig() {
@@ -69,6 +104,60 @@ function assertAdminOrder<T>(order: T | null | undefined): asserts order is T {
       message: "Signature Letter order not found.",
     });
   }
+}
+
+function requireLegacySignatureProductType(
+  productType: SignatureOrderProductType
+): SignatureProductType {
+  if (!isLegacySignatureProductType(productType)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "Founder Edition orders use the manual curation workflow, not generated PDFs.",
+    });
+  }
+  return productType;
+}
+
+function assertFounderEditionOrder<
+  T extends {
+    productType: SignatureOrderProductType;
+    paymentProvider: "stripe" | "paypal";
+  },
+>(order: T): asserts order is T {
+  if (
+    order.productType !==
+      TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+    order.paymentProvider !== "paypal"
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This is not a Tetradic Founder Edition PayPal order.",
+    });
+  }
+}
+
+function validateCompletedFounderEditionCapture(
+  orderId: number,
+  capture: TetradicSignatureCompletedOrder
+): Date {
+  const capturedAt = new Date(capture.capturedAt);
+  if (
+    capture.status !== "COMPLETED" ||
+    capture.captureStatus !== "COMPLETED" ||
+    capture.customId !== makeTetradicSignaturePayPalCustomId(orderId) ||
+    capture.invoiceId !== makeTetradicSignaturePayPalInvoiceId(orderId) ||
+    capture.currency !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.currency ||
+    capture.amount !== TETRADIC_SIGNATURE_PAYPAL_PRODUCT.amount ||
+    Number.isNaN(capturedAt.getTime())
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Validated PayPal capture does not match this order.",
+    });
+  }
+
+  return capturedAt;
 }
 
 function intakePayloadFromRow(
@@ -211,6 +300,228 @@ export async function createSignatureCheckout(input: {
   };
 }
 
+export type TetradicFounderEditionIntake = {
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+  birthCountry: string;
+  questionOne: string;
+  questionTwo: string;
+  consent: boolean;
+};
+
+export async function createTetradicFounderEditionCheckpoint(input: {
+  userId: number;
+  userName: string | null | undefined;
+  userEmail: string | null | undefined;
+  intake: TetradicFounderEditionIntake;
+}) {
+  const name = input.userName?.trim() ?? "";
+  const email = input.userEmail?.trim().toLowerCase() ?? "";
+  if (!name || !email) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Your authenticated account must include a name and email.",
+    });
+  }
+  if (!input.intake.consent) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Consent is required before saving the Founder Edition intake.",
+    });
+  }
+
+  const checkpoint = await db.createTetradicFounderEditionCheckpoint({
+    userId: input.userId,
+    name,
+    email,
+    birthDate: input.intake.birthDate,
+    birthTime: input.intake.birthTime,
+    birthPlace: input.intake.birthPlace,
+    birthCountry: input.intake.birthCountry,
+    questionOne: input.intake.questionOne,
+    questionTwo: input.intake.questionTwo,
+    consent: true,
+  });
+  if (
+    checkpoint.order.status !== "pending_payment" ||
+    checkpoint.order.productType !==
+      TETRADIC_FOUNDER_EDITION_PRODUCT.productType
+  ) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Founder Edition checkpoint was created in an invalid state.",
+    });
+  }
+
+  return {
+    orderId: checkpoint.order.id,
+    status: checkpoint.order.status,
+    product: TETRADIC_FOUNDER_EDITION_PRODUCT,
+    intakeSaved: Boolean(checkpoint.intake),
+  };
+}
+
+async function attachTetradicFounderEditionPayPalOrder(input: {
+  orderId: number;
+  userId: number;
+  paypalOrderId: string;
+}) {
+  const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
+  assertOwner(order, input.userId);
+  assertFounderEditionOrder(order);
+  if (order.status !== "pending_payment") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Founder Edition order is not awaiting payment.",
+    });
+  }
+
+  const paypalOrderId = input.paypalOrderId.trim();
+  if (!paypalOrderId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A PayPal order ID is required.",
+    });
+  }
+  if (order.paypalOrderId && order.paypalOrderId !== paypalOrderId) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "This Founder Edition order already has a PayPal order.",
+    });
+  }
+
+  return db.attachTetradicFounderEditionPayPalOrder({
+    orderId: input.orderId,
+    userId: input.userId,
+    paypalOrderId,
+  });
+}
+
+export async function createFounderEditionPayPalOrder(input: {
+  orderId: number;
+  userId: number;
+}) {
+  const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
+  assertOwner(order, input.userId);
+  assertFounderEditionOrder(order);
+  if (order.status !== "pending_payment") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Founder Edition order is not awaiting payment.",
+    });
+  }
+
+  const appBaseUrl = requireAppBaseUrl();
+  const adapter = createFounderEditionPayPalAdapter();
+  const created = await adapter.createOrder({
+    orderId: input.orderId,
+    returnUrl: `${appBaseUrl}/signature-order/${input.orderId}?paid=1`,
+    cancelUrl: `${appBaseUrl}/signature-order/${input.orderId}?cancelled=1`,
+  });
+  await attachTetradicFounderEditionPayPalOrder({
+    orderId: input.orderId,
+    userId: input.userId,
+    paypalOrderId: created.paypalOrderId,
+  });
+
+  return {
+    orderId: input.orderId,
+    paypalOrderId: created.paypalOrderId,
+    approveUrl: created.approveUrl,
+    status: created.status,
+  };
+}
+
+export async function recordValidatedTetradicFounderEditionCaptureForUser(
+  input: {
+    orderId: number;
+    userId: number;
+    capture: TetradicSignatureCompletedOrder;
+  }
+) {
+  const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
+  assertOwner(order, input.userId);
+  assertFounderEditionOrder(order);
+  const paidAt = validateCompletedFounderEditionCapture(
+    input.orderId,
+    input.capture
+  );
+  if (order.paypalOrderId !== input.capture.paypalOrderId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Validated PayPal capture does not belong to this order.",
+    });
+  }
+
+  return db.recordTetradicFounderEditionPayPalCapture({
+    orderId: input.orderId,
+    userId: input.userId,
+    paypalOrderId: input.capture.paypalOrderId,
+    paypalCaptureId: input.capture.captureId,
+    paidAt,
+    currency: input.capture.currency,
+    amount: input.capture.amount,
+  });
+}
+
+export async function captureFounderEditionPayPalOrder(input: {
+  orderId: number;
+  userId: number;
+}) {
+  const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
+  assertOwner(order, input.userId);
+  assertFounderEditionOrder(order);
+  if (!order.paypalOrderId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Founder Edition order has no attached PayPal order.",
+    });
+  }
+
+  const adapter = createFounderEditionPayPalAdapter();
+  const capture = await adapter.captureOrder({
+    orderId: input.orderId,
+    paypalOrderId: order.paypalOrderId,
+  });
+  const persistedOrder =
+    await recordValidatedTetradicFounderEditionCaptureForUser({
+      orderId: input.orderId,
+      userId: input.userId,
+      capture,
+    });
+
+  return {
+    orderId: input.orderId,
+    status: persistedOrder.status,
+    captureId: capture.captureId,
+  };
+}
+
+export async function recordValidatedTetradicFounderEditionCaptureFromWebhook(
+  input: { capture: TetradicSignatureCompletedOrder }
+) {
+  const order = await db.getSignatureOrderByPaypalOrderId(
+    input.capture.paypalOrderId
+  );
+  assertAdminOrder(order);
+  assertFounderEditionOrder(order);
+  const paidAt = validateCompletedFounderEditionCapture(
+    order.id,
+    input.capture
+  );
+
+  return db.recordTetradicFounderEditionPayPalCapture({
+    orderId: order.id,
+    userId: order.userId,
+    paypalOrderId: input.capture.paypalOrderId,
+    paypalCaptureId: input.capture.captureId,
+    paidAt,
+    currency: input.capture.currency,
+    amount: input.capture.amount,
+  });
+}
+
 export async function getSignatureOrderBundleForUser(input: {
   orderId: number;
   userId: number;
@@ -348,9 +659,10 @@ export async function generateSignatureSnapshotForOrder(orderId: number) {
     timezoneId: intake.timezone || timezone.tzId,
     timezoneOffset: timezone.offsetHours,
   });
+  const productType = requireLegacySignatureProductType(order.productType);
   const normalized = normalizeSignatureSnapshot(
     rawSignature,
-    order.productType
+    productType
   );
 
   return db.createSignatureSnapshot({
@@ -365,6 +677,7 @@ export async function generateSignatureSnapshotForOrder(orderId: number) {
 export async function generateSignatureDraftForOrder(orderId: number) {
   const order = await db.getSignatureOrderById(orderId);
   assertAdminOrder(order);
+  const productType = requireLegacySignatureProductType(order.productType);
   const intake = await db.getSignatureIntakeByOrderId(orderId);
   const snapshot = await db.getLatestSignatureSnapshot(orderId);
 
@@ -378,14 +691,14 @@ export async function generateSignatureDraftForOrder(orderId: number) {
   const markdown = generateSignatureLetterDraftMarkdown({
     intake: intakePayloadFromRow(intake),
     normalized: normalizedSnapshotFromRow(snapshot),
-    productType: order.productType,
+    productType,
   });
 
   const draft = await db.upsertSignatureLetterDraft({
     orderId,
     userId: order.userId,
     markdown,
-    productType: order.productType,
+    productType,
     status: "draft_ready",
   });
 
@@ -416,12 +729,65 @@ export async function markSignatureInCuration(orderId: number) {
   return getSignatureLetterAdminOrder(orderId);
 }
 
+export async function markFounderEditionInProgress(orderId: number) {
+  const order = await db.getSignatureOrderById(orderId);
+  assertAdminOrder(order);
+  try {
+    assertCanMarkFounderEditionInProgress({
+      productType: order.productType,
+      status: order.status,
+    });
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Founder Edition cannot enter curation.",
+    });
+  }
+
+  return db.transitionTetradicFounderEditionStatus({
+    orderId,
+    fromStatuses: ["intake_received", "in_curation"],
+    status: "in_curation",
+  });
+}
+
+export async function markFounderEditionDelivered(orderId: number) {
+  const order = await db.getSignatureOrderById(orderId);
+  assertAdminOrder(order);
+  try {
+    assertCanMarkFounderEditionDelivered({
+      productType: order.productType,
+      status: order.status,
+    });
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Founder Edition cannot be marked delivered.",
+    });
+  }
+
+  return db.transitionTetradicFounderEditionStatus({
+    orderId,
+    fromStatuses: ["in_curation", "delivered"],
+    status: "delivered",
+  });
+}
+
 export async function uploadFinalSignaturePdf(input: {
   orderId: number;
   fileName: string;
   mimeType: string;
   base64: string;
 }) {
+  const order = await db.getSignatureOrderById(input.orderId);
+  assertAdminOrder(order);
+  requireLegacySignatureProductType(order.productType);
   requirePdfStorageConfig();
 
   if (input.mimeType !== "application/pdf") {
@@ -439,8 +805,6 @@ export async function uploadFinalSignaturePdf(input: {
     });
   }
 
-  const order = await db.getSignatureOrderById(input.orderId);
-  assertAdminOrder(order);
   const storageKey = `signature-letters/${input.orderId}/${randomUUID()}-${input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   await storagePut(storageKey, buffer, input.mimeType);
   await db.setSignatureLetterDraftPdf({
@@ -456,6 +820,7 @@ export async function uploadFinalSignaturePdf(input: {
 export async function markSignatureDelivered(orderId: number) {
   const order = await db.getSignatureOrderById(orderId);
   assertAdminOrder(order);
+  const productType = requireLegacySignatureProductType(order.productType);
   const intake = await db.getSignatureIntakeByOrderId(orderId);
   const draft = await db.getSignatureLetterDraft(orderId);
   assertCanMarkDelivered({
@@ -478,7 +843,7 @@ export async function markSignatureDelivered(orderId: number) {
   await sendSignatureLetterDeliveryEmail({
     email: intake.email,
     name: intake.name,
-    productTitle: SIGNATURE_PRODUCTS[order.productType].title,
+    productTitle: SIGNATURE_PRODUCTS[productType].title,
     deliveryUrl: `${requireAppBaseUrl()}/signature-intake/${orderId}`,
   });
 
@@ -506,6 +871,7 @@ export async function getFinalSignaturePdfUrl(input: {
 }) {
   const order = await db.getSignatureOrderForUser(input.orderId, input.userId);
   assertOwner(order, input.userId);
+  requireLegacySignatureProductType(order.productType);
   const draft = await db.getSignatureLetterDraft(input.orderId);
 
   if (!draft?.finalPdfStorageKey) {

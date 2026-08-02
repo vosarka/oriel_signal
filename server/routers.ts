@@ -19,7 +19,7 @@ import {
 } from "./oriel-diagnostic-engine";
 import { generateChunkedSpeech, audioToDataUrl } from "./inworld-tts";
 import { rgpRouter } from "./rgp-router";
-import { geocodeCity, getTimezoneForCoords } from "./geocoding";
+import { geocodeCity, getTimezoneIdForCoords } from "./geocoding";
 import {
   formatOrielResponse,
   generateOrielGreeting,
@@ -51,7 +51,11 @@ import {
   normalizeImageReferences,
 } from "./oriel-chat-image-service";
 import { stripOrielChatImageBlocks } from "@shared/oriel-chat-images";
+import { parseActivations } from "@shared/codon-wheel";
 import {
+  captureFounderEditionPayPalOrder,
+  createFounderEditionPayPalOrder,
+  createTetradicFounderEditionCheckpoint,
   createSignatureCheckout,
   generateSignatureDraftForOrder,
   generateSignatureSnapshotForOrder,
@@ -59,6 +63,8 @@ import {
   getSignatureLetterAdminOrder,
   getSignatureOrderBundleForUser,
   listSignatureLetterAdminOrders,
+  markFounderEditionDelivered,
+  markFounderEditionInProgress,
   markSignatureDelivered,
   markSignatureFollowupUsed,
   markSignatureInCuration,
@@ -75,6 +81,26 @@ function hashResetCode(email: string, code: string) {
   return createHash("sha256")
     .update(`${normalizeEmail(email)}:${code}`)
     .digest("hex");
+}
+
+function setPrivateWheelCacheHeaders(
+  res: { setHeader?: (name: string, value: string) => void } | undefined,
+  receiverId: number,
+  calculatedAt: Date | null
+) {
+  res?.setHeader?.("Vary", "Cookie");
+
+  if (!calculatedAt) {
+    res?.setHeader?.("Cache-Control", "private, no-store");
+    return;
+  }
+
+  const cacheKey = createHash("sha256")
+    .update(`${receiverId}:${calculatedAt.toISOString()}`)
+    .digest("hex");
+  res?.setHeader?.("Cache-Control", "private, no-cache");
+  res?.setHeader?.("ETag", `"wheel-${cacheKey}"`);
+  res?.setHeader?.("X-Wheel-Cache-Key", cacheKey);
 }
 
 function normalizeOptionalText(
@@ -146,7 +172,6 @@ const natalProfileInputSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   timezoneId: z.string().optional(),
-  timezoneOffset: z.number().optional(),
 });
 
 const signatureProductTypeSchema = z.enum(["glimpse", "founding"]);
@@ -163,6 +188,17 @@ const signatureIntakeInputSchema = z.object({
   avoidAssumptions: z.string().optional().default(""),
   consentAccepted: z.boolean(),
 });
+const tetradicFounderEditionIntakeSchema = z
+  .object({
+    birthDate: z.string().trim().min(1).max(32),
+    birthTime: z.string().trim().min(1).max(32),
+    birthPlace: z.string().trim().min(1).max(255),
+    birthCountry: z.string().trim().min(1).max(255),
+    questionOne: z.string().trim().min(1).max(4_000),
+    questionTwo: z.string().trim().min(1).max(4_000),
+    consent: z.literal(true),
+  })
+  .strict();
 
 export const appRouter = router({
   system: systemRouter,
@@ -175,12 +211,8 @@ export const appRouter = router({
         const { displayName, latitude, longitude } = await geocodeCity(
           input.city
         );
-        const { tzId, offsetHours } = getTimezoneForCoords(
-          latitude,
-          longitude,
-          new Date()
-        );
-        return { displayName, latitude, longitude, tzId, offsetHours };
+        const tzId = getTimezoneIdForCoords(latitude, longitude);
+        return { displayName, latitude, longitude, tzId };
       }),
   }),
 
@@ -328,6 +360,47 @@ export const appRouter = router({
   }),
 
   signature: router({
+    createFounderEditionCheckpoint: protectedProcedure
+      .input(tetradicFounderEditionIntakeSchema)
+      .mutation(async ({ ctx, input }) => {
+        return createTetradicFounderEditionCheckpoint({
+          userId: ctx.user.id,
+          userName: ctx.user.name,
+          userEmail: ctx.user.email,
+          intake: input,
+        });
+      }),
+
+    createFounderEditionPayPalOrder: protectedProcedure
+      .input(
+        z
+          .object({
+            orderId: z.number().int().positive(),
+          })
+          .strict()
+      )
+      .mutation(async ({ ctx, input }) => {
+        return createFounderEditionPayPalOrder({
+          orderId: input.orderId,
+          userId: ctx.user.id,
+        });
+      }),
+
+    captureFounderEditionPayPalOrder: protectedProcedure
+      .input(
+        z
+          .object({
+            orderId: z.number().int().positive(),
+          })
+          .strict()
+      )
+      .mutation(async ({ ctx, input }) => {
+        return captureFounderEditionPayPalOrder({
+          orderId: input.orderId,
+          userId: ctx.user.id,
+        });
+      }),
+
     createCheckout: protectedProcedure
       .input(
         z.object({
@@ -1276,7 +1349,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    generateSpeech: rateLimitedProcedure("oriel.tts")
+    generateSpeech: publicProcedure
       .input(
         z.object({
           text: z
@@ -2255,6 +2328,32 @@ export const appRouter = router({
 
   // User profile and subscription management
   profile: router({
+    getWheelField: publicProcedure.query(() => ({ state: "field" as const })),
+
+    getMyWheel: protectedProcedure.query(async ({ ctx }) => {
+      // ctx.user is the legacy Receiver row resolved exclusively from the
+      // authenticated Better Auth session in createContext. This procedure
+      // intentionally has no input and can never select another Receiver.
+      const receiverId = ctx.user.id;
+      const record = await db.getUserStaticProfileForWheel(receiverId);
+
+      if (!record) {
+        setPrivateWheelCacheHeaders(ctx.res, receiverId, null);
+        return { state: "none" as const };
+      }
+
+      const activations = parseActivations(record.activations);
+      const calculatedAt = record.updatedAt ?? record.createdAt;
+      setPrivateWheelCacheHeaders(ctx.res, receiverId, calculatedAt);
+
+      return {
+        state: "ready" as const,
+        calculatedAt,
+        engineVersion: record.engineVersion,
+        activations,
+      };
+    }),
+
     getNatalCompletionStatus: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) {
         throw new Error("Authentication required");
@@ -2898,7 +2997,6 @@ export const appRouter = router({
           latitude: z.number().default(0),
           longitude: z.number().default(0),
           timezoneId: z.string().optional(),
-          timezoneOffset: z.number().optional(),
           primeStack: z.unknown().optional(),
           ninecenters: z.unknown().optional(),
           fractalRole: z.string().optional(),
@@ -3092,6 +3190,26 @@ export const appRouter = router({
         )
         .mutation(async ({ input }) => {
           return markSignatureDelivered(input.orderId);
+        }),
+
+      markFounderEditionInProgress: adminProcedure
+        .input(
+          z.object({
+            orderId: z.number().int().positive(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          return markFounderEditionInProgress(input.orderId);
+        }),
+
+      markFounderEditionDelivered: adminProcedure
+        .input(
+          z.object({
+            orderId: z.number().int().positive(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          return markFounderEditionDelivered(input.orderId);
         }),
 
       markFollowupUsed: adminProcedure

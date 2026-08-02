@@ -745,6 +745,8 @@ export const userStaticProfiles = mysqlTable("userStaticProfiles", {
   coreCodonEngine: text("coreCodonEngine"),
   activations: text("activations"),
   channelStatuses: text("channelStatuses"),
+  /** 16-value Resonance Role — independent of the 4-value fractalRole above. */
+  resonanceRole: varchar("resonanceRole", { length: 128 }),
   calculationStatus: varchar("calculationStatus", { length: 32 }),
   calculationContext: text("calculationContext"),
   specVersion: varchar("specVersion", { length: 128 }),
@@ -765,11 +767,18 @@ export const signatureOrders = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     userId: int("userId").notNull(),
-    productType: mysqlEnum("productType", ["glimpse", "founding"]).notNull(),
+    productType: mysqlEnum("productType", [
+      "glimpse",
+      "founding",
+      "tetradic_founder_edition",
+    ]).notNull(),
     priceEur: decimal("priceEur", { precision: 10, scale: 2 })
       .$type<number>()
       .notNull(),
     currency: varchar("currency", { length: 8 }).default("eur").notNull(),
+    paymentProvider: mysqlEnum("paymentProvider", ["stripe", "paypal"])
+      .default("stripe")
+      .notNull(),
     status: mysqlEnum("status", [
       "pending_payment",
       "paid",
@@ -790,8 +799,11 @@ export const signatureOrders = mysqlTable(
       length: 255,
     }),
     stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 255 }),
+    paypalOrderId: varchar("paypalOrderId", { length: 255 }),
+    paypalCaptureId: varchar("paypalCaptureId", { length: 255 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     paidAt: timestamp("paidAt"),
+    deliveryDueAt: timestamp("deliveryDueAt"),
     deliveredAt: timestamp("deliveredAt"),
     cancelledAt: timestamp("cancelledAt"),
     refundedAt: timestamp("refundedAt"),
@@ -802,6 +814,10 @@ export const signatureOrders = mysqlTable(
     index("idx_signature_orders_status").on(table.status),
     uniqueIndex("uq_signature_orders_checkout").on(
       table.stripeCheckoutSessionId
+    ),
+    uniqueIndex("uq_signature_orders_paypal_order").on(table.paypalOrderId),
+    uniqueIndex("uq_signature_orders_paypal_capture").on(
+      table.paypalCaptureId
     ),
   ]
 );
@@ -823,6 +839,8 @@ export const signatureIntakes = mysqlTable(
     birthCountry: varchar("birthCountry", { length: 255 }).notNull(),
     timezone: varchar("timezone", { length: 128 }).notNull(),
     focusQuestion: text("focusQuestion").notNull(),
+    questionOne: text("questionOne"),
+    questionTwo: text("questionTwo"),
     preferredTone: mysqlEnum("preferredTone", [
       "mystical",
       "practical",

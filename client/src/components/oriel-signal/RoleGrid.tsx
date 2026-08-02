@@ -8,7 +8,7 @@ export interface RoleGridProps {
 export function RoleGrid({ activeRoleIdx, onRoleSelect }: RoleGridProps) {
   return (
     <div className="cz-role-legend">
-      <p className="cz-legend-header">THE 16 RESONANCE ROLES · 4 CODONS EACH</p>
+      <p className="cz-legend-header">SEQUENTIAL INDEX · 16 RESONANCE ROLES · RC01–64</p>
       <div className="cz-legend-grid">
         {ROLES.map((role, idx) => {
           const isActive = activeRoleIdx === idx;

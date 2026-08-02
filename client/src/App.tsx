@@ -1,8 +1,8 @@
-﻿import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { OrielRouteGuard } from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -29,7 +29,8 @@ import Carrierlock from "./pages/Carrierlock";
 import Reading from "./pages/Reading";
 import Readings from "./pages/Readings";
 
-import FounderCuratedBlueprint from "./pages/FounderCuratedBlueprint";
+import TetradicSignatureSacredExperience from "./pages/TetradicSignatureSacredExperience";
+import TetradicFounderEditionOrder from "./pages/TetradicFounderEditionOrder";
 import SignatureIntake from "./pages/SignatureIntake";
 import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -89,7 +90,7 @@ function Router() {
         path={"/founding-signature-letter"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -97,7 +98,7 @@ function Router() {
         path={"/oriel-signature-glimpse"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -105,7 +106,7 @@ function Router() {
         path={"/oriel-founding-signature-letter"}
         component={() => {
           const [, setLoc] = useLocation();
-          useEffect(() => setLoc("/founder-signature-blueprint"), []);
+          useEffect(() => setLoc("/tetradic-signature"), []);
           return null;
         }}
       />
@@ -149,8 +150,20 @@ function Router() {
       <Route path={"/codex/:id"} component={CodonDetail} />
       <Route path={"/cosmichronica"} component={Cosmichronica} />
       <Route
+        path={"/signature-order/:orderId"}
+        component={TetradicFounderEditionOrder}
+      />
+      <Route
+        path={"/tetradic-signature"}
+        component={TetradicSignatureSacredExperience}
+      />
+      <Route
         path={"/founder-signature-blueprint"}
-        component={FounderCuratedBlueprint}
+        component={() => {
+          const [, setLoc] = useLocation();
+          useEffect(() => setLoc("/tetradic-signature"), []);
+          return null;
+        }}
       />
       {/* THE SIGNATURE: canonical single reading page consolidating previous fragmented reading routes */}
       <Route path={"/signature"} component={SignatureRedirect} />
@@ -221,9 +234,16 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
+  const previousLocationRef = useRef(location);
 
-  // Scroll to top on every route change so pages don't load at the bottom
+  // Preserve browser restoration only for the long Tetradic scroll route.
+  // Every other route keeps the existing load-at-top behavior.
   useEffect(() => {
+    if (previousLocationRef.current === location) {
+      if (location !== "/tetradic-signature") window.scrollTo(0, 0);
+      return;
+    }
+    previousLocationRef.current = location;
     window.scrollTo(0, 0);
   }, [location]);
 

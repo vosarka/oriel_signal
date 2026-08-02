@@ -1,55 +1,74 @@
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { trpc } from "@/lib/trpc";
+import {
+  BAND_RADII,
+  BOTH_LAYER_RADIUS,
+  CENTER_HUE,
+  CODON_CENTER,
+  CODON_IDS,
+  CONSCIOUS_INNER_RADIUS,
+  CONSCIOUS_OUTER_RADIUS,
+  DESIGN_INNER_RADIUS,
+  DESIGN_OUTER_RADIUS,
+  FACETS,
+  FACET_SPAN,
+  FIELD_CELL_OPACITY,
+  GROUND_HUE,
+  LAYERS,
+  NEUTRAL_HUE,
+  SEG,
+  boundaryOpacity,
+  buildBothLayers,
+  buildLitSet,
+  cellAngle,
+  cellOpacity,
+  codonMidAngle,
+  codonStartAngle,
+  markerOpacity,
+  myWheelQueryKey,
+  polar,
+  resolveWheelKey,
+  resolveWheelMotion,
+  summarizeCodonActivations,
+  wedge,
+  type Activation,
+  type CenterName,
+  type CodonSignatureSummary,
+  type Facet,
+  type Layer,
+  type WheelGeometry,
+  type WheelView,
+} from "@shared/codon-wheel";
+import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { gsap } from "gsap";
+import * as React from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
-// Muted jewel-tone palette, 8 Tetradic centers
-export const CENTER_COLORS: Record<string, string> = {
-  Origin: "#3f8a80",     // dusty teal
-  Mental: "#7c8f52",     // sage olive
-  Collapse: "#5f7a94",   // slate blue
-  Saturation: "#c9a24a", // gold
-  Bridge: "#a56b8a",     // dusty rose/mauve
-  Becoming: "#bd7a4e",   // terracotta
-  Return: "#3d6e63",     // deep teal-green
-  Omega: "#8a6bab",      // violet
-};
+export {
+  CENTER_HUE,
+  CODON_CENTER,
+  VRC_MANDALA,
+  type Activation,
+  type CenterName,
+  type CodonSignatureSummary,
+  type Facet,
+  type Layer,
+  type WheelGeometry,
+  type WheelView,
+} from "@shared/codon-wheel";
 
-export const CODON_CENTER_MAP: Record<number, string> = {
-  1: "Origin", 2: "Origin", 3: "Origin", 5: "Origin", 9: "Origin", 19: "Origin", 38: "Origin", 51: "Origin",
-  4: "Mental", 11: "Mental", 17: "Mental", 23: "Mental", 24: "Mental", 43: "Mental", 61: "Mental", 63: "Mental",
-  8: "Collapse", 12: "Collapse", 16: "Collapse", 20: "Collapse", 31: "Collapse", 33: "Collapse", 35: "Collapse", 56: "Collapse",
-  14: "Saturation", 27: "Saturation", 29: "Saturation", 34: "Saturation", 42: "Saturation", 52: "Saturation", 53: "Saturation", 60: "Saturation",
-  7: "Bridge", 10: "Bridge", 13: "Bridge", 15: "Bridge", 25: "Bridge", 46: "Bridge", 57: "Bridge", 59: "Bridge",
-  6: "Becoming", 22: "Becoming", 30: "Becoming", 36: "Becoming", 37: "Becoming", 39: "Becoming", 41: "Becoming", 55: "Becoming",
-  18: "Return", 28: "Return", 32: "Return", 44: "Return", 48: "Return", 49: "Return", 50: "Return", 58: "Return",
-  21: "Omega", 26: "Omega", 40: "Omega", 45: "Omega", 47: "Omega", 54: "Omega", 62: "Omega", 64: "Omega",
-};
+// Backwards-compatible names used by the surrounding VTRS modules.
+export const CENTER_COLORS: Readonly<Record<string, string>> = CENTER_HUE;
+export const CODON_CENTER_MAP: Readonly<Record<number, CenterName>> =
+  CODON_CENTER;
 
-// The 64 Codon numbers in canonical Mandala wheel order (4 quadrants of 16).
-// Mirrors server/vrc-mandala.ts's VRC_MANDALA — that file is the source of
-// truth; this client copy exists only because the client bundle can't import
-// server/ code directly.
-export const VRC_MANDALA: readonly number[] = [
-  51, 42, 3, 27, 24, 2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39,
-  53, 62, 56, 31, 33, 7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48,
-  57, 32, 50, 28, 44, 1, 43, 14, 34, 9, 5, 26, 11, 10, 58, 38,
-  54, 61, 60, 41, 19, 13, 49, 30, 55, 37, 63, 22, 36, 25, 17, 21,
-];
-
-// Reverse lookup: codon number → its slot index (0–63) in Mandala wheel order.
-const CODON_SLOT: Record<number, number> = {};
-VRC_MANDALA.forEach((codon, slot) => {
-  CODON_SLOT[codon] = slot;
-});
-
-// 4 quadrants of 16 slots (90° each), in wheel order starting at slot 0.
-const QUADRANTS = [
-  { name: "INITIATION", startSlot: 0 },
-  { name: "CIVILIZATION", startSlot: 16 },
-  { name: "DUALITY", startSlot: 32 },
-  { name: "MUTATION", startSlot: 48 },
-] as const;
-
-// 8 Tetradic Centers, each governing 8 codons
 export const CENTERS = [
   { name: "Origin", desc: "the initiating pressure beneath all form" },
   { name: "Mental", desc: "recursive pattern-recognition and logic" },
@@ -61,31 +80,120 @@ export const CENTERS = [
   { name: "Omega", desc: "unified will and integrative synthesis" },
 ] as const;
 
-// 16 Roles (TETRADS of 4 codons each)
 export const ROLES = [
-  { name: "Originator", roman: "I", range: "RC01–04", desc: "initiates structure from raw potential" },
-  { name: "Resonator", roman: "II", range: "RC05–08", desc: "harmonizes rhythm, direction & contribution" },
-  { name: "Articulator", roman: "III", range: "RC09–12", desc: "focuses, expresses & gives form to thought" },
-  { name: "Cultivator", roman: "IV", range: "RC13–16", desc: "develops memory, skill, resources & refinement" },
-  { name: "Clarifier", roman: "V", range: "RC17–20", desc: "evaluates, corrects, senses & brings presence" },
-  { name: "Sovereign", roman: "VI", range: "RC21–24", desc: "commands, integrates, renews & stabilizes authority" },
-  { name: "Guardian", roman: "VII", range: "RC25–28", desc: "protects spirit, care, purpose & moral direction" },
-  { name: "Devotee", roman: "VIII", range: "RC29–32", desc: "commits energy, desire, leadership & continuity" },
-  { name: "Transformer", roman: "IX", range: "RC33–36", desc: "metabolizes retreat, power, change & crisis" },
-  { name: "Catalyst", roman: "X", range: "RC37–40", desc: "activates community, struggle, provocation & will" },
-  { name: "Oracle", roman: "XI", range: "RC41–44", desc: "receives imagination, completion, insight & pattern" },
-  { name: "Steward", roman: "XII", range: "RC45–48", desc: "manages resources, embodiment, realization & depth" },
-  { name: "Reformer", roman: "XIII", range: "RC49–52", desc: "renews principles, values, shock & stillness" },
-  { name: "Ascendant", roman: "XIV", range: "RC53–56", desc: "expands beginnings, ambition, abundance & story" },
-  { name: "Navigator", roman: "XV", range: "RC57–60", desc: "guides intuition, joy, union & limitation" },
-  { name: "Illuminator", roman: "XVI", range: "RC61–64", desc: "reveals mystery, detail, doubt & archetypal memory" },
+  {
+    name: "Originator",
+    roman: "I",
+    range: "RC01–04",
+    desc: "initiates structure from raw potential",
+  },
+  {
+    name: "Resonator",
+    roman: "II",
+    range: "RC05–08",
+    desc: "harmonizes rhythm, direction & contribution",
+  },
+  {
+    name: "Articulator",
+    roman: "III",
+    range: "RC09–12",
+    desc: "focuses, expresses & gives form to thought",
+  },
+  {
+    name: "Cultivator",
+    roman: "IV",
+    range: "RC13–16",
+    desc: "develops memory, skill, resources & refinement",
+  },
+  {
+    name: "Clarifier",
+    roman: "V",
+    range: "RC17–20",
+    desc: "evaluates, corrects, senses & brings presence",
+  },
+  {
+    name: "Sovereign",
+    roman: "VI",
+    range: "RC21–24",
+    desc: "commands, integrates, renews & stabilizes authority",
+  },
+  {
+    name: "Guardian",
+    roman: "VII",
+    range: "RC25–28",
+    desc: "protects spirit, care, purpose & moral direction",
+  },
+  {
+    name: "Devotee",
+    roman: "VIII",
+    range: "RC29–32",
+    desc: "commits energy, desire, leadership & continuity",
+  },
+  {
+    name: "Transformer",
+    roman: "IX",
+    range: "RC33–36",
+    desc: "metabolizes retreat, power, change & crisis",
+  },
+  {
+    name: "Catalyst",
+    roman: "X",
+    range: "RC37–40",
+    desc: "activates community, struggle, provocation & will",
+  },
+  {
+    name: "Oracle",
+    roman: "XI",
+    range: "RC41–44",
+    desc: "receives imagination, completion, insight & pattern",
+  },
+  {
+    name: "Steward",
+    roman: "XII",
+    range: "RC45–48",
+    desc: "manages resources, embodiment, realization & depth",
+  },
+  {
+    name: "Reformer",
+    roman: "XIII",
+    range: "RC49–52",
+    desc: "renews principles, values, shock & stillness",
+  },
+  {
+    name: "Ascendant",
+    roman: "XIV",
+    range: "RC53–56",
+    desc: "expands beginnings, ambition, abundance & story",
+  },
+  {
+    name: "Navigator",
+    roman: "XV",
+    range: "RC57–60",
+    desc: "guides intuition, joy, union & limitation",
+  },
+  {
+    name: "Illuminator",
+    roman: "XVI",
+    range: "RC61–64",
+    desc: "reveals mystery, detail, doubt & archetypal memory",
+  },
 ] as const;
 
-// One glyph per role, in role order (role 1 → ROLE01.svg, etc.)
 export const ROLE_VECTORS = Array.from(
   { length: 16 },
-  (_, i) => `/vectors/ROLE${String(i + 1).padStart(2, "0")}.svg`
+  (_, index) => `/vectors/ROLE${String(index + 1).padStart(2, "0")}.svg`
 );
+
+export const CENTER_SYMBOL: Record<string, string> = {
+  Origin: "1AXIS",
+  Mental: "2CORE",
+  Collapse: "3PULSE",
+  Saturation: "4NEXUX",
+  Bridge: "5PRISM",
+  Becoming: "6LOOM",
+  Return: "7HORIZON",
+  Omega: "8HELIX",
+};
 
 export interface Codon {
   id: number;
@@ -102,439 +210,1407 @@ export interface CodonWheelProps {
   codons: Codon[];
   selectedId: number;
   onSelect: (id: number) => void;
-  activations?: Set<number>;
+  selectedFacet?: Facet;
+  selectedLayer?: Layer;
+  viewPreference?: BaseView | null;
+  geometryPreference?: WheelGeometry;
+  onCellSelect?: (selection: WheelCellSelection) => void;
+  onViewPreferenceChange?: (view: BaseView) => void;
+  onGeometryPreferenceChange?: (geometry: WheelGeometry) => void;
+  onSignatureContextChange?: (context: WheelSignatureContext) => void;
   activeRoleIdx?: number | null;
-  activeCenter?: string | null;
-  // Fired when the user clicks the empty area outside the wheel — clears
-  // active center/role filters.
+  activeCenter?: CenterName | null;
+  onCenterSelect?: (center: CenterName | null) => void;
   onDeselect?: () => void;
+}
+
+export type WheelLoadState =
+  | "anonymous"
+  | "loading"
+  | "none"
+  | "ready"
+  | "error";
+export type BaseView = "field" | "mine";
+const EMPTY_ACTIVATIONS: readonly Activation[] = [];
+
+export function resolveBaseView(
+  loadState: WheelLoadState,
+  viewPreference: BaseView | null | undefined,
+  automaticView: BaseView
+): BaseView {
+  if (loadState !== "ready") return "field";
+  return viewPreference ?? automaticView;
+}
+
+export interface WheelCellSelection {
+  codonId: number;
+  facet: Facet;
+  layer: Layer;
+}
+
+export interface WheelSignatureContext {
+  mode: BaseView;
+  state: WheelLoadState;
+  summary: CodonSignatureSummary | null;
+}
+
+export function resolveWheelSignatureContext(
+  loadState: WheelLoadState,
+  baseView: BaseView,
+  activations: readonly Activation[],
+  selectedId: number
+): WheelSignatureContext {
+  const signatureMode = loadState === "ready" && baseView === "mine";
+  return {
+    mode: signatureMode ? "mine" : "field",
+    state: loadState,
+    summary: signatureMode
+      ? summarizeCodonActivations(activations, selectedId)
+      : null,
+  };
+}
+
+export function resolveWheelView(
+  loadState: WheelLoadState,
+  baseView: BaseView,
+  focusedCodonId: number | null
+): WheelView {
+  if (focusedCodonId !== null) {
+    return { kind: "focus", codonId: focusedCodonId };
+  }
+  return loadState === "ready" ? { kind: baseView } : { kind: "field" };
+}
+
+export interface WheelExplorationSelection {
+  focusedCodonId: number | null;
+  activeCenter: CenterName | null;
+}
+
+export type WheelExplorationAction =
+  | { kind: "codon"; codonId: number }
+  | { kind: "center"; center: CenterName };
+
+export function resolveWheelExplorationSelection(
+  selection: WheelExplorationSelection,
+  action: WheelExplorationAction
+): WheelExplorationSelection {
+  if (action.kind === "codon") {
+    return { focusedCodonId: action.codonId, activeCenter: null };
+  }
+  return {
+    focusedCodonId: null,
+    activeCenter:
+      selection.activeCenter === action.center ? null : action.center,
+  };
 }
 
 const CX = 380;
 const CY = 380;
-// The colored codon arc (outer band).
-const WEDGE_OUTER = 344;
-const WEDGE_INNER = 252;
-// A separate band *below* the colored arcs. Every segment shows the sigil of
-// the Center that codon belongs to here — its own dedicated space, not painted
-// on top of the codon color.
-const CENTER_BAND_OUTER = 248;
+const CENTER_BAND_OUTER = 244;
 const CENTER_BAND_INNER = 206;
+const QUADRANTS = [
+  { name: "INITIATION", numericAnchor: 1, astronomicalAnchor: 51 },
+  { name: "CIVILIZATION", numericAnchor: 17, astronomicalAnchor: 53 },
+  { name: "DUALITY", numericAnchor: 33, astronomicalAnchor: 57 },
+  { name: "MUTATION", numericAnchor: 49, astronomicalAnchor: 54 },
+] as const;
 
-// Each Tetradic Center's sigil (art in /public/9-centers), keyed by Center name
-// so the wheel's center band and the left sidebar both draw the same symbol.
-export const CENTER_SYMBOL: Record<string, string> = {
-  Origin: "1AXIS",
-  Mental: "2CORE",
-  Collapse: "3PULSE",
-  Saturation: "4NEXUX",
-  Bridge: "5PRISM",
-  Becoming: "6LOOM",
-  Return: "7HORIZON",
-  Omega: "8HELIX",
-};
-
-function pol(cx: number, cy: number, r: number, deg: number) {
-  const rad = ((deg - 90) * Math.PI) / 180;
-  return {
-    x: cx + r * Math.cos(rad),
-    y: cy + r * Math.sin(rad),
-  };
-}
-
-// Generate SVG path for a single codon's annular (donut) wedge — the colored
-// ring segment a codon glyph sits inside of.
-function getAnnularSectorPath(
+function labelArcPath(
   cx: number,
   cy: number,
-  rOuter: number,
-  rInner: number,
-  startDeg: number,
-  endDeg: number
+  r: number,
+  midAngle: number,
+  halfSpan: number
 ) {
-  const outerStart = pol(cx, cy, rOuter, startDeg);
-  const outerEnd = pol(cx, cy, rOuter, endDeg);
-  const innerEnd = pol(cx, cy, rInner, endDeg);
-  const innerStart = pol(cx, cy, rInner, startDeg);
-  const largeArc = endDeg - startDeg <= 180 ? 0 : 1;
-  return [
-    `M ${outerStart.x} ${outerStart.y}`,
-    `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
-    `L ${innerEnd.x} ${innerEnd.y}`,
-    `A ${rInner} ${rInner} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
-    "Z",
-  ].join(" ");
+  const flip = midAngle > 90 && midAngle < 270;
+  const start = flip ? midAngle + halfSpan : midAngle - halfSpan;
+  const end = flip ? midAngle - halfSpan : midAngle + halfSpan;
+  const p0 = polar(cx, cy, r, start);
+  const p1 = polar(cx, cy, r, end);
+  return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${flip ? 0 : 1} ${p1.x} ${p1.y}`;
 }
 
-// Arc path for a curved role label. Traversal direction is reversed on the
-// bottom half of the wheel so the text still reads left-to-right upright
-// instead of appearing mirrored/upside-down.
-function labelArcPath(cx: number, cy: number, r: number, midAngle: number, halfSpan: number) {
-  const flip = midAngle > 90 && midAngle < 270;
-  const a0 = flip ? midAngle + halfSpan : midAngle - halfSpan;
-  const a1 = flip ? midAngle - halfSpan : midAngle + halfSpan;
-  const p0 = pol(cx, cy, r, a0);
-  const p1 = pol(cx, cy, r, a1);
-  const sweep = flip ? 0 : 1;
-  return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}`;
+function facetsForCodon(
+  activations: readonly Activation[],
+  codonId: number,
+  layer: Layer
+) {
+  return FACETS.filter(facet =>
+    activations.some(
+      activation =>
+        activation.codonId === codonId &&
+        activation.layer === layer &&
+        activation.facet === facet
+    )
+  );
+}
+
+function shortestAngularDelta(fromAngle: number, toAngle: number) {
+  const raw = toAngle - fromAngle;
+  const delta = ((raw + 540) % 360) - 180;
+  return delta === -180 && raw > 0 ? 180 : delta;
+}
+
+export function WheelSignatureControl({
+  state,
+  baseView,
+  geometry = "numeric",
+  onToggle,
+  onGeometryToggle = () => undefined,
+  onRetry,
+}: {
+  state: WheelLoadState;
+  baseView: BaseView;
+  geometry?: WheelGeometry;
+  onToggle: (nextView: BaseView) => void;
+  onGeometryToggle?: (geometry: WheelGeometry) => void;
+  onRetry?: () => void;
+}) {
+  const ready = state === "ready";
+  const tooltip =
+    state === "anonymous"
+      ? "Sign in and calculate your Receiver record to reveal your signature."
+      : state === "none"
+        ? "Calculate your Receiver record to reveal your signature."
+        : state === "loading"
+          ? "Your stored Receiver record is being read."
+          : state === "error"
+            ? "Your stored record could not be read yet."
+            : undefined;
+
+  return (
+    <div className="cz-wheel-controls">
+      <div
+        className="cz-wheel-mode-switch"
+        role="group"
+        aria-label="Codon wheel view"
+      >
+        <button
+          type="button"
+          className={`cz-wheel-mode-option cz-wheel-mode-option--field ${
+            baseView === "field" ? "is-active" : ""
+          }`}
+          aria-pressed={baseView === "field"}
+          onClick={() => {
+            if (baseView !== "field") onToggle("field");
+          }}
+        >
+          <span className="cz-wheel-mode-node" aria-hidden="true" />
+          Full Field
+        </button>
+        <button
+          type="button"
+          className={`cz-wheel-mode-option cz-wheel-mode-option--mine ${
+            baseView === "mine" ? "is-active" : ""
+          }`}
+          aria-pressed={baseView === "mine"}
+          disabled={!ready}
+          title={tooltip}
+          onClick={() => {
+            if (ready && baseView !== "mine") onToggle("mine");
+          }}
+        >
+          <span className="cz-wheel-mode-node" aria-hidden="true" />
+          My Signature
+        </button>
+      </div>
+      {/* TEMPORARILY REMOVED: Canonical / Astronomical geometry toggle is buggy.
+          Restore this block when the astronomical geometry is fixed. See branch
+          feature/codon-wheel-astronomical.
+      <button
+        type="button"
+        className={`cz-wheel-mode-option cz-wheel-geometry-toggle ${
+          geometry === "astronomical" ? "is-active" : ""
+        }`}
+        aria-pressed={geometry === "astronomical"}
+        aria-label="Use canonical astronomical Mandala geometry"
+        onClick={() =>
+          onGeometryToggle(
+            geometry === "astronomical" ? "numeric" : "astronomical"
+          )
+        }
+      >
+        <span className="cz-wheel-mode-node" aria-hidden="true" />
+        Canonical / Astronomical
+      </button>
+      */}
+      {state === "loading" && (
+        <span className="cz-wheel-status">
+          Receiving your stored signature…
+        </span>
+      )}
+      {state === "anonymous" && (
+        <span className="cz-wheel-status">
+          Sign in and calculate to reveal your two-layer signature.
+        </span>
+      )}
+      {state === "none" && (
+        <span className="cz-wheel-status">
+          Calculate your Receiver record to reveal your two layers.
+        </span>
+      )}
+      {state === "error" && (
+        <span className="cz-wheel-status">
+          Your signature could not be read.{" "}
+          <button type="button" className="cz-wheel-retry" onClick={onRetry}>
+            Retry
+          </button>
+        </span>
+      )}
+    </div>
+  );
+}
+
+export interface CodonWheelPlateProps {
+  codons: Codon[];
+  selectedId: number;
+  selectedFacet?: Facet;
+  selectedLayer?: Layer;
+  geometry?: WheelGeometry;
+  activations: readonly Activation[];
+  view: WheelView;
+  onFocus?: (codonId: number) => void;
+  onCellSelect?: (selection: WheelCellSelection) => void;
+  onLeaveFocus?: () => void;
+  showSignatureContext?: boolean;
+  activeRoleIdx?: number | null;
+  activeCenter?: CenterName | null;
+  onCenterSelect?: (center: CenterName | null) => void;
+  onDeselect?: () => void;
+}
+
+export function CodonWheelPlate({
+  codons,
+  selectedId,
+  selectedFacet = "A",
+  selectedLayer = "conscious",
+  geometry = "numeric",
+  activations,
+  view,
+  onFocus,
+  onCellSelect,
+  onLeaveFocus,
+  showSignatureContext,
+  activeRoleIdx,
+  activeCenter,
+  onCenterSelect,
+  onDeselect,
+}: CodonWheelPlateProps) {
+  const reducedMotion = Boolean(useReducedMotion());
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const geometryTimeline = useRef<gsap.core.Timeline | null>(null);
+  const renderedGeometry = useRef<WheelGeometry>(geometry);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [geometryAnimating, setGeometryAnimating] = useState(false);
+  const effectiveView: WheelView =
+    hoveredId === null ? view : { kind: "focus", codonId: hoveredId };
+  const signatureContextVisible = showSignatureContext ?? view.kind !== "field";
+  const fullFieldVisible = !signatureContextVisible;
+  const fieldCenterSelection =
+    fullFieldVisible && view.kind !== "focus" ? (activeCenter ?? null) : null;
+  const fieldSelectionId =
+    fullFieldVisible && fieldCenterSelection === null && view.kind === "focus"
+      ? view.codonId
+      : null;
+  const previousView = useRef<WheelView>(effectiveView);
+  const wheelMotion = resolveWheelMotion(
+    previousView.current,
+    effectiveView,
+    reducedMotion
+  );
+
+  useEffect(() => {
+    previousView.current = effectiveView;
+  }, [effectiveView]);
+
+  useEffect(
+    () => () => {
+      geometryTimeline.current?.kill();
+    },
+    []
+  );
+
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const previousGeometry = renderedGeometry.current;
+    const orbitGroups = Array.from(
+      svg.querySelectorAll<SVGGElement>("[data-codon-orbit]")
+    );
+    const uprightGlyphs = Array.from(
+      svg.querySelectorAll<SVGImageElement>("[data-wheel-upright]")
+    );
+    if (reducedMotion) {
+      geometryTimeline.current?.kill();
+      delete svg.dataset.geometryAnimating;
+      setGeometryAnimating(false);
+      gsap.set(orbitGroups, {
+        clearProps: "transform",
+      });
+      for (const glyph of uprightGlyphs) {
+        const codonId = Number(glyph.dataset.uprightCodon);
+        const baseRotation = shortestAngularDelta(
+          codonStartAngle(codonId, "numeric"),
+          codonStartAngle(codonId, geometry)
+        );
+        gsap.set(glyph, { rotation: -baseRotation });
+      }
+      svg.style.removeProperty("--wheel-secondary-opacity");
+      svg.style.removeProperty("--wheel-central-opacity");
+      renderedGeometry.current = geometry;
+      geometryTimeline.current = null;
+      return;
+    }
+
+    if (previousGeometry === geometry) return;
+
+    const primaryOrbitByCodon = new Map<number, SVGGElement>();
+
+    for (const group of orbitGroups) {
+      const codonId = Number(group.dataset.codonOrbit);
+      if (!primaryOrbitByCodon.has(codonId)) {
+        primaryOrbitByCodon.set(codonId, group);
+      }
+    }
+
+    const inverseRotationByCodon = new Map<number, number>();
+    for (const codonId of CODON_IDS) {
+      const primaryOrbit = primaryOrbitByCodon.get(codonId);
+      const currentRotation = primaryOrbit
+        ? Number(gsap.getProperty(primaryOrbit, "rotation")) || 0
+        : 0;
+      const currentVisualAngle =
+        codonStartAngle(codonId, previousGeometry) + currentRotation;
+      inverseRotationByCodon.set(
+        codonId,
+        shortestAngularDelta(
+          codonStartAngle(codonId, geometry),
+          currentVisualAngle
+        )
+      );
+    }
+
+    geometryTimeline.current?.kill();
+    renderedGeometry.current = geometry;
+    svg.dataset.geometryAnimating = "true";
+    setGeometryAnimating(true);
+    if (!svg.style.getPropertyValue("--wheel-secondary-opacity")) {
+      svg.style.setProperty("--wheel-secondary-opacity", "1");
+    }
+    if (!svg.style.getPropertyValue("--wheel-central-opacity")) {
+      svg.style.setProperty("--wheel-central-opacity", "1");
+    }
+
+    for (const group of orbitGroups) {
+      const codonId = Number(group.dataset.codonOrbit);
+      gsap.set(group, {
+        rotation: inverseRotationByCodon.get(codonId) ?? 0,
+        svgOrigin: `${CX} ${CY}`,
+      });
+    }
+    for (const glyph of uprightGlyphs) {
+      const codonId = Number(glyph.dataset.uprightCodon);
+      const baseRotation = shortestAngularDelta(
+        codonStartAngle(codonId, "numeric"),
+        codonStartAngle(codonId, geometry)
+      );
+      gsap.set(glyph, {
+        rotation: -(baseRotation + (inverseRotationByCodon.get(codonId) ?? 0)),
+      });
+    }
+    const timeline = gsap.timeline({
+      onComplete: () => {
+        if (geometryTimeline.current !== timeline) return;
+        delete svg.dataset.geometryAnimating;
+        setGeometryAnimating(false);
+        gsap.set(orbitGroups, {
+          clearProps: "transform",
+        });
+        svg.style.removeProperty("--wheel-secondary-opacity");
+        svg.style.removeProperty("--wheel-central-opacity");
+        geometryTimeline.current = null;
+      },
+    });
+    geometryTimeline.current = timeline;
+
+    timeline
+      .to(
+        svg,
+        {
+          "--wheel-secondary-opacity": 0.2,
+          duration: 0.18,
+          ease: "power1.out",
+        },
+        0
+      )
+      .to(
+        svg,
+        {
+          "--wheel-central-opacity": 0.32,
+          duration: 0.22,
+          ease: "power1.out",
+        },
+        0
+      )
+      .to(
+        orbitGroups,
+        {
+          rotation: 0,
+          svgOrigin: `${CX} ${CY}`,
+          duration: 1,
+          ease: "power3.inOut",
+          overwrite: "auto",
+        },
+        0.1
+      )
+      .to(
+        uprightGlyphs,
+        {
+          rotation: (_index, glyph: SVGImageElement) => {
+            const codonId = Number(glyph.dataset.uprightCodon);
+            return -shortestAngularDelta(
+              codonStartAngle(codonId, "numeric"),
+              codonStartAngle(codonId, geometry)
+            );
+          },
+          duration: 1,
+          ease: "power3.inOut",
+          overwrite: "auto",
+        },
+        0.1
+      )
+      .to(
+        svg,
+        {
+          "--wheel-central-opacity": 1,
+          duration: 0.28,
+          ease: "power1.out",
+        },
+        0.88
+      )
+      .to(
+        svg,
+        {
+          "--wheel-secondary-opacity": 1,
+          duration: 0.22,
+          ease: "power1.out",
+        },
+        0.98
+      );
+  }, [geometry, reducedMotion]);
+
+  const codonById = useMemo(
+    () => new Map(codons.map(codon => [codon.id, codon])),
+    [codons]
+  );
+  const selectedCodon = codonById.get(selectedId) ?? codons[0];
+  const selectedRoleIdx = Math.floor((selectedId - 1) / 4);
+  const visibleActivations = useMemo(() => {
+    if (effectiveView.kind === "field" || !signatureContextVisible) return [];
+    return activations;
+  }, [activations, effectiveView, signatureContextVisible]);
+  const visibleLitSet = useMemo(
+    () => buildLitSet(visibleActivations),
+    [visibleActivations]
+  );
+  const visibleBothLayers = useMemo(
+    () => buildBothLayers(visibleActivations),
+    [visibleActivations]
+  );
+  const occupiedCodons = useMemo(
+    () => new Set(visibleActivations.map(activation => activation.codonId)),
+    [visibleActivations]
+  );
+  const selectedCode = `RC${String(selectedId).padStart(2, "0")}`;
+  const ariaLabel = `Codon wheel. 64 codons in two layers. ${occupiedCodons.size} codons activated. ${visibleBothLayers.size} present in both layers. Selected ${selectedCode}, facet ${selectedFacet}, ${selectedLayer} layer.`;
+  const transition = `opacity ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
+  const cellTransition = `fill-opacity ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
+  const markerTransition = `${transition}, r ${wheelMotion.durationMs}ms ${wheelMotion.easing}`;
+  const selectionRadii = BAND_RADII[selectedLayer];
+  const selectionStart = cellAngle(selectedId, selectedFacet, "numeric");
+  const selectionHue = selectedLayer === "conscious" ? "#e8c477" : "#6fb7c7";
+
+  const handleKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
+    const currentCodonId =
+      effectiveView.kind === "focus" ? effectiveView.codonId : selectedId;
+    const action = resolveWheelKey(event.key, currentCodonId, geometry);
+    if (!action) return;
+    event.preventDefault();
+    if (action.kind === "leave-focus") {
+      onLeaveFocus?.();
+      return;
+    }
+    onFocus?.(action.codonId);
+  };
+
+  return (
+    <div className="cz-wheel-aspect">
+      <svg
+        ref={svgRef}
+        viewBox="0 0 760 760"
+        className="cz-wheel-svg"
+        data-wheel-geometry={geometry}
+        role="group"
+        aria-label={ariaLabel}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onClick={event => {
+          if (event.target === event.currentTarget) {
+            onLeaveFocus?.();
+            onDeselect?.();
+          }
+        }}
+      >
+        <defs>
+          <radialGradient id="wheel-central-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(205,161,74,0.15)" />
+            <stop offset="62%" stopColor="rgba(20,17,12,0.03)" />
+            <stop offset="100%" stopColor="rgba(8,7,11,0)" />
+          </radialGradient>
+          {QUADRANTS.map(quadrant => {
+            const anchorCodon =
+              geometry === "astronomical"
+                ? quadrant.astronomicalAnchor
+                : quadrant.numericAnchor;
+            const midAngle = codonStartAngle(anchorCodon, geometry) + 45;
+            return (
+              <path
+                key={quadrant.name}
+                id={`quadrant-arc-${quadrant.name.toLowerCase()}`}
+                data-quadrant-name={quadrant.name}
+                data-quadrant-anchor-codon={anchorCodon}
+                data-quadrant-geometry={geometry}
+                d={labelArcPath(CX, CY, 366, midAngle, 24)}
+                fill="none"
+              />
+            );
+          })}
+        </defs>
+
+        <circle
+          cx={CX}
+          cy={CY}
+          r={CENTER_BAND_INNER - 2}
+          fill="url(#wheel-central-glow)"
+          pointerEvents="none"
+          aria-hidden="true"
+        />
+
+        {/* One composite transform per codon keeps all visible facets, marks,
+            activations, and selection overlays on the same circular route. */}
+        <g aria-hidden="true">
+          {CODON_IDS.map(codonId => {
+            const codon = codonById.get(codonId);
+            const codonStart = codonStartAngle(codonId, "numeric");
+            const midAngle = codonMidAngle(codonId, "numeric");
+            const baseRotation = shortestAngularDelta(
+              codonStart,
+              codonStartAngle(codonId, geometry)
+            );
+            const center = CODON_CENTER[codonId];
+            const isFieldSelection = fieldSelectionId === codonId;
+            const isCenterSelection = fieldCenterSelection === center;
+            const centerDimmed =
+              fieldCenterSelection !== null && !isCenterSelection;
+            const focused =
+              effectiveView.kind === "focus" &&
+              effectiveView.codonId === codonId;
+            const roleIndex = Math.floor((codonId - 1) / 4);
+            const roleActive =
+              activeRoleIdx === null ||
+              activeRoleIdx === undefined ||
+              activeRoleIdx === roleIndex;
+            const centerActive = !activeCenter || activeCenter === center;
+            const glyphPoint = polar(
+              CX,
+              CY,
+              (CONSCIOUS_INNER_RADIUS + CONSCIOUS_OUTER_RADIUS) / 2,
+              midAngle
+            );
+            const rolePoint = polar(CX, CY, DESIGN_INNER_RADIUS - 11, midAngle);
+            const bothPoint = polar(CX, CY, BOTH_LAYER_RADIUS, midAngle);
+            const centerPoint = polar(
+              CX,
+              CY,
+              (CENTER_BAND_INNER + CENTER_BAND_OUTER) / 2,
+              midAngle
+            );
+            const boundaryInner = polar(
+              CX,
+              CY,
+              DESIGN_INNER_RADIUS,
+              codonStart
+            );
+            const boundaryOuter = polar(
+              CX,
+              CY,
+              CONSCIOUS_OUTER_RADIUS,
+              codonStart
+            );
+
+            return (
+              <g
+                key={`codon-base-${codonId}`}
+                data-codon-base={codonId}
+                data-codon-base-rotation={baseRotation}
+                transform={`rotate(${baseRotation} ${CX} ${CY})`}
+              >
+                <g data-codon-orbit={codonId}>
+                  {LAYERS.flatMap(layer =>
+                    FACETS.map(facet => {
+                      const start = cellAngle(codonId, facet, "numeric");
+                      const radii = BAND_RADII[layer];
+                      const key = `${codonId}-${facet}-${layer}` as const;
+                      const isVisibleActivation = visibleLitSet.has(key);
+                      return (
+                        <path
+                          key={`neutral-${codonId}-${facet}-${layer}`}
+                          data-cell-kind="neutral"
+                          data-codon-id={codonId}
+                          data-facet={facet}
+                          data-layer={layer}
+                          data-inner-radius={radii.inner}
+                          data-outer-radius={radii.outer}
+                          d={wedge(
+                            CX,
+                            CY,
+                            radii.inner,
+                            radii.outer,
+                            start,
+                            start + FACET_SPAN
+                          )}
+                          fill={
+                            fullFieldVisible ? CENTER_HUE[center] : NEUTRAL_HUE
+                          }
+                          fillOpacity={
+                            isVisibleActivation || isFieldSelection
+                              ? 0
+                              : fullFieldVisible
+                                ? isCenterSelection
+                                  ? 1
+                                  : FIELD_CELL_OPACITY
+                                : cellOpacity(false, effectiveView, codonId)
+                          }
+                          stroke="none"
+                          style={{ transition: cellTransition }}
+                        />
+                      );
+                    })
+                  )}
+
+                  <g
+                    fill="none"
+                    stroke={GROUND_HUE}
+                    strokeWidth="0.55"
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {LAYERS.flatMap(layer =>
+                      FACETS.slice(1).map(facet => {
+                        const angle = cellAngle(codonId, facet, "numeric");
+                        const radii = BAND_RADII[layer];
+                        const p0 = polar(CX, CY, radii.inner, angle);
+                        const p1 = polar(CX, CY, radii.outer, angle);
+                        return (
+                          <line
+                            key={`facet-line-${codonId}-${facet}-${layer}`}
+                            x1={p0.x}
+                            y1={p0.y}
+                            x2={p1.x}
+                            y2={p1.y}
+                          />
+                        );
+                      })
+                    )}
+                  </g>
+
+                  <line
+                    data-boundary-codon={codonId}
+                    x1={boundaryInner.x}
+                    y1={boundaryInner.y}
+                    x2={boundaryOuter.x}
+                    y2={boundaryOuter.y}
+                    fill="none"
+                    stroke={NEUTRAL_HUE}
+                    strokeWidth="0.7"
+                    vectorEffect="non-scaling-stroke"
+                    opacity={boundaryOpacity(effectiveView, codonId)}
+                    style={{ transition }}
+                  />
+
+                  {LAYERS.flatMap(layer =>
+                    FACETS.map(facet => {
+                      const key = `${codonId}-${facet}-${layer}` as const;
+                      if (!visibleLitSet.has(key)) return null;
+                      const radii = BAND_RADII[layer];
+                      const start = cellAngle(codonId, facet, "numeric");
+                      const delay =
+                        wheelMotion.staggerMs === 0
+                          ? 0
+                          : (codonId - 1) * wheelMotion.staggerMs;
+                      return (
+                        <path
+                          key={`lit-${key}`}
+                          data-cell-kind="lit"
+                          data-cell-key={key}
+                          data-codon-id={codonId}
+                          data-facet={facet}
+                          data-layer={layer}
+                          data-inner-radius={radii.inner}
+                          data-outer-radius={radii.outer}
+                          d={wedge(
+                            CX,
+                            CY,
+                            radii.inner,
+                            radii.outer,
+                            start,
+                            start + FACET_SPAN
+                          )}
+                          fill={CENTER_HUE[center]}
+                          fillOpacity={cellOpacity(
+                            true,
+                            effectiveView,
+                            codonId
+                          )}
+                          stroke="none"
+                          style={{
+                            transition: cellTransition,
+                            transitionDelay: `${delay}ms`,
+                          }}
+                        />
+                      );
+                    })
+                  )}
+
+                  {isFieldSelection &&
+                    LAYERS.flatMap(layer =>
+                      FACETS.map(facet => {
+                        const radii = BAND_RADII[layer];
+                        const start = cellAngle(codonId, facet, "numeric");
+                        return (
+                          <path
+                            key={`field-selection-${codonId}-${facet}-${layer}`}
+                            data-cell-kind="field-selection"
+                            data-codon-id={codonId}
+                            data-facet={facet}
+                            data-layer={layer}
+                            d={wedge(
+                              CX,
+                              CY,
+                              radii.inner,
+                              radii.outer,
+                              start,
+                              start + FACET_SPAN
+                            )}
+                            fill={CENTER_HUE[center]}
+                            fillOpacity={1}
+                            stroke={GROUND_HUE}
+                            strokeWidth="0.35"
+                            vectorEffect="non-scaling-stroke"
+                            style={{ transition: cellTransition }}
+                          />
+                        );
+                      })
+                    )}
+
+                  {visibleBothLayers.has(codonId) && (
+                    <circle
+                      data-both-layer-codon={codonId}
+                      cx={bothPoint.x}
+                      cy={bothPoint.y}
+                      r={focused ? 4.2 : 2.6}
+                      fill={CENTER_HUE[center]}
+                      opacity={markerOpacity(effectiveView, codonId)}
+                      style={{ transition: markerTransition }}
+                    />
+                  )}
+
+                  {codon && (
+                    <g data-wheel-secondary="glyphs" pointerEvents="none">
+                      <g opacity={roleActive && centerActive ? 0.72 : 0.22}>
+                        <image
+                          data-wheel-upright="codon"
+                          data-upright-codon={codonId}
+                          href={`/symbols/${codon.code}.png`}
+                          x={glyphPoint.x - 7}
+                          y={glyphPoint.y - 7}
+                          width="14"
+                          height="14"
+                          preserveAspectRatio="xMidYMid meet"
+                          style={{
+                            filter: "brightness(0)",
+                            transform: `rotate(${-baseRotation}deg)`,
+                            transformBox: "fill-box",
+                            transformOrigin: "center",
+                          }}
+                        />
+                        <image
+                          data-wheel-upright="role"
+                          data-upright-codon={codonId}
+                          href={ROLE_VECTORS[roleIndex]}
+                          x={rolePoint.x - 4.5}
+                          y={rolePoint.y - 4.5}
+                          width="9"
+                          height="9"
+                          preserveAspectRatio="xMidYMid meet"
+                          style={{
+                            filter: "brightness(0)",
+                            transform: `rotate(${-baseRotation}deg)`,
+                            transformBox: "fill-box",
+                            transformOrigin: "center",
+                          }}
+                        />
+                      </g>
+                    </g>
+                  )}
+
+                  <g
+                    data-wheel-central-highlight="center-band"
+                    pointerEvents="none"
+                  >
+                    <path
+                      d={wedge(
+                        CX,
+                        CY,
+                        CENTER_BAND_INNER,
+                        CENTER_BAND_OUTER,
+                        codonStart,
+                        codonStart + SEG
+                      )}
+                      fill={
+                        isCenterSelection ? CENTER_HUE[center] : NEUTRAL_HUE
+                      }
+                      fillOpacity={isCenterSelection ? 0.34 : 0.035}
+                      stroke={GROUND_HUE}
+                      strokeWidth="0.4"
+                    />
+                    <image
+                      data-wheel-upright="center"
+                      data-upright-codon={codonId}
+                      href={`/9-centers/${CENTER_SYMBOL[center]}.png`}
+                      x={centerPoint.x - 6}
+                      y={centerPoint.y - 6}
+                      width="12"
+                      height="12"
+                      preserveAspectRatio="xMidYMid meet"
+                      opacity={
+                        isCenterSelection ? 0.96 : centerDimmed ? 0.18 : 0.42
+                      }
+                      style={{
+                        filter: "brightness(0) invert(0.72)",
+                        transform: `rotate(${-baseRotation}deg)`,
+                        transformBox: "fill-box",
+                        transformOrigin: "center",
+                      }}
+                    />
+                  </g>
+
+                  {focused && (
+                    <g
+                      data-focus-codon={codonId}
+                      fill="none"
+                      stroke="#fff8ec"
+                      strokeWidth="1.15"
+                      opacity="0.72"
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                    >
+                      {LAYERS.map(layer => {
+                        const radii = BAND_RADII[layer];
+                        return (
+                          <path
+                            key={`focus-${layer}`}
+                            d={wedge(
+                              CX,
+                              CY,
+                              radii.inner,
+                              radii.outer,
+                              codonStart,
+                              codonStart + SEG
+                            )}
+                            style={{ transition }}
+                          />
+                        );
+                      })}
+                    </g>
+                  )}
+
+                  {fieldCenterSelection === null && selectedId === codonId && (
+                    <path
+                      data-cell-kind="selection"
+                      data-codon-id={selectedId}
+                      data-facet={selectedFacet}
+                      data-layer={selectedLayer}
+                      d={wedge(
+                        CX,
+                        CY,
+                        selectionRadii.inner,
+                        selectionRadii.outer,
+                        selectionStart,
+                        selectionStart + FACET_SPAN
+                      )}
+                      fill={selectionHue}
+                      fillOpacity="0.3"
+                      stroke={selectionHue}
+                      strokeWidth="2.35"
+                      vectorEffect="non-scaling-stroke"
+                      pointerEvents="none"
+                    />
+                  )}
+
+                  <g
+                    className="cz-cell-hit-layer"
+                    fill="transparent"
+                    stroke="none"
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    {LAYERS.flatMap(layer =>
+                      FACETS.map(facet => {
+                        const start = cellAngle(codonId, facet, "numeric");
+                        const radii = BAND_RADII[layer];
+                        const hitInnerRadius =
+                          layer === "conscious"
+                            ? BOTH_LAYER_RADIUS
+                            : radii.inner;
+                        const hitOuterRadius =
+                          layer === "design" ? BOTH_LAYER_RADIUS : radii.outer;
+                        return (
+                          <path
+                            key={`hit-${codonId}-${facet}-${layer}`}
+                            data-cell-kind="hit"
+                            data-hit-codon={codonId}
+                            data-hit-facet={facet}
+                            data-hit-layer={layer}
+                            data-hit-inner-radius={hitInnerRadius}
+                            data-hit-outer-radius={hitOuterRadius}
+                            d={wedge(
+                              CX,
+                              CY,
+                              hitInnerRadius,
+                              hitOuterRadius,
+                              start,
+                              start + FACET_SPAN
+                            )}
+                            pointerEvents="all"
+                            style={{ cursor: "pointer" }}
+                            onMouseEnter={() => setHoveredId(codonId)}
+                            onClick={event => {
+                              event.stopPropagation();
+                              onCellSelect?.({ codonId, facet, layer });
+                            }}
+                          >
+                            <title>
+                              {codon
+                                ? `${codon.code} · ${codon.name} · Facet ${facet} · ${layer === "conscious" ? "Conscious" : "Design"}`
+                                : `Codon ${codonId} · Facet ${facet} · ${layer}`}
+                            </title>
+                          </path>
+                        );
+                      })
+                    )}
+                  </g>
+                </g>
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Exact band edges remain fixed while codons travel beneath them. */}
+        <g
+          fill="none"
+          stroke={NEUTRAL_HUE}
+          strokeWidth="0.7"
+          opacity="0.4"
+          vectorEffect="non-scaling-stroke"
+          pointerEvents="none"
+          aria-hidden="true"
+        >
+          {[
+            CONSCIOUS_OUTER_RADIUS,
+            CONSCIOUS_INNER_RADIUS,
+            DESIGN_OUTER_RADIUS,
+            DESIGN_INNER_RADIUS,
+          ].map(radius => (
+            <circle key={radius} cx={CX} cy={CY} r={radius} />
+          ))}
+        </g>
+
+        {/* Eight logical controls span the 64 repeated center-symbol wedges. */}
+        {onCenterSelect && (
+          <g
+            className="cz-center-hit-layer"
+            aria-hidden={!fullFieldVisible}
+            style={{
+              pointerEvents: fullFieldVisible ? "auto" : "none",
+              visibility: fullFieldVisible ? "visible" : "hidden",
+            }}
+          >
+            {CENTERS.map(center => {
+              const isSelected = fieldCenterSelection === center.name;
+              return (
+                <g
+                  key={`center-control-${center.name}`}
+                  className="cz-center-hit-control"
+                  data-center-control={center.name}
+                  role={fullFieldVisible ? "button" : undefined}
+                  tabIndex={fullFieldVisible ? 0 : -1}
+                  aria-pressed={fullFieldVisible ? isSelected : undefined}
+                  aria-disabled={
+                    fullFieldVisible && geometryAnimating ? true : undefined
+                  }
+                  aria-label={`${center.name} center — highlight its eight codons`}
+                  onClick={event => {
+                    if (
+                      !fullFieldVisible ||
+                      svgRef.current?.dataset.geometryAnimating === "true"
+                    )
+                      return;
+                    event.stopPropagation();
+                    onCenterSelect(isSelected ? null : center.name);
+                  }}
+                  onKeyDown={event => {
+                    if (!fullFieldVisible) return;
+                    const isActivationKey =
+                      !event.repeat &&
+                      (event.key === "Enter" || event.key === " ");
+                    if (svgRef.current?.dataset.geometryAnimating === "true") {
+                      if (isActivationKey) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }
+                      return;
+                    }
+                    event.stopPropagation();
+                    if (isActivationKey) {
+                      event.preventDefault();
+                      onCenterSelect(isSelected ? null : center.name);
+                    }
+                  }}
+                >
+                  {CODON_IDS.filter(
+                    codonId => CODON_CENTER[codonId] === center.name
+                  ).map(codonId => {
+                    const start = codonStartAngle(codonId, geometry);
+                    return (
+                      <g key={`center-hit-${center.name}-${codonId}`}>
+                        <path
+                          data-center-kind="hit"
+                          data-center-name={center.name}
+                          data-center-codon={codonId}
+                          data-hit-inner-radius={CENTER_BAND_INNER}
+                          data-hit-outer-radius={CENTER_BAND_OUTER}
+                          d={wedge(
+                            CX,
+                            CY,
+                            CENTER_BAND_INNER,
+                            CENTER_BAND_OUTER,
+                            start,
+                            start + SEG
+                          )}
+                          fill="transparent"
+                          stroke="none"
+                          pointerEvents="all"
+                          style={{ cursor: "pointer" }}
+                        >
+                          <title>{`${center.name} center · highlight eight codons`}</title>
+                        </path>
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </g>
+        )}
+
+        <g
+          data-wheel-secondary="quadrant-labels"
+          pointerEvents="none"
+          aria-hidden="true"
+        >
+          {QUADRANTS.map(quadrant => (
+            <text
+              key={quadrant.name}
+              fontFamily="var(--font-ritual)"
+              fontSize="10.5"
+              letterSpacing="0.28em"
+              textAnchor="middle"
+              fill="rgba(232,196,119,0.6)"
+            >
+              <textPath
+                href={`#quadrant-arc-${quadrant.name.toLowerCase()}`}
+                startOffset="50%"
+              >
+                {quadrant.name}
+              </textPath>
+            </text>
+          ))}
+        </g>
+      </svg>
+
+      <div className="cz-wheel-hub" aria-hidden="true">
+        {selectedCodon && (
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={selectedCodon.id}
+              initial={{ scale: 0.92, opacity: 0, filter: "blur(6px)" }}
+              animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+              exit={{ scale: 1.04, opacity: 0, filter: "blur(4px)" }}
+              transition={{ duration: reducedMotion ? 0.12 : 0.35 }}
+              className="cz-wheel-hub-content"
+            >
+              <div className="cz-wheel-hub-symbol">
+                <img src={`/symbols/${selectedCodon.code}.png`} alt="" />
+              </div>
+              <div className="cz-wheel-hub-copy">
+                <span className="cz-wheel-hub-code">{selectedCodon.code}</span>
+                <span className="cz-wheel-hub-name">{selectedCodon.name}</span>
+                <span className="cz-wheel-hub-role">
+                  {ROLES[selectedRoleIdx]?.name}
+                </span>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+
+      <table className="cz-wheel-sr-table">
+        <caption>Codon-by-codon activation detail</caption>
+        <thead>
+          <tr>
+            <th scope="col">Codon</th>
+            <th scope="col">Centre</th>
+            <th scope="col">Conscious facets</th>
+            <th scope="col">Design facets</th>
+            <th scope="col">Both layers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {CODON_IDS.map(codonId => {
+            const conscious = facetsForCodon(
+              visibleActivations,
+              codonId,
+              "conscious"
+            );
+            const design = facetsForCodon(
+              visibleActivations,
+              codonId,
+              "design"
+            );
+            return (
+              <tr key={`detail-${codonId}`}>
+                <th scope="row">{codonId}</th>
+                <td>{CODON_CENTER[codonId]}</td>
+                <td>{conscious.length ? conscious.join(", ") : "None"}</td>
+                <td>{design.length ? design.join(", ") : "None"}</td>
+                <td>{visibleBothLayers.has(codonId) ? "Yes" : "No"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export function CodonWheel({
   codons,
   selectedId,
   onSelect,
-  activations,
+  selectedFacet = "A",
+  selectedLayer = "conscious",
+  viewPreference,
+  geometryPreference,
+  onCellSelect,
+  onViewPreferenceChange,
+  onGeometryPreferenceChange,
+  onSignatureContextChange,
   activeRoleIdx,
   activeCenter,
+  onCenterSelect,
   onDeselect,
 }: CodonWheelProps) {
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const trpcUtils = trpc.useUtils();
+  const authQuery = trpc.auth.me.useQuery(undefined, {
+    retry: 1,
+    retryDelay: 500,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+  const receiverId = authQuery.data?.id ?? null;
+  const isAuthenticated = receiverId !== null;
+  const authLoading = authQuery.isLoading;
+  const wheelQuery = useQuery({
+    queryKey: myWheelQueryKey(receiverId),
+    queryFn: () => trpcUtils.client.profile.getMyWheel.query(),
+    enabled: isAuthenticated,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+  });
+  const [automaticBaseView, setAutomaticBaseView] = useState<BaseView>("field");
+  const [automaticGeometry, setAutomaticGeometry] =
+    useState<WheelGeometry>("astronomical");
+  const [focusedCodonId, setFocusedCodonId] = useState<number | null>(null);
+  const loadedCalculation = useRef<string | null>(null);
+  const previousSelectedId = useRef(selectedId);
 
-  const selectedCodon = useMemo(() => {
-    return codons.find((c) => c.id === selectedId) || codons[0];
-  }, [codons, selectedId]);
+  const loadState: WheelLoadState = authLoading
+    ? "loading"
+    : !isAuthenticated
+      ? "anonymous"
+      : wheelQuery.isError
+        ? "error"
+        : wheelQuery.data?.state === "ready"
+          ? "ready"
+          : wheelQuery.data?.state === "none"
+            ? "none"
+            : "loading";
+  const baseView = resolveBaseView(
+    loadState,
+    viewPreference,
+    automaticBaseView
+  );
+  const geometry = geometryPreference ?? automaticGeometry;
+  const activations: readonly Activation[] =
+    loadState === "ready" && wheelQuery.data?.state === "ready"
+      ? wheelQuery.data.activations
+      : EMPTY_ACTIVATIONS;
+  const calculationKey =
+    loadState === "ready" && wheelQuery.data?.state === "ready"
+      ? `${receiverId}:${String(wheelQuery.data.calculatedAt)}`
+      : null;
 
-  const selectedRoleIdx = useMemo(() => {
-    return Math.floor((selectedId - 1) / 4);
+  useEffect(() => {
+    if (!calculationKey || loadedCalculation.current === calculationKey) return;
+    loadedCalculation.current = calculationKey;
+    setAutomaticBaseView("mine");
+    setFocusedCodonId(null);
+  }, [calculationKey]);
+
+  useEffect(() => {
+    if (loadState !== "ready") setAutomaticBaseView("field");
+  }, [loadState]);
+
+  useEffect(() => {
+    if (previousSelectedId.current === selectedId) return;
+    previousSelectedId.current = selectedId;
+    setFocusedCodonId(selectedId);
   }, [selectedId]);
 
-  // 4 quadrant labels around the outer ring (Initiation/Civilization/Duality/Mutation)
-  const quadrantLabels = useMemo(() => {
-    return QUADRANTS.map((q, idx) => {
-      const midAngle = q.startSlot * 5.625 + 45; // center of the 90° quadrant
-      // Quadrant names ride the outer edge of the wheel now.
-      const textArcPath = labelArcPath(CX, CY, 366, midAngle, 24);
-      return { ...q, idx, textArcPath };
-    });
-  }, []);
+  useEffect(() => {
+    if (activeCenter && baseView === "field") setFocusedCodonId(null);
+  }, [activeCenter, baseView]);
 
-  // 4 heavier quadrant-boundary divider lines, every 16 slots (90° apart)
-  const quadrantDividers = useMemo(() => {
-    return QUADRANTS.map((q) => {
-      const angle = q.startSlot * 5.625;
-      const inner = pol(CX, CY, 130, angle);
-      const outer = pol(CX, CY, 350, angle);
-      return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y };
+  const view = resolveWheelView(loadState, baseView, focusedCodonId);
+  const signatureContext = useMemo(
+    () =>
+      resolveWheelSignatureContext(
+        loadState,
+        baseView,
+        activations,
+        selectedId
+      ),
+    [activations, baseView, loadState, selectedId]
+  );
+  const signatureMode = signatureContext.mode === "mine";
+
+  useLayoutEffect(() => {
+    onSignatureContextChange?.(signatureContext);
+  }, [onSignatureContextChange, signatureContext]);
+
+  const selectExplorationCodon = (codonId: number) => {
+    if (baseView !== "field") {
+      setFocusedCodonId(codonId);
+      return;
+    }
+    const nextSelection = resolveWheelExplorationSelection(
+      { focusedCodonId, activeCenter: activeCenter ?? null },
+      { kind: "codon", codonId }
+    );
+    setFocusedCodonId(nextSelection.focusedCodonId);
+    if (nextSelection.activeCenter !== (activeCenter ?? null)) {
+      onCenterSelect?.(nextSelection.activeCenter);
+    }
+  };
+
+  const focusCodon = (codonId: number) => {
+    selectExplorationCodon(codonId);
+    onSelect(codonId);
+    onCellSelect?.({
+      codonId,
+      facet: selectedFacet,
+      layer: selectedLayer,
     });
-  }, []);
+  };
+
+  const selectCell = (selection: WheelCellSelection) => {
+    selectExplorationCodon(selection.codonId);
+    onSelect(selection.codonId);
+    onCellSelect?.(selection);
+  };
+
+  const selectCenter = (center: CenterName) => {
+    const nextSelection = resolveWheelExplorationSelection(
+      { focusedCodonId, activeCenter: activeCenter ?? null },
+      { kind: "center", center }
+    );
+    setFocusedCodonId(nextSelection.focusedCodonId);
+    onCenterSelect?.(nextSelection.activeCenter);
+  };
 
   return (
     <div className="cz-wheel-container">
-      <div className="cz-wheel-aspect">
-        {/* Structural SVG Grid */}
-        <svg viewBox="0 0 760 760" className="cz-wheel-svg">
-          <defs>
-            <radialGradient id="wheel-central-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="rgba(205,161,74,0.18)" />
-              <stop offset="60%" stopColor="rgba(20,17,12,0.03)" />
-              <stop offset="100%" stopColor="rgba(8,7,11,0)" />
-            </radialGradient>
-            {quadrantLabels.map((q) => (
-              <path key={q.idx} id={`quadrant-arc-${q.idx}`} d={q.textArcPath} fill="none" />
-            ))}
-            {/* Per-center tint: flood the center color through a sigil's alpha */}
-            {CENTERS.map((center) => (
-              <filter
-                key={center.name}
-                id={`center-tint-${center.name}`}
-                x="-15%"
-                y="-15%"
-                width="130%"
-                height="130%"
-              >
-                <feFlood floodColor={CENTER_COLORS[center.name]} result="tint" />
-                <feComposite in="tint" in2="SourceAlpha" operator="in" />
-              </filter>
-            ))}
-          </defs>
-
-          {/* Click-catcher — a click on the empty area outside the wheel (this
-              transparent backdrop, behind every wedge) clears the filters. */}
-          <rect
-            x="0"
-            y="0"
-            width="760"
-            height="760"
-            fill="transparent"
-            style={{ pointerEvents: "all", cursor: onDeselect ? "default" : "auto" }}
-            onClick={() => onDeselect?.()}
-          />
-
-          {/* Central ambient glow */}
-          <circle
-            cx={CX}
-            cy={CY}
-            r="350"
-            fill="url(#wheel-central-glow)"
-            style={{ pointerEvents: "none" }}
-          />
-
-          {/* Guide Rings — 350 outer, 250 divides codon arcs from the center
-              band, 204 closes the center band, 130 inner. */}
-          <g fill="none" stroke="var(--line)" strokeWidth="0.8">
-            <circle cx={CX} cy={CY} r="350" />
-            <circle cx={CX} cy={CY} r="250" stroke="rgba(205,161,74,0.22)" />
-            <circle cx={CX} cy={CY} r="204" stroke="rgba(205,161,74,0.22)" />
-            <circle cx={CX} cy={CY} r="130" stroke="rgba(205,161,74,0.28)" />
-          </g>
-
-          {/* Decorative spinning dotted outer ring */}
-          <g className="cz-wheel-spin-slow" style={{ transformOrigin: `${CX}px ${CY}px` }}>
-            <circle
-              cx={CX}
-              cy={CY}
-              r="356"
-              fill="none"
-              stroke="rgba(205,161,74,0.18)"
-              strokeWidth="0.8"
-              strokeDasharray="1.5 12"
-            />
-          </g>
-
-          {/* Quadrant boundary dividers — heavier stroke, every 90° */}
-          {quadrantDividers.map((div, i) => (
-            <line
-              key={i}
-              x1={div.x1}
-              y1={div.y1}
-              x2={div.x2}
-              y2={div.y2}
-              stroke="rgba(205,161,74,0.4)"
-              strokeWidth="1.4"
-            />
-          ))}
-
-          {/* 64 Codon Wedges — colored annular ring segments, one per codon */}
-          <g>
-            {codons.map((c) => {
-              const isSel = c.id === selectedId;
-              const roleIdx = Math.floor((c.id - 1) / 4);
-              const inRole =
-                roleIdx === selectedRoleIdx ||
-                (activeRoleIdx !== null && activeRoleIdx !== undefined && roleIdx === activeRoleIdx);
-
-              const centerName = CODON_CENTER_MAP[c.id] || "Origin";
-              const centerColor = CENTER_COLORS[centerName] || "#bda36b";
-
-              const isActivated = activations?.has(c.id);
-              const isHovered = hoveredId === c.id;
-              const inCenter = !!activeCenter && centerName === activeCenter;
-              const hasFilter =
-                (activeRoleIdx !== null && activeRoleIdx !== undefined) || !!activeCenter;
-              const dim = (hoveredId !== null || hasFilter) && !isSel && !inRole && !isHovered && !inCenter;
-
-              const slot = CODON_SLOT[c.id] ?? c.id - 1;
-              const startDeg = slot * 5.625;
-              const endDeg = (slot + 1) * 5.625;
-              const wedgePath = getAnnularSectorPath(CX, CY, WEDGE_OUTER, WEDGE_INNER, startDeg, endDeg);
-
-              const midDeg = (slot + 0.5) * 5.625;
-              const glyphR = WEDGE_INNER + (WEDGE_OUTER - WEDGE_INNER) * 0.68;
-              const glyphPos = pol(CX, CY, glyphR, midDeg);
-              const glyphSize = 20;
-
-              // Small per-wedge role indicator — roles are tetrads of 4
-              // consecutive codon IDs, so under the Mandala wheel order a
-              // role's 4 codons land on scattered, non-adjacent wedges. A
-              // single curved ring label can't track that anymore, so each
-              // wedge instead carries its own tiny role glyph.
-              const roleGlyphR = WEDGE_INNER + (WEDGE_OUTER - WEDGE_INNER) * 0.2;
-              const roleGlyphPos = pol(CX, CY, roleGlyphR, midDeg);
-              const roleGlyphSize = 12;
-
-              // This segment's Center sigil, in the separate band below the arc.
-              const centerBandPath = getAnnularSectorPath(
-                CX,
-                CY,
-                CENTER_BAND_OUTER,
-                CENTER_BAND_INNER,
-                startDeg,
-                endDeg
-              );
-              const centerSymR = (CENTER_BAND_OUTER + CENTER_BAND_INNER) / 2;
-              const centerSymPos = pol(CX, CY, centerSymR, midDeg);
-              const centerSymSize = 17;
-              const centerSymFile = CENTER_SYMBOL[centerName] || "1AXIS";
-
-              return (
-                <g
-                  key={c.id}
-                  onClick={() => onSelect(c.id)}
-                  onMouseEnter={() => setHoveredId(c.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <title>{`${c.code} · ${c.name}`}</title>
-                  <path
-                    d={wedgePath}
-                    fill={centerColor}
-                    fillOpacity={dim ? 0.2 : isSel || isHovered ? 1 : 0.78}
-                    stroke={isSel ? "#fff8ec" : "rgba(5,5,5,0.55)"}
-                    strokeWidth={isSel ? 1.6 : 0.6}
-                    style={{ transition: "fill-opacity 0.25s ease, stroke 0.25s ease" }}
-                  />
-                  {isActivated && (
-                    <path
-                      d={wedgePath}
-                      fill="none"
-                      stroke="rgba(246,176,94,0.9)"
-                      strokeWidth={1.4}
-                    />
-                  )}
-                  <image
-                    href={`/symbols/${c.code}.png`}
-                    x={glyphPos.x - glyphSize / 2}
-                    y={glyphPos.y - glyphSize / 2}
-                    width={glyphSize}
-                    height={glyphSize}
-                    preserveAspectRatio="xMidYMid slice"
-                    style={{
-                      filter: "brightness(0)",
-                      opacity: dim ? 0.25 : 0.7,
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <image
-                    href={ROLE_VECTORS[roleIdx]}
-                    x={roleGlyphPos.x - roleGlyphSize / 2}
-                    y={roleGlyphPos.y - roleGlyphSize / 2}
-                    width={roleGlyphSize}
-                    height={roleGlyphSize}
-                    preserveAspectRatio="xMidYMid meet"
-                    style={{
-                      filter: "brightness(0)",
-                      opacity: dim ? 0.2 : 0.55,
-                      pointerEvents: "none",
-                    }}
-                  />
-
-                  {/* Center band — this segment's Center, in its own space */}
-                  <path
-                    d={centerBandPath}
-                    fill={centerColor}
-                    fillOpacity={dim ? 0.04 : inCenter ? 0.22 : 0.09}
-                    stroke="rgba(5,5,5,0.4)"
-                    strokeWidth={0.4}
-                    style={{ transition: "fill-opacity 0.25s ease" }}
-                  />
-                  <image
-                    href={`/9-centers/${centerSymFile}.png`}
-                    x={centerSymPos.x - centerSymSize / 2}
-                    y={centerSymPos.y - centerSymSize / 2}
-                    width={centerSymSize}
-                    height={centerSymSize}
-                    preserveAspectRatio="xMidYMid meet"
-                    style={{
-                      filter: `url(#center-tint-${centerName})`,
-                      opacity: dim ? 0.3 : inCenter ? 1 : 0.9,
-                      pointerEvents: "none",
-                    }}
-                  />
-                </g>
-              );
-            })}
-          </g>
-
-          {/* 4 Quadrant labels, curved along the outer ring */}
-          <g style={{ pointerEvents: "none" }}>
-            {quadrantLabels.map((q) => (
-              <text
-                key={q.idx}
-                fontFamily="var(--font-ritual)"
-                fontSize="10.5"
-                letterSpacing="0.28em"
-                textAnchor="middle"
-                fill="rgba(232, 196, 119, 0.6)"
-              >
-                <textPath href={`#quadrant-arc-${q.idx}`} startOffset="50%">
-                  {q.name}
-                </textPath>
-              </text>
-            ))}
-          </g>
-        </svg>
-
-        {/* Center Hub */}
-        <div className="cz-wheel-hub">
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              key={selectedCodon.id}
-              initial={{ scale: 0.9, opacity: 0, filter: "blur(8px)" }}
-              animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-              exit={{ scale: 1.05, opacity: 0, filter: "blur(4px)" }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <div
-                style={{
-                  width: 90,
-                  height: 90,
-                  borderRadius: "50%",
-                  overflow: "hidden",
-                  border: `1.5px solid ${CENTER_COLORS[CODON_CENTER_MAP[selectedCodon.id] || "Origin"]}`,
-                  boxShadow: `0 0 24px ${CENTER_COLORS[CODON_CENTER_MAP[selectedCodon.id] || "Origin"]}4d`,
-                  background: "rgba(8, 7, 11, 0.75)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src={`/symbols/${selectedCodon.code}.png`}
-                  alt={selectedCodon.code}
-                  style={{
-                    width: "60%",
-                    height: "60%",
-                    objectFit: "contain",
-                    filter: "brightness(0) invert(1)",
-                    opacity: 0.82,
-                  }}
-                />
-              </div>
-              <span
-                style={{
-                  fontFamily: "var(--font-ritual)",
-                  fontSize: 10,
-                  letterSpacing: "0.22em",
-                  color: "var(--gold)",
-                  marginTop: 10,
-                }}
-              >
-                {selectedCodon.code}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 22,
-                  letterSpacing: "0.06em",
-                  color: "var(--ink)",
-                  lineHeight: 1.05,
-                  marginTop: 2,
-                }}
-              >
-                {selectedCodon.name}
-              </span>
-              <span
-                style={{
-                  fontStyle: "italic",
-                  fontSize: 12,
-                  color: "var(--mut)",
-                  fontFamily: "var(--font-voice, serif)",
-                  marginTop: 1,
-                }}
-              >
-                {ROLES[selectedRoleIdx]?.name}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+      <WheelSignatureControl
+        state={loadState}
+        baseView={baseView}
+        geometry={geometry}
+        onToggle={nextBaseView => {
+          onSignatureContextChange?.(
+            resolveWheelSignatureContext(
+              loadState,
+              nextBaseView,
+              activations,
+              selectedId
+            )
+          );
+          setAutomaticBaseView(nextBaseView);
+          onViewPreferenceChange?.(nextBaseView);
+          setFocusedCodonId(null);
+        }}
+        onGeometryToggle={nextGeometry => {
+          setAutomaticGeometry(nextGeometry);
+          onGeometryPreferenceChange?.(nextGeometry);
+        }}
+        onRetry={() => {
+          void wheelQuery.refetch();
+        }}
+      />
+      <CodonWheelPlate
+        codons={codons}
+        selectedId={selectedId}
+        selectedFacet={selectedFacet}
+        selectedLayer={selectedLayer}
+        geometry={geometry}
+        activations={activations}
+        view={view}
+        onFocus={focusCodon}
+        onCellSelect={selectCell}
+        onLeaveFocus={() => setFocusedCodonId(null)}
+        showSignatureContext={loadState === "ready" && baseView === "mine"}
+        activeRoleIdx={activeRoleIdx}
+        activeCenter={activeCenter}
+        onCenterSelect={center => {
+          if (center === null) {
+            setFocusedCodonId(null);
+            onCenterSelect?.(null);
+            return;
+          }
+          selectCenter(center);
+        }}
+        onDeselect={onDeselect}
+      />
 
       <style>{`
         .cz-wheel-container {
@@ -542,6 +1618,118 @@ export function CodonWheel({
           width: 100%;
           max-width: 680px;
           margin: 0 auto;
+        }
+        .cz-wheel-controls {
+          min-height: 52px;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: center;
+          gap: 10px 14px;
+          margin-bottom: 12px;
+          text-align: center;
+        }
+        .cz-wheel-mode-switch {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(118px, 1fr));
+          width: min(100%, 300px);
+          padding: 2px;
+          border: 1px solid rgba(205, 161, 74, 0.3);
+          background:
+            linear-gradient(90deg, rgba(205, 161, 74, 0.045), rgba(111, 183, 199, 0.035)),
+            rgba(8, 7, 11, 0.72);
+          box-shadow: 0 0 24px rgba(205, 161, 74, 0.055);
+        }
+        .cz-wheel-mode-option {
+          min-height: 34px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-family: var(--font-ritual, "JetBrains Mono", monospace);
+          font-size: 9px;
+          letter-spacing: 0.17em;
+          text-transform: uppercase;
+          padding: 8px 12px;
+          border: 0;
+          background: transparent;
+          color: rgba(184, 175, 155, 0.52);
+          cursor: pointer;
+          transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        }
+        .cz-wheel-mode-option + .cz-wheel-mode-option {
+          border-left: 1px solid rgba(205, 161, 74, 0.18);
+        }
+        .cz-wheel-mode-option--field.is-active {
+          color: var(--gold2, #e8c477);
+          background: rgba(205, 161, 74, 0.11);
+          box-shadow: inset 0 -1px rgba(232, 196, 119, 0.62);
+        }
+        .cz-wheel-mode-option--mine.is-active {
+          color: var(--cyan, #6fb7c7);
+          background: rgba(111, 183, 199, 0.1);
+          box-shadow: inset 0 -1px rgba(111, 183, 199, 0.68);
+        }
+        .cz-wheel-geometry-toggle {
+          min-width: min(100%, 204px);
+          min-height: 40px;
+          border: 1px solid rgba(151, 96, 122, 0.42);
+          background:
+            linear-gradient(135deg, rgba(151, 96, 122, 0.075), rgba(122, 90, 146, 0.045)),
+            rgba(8, 7, 11, 0.72);
+          white-space: nowrap;
+          box-shadow: 0 0 24px rgba(122, 90, 146, 0.055);
+        }
+        .cz-wheel-geometry-toggle.is-active {
+          color: #d7c7e8;
+          background:
+            linear-gradient(135deg, rgba(151, 96, 122, 0.18), rgba(122, 90, 146, 0.14)),
+            rgba(8, 7, 11, 0.78);
+          box-shadow:
+            inset 0 -1px rgba(215, 199, 232, 0.7),
+            0 0 18px rgba(122, 90, 146, 0.16);
+        }
+        .cz-wheel-mode-node {
+          width: 5px;
+          height: 5px;
+          border: 1px solid currentColor;
+          transform: rotate(45deg);
+          opacity: 0.7;
+          transition: background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+        }
+        .cz-wheel-mode-option.is-active .cz-wheel-mode-node {
+          background: currentColor;
+          box-shadow: 0 0 8px currentColor;
+          opacity: 1;
+        }
+        .cz-wheel-mode-option:hover:not(:disabled) {
+          color: var(--ink, #e8e4dc);
+        }
+        .cz-wheel-mode-option:focus-visible {
+          outline: 1px solid currentColor;
+          outline-offset: -2px;
+        }
+        .cz-wheel-mode-option:disabled {
+          opacity: 0.3;
+          cursor: default;
+          box-shadow: none;
+        }
+        .cz-wheel-status {
+          max-width: 330px;
+          color: rgba(184, 175, 155, 0.68);
+          font-family: var(--font-voice, "Cormorant Garamond", serif);
+          font-size: 12px;
+          font-style: italic;
+          line-height: 1.3;
+        }
+        .cz-wheel-retry {
+          padding: 0;
+          border: 0;
+          border-bottom: 1px solid rgba(111, 183, 199, 0.4);
+          background: transparent;
+          color: var(--cyan, #6fb7c7);
+          font: inherit;
+          cursor: pointer;
         }
         .cz-wheel-aspect {
           position: relative;
@@ -554,29 +1742,116 @@ export function CodonWheel({
           width: 100%;
           height: 100%;
           overflow: visible;
+          outline: none;
         }
-        .cz-wheel-spin-slow {
-          animation: cwSpin 120s linear infinite;
+        .cz-wheel-svg:focus-visible {
+          filter: drop-shadow(0 0 6px rgba(111, 183, 199, 0.22));
         }
-        @keyframes cwSpin {
-          to { transform: rotate(360deg); }
+        .cz-wheel-svg [data-wheel-secondary] {
+          opacity: var(--wheel-secondary-opacity, 1);
+        }
+        .cz-wheel-svg [data-wheel-central-highlight] {
+          opacity: var(--wheel-central-opacity, 1);
+        }
+        .cz-wheel-svg[data-geometry-animating="true"] .cz-cell-hit-layer *,
+        .cz-wheel-svg[data-geometry-animating="true"] .cz-center-hit-layer * {
+          pointer-events: none !important;
+        }
+        .cz-center-hit-control {
+          outline: none;
+        }
+        .cz-center-hit-control:focus-visible path {
+          stroke: #fff8ec;
+          stroke-width: 1.15;
+          vector-effect: non-scaling-stroke;
         }
         .cz-wheel-hub {
           position: absolute;
           top: 50%;
           left: 50%;
-          transform: translate(-50%, -50%);
-          width: 190px;
-          height: 190px;
+          width: 176px;
+          height: 176px;
           display: flex;
           align-items: center;
           justify-content: center;
+          transform: translate(-50%, -50%);
           pointer-events: none;
-          z-index: 10;
+        }
+        .cz-wheel-hub-content {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+        }
+        .cz-wheel-hub-symbol {
+          box-sizing: border-box;
+          width: 78px;
+          height: 78px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border: 1px solid rgba(205, 161, 74, 0.42);
+          border-radius: 50%;
+          background: rgba(8, 7, 11, 0.78);
+          box-shadow: 0 0 20px rgba(205, 161, 74, 0.11);
+        }
+        .cz-wheel-hub-symbol img {
+          width: 58%;
+          height: 58%;
+          object-fit: contain;
+          filter: brightness(0) invert(1);
+          opacity: 0.8;
+        }
+        .cz-wheel-hub-copy {
+          position: absolute;
+          top: calc(50% + 47px);
+          left: 50%;
+          width: max-content;
+          max-width: 220px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform: translateX(-50%);
+          text-align: center;
+        }
+        .cz-wheel-hub-code {
+          margin-top: 0;
+          color: var(--gold, #cda14a);
+          font-family: var(--font-ritual, "JetBrains Mono", monospace);
+          font-size: 9px;
+          letter-spacing: 0.2em;
+        }
+        .cz-wheel-hub-name {
+          margin-top: 2px;
+          color: var(--ink, #e8e4dc);
+          font-family: var(--font-display, "Cinzel", serif);
+          font-size: 19px;
+          letter-spacing: 0.05em;
+          line-height: 1;
+        }
+        .cz-wheel-hub-role {
+          margin-top: 2px;
+          color: var(--mut, #9a968e);
+          font-family: var(--font-voice, "Cormorant Garamond", serif);
+          font-size: 11px;
+          font-style: italic;
+        }
+        .cz-wheel-sr-table {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
         @media (prefers-reduced-motion: reduce) {
-          .cz-wheel-spin-slow {
-            animation: none;
+          .cz-wheel-mode-option,
+          .cz-wheel-mode-node {
+            transition-duration: 120ms;
           }
         }
       `}</style>

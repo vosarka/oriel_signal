@@ -1,0 +1,302 @@
+html:has(.tetradic-video-experience),
+body:has(.tetradic-video-experience),
+#root:has(.tetradic-video-experience) {
+  min-height: 100%;
+}
+
+html:has(.tetradic-video-experience) {
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #020202;
+}
+
+body:has(.tetradic-video-experience) {
+  position: static;
+  height: auto;
+  overflow-x: clip;
+  overflow-y: visible;
+  touch-action: pan-y;
+  background: #020202;
+}
+
+.tetradic-video-experience,
+.tetradic-video-experience * {
+  box-sizing: border-box;
+}
+
+.tetradic-video-experience {
+  position: relative;
+  min-height: var(--tetradic-video-scroll-height, 1100svh);
+  color: #eee4cf;
+  background: #020202;
+  font-family: Inter, Manrope, system-ui, sans-serif;
+}
+
+.tetradic-video__stage {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  width: 100%;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: #020202;
+  isolation: isolate;
+}
+
+.tetradic-video__films,
+.tetradic-video__film-layer,
+.tetradic-video__film,
+.tetradic-video__atmosphere {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tetradic-video__films {
+  z-index: 1;
+  background: #020202;
+}
+
+.tetradic-video__film-layer {
+  display: block;
+  margin: 0;
+  will-change: opacity;
+}
+
+.tetradic-video__film {
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tetradic-video__film-layer figcaption {
+  display: none;
+}
+
+.tetradic-video__atmosphere {
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 24%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.56), transparent 28%),
+    radial-gradient(circle at 50% 48%, transparent 38%, rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+}
+
+.tetradic-video__masthead,
+.tetradic-video__telemetry,
+.tetradic-video__scroll-cue {
+  position: absolute;
+  z-index: 3;
+  color: rgba(229, 211, 173, 0.76);
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
+}
+
+.tetradic-video__masthead {
+  top: max(28px, env(safe-area-inset-top));
+  right: clamp(24px, 4vw, 68px);
+  left: clamp(24px, 4vw, 68px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.tetradic-video__masthead span:last-child {
+  color: rgba(229, 211, 173, 0.5);
+}
+
+.tetradic-video__telemetry {
+  right: clamp(24px, 4vw, 68px);
+  bottom: max(44px, calc(env(safe-area-inset-bottom) + 28px));
+  left: clamp(24px, 4vw, 68px);
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.tetradic-video__telemetry div {
+  display: grid;
+  gap: 8px;
+}
+
+.tetradic-video__telemetry span {
+  color: rgba(229, 211, 173, 0.44);
+  font-size: 8px;
+}
+
+.tetradic-video__telemetry strong {
+  color: rgba(245, 229, 195, 0.9);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.tetradic-video__telemetry p {
+  margin: 0;
+  color: rgba(245, 229, 195, 0.88);
+  font-size: 11px;
+}
+
+.tetradic-video__progress {
+  position: absolute;
+  z-index: 3;
+  right: clamp(24px, 4vw, 68px);
+  bottom: max(25px, calc(env(safe-area-inset-bottom) + 12px));
+  left: clamp(24px, 4vw, 68px);
+  height: 1px;
+  overflow: hidden;
+  background: rgba(220, 192, 133, 0.2);
+}
+
+.tetradic-video__progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #d5b56e;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.tetradic-video__scroll-cue {
+  bottom: max(42px, calc(env(safe-area-inset-bottom) + 26px));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: rgba(229, 211, 173, 0.54);
+  font-size: 8px;
+  transform: translateX(-50%);
+}
+
+.tetradic-video__scroll-cue span {
+  width: 18px;
+  height: 1px;
+  background: currentColor;
+}
+
+.tetradic-video-experience[data-has-scrolled="true"]
+  .tetradic-video__scroll-cue {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.tetradic-video-experience[data-phase="final-hold"]
+  .tetradic-video__progress
+  span {
+  background: #ead19a;
+}
+
+.tetradic-video__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .tetradic-video__stage {
+    min-height: 100svh;
+  }
+
+  .tetradic-video__film {
+    object-fit: contain;
+    background: #020202;
+  }
+
+  .tetradic-video__masthead {
+    right: 20px;
+    left: 20px;
+    font-size: 8px;
+  }
+
+  .tetradic-video__masthead span:last-child {
+    max-width: 22ch;
+    text-align: right;
+  }
+
+  .tetradic-video__telemetry,
+  .tetradic-video__progress {
+    right: 20px;
+    left: 20px;
+  }
+
+  .tetradic-video__scroll-cue {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tetradic-video-experience {
+    min-height: auto;
+    padding: 72px 18px;
+  }
+
+  .tetradic-video__stage {
+    position: relative;
+    display: grid;
+    width: min(1100px, 100%);
+    height: auto;
+    min-height: 0;
+    margin: 0 auto;
+    gap: 18px;
+    overflow: visible;
+  }
+
+  .tetradic-video__films {
+    position: relative;
+    display: grid;
+    height: auto;
+    gap: 18px;
+    background: transparent;
+  }
+
+  .tetradic-video__film-layer {
+    position: relative;
+    height: auto;
+    opacity: 1 !important;
+    background: #090806;
+  }
+
+  .tetradic-video__film {
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+  }
+
+  .tetradic-video__film-layer figcaption {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px 13px;
+    border-top: 1px solid rgba(211, 178, 108, 0.2);
+    color: rgba(230, 210, 169, 0.7);
+    font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .tetradic-video__atmosphere,
+  .tetradic-video__masthead,
+  .tetradic-video__telemetry,
+  .tetradic-video__progress,
+  .tetradic-video__scroll-cue {
+    display: none;
+  }
+}

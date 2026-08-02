@@ -1,6 +1,8 @@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { authClient } from "@/lib/auth-client";
+import { MY_WHEEL_QUERY_KEY } from "@shared/codon-wheel";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
 
 type UseAuthOptions = {
@@ -12,6 +14,7 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   // Still uses trpc.auth.me to get the FULL legacy user object
   // (with subscriptionStatus, conduitId, voicePreference, etc.)
@@ -29,11 +32,12 @@ export function useAuth(options?: UseAuthOptions) {
     } catch {
       // Ignore errors during sign-out
     } finally {
+      queryClient.removeQueries({ queryKey: MY_WHEEL_QUERY_KEY });
       // Clear the tRPC cache
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
-  }, [utils]);
+  }, [queryClient, utils]);
 
   const state = useMemo(() => {
     localStorage.setItem("user-info", JSON.stringify(meQuery.data));

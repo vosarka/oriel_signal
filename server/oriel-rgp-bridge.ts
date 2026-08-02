@@ -9,6 +9,7 @@
 import { generateStaticSignature } from "./rgp-static-signature-engine";
 import { calculateBothCharts } from "./ephemeris-service";
 import { geocodeCity, getTimezoneForCoords } from "./geocoding";
+import { formatLinkCenters } from "./vrc-mandala";
 
 // ─── Birth data extraction ──────────────────────────────────────────────────
 
@@ -357,7 +358,7 @@ export async function runRGPForChat(
         ?.filter(channel => channel.active)
         .map(
           channel =>
-            `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${channel.centerA} ↔ ${channel.centerB}`
+            `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${formatLinkCenters(channel.centerA, channel.centerB)}`
         )
         .join("\n") || "None";
 

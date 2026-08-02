@@ -1,22 +1,25 @@
 import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowLeft,
+  ArrowRight,
   Moon,
   Diamond,
   Infinity,
   AlertTriangle,
   CheckCircle2,
   ChevronRight,
-  Zap,
-  Link2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
 import CodonGlyph from "@/components/CodonGlyph";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  SignalPageShell,
+  DecodedTitle,
+} from "@/components/oriel-signal/OrielSignalDesign";
+import Grainient from "@/components/Grainient";
+
 
 // Facet letter → display name
 const FACET_LABELS: Record<string, string> = {
@@ -69,6 +72,7 @@ type BlueprintPrimePosition = {
   facetFull: string;
   center: string;
   planetaryBody: string;
+  weight: number;
 };
 
 function normalizeCodonNumber(value: unknown): number | null {
@@ -102,6 +106,7 @@ function normalizeBlueprintPrimeStack(
         center: typeof row.center === "string" ? row.center : "Unknown Center",
         planetaryBody:
           typeof row.planetaryBody === "string" ? row.planetaryBody : "Unknown",
+        weight: typeof row.weight === "number" ? row.weight : (typeof row.weightedFrequency === "number" ? row.weightedFrequency / 50 : 1),
       };
     })
     .filter((entry): entry is BlueprintPrimePosition =>
@@ -109,151 +114,7 @@ function normalizeBlueprintPrimeStack(
     );
 }
 
-function polarPoint(cx: number, cy: number, radius: number, angleDeg: number) {
-  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-  return {
-    x: cx + radius * Math.cos(angleRad),
-    y: cy + radius * Math.sin(angleRad),
-  };
-}
 
-function describeArc(
-  cx: number,
-  cy: number,
-  radius: number,
-  startAngle: number,
-  endAngle: number
-) {
-  const adjustedEnd = endAngle <= startAngle ? endAngle + 360 : endAngle;
-  const start = polarPoint(cx, cy, radius, adjustedEnd);
-  const end = polarPoint(cx, cy, radius, startAngle);
-  const largeArcFlag = adjustedEnd - startAngle > 180 ? 1 : 0;
-  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-}
-
-function MandalaLocator({
-  slotIndex,
-  startDegree,
-  endDegree,
-  activeFacet,
-  facetArc,
-}: {
-  slotIndex: number;
-  startDegree: number;
-  endDegree: number;
-  activeFacet: string;
-  facetArc: number;
-}) {
-  const facetIndex = Math.max(
-    0,
-    FACET_ORDER.indexOf((activeFacet as (typeof FACET_ORDER)[number]) || "A")
-  );
-  const facetStart = startDegree + facetIndex * facetArc;
-  const facetEnd = facetStart + facetArc;
-  const wheelOffset = startDegree - slotIndex * 5.625;
-
-  return (
-    <svg viewBox="0 0 180 180" className="w-full max-w-[220px] h-auto">
-      <circle
-        cx="90"
-        cy="90"
-        r="70"
-        fill="none"
-        stroke="rgba(255,255,255,0.05)"
-        strokeWidth="1"
-      />
-      <circle
-        cx="90"
-        cy="90"
-        r="54"
-        fill="none"
-        stroke="rgba(255,255,255,0.03)"
-        strokeWidth="1"
-      />
-
-      {Array.from({ length: 64 }, (_, index) => {
-        const angle = wheelOffset + index * 5.625;
-        const outer = polarPoint(90, 90, 76, angle);
-        const inner = polarPoint(90, 90, index === slotIndex ? 60 : 66, angle);
-        return (
-          <line
-            key={index}
-            x1={inner.x}
-            y1={inner.y}
-            x2={outer.x}
-            y2={outer.y}
-            stroke={
-              index === slotIndex
-                ? "rgba(0,240,255,0.95)"
-                : "rgba(255,255,255,0.12)"
-            }
-            strokeWidth={index === slotIndex ? 2 : 1}
-          />
-        );
-      })}
-
-      <path
-        d={describeArc(90, 90, 70, startDegree, endDegree)}
-        fill="none"
-        stroke="rgba(0,240,255,0.95)"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
-
-      {FACET_ORDER.map((facet, index) => {
-        const segmentStart = startDegree + index * facetArc;
-        const segmentEnd = segmentStart + facetArc;
-        const isActive = facet === activeFacet;
-        return (
-          <path
-            key={facet}
-            d={describeArc(90, 90, 54, segmentStart, segmentEnd)}
-            fill="none"
-            stroke={
-              isActive ? "rgba(189,163,107,0.95)" : "rgba(255,255,255,0.16)"
-            }
-            strokeWidth={isActive ? 6 : 3}
-            strokeLinecap="round"
-          />
-        );
-      })}
-
-      <circle
-        cx="90"
-        cy="90"
-        r="36"
-        fill="rgba(10,10,14,0.98)"
-        stroke="rgba(189,163,107,0.18)"
-      />
-      <text
-        x="90"
-        y="80"
-        textAnchor="middle"
-        className="fill-zinc-500 font-mono text-[8px] tracking-[0.35em]"
-      >
-        SLOT
-      </text>
-      <text
-        x="90"
-        y="98"
-        textAnchor="middle"
-        className="fill-white font-mono text-[18px]"
-      >
-        {slotIndex + 1}
-      </text>
-      <text
-        x="90"
-        y="113"
-        textAnchor="middle"
-        className="fill-[#bda36b] font-mono text-[9px] tracking-[0.3em]"
-      >
-        FACET {activeFacet}
-      </text>
-
-      <title>{`Mandala slot ${slotIndex + 1}, active facet ${activeFacet}, ${facetStart.toFixed(2)}°-${facetEnd.toFixed(2)}°`}</title>
-    </svg>
-  );
-}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function CodonDetail() {
@@ -327,6 +188,12 @@ export default function CodonDetail() {
     return row.defined ? "Defined" : "Open";
   })();
 
+  // SLI / Loudness based on planetary weights in user's prime stack for this codon
+  const codonLoudness = blueprintMatches.length > 0
+    ? Math.max(...blueprintMatches.map(m => (m as any).weight || 1))
+    : 1;  // default for non-user or not in stack
+  const sliFactor = Math.max(0.3, Math.min(2.0, codonLoudness / 0.9)); // normalize around typical weights 0.3-1.8+
+
   // Related codons: adjacent + harmonic partners
   const getRelatedCodons = () => {
     if (!allCodons || !codon) return [];
@@ -345,32 +212,30 @@ export default function CodonDetail() {
   // ── Loading / Error states ────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
-          <Spinner size={32} label="Loading Codon" />
+      <SignalPageShell chamber="threshold" className="fi-home">
+        <div className="arkana-layer__inner flex min-h-[60vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner size={24} label="Loading codon" />
+            <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--oriel-dim)]">RESONANCE KEY • LOADING</div>
+          </div>
         </div>
-      </Layout>
+      </SignalPageShell>
     );
   }
 
   if (!codon) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-zinc-400 mb-4">Codon not found</p>
-            <Link href="/codex">
-              <Button
-                variant="outline"
-                className="border-primary/30 text-primary hover:bg-primary/10"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Field Index
-              </Button>
-            </Link>
+      <SignalPageShell chamber="threshold" className="fi-home">
+        <div className="arkana-layer__inner">
+          <Link href="/codex" className="arkana-layer__back inline-flex items-center gap-2">
+            <ArrowLeft size={12} /> RETURN TO FIELD INDEX
+          </Link>
+          <div className="mt-12 text-center">
+            <p className="text-[var(--oriel-dim)]">Codon signal not found in the lattice.</p>
+            <Link href="/codex" className="mt-4 inline-block text-sm underline">Back to Codex</Link>
           </div>
         </div>
-      </Layout>
+      </SignalPageShell>
     );
   }
 
@@ -380,557 +245,334 @@ export default function CodonDetail() {
     c => (c.numericId ?? parseInt(c.id.replace("RC", ""))) === harmonic
   );
 
-  // Active facet data
-  const activeFacet = (codon.facets as any)?.[activeTab];
-  const facetColor = FACET_COLORS[activeTab] ?? FACET_COLORS.A;
-  const heroDescription =
-    activeFacet?.description ?? codon.facets?.A?.description ?? codon.essence;
-  const activeFacetIndex = Math.max(
-    0,
-    FACET_ORDER.indexOf((activeTab as (typeof FACET_ORDER)[number]) || "A")
-  );
-  const facetStartDegree =
-    typeof codon.startDegree === "number"
-      ? codon.startDegree +
-        activeFacetIndex *
-          (typeof codon.facetArc === "number" ? codon.facetArc : 1.40625)
-      : null;
-  const facetEndDegree =
-    facetStartDegree !== null
-      ? facetStartDegree +
-        (typeof codon.facetArc === "number" ? codon.facetArc : 1.40625)
-      : null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const iconSrc = `/symbols/RC${pad(codonNumber)}.png`;
 
-  const element = (codon.chemical_marker ?? "AETHER").toUpperCase();
+  // Generate unique Grainient colors + params per codon using number + binary
+  // Much more diversified palettes per codon (different hue families, not just pink shifts)
+  const getGrainientPropsForCodon = (num: number, bin: string) => {
+    const bitCount = [...bin].filter(b => b === '1').length;
+    const seed = num * 19 + bitCount * 11;
+
+    // Pick a broad "family" so we get real diversity across codons
+    const family = num % 7; // 7 distinct vibe families
+
+    const hslToHex = (h: number, s: number, l: number): string => {
+      h /= 360; s /= 100; l /= 100;
+      let r: number, g: number, b: number;
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        const hue2rgb = (p: number, q: number, t: number) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      const toHex = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+
+    let h1, h2, h3, s1, s2, s3, l1, l2, l3;
+
+    switch (family) {
+      case 0: // Deep oceanic / teal-cyan
+        h1 = 195 + (seed % 25); h2 = 210 + (seed % 20); h3 = 175 + (seed % 30);
+        s1 = 82; s2 = 88; s3 = 70; l1 = 58; l2 = 52; l3 = 65;
+        break;
+      case 1: // Fiery / amber-orange
+        h1 = 18 + (seed % 22); h2 = 35 + (seed % 18); h3 = 5 + (seed % 15);
+        s1 = 90; s2 = 85; s3 = 78; l1 = 55; l2 = 60; l3 = 50;
+        break;
+      case 2: // Royal purple / indigo
+        h1 = 265 + (seed % 25); h2 = 280 + (seed % 22); h3 = 245 + (seed % 28);
+        s1 = 78; s2 = 85; s3 = 72; l1 = 56; l2 = 50; l3 = 62;
+        break;
+      case 3: // Forest / emerald green
+        h1 = 145 + (seed % 20); h2 = 160 + (seed % 18); h3 = 130 + (seed % 25);
+        s1 = 75; s2 = 82; s3 = 68; l1 = 52; l2 = 58; l3 = 48;
+        break;
+      case 4: // Magenta / rose + teal accents (controlled pink)
+        h1 = 320 + (seed % 18); h2 = 335 + (seed % 15); h3 = 195 + (seed % 20);
+        s1 = 82; s2 = 78; s3 = 80; l1 = 58; l2 = 54; l3 = 60;
+        break;
+      case 5: // Warm sunset / coral + gold
+        h1 = 12 + (seed % 15); h2 = 28 + (seed % 20); h3 = 42 + (seed % 12);
+        s1 = 88; s2 = 80; s3 = 75; l1 = 57; l2 = 62; l3 = 55;
+        break;
+      default: // Cool lavender + steel blue
+        h1 = 235 + (seed % 22); h2 = 255 + (seed % 18); h3 = 215 + (seed % 25);
+        s1 = 72; s2 = 78; s3 = 68; l1 = 60; l2 = 55; l3 = 65;
+    }
+
+    // Extra randomization from binary so even same family feels different
+    const binShift = bitCount * 3;
+    h1 = (h1 + binShift) % 360;
+    h2 = (h2 + binShift) % 360;
+    h3 = (h3 + binShift) % 360;
+
+    return {
+      color1: hslToHex(h1, s1, l1),
+      color2: hslToHex(h2, s2, l2),
+      color3: hslToHex(h3, s3, l3),
+      timeSpeed: 0.36 + (bitCount % 5) * 0.05,
+      warpStrength: 1.35 + (num % 6) * 0.13,
+      warpFrequency: 4.6 + (bitCount % 4) * 0.35,
+      warpSpeed: 3.1 + (seed % 5) * 0.32,
+      warpAmplitude: 46 + (num % 7) * 2.5,
+      blendAngle: 85 + (num % 70),
+      blendSoftness: 0.38 + (bitCount % 6) * 0.05,
+      rotationAmount: 480 + ((bitCount * 9) % 90),
+      noiseScale: 1.45 + (num % 5) * 0.15,
+      grainAmount: 0.065 + (seed % 7) * 0.012,
+      grainScale: 1.35 + (bitCount % 4) * 0.18,
+      grainAnimated: true,
+      contrast: 1.5,
+      gamma: 0.76,
+      saturation: 1.08,
+      centerX: ((num % 11) - 5) * 0.007,
+      centerY: ((bitCount % 7) - 3) * 0.007,
+      zoom: 1.06 + (num % 4) * 0.03,
+    };
+  };
+
+  const grainProps = getGrainientPropsForCodon(codonNumber, codon.binary || "000000");
+
+  // Next codon (wraps from 64 back to 01)
+  const nextCodonNumber = codonNumber === 64 ? 1 : codonNumber + 1;
+  const nextCodonId = `RC${String(nextCodonNumber).padStart(2, '0')}`;
 
   return (
-    <Layout>
-      <main
-        className="min-h-screen"
-        style={{ background: "#0a0a0e", color: "#e8e4dc" }}
-      >
-        <div className="relative z-10 max-w-[1200px] mx-auto px-6 py-8 flex flex-col gap-10">
-          {/* Top back button + breadcrumbs row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D4AF37]/15 pb-4">
-            <Link href="/codex">
-              <span className="inline-flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-[#D4AF37] transition-colors cursor-pointer tracking-wider uppercase">
-                <ArrowLeft size={12} className="text-[#D4AF37]" />
-                Return to Field Index
-              </span>
+    <SignalPageShell chamber="threshold" className="fi-home">
+      <div className="arkana-layer__inner">
+        {/* Header matching Profile */}
+        <header className="arkana-layer__head profile-layer__head">
+          <div>
+            <Link href="/codex" className="arkana-layer__back mb-2 inline-flex items-center gap-2 text-xs">
+              <ArrowLeft size={12} /> RETURN TO FIELD INDEX
             </Link>
-
-            <div className="flex items-center gap-2 text-xs">
-              <Link
-                href="/codex"
-                className="text-zinc-500 hover:text-white transition-colors font-mono"
-              >
-                FIELD INDEX
-              </Link>
-              <span className="text-zinc-600">/</span>
-              <span className="text-zinc-500 font-mono">
-                {codon.archetype_role?.split(",")[0]?.toUpperCase() ||
-                  "RESONANCE"}
-              </span>
-              <span className="text-zinc-600">/</span>
-              <span className="text-[#D4AF37] font-mono tracking-wider font-semibold">
-                {codon.id} {codon.name}
-              </span>
-            </div>
           </div>
 
-          {/* Main Double Panel Blueprint Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Panel - w-28 h-28 Glyph + Guides + Mandala Locator */}
-            <div className="lg:col-span-4 flex flex-col gap-6 items-center lg:sticky lg:top-8">
-              {/* Glyph Box inside spinning guides */}
-              <div className="relative size-64 md:size-80 flex items-center justify-center border border-[#D4AF37]/15 rounded-xl bg-zinc-900/30 p-6">
-                <div className="absolute inset-0 border border-dashed border-[#D4AF37]/10 rounded-full animate-spin-slow-60" />
-                <div className="absolute inset-4 border border-[#D4AF37]/5 rounded-full animate-spin-slower" />
-                <div className="absolute inset-12 border border-[#D4AF37]/10 rounded-full" />
-                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-3 p-8">
-                  <CodonGlyph
-                    codonNumber={codonNumber}
-                    className="text-[#D4AF37] drop-shadow-[0_0_18px_rgba(212,175,55,0.4)] w-28 h-28"
-                  />
-                  <div className="text-sm font-mono font-bold text-[#D4AF37]/80 tracking-widest mt-2">
-                    RC{String(codonNumber).padStart(2, "0")}
-                  </div>
-                </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <DecodedTitle
+              text={`${codon.id} · ${codon.name}`}
+              className="arkana-layer__title"
+            />
+            <Link 
+              href={`/codex/${nextCodonId}`}
+              className="arkana-layer__back inline-flex items-center gap-1 text-xs hover:text-[#d8b56d] transition-colors whitespace-nowrap"
+            >
+              NEXT <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          {/* Thin SLI Gradient line placed right under the codon name (title) */}
+          {/* Made full width starting from the left to cover under the entire title including the codon number (RCxx) */}
+          <div
+            style={{
+              width: '100%',
+              height: `${Math.max(3, Math.min(14, Math.round(4 * sliFactor)))}px`,
+              margin: '0.6rem 0 1rem 0',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '1px',
+              boxShadow: sliFactor > 1.2 ? '0 0 6px rgba(216,181,109,0.25)' : 'none',
+            }}
+          >
+            <Grainient 
+              {...grainProps} 
+              contrast={grainProps.contrast * (0.85 + sliFactor * 0.2)}
+              grainAmount={grainProps.grainAmount * sliFactor}
+              warpStrength={grainProps.warpStrength * (0.8 + sliFactor * 0.25)}
+            />
+          </div>
+
+          {codon.essence && (
+            <p className="arkana-layer__subtitle max-w-[72ch]">{codon.essence}</p>
+          )}
+
+          <div className="profile-layer__meta mt-3">
+            {codon.center && <span>CENTER <strong>{codon.center}</strong></span>}
+            {codon.archetype_role && <span>ROLE <strong>{codon.archetype_role.split(",")[0]}</strong></span>}
+            {codon.binary && <span>BINARY <strong>{codon.binary}</strong></span>}
+            {codon.chemical_marker && <span>MARKER <strong>{codon.chemical_marker}</strong></span>}
+          </div>
+        </header>
+
+        {/* The codon glyph / symbol - centered below the thin SLI gradient line */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0.5rem 0 1rem' }}>
+          <div style={{ position: 'relative', width: 240, height: 240 }}>
+            <CodonGlyph
+              codonNumber={codonNumber}
+              className="w-full h-full text-[#e8d9a0] drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
+            />
+            <img
+              src={iconSrc}
+              alt={`${codon.id} icon`}
+              className="absolute w-[70px] h-[70px] object-contain"
+              style={{ 
+                left: '50%', 
+                top: '50%', 
+                transform: 'translate(-50%, -50%)',
+                filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.6))'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Label under the glyph */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d8b56d]/70">
+            HEX NODES • {codon.binary}
+          </span>
+        </div>
+
+        {/* Key Identity facts (Profile style rows) */}
+        <div className="profile-layer__sections mt-2">
+          <dl className="profile-rows">
+            {[
+              { label: "Center", value: codon.center || "—" },
+              { label: "Archetype Role", value: codon.archetype_role || "—" },
+              { label: "Traditional Name", value: codon.traditional_name || "—" },
+              { label: "Mandala Window", value: codon.startDegree != null && codon.endDegree != null ? `${codon.startDegree.toFixed(1)}° — ${codon.endDegree.toFixed(1)}°` : "—" },
+              { label: "Mandala Slot", value: codon.mandalaSlot != null ? (codon.mandalaSlot + 1) : "—" },
+              { label: "Chemical Marker", value: codon.chemical_marker || "—" },
+              { label: "Harmonic Partner", value: `RC${String(harmonic).padStart(2, "0")}` },
+            ].map((row, i) => (
+              <div key={i} className="profile-row">
+                <dt>{row.label}</dt>
+                <dd>
+                  {row.label === "Harmonic Partner" ? (
+                    <Link href={`/codex/${harmonic}`} className="text-[#d8b56d] hover:underline">{row.value}</Link>
+                  ) : row.value}
+                </dd>
               </div>
+            ))}
+          </dl>
+        </div>
 
-              {/* Mandala Locator */}
-              {codon.startDegree !== undefined &&
-                codon.endDegree !== undefined &&
-                codon.mandalaSlot !== undefined && (
-                  <div className="w-full max-w-[280px] rounded-xl border border-[#D4AF37]/15 bg-zinc-900/40 backdrop-blur-sm p-4">
-                    <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500 text-center mb-3">
-                      Mandala Locator
-                    </div>
-                    <div className="flex justify-center">
-                      <MandalaLocator
-                        slotIndex={codon.mandalaSlot}
-                        startDegree={codon.startDegree}
-                        endDegree={codon.endDegree}
-                        activeFacet={activeTab}
-                        facetArc={
-                          typeof codon.facetArc === "number"
-                            ? codon.facetArc
-                            : 1.40625
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-              {/* Harmonic Partner & Relevance */}
-              <div className="w-full flex flex-col gap-4">
-                {/* Harmonic Partner */}
-                <div className="bg-zinc-900/40 backdrop-blur-sm border border-[#D4AF37]/15 rounded-xl p-5 border-l-4 border-l-[#D4AF37]">
-                  <h3 className="text-white font-mono text-[10px] uppercase tracking-widest mb-3 opacity-80">
-                    Harmonic Partner
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 bg-zinc-800/60 rounded flex items-center justify-center border border-zinc-700">
-                      <span className="font-mono font-bold text-zinc-400 text-sm">
-                        {harmonic}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-white font-mono text-xs font-semibold">
-                        {harmonicCodon?.name ||
-                          `RC${String(harmonic).padStart(2, "0")}`}
-                      </p>
-                      <p className="text-[9px] text-zinc-500 uppercase tracking-wider">
-                        {harmonicCodon?.title || "Complementary Codon"}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/codex/${harmonic}`}
-                      className="ml-auto text-zinc-400 hover:text-white transition-colors"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  </div>
+        {/* Resonance Spectrum — elegant like profile stats */}
+        <section className="mt-8">
+          <div className="mb-2 text-[10px] font-mono tracking-[0.2em] text-[var(--oriel-dim)]">03 · RESONANCE SPECTRUM</div>
+          <div className="profile-layer__stats !grid-cols-1 md:!grid-cols-3">
+            {[
+              { label: "SHADOW", value: codon.frequency?.shadow || codon.shadow, icon: <Moon size={13} /> },
+              { label: "GIFT", value: codon.frequency?.gift || codon.gift, icon: <Diamond size={13} /> },
+              { label: "SIDDHI", value: codon.frequency?.siddhi || codon.crown, icon: <Infinity size={13} /> },
+            ].map((item, idx) => (
+              <div key={idx} className="profile-layer__stat">
+                <div className="flex items-center justify-center gap-1.5 text-[10px] tracking-widest text-[#d8b56d] mb-1">
+                  {item.icon} {item.label}
                 </div>
+                <span className="profile-layer__stat-value !text-base leading-tight">{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-[var(--oriel-ivory)]/80 mt-1">
+            <div>{codon.frequency?.shadow_desc || ""}</div>
+            <div>{codon.frequency?.gift_desc || ""}</div>
+            <div>{codon.frequency?.siddhi_desc || ""}</div>
+          </div>
+        </section>
 
-                {/* Relevance */}
-                <div className="bg-zinc-900/40 backdrop-blur-sm border border-[#D4AF37]/15 rounded-xl p-5">
-                  <h3 className="text-white font-mono text-[10px] uppercase tracking-widest mb-3 opacity-80">
-                    Signature Relevance
-                  </h3>
-                  {!user ? (
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Sign in to see this Codon's presence in your Prime Stack.
-                    </p>
-                  ) : staticProfileQuery.isLoading ? (
-                    <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-mono uppercase tracking-widest">
-                      <Spinner size={12} label="Checking..." />
-                      Checking...
+        {/* Facets — restyled clean cards */}
+        <section className="mt-10">
+          <div className="mb-3 text-[10px] font-mono tracking-[0.2em] text-[var(--oriel-dim)]">04 · RESONANCE FACETS (4 WINDOWS)</div>
+          <div className="flex flex-col gap-3">
+            {(["A", "B", "C", "D"] as const).map(letter => {
+              const facetData = (codon.facets as any)?.[letter];
+              if (!facetData) return null;
+              const label = FACET_LABELS[letter];
+              const isExpanded = expandedFacets[letter];
+              const fc = FACET_COLORS[letter] ?? FACET_COLORS.A;
+
+              const localIndex = FACET_ORDER.indexOf(letter);
+              const localStart = typeof codon.startDegree === "number"
+                ? codon.startDegree + localIndex * (typeof codon.facetArc === "number" ? codon.facetArc : 1.40625)
+                : null;
+              const localEnd = localStart !== null ? localStart + (typeof codon.facetArc === "number" ? codon.facetArc : 1.40625) : null;
+
+              return (
+                <div key={letter} className={`rounded border transition ${isExpanded ? fc.border : "border-white/10"}`}>
+                  <button
+                    onClick={() => toggleFacet(letter)}
+                    className="w-full flex justify-between px-4 py-3 text-left text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`font-mono text-xs ${isExpanded ? fc.text : "text-[#d8b56d]/60"}`}>{label} · {letter}</span>
+                      {facetData.title && <span className="text-xs text-[var(--oriel-dim)]">— {facetData.title}</span>}
                     </div>
-                  ) : blueprintMatches.length > 0 ? (
-                    <div className="flex flex-col gap-3">
-                      <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[9px] font-mono uppercase tracking-wider">
-                        Active in Signature
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {blueprintMatches.map((entry, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded border border-[#D4AF37]/10 bg-black/10 p-2.5 text-[11px]"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-white font-mono uppercase font-semibold">
-                                Position {entry.position}
-                              </span>
-                              <span className="text-[#D4AF37] font-mono text-[9px] uppercase">
-                                {entry.facetFull || entry.facet}
-                              </span>
+                    <div className="flex items-center gap-3 text-xs text-[var(--oriel-dim)]">
+                      {localStart && localEnd && <span>{localStart.toFixed(1)}°–{localEnd.toFixed(1)}°</span>}
+                      <span>{isExpanded ? "–" : "+"}</span>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-white/10 px-4 pb-5 pt-3 text-sm text-[var(--oriel-ivory)]/90">
+                      <p className="font-serif leading-relaxed">{facetData.description}</p>
+
+                      {facetData.resonance_keys?.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
+                          {facetData.resonance_keys.map((k: string) => (
+                            <span key={k} className="rounded border border-white/20 px-2 py-px">{k}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {(facetData.shadow_manifestation || facetData.micro_correction) && (
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 text-xs">
+                          {facetData.shadow_manifestation && (
+                            <div className="rounded border border-red-900/40 bg-red-950/20 p-3">
+                              <div className="mb-1 flex items-center gap-1 text-red-400 text-[10px] font-mono">SHADOW</div>
+                              {facetData.shadow_manifestation}
                             </div>
-                            <p className="text-zinc-400 mt-1">
-                              {entry.name} · {entry.planetaryBody}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                          )}
+                          {facetData.micro_correction && (
+                            <div className="rounded border border-[#d8b56d]/30 bg-[#d8b56d]/5 p-3">
+                              <div className="mb-1 flex items-center gap-1 text-[#d8b56d] text-[10px] font-mono">MICRO-CORRECTION</div>
+                              {facetData.micro_correction}
+                              <div className="mt-2">
+                                <Link href="/signature" className="text-[10px] underline">Open Signal Check</Link>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500">
-                      Not active in your current Prime Stack.
-                    </p>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Right Panel - Specifications & Facets */}
-            <div className="lg:col-span-8 flex flex-col gap-6">
-              {/* Specification Header block */}
-              <div className="border border-[#D4AF37]/15 rounded-xl bg-zinc-900/20 p-6 flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#D4AF37]/10 pb-4">
-                  <div>
-                    <span className="text-[10px] font-mono text-[#D4AF37] tracking-[0.2em] uppercase block mb-1">
-                      SPECIFICATION MANUAL
-                    </span>
-                    <h2 className="text-3xl font-mono tracking-wider text-white font-bold uppercase">
-                      {codon.id} · {codon.name}
-                    </h2>
-                    {codon.traditional_name && (
-                      <p className="text-zinc-400 font-serif italic text-sm mt-0.5">
-                        Traditional I Ching: {codon.traditional_name}
-                      </p>
-                    )}
-                  </div>
-                  {/* Meta badges */}
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {codon.center && (
-                      <span className="bg-zinc-800/80 border border-[#D4AF37]/30 rounded px-2 py-0.5 text-[10px] font-mono text-[#D4AF37]">
-                        {codon.center.toUpperCase()}
-                      </span>
-                    )}
-                    {codon.binary && (
-                      <span className="bg-zinc-800/80 border border-zinc-700 rounded px-2 py-0.5 text-[10px] font-mono text-zinc-300">
-                        {codon.binary}
-                      </span>
-                    )}
-                    {codon.chemical_marker && (
-                      <span className="bg-zinc-800/80 border border-zinc-700 rounded px-2 py-0.5 text-[10px] font-mono text-zinc-300">
-                        {codon.chemical_marker}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Essence description */}
-                <div className="text-sm text-zinc-300 leading-relaxed font-serif">
-                  {codon.essence}
-                </div>
-
-                {/* Key attributes row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 text-xs">
-                  <div>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase block">
-                      ARCHETYPE ROLE
-                    </span>
-                    <span className="text-zinc-200 font-mono font-medium">
-                      {codon.archetype_role || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase block">
-                      SOMATIC MARKER
-                    </span>
-                    <span className="text-zinc-200 font-mono font-medium">
-                      {codon.somatic_marker || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase block">
-                      WINDOW RANGE
-                    </span>
-                    <span className="text-zinc-200 font-mono font-medium">
-                      {codon.startDegree?.toFixed(1)}° -{" "}
-                      {codon.endDegree?.toFixed(1)}°
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase block">
-                      MANDALA SLOT
-                    </span>
-                    <span className="text-zinc-200 font-mono font-medium">
-                      {codon.mandalaSlot !== undefined
-                        ? codon.mandalaSlot + 1
-                        : "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── RESONANCE SPECTRUM (Shadow, Gift, Siddhi) ── */}
-              <div className="border border-[#D4AF37]/15 rounded-xl bg-zinc-900/20 p-6 flex flex-col gap-4">
-                <h3 className="text-white font-mono text-xs uppercase tracking-widest border-b border-[#D4AF37]/10 pb-2">
-                  Resonance Spectrum
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Shadow */}
-                  <div className="bg-zinc-950/40 border border-red-500/10 rounded-lg p-4 flex flex-col gap-2">
-                    <div className="flex justify-between items-center text-[10px] font-mono text-red-400 font-bold uppercase tracking-wider">
-                      <span>Shadow</span>
-                      <Moon size={12} />
-                    </div>
-                    <span className="text-white font-serif text-sm font-semibold">
-                      {codon.frequency?.shadow || codon.shadow}
-                    </span>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                      {codon.frequency?.shadow_desc ||
-                        "Distorted operational frequency."}
-                    </p>
-                  </div>
-                  {/* Gift */}
-                  <div className="bg-zinc-950/40 border border-[#D4AF37]/25 rounded-lg p-4 flex flex-col gap-2 shadow-[0_0_15px_rgba(212,175,55,0.05)]">
-                    <div className="flex justify-between items-center text-[10px] font-mono text-[#D4AF37] font-bold uppercase tracking-wider">
-                      <span>Gift</span>
-                      <Diamond size={12} />
-                    </div>
-                    <span className="text-white font-serif text-sm font-semibold">
-                      {codon.frequency?.gift || codon.gift}
-                    </span>
-                    <p className="text-[11px] text-zinc-300 leading-relaxed">
-                      {codon.frequency?.gift_desc ||
-                        "Functional operational frequency."}
-                    </p>
-                  </div>
-                  {/* Siddhi */}
-                  <div className="bg-zinc-950/40 border border-emerald-500/10 rounded-lg p-4 flex flex-col gap-2">
-                    <div className="flex justify-between items-center text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                      <span>Siddhi</span>
-                      <Infinity size={12} />
-                    </div>
-                    <span className="text-white font-serif text-sm font-semibold">
-                      {codon.frequency?.siddhi || codon.crown}
-                    </span>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">
-                      {codon.frequency?.siddhi_desc ||
-                        "Transcendent operational frequency."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── COLLAPSIBLE FACET CARDS ── */}
-              <div className="flex flex-col gap-3">
-                <h3 className="text-white font-mono text-xs uppercase tracking-widest mb-1 pl-1">
-                  Resonance Facets
-                </h3>
-                {(["A", "B", "C", "D"] as const).map(letter => {
-                  const facetData = (codon.facets as any)?.[letter];
-                  if (!facetData) return null;
-                  const label = FACET_LABELS[letter];
-                  const fc = FACET_COLORS[letter] ?? FACET_COLORS.A;
-                  const isExpanded = expandedFacets[letter];
-
-                  // Localized window calculation for this facet
-                  const localIndex = FACET_ORDER.indexOf(letter);
-                  const localStart =
-                    typeof codon.startDegree === "number"
-                      ? codon.startDegree +
-                        localIndex *
-                          (typeof codon.facetArc === "number"
-                            ? codon.facetArc
-                            : 1.40625)
-                      : null;
-                  const localEnd =
-                    localStart !== null
-                      ? localStart +
-                        (typeof codon.facetArc === "number"
-                          ? codon.facetArc
-                          : 1.40625)
-                      : null;
-
-                  return (
-                    <div
-                      key={letter}
-                      className={`border rounded-xl transition-all duration-300 ${
-                        isExpanded
-                          ? `${fc.border} ${fc.bg}`
-                          : "border-zinc-800 bg-zinc-900/10 hover:border-zinc-700"
-                      }`}
-                    >
-                      {/* Card Header (clickable toggle) */}
-                      <button
-                        onClick={() => toggleFacet(letter)}
-                        className="w-full flex items-center justify-between p-4 font-mono text-xs tracking-wider uppercase text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`size-2 rounded-full ${isExpanded ? "bg-current animate-pulse" : "bg-zinc-700"} ${fc.text}`}
-                          />
-                          <span
-                            className={`font-bold ${isExpanded ? fc.text : "text-zinc-300"}`}
-                          >
-                            {label} · Facet {letter}
-                          </span>
-                          {facetData.title && (
-                            <span className="text-[10px] text-zinc-500 normal-case hidden sm:inline">
-                              — {facetData.title}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {localStart !== null && localEnd !== null && (
-                            <span className="text-[10px] text-zinc-500 lowercase">
-                              {localStart.toFixed(1)}°-{localEnd.toFixed(1)}°
-                            </span>
-                          )}
-                          <ChevronRight
-                            size={14}
-                            className={`text-zinc-500 transition-transform duration-300 ${isExpanded ? "rotate-90 text-white" : ""}`}
-                          />
-                        </div>
-                      </button>
-
-                      {/* Card Expandable Body */}
-                      {isExpanded && (
-                        <div className="px-6 pb-6 pt-2 border-t border-zinc-800/40 flex flex-col gap-5">
-                          {facetData.title && (
-                            <div className="text-xs font-mono uppercase tracking-wider text-zinc-400">
-                              Archetype: {facetData.title}
-                            </div>
-                          )}
-                          <p className="text-zinc-300 text-sm leading-relaxed font-serif">
-                            {facetData.description}
-                          </p>
-
-                          {/* Resonance Keys */}
-                          {facetData.resonance_keys?.length > 0 && (
-                            <div>
-                              <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-2">
-                                Resonance Keys
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {facetData.resonance_keys.map((key: string) => (
-                                  <span
-                                    key={key}
-                                    className={`px-2.5 py-0.5 rounded text-[10px] font-mono border ${fc.pill}`}
-                                  >
-                                    {key}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Shadow Warning & Micro-Correction Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Shadow Warning */}
-                            {facetData.shadow_manifestation && (
-                              <div className="rounded-lg p-4 border border-red-500/15 bg-red-950/5 flex flex-col gap-2">
-                                <div className="flex items-center gap-2 text-red-400 text-[10px] font-mono uppercase tracking-wider font-bold">
-                                  <AlertTriangle size={12} />
-                                  <span>Shadow Manifestation</span>
-                                </div>
-                                <p className="text-zinc-300 text-xs leading-relaxed">
-                                  {facetData.shadow_manifestation}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Micro-Correction */}
-                            {facetData.micro_correction && (
-                              <div className="rounded-lg p-4 border border-[#D4AF37]/20 bg-[#D4AF37]/5 flex flex-col justify-between gap-3">
-                                <div className="flex flex-col gap-2">
-                                  <div className="flex items-center gap-2 text-[#D4AF37] text-[10px] font-mono uppercase tracking-wider font-bold">
-                                    <CheckCircle2 size={12} />
-                                    <span>Micro-Correction</span>
-                                  </div>
-                                  <p className="text-zinc-300 text-xs leading-relaxed">
-                                    {facetData.micro_correction}
-                                  </p>
-                                </div>
-                                <Link href="/signature">
-                                  <button className="w-full mt-1 border border-[#D4AF37]/30 hover:border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37]/10 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider transition-all cursor-pointer">
-                                    Run Carrierlock Diagnostic
-                                  </button>
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+              );
+            })}
           </div>
+        </section>
 
-          {/* Related Archetypes */}
-          <section className="border-t border-[#D4AF37]/15 pt-8 pb-16">
-            <h3 className="text-white font-mono text-xs uppercase tracking-[0.2em] mb-6 pl-1 opacity-80">
-              Related Resonance Links (Harmonic & Proximity partners)
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {relatedCodons.map(related => {
-                const n =
-                  related.numericId ?? parseInt(related.id.replace("RC", ""));
+        {/* Related */}
+        {relatedCodons.length > 0 && (
+          <section className="mt-10 border-t border-white/10 pt-8">
+            <div className="mb-3 text-[10px] font-mono tracking-[0.2em] text-[var(--oriel-dim)]">05 · RELATED RESONANCE LINKS</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+              {relatedCodons.map(r => {
+                const n = r.numericId ?? parseInt(r.id.replace("RC", ""));
                 return (
-                  <Link
-                    key={related.id}
-                    href={`/codex/${n}`}
-                    className="group bg-zinc-950/40 backdrop-blur-sm border border-[#D4AF37]/15 p-4 rounded-xl hover:border-[#D4AF37]/45 transition-all cursor-pointer flex flex-col justify-between min-h-[110px]"
-                  >
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-mono text-zinc-500 group-hover:text-[#D4AF37] transition-colors">
-                          {related.id}
-                        </span>
-                        <span className="size-1.5 rounded-full bg-zinc-800 group-hover:bg-[#D4AF37] transition-colors" />
-                      </div>
-                      <p className="text-white font-mono text-xs font-semibold group-hover:text-white">
-                        {related.name}
-                      </p>
-                      {related.title && (
-                        <p className="text-zinc-500 text-[9px] italic mt-1 leading-normal line-clamp-2">
-                          {related.title}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-[9px] font-mono text-zinc-600 group-hover:text-zinc-400 mt-2 block transition-colors text-right text-[8px]">
-                      view specifications →
-                    </span>
+                  <Link key={r.id} href={`/codex/${n}`} className="group rounded border border-white/10 p-3 text-xs hover:border-[#d8b56d]/40 transition">
+                    <div className="font-mono text-[#d8b56d]">{r.id}</div>
+                    <div className="mt-0.5 text-[var(--oriel-ivory)] group-hover:text-white">{r.name}</div>
                   </Link>
                 );
               })}
             </div>
           </section>
-        </div>
-
-        {/* Footer */}
-        <footer
-          className="py-12"
-          style={{
-            borderTop: "1px solid rgba(189,163,107,0.12)",
-            background: "rgba(15,15,21,0.6)",
-          }}
-        >
-          <div className="max-w-[1200px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div
-              className="flex items-center gap-3"
-              style={{ opacity: 0.5, color: "#bda36b" }}
-            >
-              <Zap className="w-5 h-5" />
-              <span className="font-mono text-sm tracking-wider">
-                VOSS ARIEL FIELD ARCHIVE
-              </span>
-            </div>
-            <div className="flex gap-8 text-sm" style={{ color: "#6a665e" }}>
-              <Link
-                href="/protocol"
-                className="hover:opacity-80 transition-opacity"
-                style={{ color: "#f6b05e" }}
-              >
-                Protocol
-              </Link>
-              <Link
-                href="/signature"
-                className="hover:opacity-80 transition-opacity"
-                style={{ color: "#f6b05e" }}
-              >
-                Diagnostics
-              </Link>
-              <Link
-                href="/founder-signature-blueprint"
-                className="hover:opacity-80 transition-opacity"
-                style={{ color: "#f6b05e" }}
-              >
-                The Founder-Curated Bio-Signature
-              </Link>
-            </div>
-            <div className="text-xs font-mono" style={{ color: "#6a665e" }}>
-              VRC v1.0 — Engine Constants Loaded
-            </div>
-          </div>
-        </footer>
-      </main>
-    </Layout>
+        )}
+      </div>
+    </SignalPageShell>
   );
 }

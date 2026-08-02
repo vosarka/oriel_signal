@@ -28,6 +28,59 @@ export const PHASE_COUNT = 8;
 
 const BOUND = 2.2; // shared half-extent every form respects
 
+function particleNoise(index: number, salt: number): number {
+  const value = Math.sin((index + 1) * (12.9898 + salt * 78.233)) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+/** Stable per-particle scale and alpha. Most motes stay fine and quiet; a small
+ *  minority become the larger, variably luminous anchors visible in the form. */
+export function buildParticleAppearance(count: number): {
+  sizes: Float32Array;
+  colors: Float32Array;
+} {
+  const sizes = new Float32Array(count);
+  const colors = new Float32Array(count * 4);
+
+  for (let i = 0; i < count; i++) {
+    const tier = particleNoise(i, 0);
+    const size = particleNoise(i, 1);
+    const alpha = particleNoise(i, 2);
+
+    sizes[i] =
+      tier > 0.965
+        ? 0.09 + size * 0.07
+        : tier > 0.78
+          ? 0.04 + size * 0.045
+          : 0.014 + size * 0.028;
+
+    const offset = i * 4;
+    colors[offset] = 1;
+    colors[offset + 1] = 1;
+    colors[offset + 2] = 1;
+    colors[offset + 3] =
+      tier > 0.965 ? 0.34 + alpha * 0.62 : 0.14 + alpha * 0.62;
+  }
+
+  return { sizes, colors };
+}
+
+/** Extra camera movement used only while one settled phase becomes the next. */
+export function phaseCameraArc(
+  fromPhase: number,
+  fraction: number
+): { azimuth: number; elevation: number; radius: number } {
+  const f = Math.max(0, Math.min(1, fraction));
+  const transition = Math.sin(f * Math.PI);
+  const direction = fromPhase % 2 === 0 ? 1 : -1;
+
+  return {
+    azimuth: direction * transition * (0.48 + fromPhase * 0.025),
+    elevation: transition * (fromPhase % 3 === 0 ? 0.14 : 0.09),
+    radius: transition * 0.5,
+  };
+}
+
 // ── The genesis helix — the "spiral" that collapses into the first point ──────
 export function buildGenesisHelix(count: number = FORM_PARTICLE_COUNT): Float32Array {
   const arr = new Float32Array(count * 3);
@@ -228,7 +281,7 @@ export function phaseState(progress: number): {
   settled: boolean;
 } {
   const last = PHASE_COUNT - 1;
-  const raw = Math.max(0, Math.min(progress * last, last));
+  const raw = Math.max(0, Math.min(progress * PHASE_COUNT, last));
   const value = dwellForm(raw, last);
   const index = Math.round(value);
   const settled = Math.abs(value - index) < 0.04;

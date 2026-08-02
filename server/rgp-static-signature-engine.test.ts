@@ -78,9 +78,9 @@ describe("Static Signature Generation Engine", { timeout: 30_000 }, () => {
       expect(reading.status).toBe("confirmed");
       expect(reading.calculationStatus).toBe("exact");
       expect(reading.specVersion).toBe(
-        "Consciousness Lattice Unified Specification v1"
+        "Consciousness Lattice Unified Specification v2.1"
       );
-      expect(reading.version).toBe(2); // VRC v1.0 implementation
+      expect(reading.version).toBe(3);
     });
 
     it("should reject confirmed static signatures without exact conscious and design charts", async () => {

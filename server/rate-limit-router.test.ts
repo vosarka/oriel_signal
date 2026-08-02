@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => ({
   calculateBirthChart: vi.fn(),
   generateStaticSignature: vi.fn(),
   generateORIELDynamicTransmission: vi.fn(),
+  getTimezoneForLocalDateTime: vi.fn(() => ({
+    tzId: "UTC",
+    offsetHours: 0,
+  })),
 }));
 
 vi.mock("./db", () => ({
@@ -80,7 +84,9 @@ vi.mock("./rgp-256-codon-engine", () => ({
 
 vi.mock("./paypal-webhook", () => ({}));
 vi.mock("./oriel-diagnostic-engine", () => ({}));
-vi.mock("./geocoding", () => ({}));
+vi.mock("./geocoding", () => ({
+  getTimezoneForLocalDateTime: mocks.getTimezoneForLocalDateTime,
+}));
 vi.mock("./static-profile-service", () => ({
   summarizeStoredStaticProfile: vi.fn(() => "Stored Static Signature summary"),
   buildUserStaticProfile: vi.fn(),
@@ -285,23 +291,19 @@ describe("expensive public route rate limits", () => {
     ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
   });
 
-  it("blocks anonymous TTS after three generated clips", async () => {
+  it("does not rate limit chunked ORIEL speech", async () => {
     const caller = callerFor("198.51.100.12");
 
-    for (let i = 0; i < 3; i += 1) {
-      await caller.oriel.generateSpeech({
-        text: `Speak this short line ${i}.`,
-        voiceId: "sophianic",
-      });
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        caller.oriel.generateSpeech({
+          text: `Speak this short line ${i}.`,
+          voiceId: "sophianic",
+        })
+      ).resolves.toMatchObject({ success: true });
     }
 
-    await expect(
-      caller.oriel.generateSpeech({
-        text: "This clip should be blocked.",
-        voiceId: "sophianic",
-      })
-    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
-    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(3);
+    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(4);
   });
 
   it("blocks anonymous artifact lore/image generation after two calls", async () => {

@@ -1,6 +1,7 @@
 import { calculateBothCharts } from "./ephemeris-service";
-import { getTimezoneForCoords } from "./geocoding";
+import { getTimezoneForLocalDateTime } from "./geocoding";
 import { generateStaticSignature } from "./rgp-static-signature-engine";
+import { formatLinkCenters } from "./vrc-mandala";
 
 export interface NatalProfileInput {
   birthDate: string;
@@ -36,15 +37,6 @@ function assertExactCalculationInput(input: NatalProfileInput) {
   if (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude)) {
     throw new Error(
       "Resolved birth coordinates are required for exact static profile calculation."
-    );
-  }
-
-  if (
-    input.timezoneOffset === undefined ||
-    !Number.isFinite(input.timezoneOffset)
-  ) {
-    throw new Error(
-      "Resolved timezone offset is required for exact static profile calculation."
     );
   }
 }
@@ -232,23 +224,18 @@ export function resolveStoredNatalInputForRecompute(
     );
   }
 
-  let timezoneId = stored.timezoneId ?? undefined;
-  let timezoneOffset =
-    typeof stored.timezoneOffset === "number" &&
-    Number.isFinite(stored.timezoneOffset)
-      ? stored.timezoneOffset
-      : undefined;
-
-  if (timezoneOffset === undefined) {
-    const birthReference = new Date(stored.birthDate);
-    const tz = getTimezoneForCoords(
-      stored.latitude,
-      stored.longitude,
-      Number.isNaN(birthReference.getTime()) ? new Date() : birthReference
+  const birthReference = new Date(stored.birthDate);
+  if (Number.isNaN(birthReference.getTime())) {
+    throw new Error(
+      "Stored birth date is invalid. Re-enter your natal profile at /complete-profile."
     );
-    timezoneId = timezoneId ?? tz.tzId;
-    timezoneOffset = tz.offsetHours;
   }
+  const timezone = getTimezoneForLocalDateTime(
+    stored.latitude,
+    stored.longitude,
+    birthReference,
+    birthTime
+  );
 
   return {
     birthDate: stored.birthDate,
@@ -257,8 +244,8 @@ export function resolveStoredNatalInputForRecompute(
     birthCountry: stored.birthCountry,
     latitude: stored.latitude,
     longitude: stored.longitude,
-    timezoneId,
-    timezoneOffset,
+    timezoneId: timezone.tzId,
+    timezoneOffset: timezone.offsetHours,
   };
 }
 
@@ -270,12 +257,21 @@ export async function buildUserStaticProfile(
   if (Number.isNaN(birthDateObj.getTime())) {
     throw new Error("Invalid birth date");
   }
-  assertExactCalculationInput(input);
   const birthTime = input.birthTime.trim();
-  const calculationContext = buildExactCalculationContext({
+  assertExactCalculationInput({ ...input, birthTime });
+  const timezone = getTimezoneForLocalDateTime(
+    input.latitude,
+    input.longitude,
+    birthDateObj,
+    birthTime
+  );
+  const resolvedInput: NatalProfileInput = {
     ...input,
     birthTime,
-  });
+    timezoneId: timezone.tzId,
+    timezoneOffset: timezone.offsetHours,
+  };
+  const calculationContext = buildExactCalculationContext(resolvedInput);
 
   let consciousChartData: Record<string, number> | undefined;
   let designChartData: Record<string, number> | undefined;
@@ -286,7 +282,7 @@ export async function buildUserStaticProfile(
     birthTime,
     input.latitude,
     input.longitude,
-    input.timezoneOffset ?? 0
+    timezone.offsetHours
   );
 
   consciousChartData = {};
@@ -325,7 +321,7 @@ export async function buildUserStaticProfile(
     birthTime,
     latitude: input.latitude,
     longitude: input.longitude,
-    timezone: input.timezoneId,
+    timezone: timezone.tzId,
     conscious: consciousChartData,
     design: designChartData,
     sun: consciousChartData?.Sun,
@@ -340,12 +336,13 @@ export async function buildUserStaticProfile(
     birthCountry: input.birthCountry,
     latitude: input.latitude,
     longitude: input.longitude,
-    timezoneId: input.timezoneId,
-    timezoneOffset: input.timezoneOffset,
+    timezoneId: timezone.tzId,
+    timezoneOffset: timezone.offsetHours,
     calculationContext,
     primeStack: reading.primeStack,
     ninecenters: reading.ninecenters,
     fractalRole: reading.fractalRole,
+    resonanceRole: reading.resonanceRole,
     authorityNode: reading.authorityNode,
     vrcType: reading.vrcType,
     vrcAuthority: reading.vrcAuthority,
@@ -428,7 +425,7 @@ export function summarizeStoredStaticProfile(profile: {
       .filter(channel => channel?.active && channel.gateA && channel.gateB)
       .map(
         channel =>
-          `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${channel.centerA ?? "?"} ↔ ${channel.centerB ?? "?"}`
+          `  - Codon ${channel.gateA}-Codon ${channel.gateB}: ${formatLinkCenters(channel.centerA ?? "?", channel.centerB ?? "?")}`
       )
       .join("\n") || "None";
   const legacyLinks = profile.legacyCircuitLinks ?? profile.circuitLinks;

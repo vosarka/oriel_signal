@@ -304,10 +304,19 @@ export default function Profile() {
                   rows={[
                     {
                       label: "Resonance Role",
-                      value:
-                        summary?.identity.resonanceRole ?? (
-                          <EmptyValue>Awaiting role</EmptyValue>
-                        ),
+                      value: (() => {
+                        const r = summary?.identity?.resonanceRole;
+                        const sec = summary?.identity?.secondaryRole;
+                        const conf = summary?.identity?.roleConfidence;
+                        if (!r || r === "Awaiting role") {
+                          return <EmptyValue>Awaiting role</EmptyValue>;
+                        }
+                        const extra = [
+                          sec ? ` / ${sec}` : "",
+                          typeof conf === "number" && conf > 0 ? ` · ${conf}%` : "",
+                        ].join("");
+                        return `${r}${extra}`;
+                      })(),
                     },
                     {
                       label: "Fractal Role",

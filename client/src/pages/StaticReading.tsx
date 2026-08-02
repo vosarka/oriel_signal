@@ -1,4 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { MY_WHEEL_QUERY_KEY } from "@shared/codon-wheel";
+import { useQueryClient } from "@tanstack/react-query";
 import { getLoginUrl } from "@/const";
 import CodonGlyph from "@/components/CodonGlyph";
 import Layout from "@/components/Layout";
@@ -994,6 +996,7 @@ export function StaticSignaturePanel({
   embedded = false,
 }: StaticSignaturePanelProps = {}) {
   const { user, isAuthenticated, loading } = useAuth();
+  const queryClient = useQueryClient();
   const [signatureTab, setSignatureTab] =
     useState<SignatureTab>(readSignatureTab);
   const [selectedCodon, setSelectedCodon] = useState<number | null>(null);
@@ -1032,7 +1035,10 @@ export function StaticSignaturePanel({
         setRecomputeSuccess(null);
       },
       onSuccess: async result => {
-        await staticProfileQuery.refetch();
+        await Promise.all([
+          staticProfileQuery.refetch(),
+          queryClient.invalidateQueries({ queryKey: MY_WHEEL_QUERY_KEY }),
+        ]);
         if (result?.calculationStatus === "exact") {
           setRecomputeSuccess("Static profile recalculated and saved.");
         } else {

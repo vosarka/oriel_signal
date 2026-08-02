@@ -84,7 +84,7 @@ Every generated static signature reading must be exportable as a standardized JS
     {
       "planet": "Sun",
       "layer": "Conscious",
-      "longitude": 280.44,
+      "longitude": 280.55,
       "codon_id": "RC38",
       "facet": "Transpersonal",
       "center": "ROOT"

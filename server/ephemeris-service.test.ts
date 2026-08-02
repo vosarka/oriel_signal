@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import {
+  birthLocalDateTimeToUtc,
   calculateBirthChart,
   calculateBothCharts,
   getPlanetPosition,
@@ -30,6 +31,33 @@ const mockLongitudes: Record<number, number> = {
   9: 285,
   11: 90,
 };
+
+describe("birthLocalDateTimeToUtc", () => {
+  it("converts the same local birth moment identically in every server timezone", () => {
+    const originalTimezone = process.env.TZ;
+
+    try {
+      process.env.TZ = "UTC";
+      const utcHostResult = birthLocalDateTimeToUtc(
+        new Date("1985-01-15T00:00:00.000Z"),
+        "14:30",
+        2
+      );
+
+      process.env.TZ = "Pacific/Honolulu";
+      const honoluluHostResult = birthLocalDateTimeToUtc(
+        new Date("1985-01-15T00:00:00.000Z"),
+        "14:30",
+        2
+      );
+
+      expect(utcHostResult.toISOString()).toBe("1985-01-15T12:30:00.000Z");
+      expect(honoluluHostResult.toISOString()).toBe("1985-01-15T12:30:00.000Z");
+    } finally {
+      process.env.TZ = originalTimezone;
+    }
+  });
+});
 
 function mockResult(longitude: number): MockSwissResult {
   return {
@@ -152,9 +180,9 @@ describe("Ephemeris Service", () => {
       const designSun = design.planets["Sun"].longitude;
       const solarArc = (((consciousSun - designSun) % 360) + 360) % 360;
 
-      expect(consciousSun).toBeCloseTo(280.46, 1);
+      expect(consciousSun).toBeCloseTo(280.55, 2);
       expect(longitudeToCodonFacet(consciousSun).codon).toBe(38);
-      expect(designSun).toBeCloseTo(192.46, 1);
+      expect(designSun).toBeCloseTo(192.55, 2);
       expect(longitudeToCodonFacet(designSun).codon).toBe(57);
       expect(solarArc).toBeCloseTo(88, 3);
       expect(Object.keys(conscious.planets)).toHaveLength(13);

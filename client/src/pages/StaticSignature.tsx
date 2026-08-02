@@ -79,7 +79,7 @@ export default function StaticSignature() {
                   Generate Static Signature Reading
                 </SignalButton>
                 <SignalButton
-                  href="/founder-signature-blueprint"
+                  href="/tetradic-signature"
                   variant="secondary"
                 >
                   Founder-Curated Bio-Signature

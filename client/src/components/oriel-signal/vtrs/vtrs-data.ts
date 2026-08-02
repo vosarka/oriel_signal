@@ -1,4 +1,4 @@
-// VTRS v2.0 client-side canon data — 8 Tetradic Centers + 32 Resonance Links.
+// VTRS v2.1 client-side canon data — 8 Tetradic Centers + 32 Resonance Links.
 // Source of truth for codon numbers: server/vrc-mandala.ts (CODON_CENTER_MAP, VRC_CHANNELS).
 // Source of truth for names/phases/profiles: Consciousness Lattice Unified Specification v2
 // (wiki/sources/source-consciousness-lattice-v2.md, Parts IV–VII).

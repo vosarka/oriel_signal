@@ -1,0 +1,11 @@
+.grainient-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Thin SLI gradient line styling for codon pages */
+.codons-sli-line {
+  background: transparent;
+}

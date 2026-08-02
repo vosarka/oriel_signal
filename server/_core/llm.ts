@@ -246,7 +246,7 @@ const resolveGeminiUrl = () =>
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-2.5-flash";
+  ENV.llmModel || ENV.geminiModel || "gemini-3.6-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
@@ -269,6 +269,10 @@ const isLocalUrl = (url: string) =>
 
 function elapsedMs(startedAt: number) {
   return Date.now() - startedAt;
+}
+
+function usesGeminiThreeSamplingRules(model: string) {
+  return /^gemini-3(?:[.-]|$)/i.test(model);
 }
 
 function redactSecrets(text: string) {
@@ -409,6 +413,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       headers.authorization = `Bearer ${provider.key}`;
     }
 
+    const requestPayload: Record<string, unknown> = {
+      ...basePayload,
+      model: provider.model,
+    };
+    if (usesGeminiThreeSamplingRules(provider.model)) {
+      delete requestPayload.temperature;
+    }
+
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const timeoutPromise = new Promise<Response>((_, reject) => {
@@ -426,10 +438,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       method: "POST",
       headers,
       signal: controller.signal,
-      body: JSON.stringify({
-        ...basePayload,
-        model: provider.model,
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
     const response = await Promise.race([

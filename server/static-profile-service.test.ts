@@ -141,6 +141,35 @@ describe("buildUserStaticProfile", () => {
     ).toHaveLength(26);
   });
 
+  it("derives the historical birth offset server-side instead of trusting the client", async () => {
+    mocks.calculateBothCharts.mockResolvedValueOnce({
+      conscious: chartWith(completePlanets, 1),
+      design: chartWith(completePlanets, 2),
+    });
+
+    const profile = await buildUserStaticProfile("1", {
+      birthDate: "2000-07-01",
+      birthTime: "12:00",
+      birthCity: "New York",
+      birthCountry: "US",
+      latitude: 40.7128,
+      longitude: -74.006,
+      timezoneId: "America/New_York",
+      timezoneOffset: 9,
+    });
+
+    expect(mocks.calculateBothCharts).toHaveBeenCalledWith(
+      expect.any(Date),
+      "12:00",
+      40.7128,
+      -74.006,
+      -4
+    );
+    expect(profile.timezoneId).toBe("America/New_York");
+    expect(profile.timezoneOffset).toBe(-4);
+    expect(profile.calculationContext.timezoneOffsetHours).toBe(-4);
+  });
+
   it("summarizes real active resonance links separately from legacy position links", () => {
     const summary = summarizeStoredStaticProfile({
       birthDate: "1985-03-15",
@@ -264,6 +293,22 @@ describe("buildUserStaticProfile", () => {
     expect(input.timezoneOffset).toEqual(expect.any(Number));
     expect(input.timezoneId).toEqual(expect.any(String));
     expect(input.birthTime).toBe("14:30");
+  });
+
+  it("repairs a stale stored offset when preparing an individual recompute", () => {
+    const input = resolveStoredNatalInputForRecompute({
+      birthDate: "1985-01-15",
+      birthTime: "14:30",
+      birthCity: "Bucharest",
+      birthCountry: "RO",
+      latitude: 44.4268,
+      longitude: 26.1025,
+      timezoneId: "Europe/Bucharest",
+      timezoneOffset: 3,
+    });
+
+    expect(input.timezoneId).toBe("Europe/Bucharest");
+    expect(input.timezoneOffset).toBe(2);
   });
 
   it("refuses recompute when stored birth time is missing", () => {

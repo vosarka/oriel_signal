@@ -108,8 +108,11 @@ describe("buildProfileConsoleSummary", () => {
     expect(summary.identity.primeCodonName).toBe("Returning");
     expect(summary.identity.primeCodon).toBe(24);
     expect(summary.identity.primeCenter).toBe("Return");
-    // resonanceRole is now derived (string) or graceful fallback
-    expect(summary.identity.resonanceRole === null || typeof summary.identity.resonanceRole === "string").toBe(true);
+    // Derived from the provided primeStack (codon 24 → Sovereign tetrad)
+    expect(summary.identity.resonanceRole).toBe("Sovereign");
+    expect(summary.identity.secondaryRole).toBeNull();
+    expect(typeof summary.identity.roleConfidence).toBe("number");
+    expect(summary.identity.roleConfidence).toBeGreaterThan(0);
     expect(summary.identity.birthCoordinate).toBe(
       "1990-01-02 · 03:04 · Bucharest, Romania"
     );

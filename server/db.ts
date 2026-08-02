@@ -53,7 +53,10 @@ import {
   parseLatticeFields,
   serializeLatticeColumns,
 } from "./canonical-lattice-persistence";
-import type { SignatureOrderStatus } from "./signature-letter-system";
+import {
+  TETRADIC_FOUNDER_EDITION_PRODUCT,
+  type SignatureOrderStatus,
+} from "./signature-letter-system";
 import type { ProfileConsoleActivity } from "./profile-console-summary";
 
 /** Safe JSON parse — returns fallback on invalid/missing JSON instead of crashing. */
@@ -94,10 +97,7 @@ function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
 
 function isMissingTableError(error: unknown, tableName: string) {
   if (
-    hasMigrationErrorFragment(error, [
-      "ER_BAD_FIELD_ERROR",
-      "Unknown column",
-    ])
+    hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])
   ) {
     return false;
   }
@@ -359,7 +359,14 @@ export async function runMigrations() {
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`activations\` text NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added userStaticProfiles.activations column",
+      successMessage:
+        "[Migrations] Added userStaticProfiles.activations column",
+    },
+    {
+      sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`resonanceRole\` varchar(128) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage:
+        "[Migrations] Added userStaticProfiles.resonanceRole column",
     },
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`channelStatuses\` text NULL`,
@@ -382,7 +389,8 @@ export async function runMigrations() {
     {
       sql: `ALTER TABLE \`userStaticProfiles\` ADD COLUMN \`specVersion\` varchar(32) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added userStaticProfiles.specVersion column",
+      successMessage:
+        "[Migrations] Added userStaticProfiles.specVersion column",
     },
     {
       sql: `ALTER TABLE \`userStaticProfiles\` MODIFY COLUMN \`specVersion\` varchar(128) NULL`,
@@ -1408,7 +1416,10 @@ export async function getProfileConsoleActivity(
         .select({ total: count() })
         .from(orielMemories)
         .where(
-          and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
+          and(
+            eq(orielMemories.userId, userId),
+            eq(orielMemories.isActive, true)
+          )
         ),
       db
         .select({ total: count() })
@@ -3098,6 +3109,7 @@ type UserStaticProfilePayload = {
   primeStack?: unknown;
   ninecenters?: unknown;
   fractalRole?: string;
+  resonanceRole?: string;
   authorityNode?: string;
   vrcType?: string;
   vrcAuthority?: string;
@@ -3148,6 +3160,7 @@ export async function upsertUserStaticProfile(
         ? JSON.stringify(profile.ninecenters)
         : null,
       fractalRole: profile.fractalRole ?? null,
+      resonanceRole: profile.resonanceRole ?? null,
       authorityNode: profile.authorityNode ?? null,
       vrcType: profile.vrcType ?? null,
       vrcAuthority: profile.vrcAuthority ?? null,
@@ -3196,7 +3209,9 @@ export async function upsertUserStaticProfile(
       );
     }
 
-    if (hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])) {
+    if (
+      hasMigrationErrorFragment(error, ["ER_BAD_FIELD_ERROR", "Unknown column"])
+    ) {
       console.warn(
         "[Database] userStaticProfiles schema is out of date. Apply migrations before saving natal profiles."
       );
@@ -3243,6 +3258,26 @@ export async function getUserStaticProfile(userId: number) {
     console.error("[Database] Failed to get user static profile:", error);
     return null;
   }
+}
+
+/**
+ * Wheel boundary reader. Unlike the broad profile helper above, infrastructure
+ * failures must reach the route so the client can render its retry state
+ * instead of misreporting a database failure as "no calculation".
+ */
+export async function getUserStaticProfileForWheel(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db
+    .select()
+    .from(userStaticProfiles)
+    .where(eq(userStaticProfiles.userId, userId))
+    .limit(1);
+
+  return result[0] ? parseUserStaticProfileRow(result[0]) : null;
 }
 
 export async function hasUserStaticProfile(userId: number): Promise<boolean> {
@@ -3338,6 +3373,310 @@ export async function createSignatureOrder(data: InsertSignatureOrder) {
     .orderBy(desc(signatureOrders.createdAt), desc(signatureOrders.id))
     .limit(1);
   return inserted[0];
+}
+
+export type CreateTetradicFounderEditionCheckpointInput = {
+  userId: number;
+  name: string;
+  email: string;
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+  birthCountry: string;
+  questionOne: string;
+  questionTwo: string;
+  consent: true;
+};
+
+export async function createTetradicFounderEditionCheckpoint(
+  input: CreateTetradicFounderEditionCheckpointInput
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const insertedIds = await tx
+      .insert(signatureOrders)
+      .values({
+        userId: input.userId,
+        productType: TETRADIC_FOUNDER_EDITION_PRODUCT.productType,
+        priceEur: TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur,
+        currency: TETRADIC_FOUNDER_EDITION_PRODUCT.currency,
+        paymentProvider: "paypal",
+        status: "pending_payment",
+      })
+      .$returningId();
+    const orderId = insertedIds[0]?.id;
+    if (!orderId) {
+      throw new Error("Founder Edition order insert did not return an ID.");
+    }
+
+    const consentAcceptedAt = new Date();
+    await tx.insert(signatureIntakes).values({
+      orderId,
+      userId: input.userId,
+      name: input.name,
+      email: input.email,
+      birthDate: input.birthDate,
+      birthTime: input.birthTime,
+      birthPlace: input.birthPlace,
+      birthCountry: input.birthCountry,
+      timezone: "pending_resolution",
+      focusQuestion: input.questionOne,
+      questionOne: input.questionOne,
+      questionTwo: input.questionTwo,
+      preferredTone: "balanced",
+      avoidAssumptions: null,
+      consentAccepted: input.consent,
+      consentAcceptedAt,
+      locationResolutionStatus: "unresolved",
+    });
+
+    const orders = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, orderId))
+      .limit(1);
+    const intakes = await tx
+      .select()
+      .from(signatureIntakes)
+      .where(eq(signatureIntakes.orderId, orderId))
+      .limit(1);
+    if (!orders[0] || !intakes[0]) {
+      throw new Error("Founder Edition checkpoint was not fully persisted.");
+    }
+
+    return { order: orders[0], intake: intakes[0] };
+  });
+}
+
+export async function attachTetradicFounderEditionPayPalOrder(input: {
+  orderId: number;
+  userId: number;
+  paypalOrderId: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId)
+        )
+      )
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.paymentProvider !== "paypal" ||
+      order.status !== "pending_payment"
+    ) {
+      throw new Error("Founder Edition order is not awaiting PayPal payment.");
+    }
+    if (order.paypalOrderId && order.paypalOrderId !== input.paypalOrderId) {
+      throw new Error("Founder Edition order already has a PayPal order.");
+    }
+
+    if (!order.paypalOrderId) {
+      await tx
+        .update(signatureOrders)
+        .set({ paypalOrderId: input.paypalOrderId })
+        .where(
+          and(
+            eq(signatureOrders.id, input.orderId),
+            eq(signatureOrders.userId, input.userId),
+            eq(signatureOrders.status, "pending_payment"),
+            isNull(signatureOrders.paypalOrderId)
+          )
+        );
+    }
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (updated[0]?.paypalOrderId !== input.paypalOrderId) {
+      throw new Error("PayPal order attachment was not persisted.");
+    }
+    return updated[0];
+  });
+}
+
+export async function getSignatureOrderByPaypalOrderId(paypalOrderId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(signatureOrders)
+    .where(eq(signatureOrders.paypalOrderId, paypalOrderId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+function addUtcCalendarDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+export async function recordTetradicFounderEditionPayPalCapture(input: {
+  orderId: number;
+  userId: number;
+  paypalOrderId: string;
+  paypalCaptureId: string;
+  paidAt: Date;
+  currency: string;
+  amount: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (!(input.paidAt instanceof Date) || Number.isNaN(input.paidAt.getTime())) {
+    throw new Error("Founder Edition PayPal capture time is invalid.");
+  }
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId),
+          eq(signatureOrders.paypalOrderId, input.paypalOrderId)
+        )
+      )
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      order.paymentProvider !== "paypal"
+    ) {
+      throw new Error("Founder Edition PayPal order was not found.");
+    }
+    if (
+      order.currency.toUpperCase() !== input.currency.toUpperCase() ||
+      input.currency.toUpperCase() !== "EUR" ||
+      Number(order.priceEur).toFixed(2) !== input.amount ||
+      input.amount !== TETRADIC_FOUNDER_EDITION_PRODUCT.priceEur.toFixed(2)
+    ) {
+      throw new Error(
+        "Founder Edition PayPal amount does not match the order."
+      );
+    }
+    if (
+      order.paypalCaptureId &&
+      order.paypalCaptureId !== input.paypalCaptureId
+    ) {
+      throw new Error("Founder Edition order already has another capture.");
+    }
+
+    const completedStatuses: SignatureOrderStatus[] = [
+      "intake_received",
+      "in_curation",
+      "delivered",
+    ];
+    if (
+      order.paypalCaptureId === input.paypalCaptureId &&
+      completedStatuses.includes(order.status)
+    ) {
+      return order;
+    }
+    if (order.status !== "pending_payment") {
+      throw new Error("Founder Edition order is not awaiting payment.");
+    }
+
+    const paidAt = new Date(input.paidAt);
+    const deliveryDueAt = addUtcCalendarDays(
+      paidAt,
+      TETRADIC_FOUNDER_EDITION_PRODUCT.deliveryCalendarDays
+    );
+    await tx
+      .update(signatureOrders)
+      .set({
+        paypalCaptureId: input.paypalCaptureId,
+        status: "intake_received",
+        paidAt,
+        deliveryDueAt,
+      })
+      .where(
+        and(
+          eq(signatureOrders.id, input.orderId),
+          eq(signatureOrders.userId, input.userId),
+          eq(signatureOrders.paypalOrderId, input.paypalOrderId),
+          eq(signatureOrders.status, "pending_payment")
+        )
+      );
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (
+      updated[0]?.paypalCaptureId !== input.paypalCaptureId ||
+      !completedStatuses.includes(updated[0].status)
+    ) {
+      throw new Error("Founder Edition capture was not persisted.");
+    }
+    return updated[0];
+  });
+}
+
+export async function transitionTetradicFounderEditionStatus(input: {
+  orderId: number;
+  fromStatuses: SignatureOrderStatus[];
+  status: "in_curation" | "delivered";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async tx => {
+    const rows = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    const order = rows[0];
+    if (
+      !order ||
+      order.productType !== TETRADIC_FOUNDER_EDITION_PRODUCT.productType ||
+      !input.fromStatuses.includes(order.status)
+    ) {
+      throw new Error("Founder Edition status transition is not allowed.");
+    }
+
+    if (order.status !== input.status) {
+      await tx
+        .update(signatureOrders)
+        .set({
+          status: input.status,
+          ...(input.status === "delivered" ? { deliveredAt: new Date() } : {}),
+        })
+        .where(
+          and(
+            eq(signatureOrders.id, input.orderId),
+            inArray(signatureOrders.status, input.fromStatuses)
+          )
+        );
+    }
+
+    const updated = await tx
+      .select()
+      .from(signatureOrders)
+      .where(eq(signatureOrders.id, input.orderId))
+      .limit(1);
+    if (updated[0]?.status !== input.status) {
+      throw new Error("Founder Edition status transition was not persisted.");
+    }
+    return updated[0];
+  });
 }
 
 export async function setSignatureOrderCheckoutSession(input: {

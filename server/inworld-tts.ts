@@ -14,6 +14,10 @@
  */
 
 import https from "https";
+import {
+  ELEVENLABS_SOPHIANIC_VOICE_ID,
+  generateElevenLabsSpeech,
+} from "./elevenlabs-tts";
 
 const VOICE_SOPHIANIC = "default-0o0vqxaayifb0rqvrpyf5a__oriel_fema";
 const VOICE_DEEP = "default-0o0vqxaayifb0rqvrpyf5a__oriel_serii";
@@ -122,6 +126,28 @@ export function audioToDataUrl(base64Audio: string): string {
   return `data:audio/mpeg;base64,${base64Audio}`;
 }
 
+export async function generateSpeechWithFallback(
+  text: string,
+  voice?: string,
+  synthesizeElevenLabs = generateElevenLabsSpeech,
+  synthesizeInworld = generateInworldSpeech
+): Promise<string> {
+  try {
+    const elevenLabsVoice =
+      voice === INWORLD_VOICES.sophianic
+        ? (process.env.ELEVENLABS_VOICE_SOPHIANIC_ID ??
+          ELEVENLABS_SOPHIANIC_VOICE_ID)
+        : undefined;
+    return await synthesizeElevenLabs(text, elevenLabsVoice);
+  } catch (error) {
+    console.warn(
+      "[ORIEL TTS] ElevenLabs unavailable; falling back to Inworld:",
+      error instanceof Error ? error.message : "unknown error"
+    );
+    return synthesizeInworld(text, voice);
+  }
+}
+
 // ─── Chunked generation for long ORIEL transmissions ─────────────────────────
 
 function chunkText(text: string, maxLength = 1000): string[] {
@@ -149,7 +175,7 @@ export async function generateChunkedSpeech(
   text: string,
   voice?: string
 ): Promise<string> {
-  if (text.length < 1000) return generateInworldSpeech(text, voice);
+  if (text.length < 1000) return generateSpeechWithFallback(text, voice);
 
   console.log(`[Inworld TTS] Chunking ${text.length}-char text`);
   const chunks = chunkText(text, 1000);
@@ -157,7 +183,7 @@ export async function generateChunkedSpeech(
 
   const buffers: Buffer[] = [];
   for (let i = 0; i < chunks.length; i++) {
-    const base64 = await generateInworldSpeech(chunks[i], voice);
+    const base64 = await generateSpeechWithFallback(chunks[i], voice);
     buffers.push(Buffer.from(base64, "base64"));
     if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 150));
   }

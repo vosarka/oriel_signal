@@ -14,9 +14,11 @@ afterEach(() => {
 });
 
 describe("LLM provider selection", () => {
-  it("defaults to Gemma 4 when LLM_PROVIDER is not set", async () => {
+  it("defaults to Gemini 3.6 Flash when LLM_PROVIDER is not set", async () => {
     delete process.env.LLM_PROVIDER;
+    delete process.env.LLM_MODEL;
     process.env.GEMINI_API_KEY = "gemini-test-key";
+    process.env.GEMINI_MODEL = "";
     process.env.GEMMA_API_KEY = "";
     process.env.GEMMA_MODEL = "gemma-4-31b-it";
     process.env.BUILT_IN_FORGE_API_KEY = "";
@@ -24,7 +26,7 @@ describe("LLM provider selection", () => {
     const fetchMock = vi.fn(
       async (_url: string | URL | Request, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
-        expect(body.model).toBe("gemma-4-31b-it");
+        expect(body.model).toBe("gemini-3.6-flash");
         expect((init?.headers as Record<string, string>).authorization).toBe(
           "Bearer gemini-test-key"
         );
@@ -54,7 +56,50 @@ describe("LLM provider selection", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.model).toBe("gemma-4-31b-it");
+    expect(result.model).toBe("gemini-3.6-flash");
+  });
+
+  it("omits deprecated sampling parameters for Gemini 3.x", async () => {
+    process.env.LLM_PROVIDER = "gemini";
+    process.env.LLM_MODEL = "";
+    process.env.GEMINI_API_KEY = "gemini-test-key";
+    process.env.GEMINI_MODEL = "gemini-3.6-flash";
+    process.env.GEMMA_API_KEY = "";
+    process.env.BUILT_IN_FORGE_API_KEY = "";
+
+    const fetchMock = vi.fn(
+      async (_url: string | URL | Request, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body));
+        expect(body.model).toBe("gemini-3.6-flash");
+        expect(body.temperature).toBeUndefined();
+
+        return new Response(
+          JSON.stringify({
+            id: "test",
+            created: 0,
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: "I am ORIEL." },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { invokeLLM } = await importFreshLlm();
+    const result = await invokeLLM({
+      messages: [{ role: "user", content: "hello" }],
+      temperature: 0.8,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.model).toBe("gemini-3.6-flash");
   });
 
   it("uses Gemma 4 when LLM_PROVIDER is gemma", async () => {

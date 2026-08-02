@@ -3,9 +3,32 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin()];
+const r3fSceneFiles = [
+  "/features/tetradic-signature/TetradicBookScene.tsx",
+  "/features/tetradic-signature/TetradicChapterScenes.tsx",
+  "/features/tetradic-signature/TetradicSpread.tsx",
+];
+
+function jsxLocExceptR3fScenes(): Plugin {
+  const plugin = jsxLocPlugin();
+  const originalTransform = plugin.transform;
+
+  return {
+    ...plugin,
+    async transform(code, id, options) {
+      if (r3fSceneFiles.some(file => id.includes(file))) return null;
+
+      if (typeof originalTransform === "function") {
+        return originalTransform.call(this, code, id, options);
+      }
+      return originalTransform?.handler.call(this, code, id, options);
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocExceptR3fScenes()];
 
 export default defineConfig({
   plugins,

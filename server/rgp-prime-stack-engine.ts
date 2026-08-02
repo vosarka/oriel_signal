@@ -543,8 +543,10 @@ export function calculateAuthorityNode(primeStack: PrimeStackMap): {
 }
 
 // ─── Resonance Role (16-role identity layer per canon) ─────────────────────────
-// Implements MVP calculation from wiki/concepts/concept-resonance-role-system.md
-// Groups codons into 16 tetrads; highest aggregate weight wins the Primary role.
+// Implements calculation from wiki/concepts/concept-resonance-role-system.md
+// 64 codons grouped into 16 tetrads (4 codons each). Primary role = dominant
+// activation cluster using planetary weights from the 26 activations (preferred).
+// Secondary from the next strongest cluster. Returns real role when any data present.
 
 const RESONANCE_ROLE_NAMES: readonly string[] = [
   "Originator", "Resonator", "Articulator", "Cultivator",
@@ -558,40 +560,58 @@ function codonToRoleIndex(codon: number): number {
   return Math.ceil(codon / 4) - 1;
 }
 
+/**
+ * Calculate Resonance Role (Primary + optional Secondary) from Static Signature data.
+ * Prefers the 26 planetary activations (with their weights) when present.
+ * Accepts:
+ *  - full static profile / PrimeStackMap objects (top-level .activations or .primeStack or .positions)
+ *  - coreCodonEngine or nested lattice
+ *  - plain arrays of activations, prime positions, or codon numbers
+ * "Awaiting role" only when zero usable codon entries.
+ */
 export function calculateResonanceRole(
-  input: PlanetaryActivation[] | PrimeStackCodon[] | number[] | any
+  input: any
 ): { primaryRole: string; secondaryRole?: string; confidence: number } {
   const entries: Array<{ codon: number; weight: number }> = [];
 
-  // Support rich engine output or static profile shape
-  let toProcess: any = input;
+  if (!input) {
+    return { primaryRole: "Awaiting role", confidence: 0 };
+  }
 
-  if (input && typeof input === 'object' && !Array.isArray(input)) {
-    if (Array.isArray(input.activations) && input.activations.length > 0) {
-      toProcess = input.activations;
-    } else if (Array.isArray(input.primeStack) && input.primeStack.length > 0) {
-      toProcess = input.primeStack;
-    } else if (Array.isArray(input.positions) && input.positions.length > 0) {
-      toProcess = input.positions;
+  let candidates: any[] = [];
+
+  // 1. Prefer 26 activations (planetary weights) per canon
+  const directActivations =
+    (Array.isArray(input.activations) && input.activations.length > 0 && input.activations) ||
+    (input.coreCodonEngine && Array.isArray(input.coreCodonEngine.activations) && input.coreCodonEngine.activations) ||
+    (input.lattice && Array.isArray(input.lattice.activations) && input.lattice.activations);
+
+  if (directActivations) {
+    candidates = directActivations;
+  } else if (Array.isArray(input.primeStack) && input.primeStack.length > 0) {
+    candidates = input.primeStack;
+  } else if (Array.isArray(input.positions) && input.positions.length > 0) {
+    candidates = input.positions;
+  } else if (Array.isArray(input)) {
+    candidates = input;
+  } else if (input.coreCodonEngine) {
+    const cce = input.coreCodonEngine;
+    if (Array.isArray(cce.dominant) && cce.dominant.length) {
+      candidates = [...cce.dominant, ...(Array.isArray(cce.supporting) ? cce.supporting : [])];
     }
   }
 
-  if (Array.isArray(toProcess) && toProcess.length > 0) {
-    const first: any = toProcess[0];
-    if (typeof first === "number") {
-      (toProcess as number[]).forEach((c) => entries.push({ codon: c, weight: 1 }));
-    } else if (first && typeof first.codonId === "number") {
-      (toProcess as any[]).forEach((a) => {
-        const c = a.codonId ?? a.codon;
-        const w = a.weight ?? a.weightedFrequency ?? 1;
-        if (c) entries.push({ codon: Number(c), weight: Number(w) });
-      });
-    } else if (first && (typeof first.codon === "number" || typeof first.codonId === "number")) {
-      (toProcess as any[]).forEach((p) => {
-        const c = p.codon ?? p.codonId;
-        const w = p.weightedFrequency ?? p.weight ?? 1;
-        if (c) entries.push({ codon: Number(c), weight: Number(w) });
-      });
+  // Populate entries from candidates (supports activations {codonId, weight} and positions {codon, weightedFrequency})
+  for (const item of candidates) {
+    if (item == null) continue;
+    if (typeof item === "number") {
+      entries.push({ codon: item, weight: 1 });
+      continue;
+    }
+    const c = item.codonId ?? item.codon;
+    const w = item.weight ?? item.weightedFrequency ?? 1;
+    if (typeof c === "number" && c >= 1 && c <= 64) {
+      entries.push({ codon: c, weight: Number(w) || 1 });
     }
   }
 
@@ -603,13 +623,17 @@ export function calculateResonanceRole(
     if (i >= 0) weights[i] += weight;
   });
 
-  const ranked = weights.map((w, i) => ({ i, w })).sort((a, b) => b.w - a.w);
+  const ranked = weights
+    .map((w, i) => ({ i, w }))
+    .sort((a, b) => b.w - a.w);
+
   const primary = ranked[0];
   const total = weights.reduce((s, w) => s + w, 0) || 1;
-  const primaryRole = RESONANCE_ROLE_NAMES[primary.i] || "Awaiting role";
+  const primaryRole = RESONANCE_ROLE_NAMES[primary.i]!; // always defined for valid i
   const confidence = Math.round((primary.w / total) * 100);
 
-  const secondaryRole = (ranked[1] && ranked[1].w > 0) ? RESONANCE_ROLE_NAMES[ranked[1].i] : undefined;
+  const secondaryRole =
+    ranked[1] && ranked[1].w > 0 ? RESONANCE_ROLE_NAMES[ranked[1].i] : undefined;
 
   return { primaryRole, secondaryRole, confidence };
 }
