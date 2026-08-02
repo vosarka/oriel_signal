@@ -414,6 +414,9 @@ export function WheelSignatureControl({
           My Signature
         </button>
       </div>
+      {/* TEMPORARILY REMOVED: Canonical / Astronomical geometry toggle is buggy.
+          Restore this block when the astronomical geometry is fixed. See branch
+          feature/codon-wheel-astronomical.
       <button
         type="button"
         className={`cz-wheel-mode-option cz-wheel-geometry-toggle ${
@@ -430,6 +433,7 @@ export function WheelSignatureControl({
         <span className="cz-wheel-mode-node" aria-hidden="true" />
         Canonical / Astronomical
       </button>
+      */}
       {state === "loading" && (
         <span className="cz-wheel-status">
           Receiving your stored signature…
@@ -1447,7 +1451,7 @@ export function CodonWheel({
   });
   const [automaticBaseView, setAutomaticBaseView] = useState<BaseView>("field");
   const [automaticGeometry, setAutomaticGeometry] =
-    useState<WheelGeometry>("numeric");
+    useState<WheelGeometry>("astronomical");
   const [focusedCodonId, setFocusedCodonId] = useState<number | null>(null);
   const loadedCalculation = useRef<string | null>(null);
   const previousSelectedId = useRef(selectedId);

@@ -1147,7 +1147,6 @@ describe("two-layer codon wheel model", () => {
     expect(markup).toContain("disabled");
     expect(markup).toContain("Full Field");
     expect(markup).toContain("My Signature");
-    expect(markup).toContain("Canonical / Astronomical");
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain("Calculate your Receiver record");
     expect(markup.match(/data-cell-kind="neutral"/g)?.length).toBe(512);

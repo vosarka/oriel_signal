@@ -15,7 +15,7 @@ export interface CenterGridProps {
 export function CenterGrid({ activeCenter, onCenterSelect }: CenterGridProps) {
   return (
     <div className="cz-center-sidebar">
-      <p className="cz-legend-header">THE 8 CENTERS</p>
+      <p className="cz-legend-header">THE 8 CENTERS · 8 CODONS EACH · FUNCTIONAL LENS</p>
       <div className="cz-center-sidebar-list">
         {CENTERS.map((center) => {
           const isActive = activeCenter === center.name;

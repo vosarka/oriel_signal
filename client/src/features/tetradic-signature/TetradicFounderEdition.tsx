@@ -264,6 +264,52 @@ export function TetradicFounderEdition({
       </header>
 
       <section
+        className="tfe__opus"
+        aria-labelledby="tfe-opus-title"
+        data-tfe-register
+      >
+        <div className="tfe__opus-intro" data-tfe-intro-reveal>
+          <p className="tfe__eyebrow">The object itself</p>
+          <h3 id="tfe-opus-title">A book, set to your coordinates.</h3>
+          <p>
+            Forty-eight pages bound in one architecture. Two are shown here,
+            exactly as they print — the rest stay sealed until your reading is
+            calculated.
+          </p>
+        </div>
+
+        <figure className="tfe__book" data-tfe-intro-reveal>
+          <span className="tfe__book-lamp" aria-hidden="true" />
+          <div className="tfe__book-body" data-book-plate>
+            <div className="tfe__book-leaf tfe__book-leaf--verso">
+              <img
+                src="/assets/tetradic-signature/book-page-threshold.png"
+                alt="A page from the reading: “This book observes a structure. It does not prescribe an identity.”"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <span className="tfe__book-gutter" aria-hidden="true" />
+            <div className="tfe__book-leaf tfe__book-leaf--recto">
+              <img
+                src="/assets/tetradic-signature/book-page-principle.png"
+                alt="A page from the reading: “Everything in this book turns on one relationship…”"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
+          <figcaption className="tfe__book-legend">
+            <span>Page 04 · Before Interpretation</span>
+            <span className="tfe__book-legend-seal">
+              + 46 pages sealed until calculation
+            </span>
+            <span>Page 08 · The Governing Principle</span>
+          </figcaption>
+        </figure>
+      </section>
+
+      <section
         className="tfe__tetrads"
         aria-labelledby="tfe-tetrads-title"
         aria-describedby="tfe-tetrads-description"
@@ -292,6 +338,14 @@ export function TetradicFounderEdition({
               role="listitem"
               data-tfe-tetrad-card
             >
+              <img
+                className="tfe__tetrad-glyph"
+                src={`/assets/tetrads/${String(tetrad.number).padStart(2, "0")}.png`}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+              />
               <div className="tfe__tetrad-card-top">
                 <span>Tetrad</span>
                 <strong>{tetrad.numberLabel}</strong>

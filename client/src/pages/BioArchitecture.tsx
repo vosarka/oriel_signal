@@ -61,8 +61,11 @@ export default function BioArchitecture() {
   const [selectedLayer, setSelectedLayer] = useState<Layer>("conscious");
   const [wheelViewPreference, setWheelViewPreference] =
     useState<BaseView | null>(null);
+  // The wheel always renders in the canonical astronomical Mandala Sequence
+  // (VRC_MANDALA) — codon slot 0 = RC51 at 0°, matching real ecliptic order.
+  // "numeric" (raw RC01→64) is never a valid rendering of real transits.
   const [wheelGeometry, setWheelGeometry] =
-    useState<WheelGeometry>("numeric");
+    useState<WheelGeometry>("astronomical");
   const [wheelSignatureContext, setWheelSignatureContext] =
     useState<WheelSignatureContext>({
       mode: "field",
@@ -1512,7 +1515,7 @@ export default function BioArchitecture() {
           <section className="bio-architecture-page__intro" aria-label="Introduction">
             <p className="bio-architecture-page__voice">
               {activeModule === null
-                ? "Sixty-four codons, sealed in sixteen Resonance Roles. Each role governs a tetrad of four codons; every codon contains four facets expressed through Conscious and Design layers. Turn the wheel; read the signal."
+                ? "Sixty-four codons resolve into eight Resonance Centers — eight codons to a center — the functional architecture that governs Type and Authority. Beneath runs their sequential index: sixteen Roles, four codons apiece. Every codon holds four facets across Conscious and Design layers. Turn the wheel; read the signal."
                 : "The wheel keeps turning while you inspect the machinery. Return to the terminal at any time."}
             </p>
           </section>
