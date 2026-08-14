@@ -93,10 +93,12 @@ export async function getDb(): Promise<DrizzleDb | null> {
 }
 
 function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
-  const message = String(
-    (error as { message?: string })?.message ?? error ?? ""
-  );
-  return fragments.some(fragment => message.includes(fragment));
+  const err = error as { message?: string; cause?: { message?: string } };
+  const message = [err?.message, err?.cause?.message]
+    .filter(Boolean)
+    .join(" ");
+  const searchable = message || String(error ?? "");
+  return fragments.some(fragment => searchable.includes(fragment));
 }
 
 function isMissingTableError(error: unknown, tableName: string) {
@@ -533,6 +535,65 @@ export async function runMigrations() {
         UNIQUE KEY \`uq_signature_followups_order\` (\`orderId\`)
       )`,
       ignorableFragments: ["already exists"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        MODIFY COLUMN \`productType\`
+          enum('glimpse', 'founding', 'tetradic_founder_edition') NOT NULL`,
+      successMessage:
+        "[Migrations] Widened signature_orders.productType enum for Tetradic Founder Edition",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paymentProvider\` enum('stripe', 'paypal') NOT NULL DEFAULT 'stripe'`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paymentProvider column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paypalOrderId column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paypalCaptureId column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.deliveryDueAt column",
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\`
+        ON \`signature_orders\` (\`paypalOrderId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_capture\`
+        ON \`signature_orders\` (\`paypalCaptureId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\`
+        ADD COLUMN \`questionOne\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_intakes.questionOne column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\`
+        ADD COLUMN \`questionTwo\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_intakes.questionTwo column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        MODIFY COLUMN \`priceEur\` decimal(10,2) NOT NULL`,
+      successMessage:
+        "[Migrations] Fixed signature_orders.priceEur precision (was int, truncating cents)",
     },
   ];
 

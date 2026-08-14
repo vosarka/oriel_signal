@@ -1695,3 +1695,14 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Repositioned all facets, activations, glyphs, center symbols, keyboard neighbours, print labels, and pointer hit areas through shared exact numeric/canonical geometry. GSAP animates the shortest circular route over 1.2 seconds while secondary and central marks fade and return; reduced-motion changes are instant.
 - Increased the exact selected-cell overlay so the clicked outer Conscious or inner Design facet is visibly brighter while remaining distinct from complete-codon and center-family highlights.
 - Verification: focused Codon Wheel and detail tests pass 38/38; production client and server builds pass. Real Chrome desktop/mobile checks confirm all four canonical cardinal codons, 512 codon-linked hit areas, upright travelling glyphs, in-flight center-control locking with focus preserved, preserved exact selection, rapid reversal without a positional snap, instant reduced motion, and no mobile body overflow. Repository-wide Vitest passes 787/789 tests, retaining two unrelated pre-existing assertion failures; type-check retains the unrelated pre-existing `server/routers.ts` `circuitLinks` mismatch. No Cosmichronica files were changed.
+
+## [2026-08-02] auto-evolve | Codon Wheel
+- Action: create [[codon-wheel]]
+- Type: concept
+- Reason: Introduces the Codon Wheel concept following the user's completion of the 64-codon circular geometry, defining its functional shift from linear blueprint to active lens interface.
+- Aliases: Roata Codonilor, Wheel of Codons, Sixty-Four Array
+
+## [2026-08-13] fix | PayPal payer-action approval redirect
+- Updated the Founder Edition PayPal Orders v2 adapter to prefer the `payer-action` HATEOAS link returned for `PAYER_ACTION_REQUIRED` wallet orders while retaining `approve` compatibility.
+- Added a regression test matching the current PayPal create-order response shape.
+- Verification: 34/34 focused PayPal tests pass. Repository-wide Vitest passes 787/790 tests; the three failures are unrelated existing page-style, profile-label, and public-terminology assertions.
