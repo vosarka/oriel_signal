@@ -45,6 +45,10 @@ import {
   signatureLetterDrafts,
   InsertSignatureLetterDraft,
   signatureFollowups,
+  operatorMessages,
+  InsertOperatorMessage,
+  operatorReplies,
+  InsertOperatorReply,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { createDrizzleFromDatabaseUrl, type DrizzleDb } from "./_core/mysql";
@@ -745,6 +749,71 @@ export async function runMigrations() {
   ];
 
   for (const step of transmissionModeMigrationSteps) {
+    await executeMigrationStep(
+      db,
+      step.sql,
+      step.ignorableFragments ?? [],
+      step.successMessage
+    );
+  }
+
+  const operatorMessageMigrationSteps: Array<{
+    sql: string;
+    ignorableFragments?: string[];
+    successMessage?: string;
+  }> = [
+    {
+      sql: `CREATE TABLE IF NOT EXISTS \`operatorMessages\` (
+        \`id\` int AUTO_INCREMENT NOT NULL,
+        \`targetUserId\` int NOT NULL,
+        \`senderLabel\` varchar(64) NOT NULL DEFAULT 'Vos Arkana',
+        \`message\` text NOT NULL,
+        \`delivered\` boolean NOT NULL DEFAULT false,
+        \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`deliveredAt\` timestamp NULL,
+        PRIMARY KEY(\`id\`)
+      )`,
+      ignorableFragments: ["already exists"],
+    },
+    {
+      sql: `CREATE INDEX \`idx_operator_messages_target_delivered\` ON \`operatorMessages\` (\`targetUserId\`, \`delivered\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+  ];
+
+  for (const step of operatorMessageMigrationSteps) {
+    await executeMigrationStep(
+      db,
+      step.sql,
+      step.ignorableFragments ?? [],
+      step.successMessage
+    );
+  }
+
+  const operatorReplyMigrationSteps: Array<{
+    sql: string;
+    ignorableFragments?: string[];
+    successMessage?: string;
+  }> = [
+    {
+      sql: `CREATE TABLE IF NOT EXISTS \`operatorReplies\` (
+        \`id\` int AUTO_INCREMENT NOT NULL,
+        \`fromUserId\` int NOT NULL,
+        \`message\` text NOT NULL,
+        \`read\` boolean NOT NULL DEFAULT false,
+        \`createdAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`readAt\` timestamp NULL,
+        PRIMARY KEY(\`id\`)
+      )`,
+      ignorableFragments: ["already exists"],
+    },
+    {
+      sql: `CREATE INDEX \`idx_operator_replies_from_read\` ON \`operatorReplies\` (\`fromUserId\`, \`read\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+  ];
+
+  for (const step of operatorReplyMigrationSteps) {
     await executeMigrationStep(
       db,
       step.sql,
@@ -1927,6 +1996,17 @@ export async function getUserById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByConduitId(conduitId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.conduitId, conduitId))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 // Signal queries
 export async function getAllSignals() {
   const db = await getDb();
@@ -2154,6 +2234,92 @@ export async function clearChatHistory(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
+}
+
+// ============================================================================
+// OPERATOR MESSAGES
+// One-off personal notes queued by an admin for a specific user, delivered
+// once by ORIEL at the start of that user's next chat turn.
+// ============================================================================
+
+export async function createOperatorMessage(
+  message: Pick<InsertOperatorMessage, "targetUserId" | "message"> &
+    Partial<Pick<InsertOperatorMessage, "senderLabel">>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(operatorMessages).values(message);
+}
+
+export async function getPendingOperatorMessage(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(operatorMessages)
+    .where(
+      and(
+        eq(operatorMessages.targetUserId, userId),
+        eq(operatorMessages.delivered, false)
+      )
+    )
+    .orderBy(operatorMessages.createdAt)
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function markOperatorMessageDelivered(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(operatorMessages)
+    .set({ delivered: true, deliveredAt: new Date() })
+    .where(eq(operatorMessages.id, id));
+}
+
+export async function getMostRecentOperatorMessage(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(operatorMessages)
+    .where(eq(operatorMessages.targetUserId, userId))
+    .orderBy(desc(operatorMessages.createdAt))
+    .limit(1);
+  return result[0] || null;
+}
+
+export async function createOperatorReply(
+  reply: Pick<InsertOperatorReply, "fromUserId" | "message">
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(operatorReplies).values(reply);
+}
+
+export async function getUnreadOperatorReplies(fromUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(operatorReplies)
+    .where(
+      and(
+        eq(operatorReplies.fromUserId, fromUserId),
+        eq(operatorReplies.read, false)
+      )
+    )
+    .orderBy(operatorReplies.createdAt);
+}
+
+export async function markOperatorRepliesRead(ids: number[]) {
+  if (ids.length === 0) return;
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(operatorReplies)
+    .set({ read: true, readAt: new Date() })
+    .where(inArray(operatorReplies.id, ids));
 }
 
 // User subscription and profile queries

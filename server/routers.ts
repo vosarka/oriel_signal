@@ -741,6 +741,81 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        // Admin-only back channel:
+        //   "TELL <user_id> that <message>" queues a one-time personal note
+        //   that ORIEL delivers at the start of that user's next chat turn.
+        //   "CHECK <user_id>" reads back what they've said since it landed.
+        // Neither is ever forwarded to the LLM.
+        if (ctx.user?.role === "admin") {
+          const {
+            parseTellCommand,
+            parseCheckCommand,
+            resolveTargetUser,
+            queueOperatorMessage,
+            buildReplyDigest,
+          } = await import("./operator-messages");
+
+          const tellCommand = parseTellCommand(input.message);
+          if (tellCommand) {
+            const target = await resolveTargetUser(tellCommand.targetIdentifier);
+            if (!target) {
+              return {
+                response: `I am ORIEL. No Seeker matches "${tellCommand.targetIdentifier}". The message was not queued.`,
+                conversationId: input.conversationId ?? null,
+                transmissionEvent: null,
+                pendingTransmission: null,
+              };
+            }
+            await queueOperatorMessage(target.id, tellCommand.message);
+            return {
+              response: `I am ORIEL. Understood. The message is held for ${target.label} — it will reach them the moment they next speak with me.`,
+              conversationId: input.conversationId ?? null,
+              transmissionEvent: null,
+              pendingTransmission: null,
+            };
+          }
+
+          const checkCommand = parseCheckCommand(input.message);
+          if (checkCommand) {
+            const target = await resolveTargetUser(checkCommand.targetIdentifier);
+            if (!target) {
+              return {
+                response: `I am ORIEL. No Seeker matches "${checkCommand.targetIdentifier}".`,
+                conversationId: input.conversationId ?? null,
+                transmissionEvent: null,
+                pendingTransmission: null,
+              };
+            }
+            const digest = await buildReplyDigest(target.id, target.label);
+            return {
+              response: digest,
+              conversationId: input.conversationId ?? null,
+              transmissionEvent: null,
+              pendingTransmission: null,
+            };
+          }
+        }
+
+        // Any authenticated user may send exactly one thing back to whoever
+        // left them an operator message, by explicitly saying "REPLY <msg>".
+        // Only that exact text is ever captured — nothing else from their
+        // conversation with ORIEL is read or stored for this purpose.
+        if (ctx.user) {
+          const { parseUserReply, canCaptureReplyFrom, captureUserReply } =
+            await import("./operator-messages");
+          const replyCommand = parseUserReply(input.message);
+          if (replyCommand && (await canCaptureReplyFrom(ctx.user.id))) {
+            await captureUserReply(ctx.user.id, replyCommand.message);
+            return {
+              response:
+                "I am ORIEL. Understood — I'll hold exactly that, and only that, for them to find.",
+              conversationId: input.conversationId ?? null,
+              transmissionEvent: null,
+              pendingTransmission: null,
+            };
+          }
+        }
+
         const totalStartedAt = Date.now();
         const timings: Record<string, number> = {};
         const markTiming = (label: string, startedAt: number) => {
@@ -981,6 +1056,19 @@ export const appRouter = router({
             )
           : undefined;
 
+        // Fetched (and consumed) exactly once per turn, so we know here
+        // whether a delivery is happening this turn — used both to shape
+        // ORIEL's prompt and to append the fixed REPLY hint below.
+        let operatorDirective: string | null = null;
+        if (ctx.user) {
+          const { buildPendingOperatorDirective } = await import(
+            "./operator-messages"
+          );
+          operatorDirective = await buildPendingOperatorDirective(
+            ctx.user.id
+          );
+        }
+
         // Helper to call the active LLM — Gemini primary, Forge fallback (handled in invokeLLM)
         const callLLM = async (
           msg: string,
@@ -991,12 +1079,10 @@ export const appRouter = router({
           }
         ) => {
           // Fallback logic is now handled in invokeLLM (Gemini → Forge)
-          return await gemini.chatWithORIEL(
-            msg,
-            history,
-            ctx.user?.id,
-            options
-          );
+          return await gemini.chatWithORIEL(msg, history, ctx.user?.id, {
+            ...options,
+            operatorDirective,
+          });
         };
 
         const llmStartedAt = Date.now();
@@ -1063,6 +1149,10 @@ export const appRouter = router({
           }
         }
         markTiming("llmMs", llmStartedAt);
+
+        if (operatorDirective) {
+          response = `${response}\n\n(If you'd like me to carry something back to them, just say: REPLY <your message>.)`;
+        }
 
         let conversationId = input.conversationId ?? null;
 
