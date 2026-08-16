@@ -23,6 +23,7 @@ type ChatImageAttachment = {
 type ChatWithOrielOptions = {
   temperature?: number;
   imageAttachments?: ChatImageAttachment[];
+  operatorDirective?: string | null;
 };
 
 function stripDataUrlPrefix(data: string) {
@@ -81,6 +82,7 @@ export async function chatWithORIEL(
       userId,
       userMessage,
       conversationHistory,
+      operatorDirective: options?.operatorDirective,
     });
 
     const messages = [

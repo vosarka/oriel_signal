@@ -21,6 +21,13 @@ export interface BuildOrielLayeredContextOptions {
   includeUMM?: boolean;
   includeFieldState?: boolean;
   includeWiki?: boolean;
+  /**
+   * Pre-fetched operator directive (see server/operator-messages.ts). Fetched
+   * and consumed by the caller — not by this layer — so the caller also
+   * knows whether a delivery just happened this turn (e.g. to append a
+   * fixed, non-LLM reply hint to the final response).
+   */
+  operatorDirective?: string | null;
 }
 
 function trimInline(text: string, maxChars: number): string {
@@ -122,8 +129,11 @@ export async function buildWorkingSessionLayer({
   userMessage,
   conversationHistory = [],
   includeFieldState = true,
+  operatorDirective,
 }: BuildOrielLayeredContextOptions = {}): Promise<string> {
   const parts: string[] = [];
+
+  if (operatorDirective) parts.push(operatorDirective);
 
   const compactSession = compactConversationHistory(conversationHistory);
   if (compactSession) {
