@@ -9,6 +9,7 @@ import {
   rejectPendingMemoryCandidateWithDb,
 } from "./db";
 import {
+  buildMemoryInsertValues,
   persistClassifiedMemoryCandidate,
   type ExtractedMemory,
 } from "./oriel-memory";
@@ -57,6 +58,54 @@ describe("ORIEL memory consent", () => {
 
     expect(storeMemory).toHaveBeenCalledWith(7, memory);
     expect(createPendingMemoryCandidate).not.toHaveBeenCalled();
+  });
+
+  test("an explicit memory keeps its source when written", () => {
+    expect(
+      buildMemoryInsertValues(7, {
+        category: "preference",
+        content: "User prefers concise answers.",
+        importance: 6,
+        source: "explicit",
+        confidence: 0.95,
+      })
+    ).toMatchObject({
+      userId: 7,
+      category: "preference",
+      source: "explicit",
+    });
+  });
+
+  test("source falls back to conversation only when it was never classified", () => {
+    expect(
+      buildMemoryInsertValues(7, {
+        category: "fact",
+        content: "User lives in Bucharest.",
+        importance: 5,
+      })
+    ).toMatchObject({ source: "conversation" });
+  });
+
+  test("classified source survives the consent path into the write", async () => {
+    const storeMemory = vi.fn();
+    const createPendingMemoryCandidate = vi.fn();
+
+    await persistClassifiedMemoryCandidate(
+      7,
+      {
+        category: "preference",
+        content: "User prefers concise answers.",
+        importance: 6,
+        source: "explicit",
+        confidence: 0.95,
+      },
+      { storeMemory, createPendingMemoryCandidate }
+    );
+
+    expect(storeMemory).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ source: "explicit" })
+    );
   });
 
   test("low-confidence memory is discarded", () => {

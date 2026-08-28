@@ -8,6 +8,15 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-08-29] port | ORIEL memory Phase 1 containment
+- Ported Claude worktree `claude/cool-leavitt-63c355` Phase 0/1 into this copy on `feature/oriel-memory-phase-1-containment`.
+- Wiki evolution is now off unless `ORIEL_WIKI_EVOLUTION=true`. Identity/origin pages are never model-writable. Page ids cannot escape `wiki/`.
+- Retrieved wiki pages are working notes, not binding canon; auto-evolved pages are labelled INTERPRETATION.
+- Memory writes keep classified `source` instead of flattening every row to `conversation`.
+- `test-memory-direct.mjs` no longer hardcodes a database URL; rotate the previously exposed TiDB credential.
+- No schema change. Field Notes / vector graph / nightly scheduler remain unbuilt (Phase 2+).
+- Docs: `docs/oriel/PHASE_1_CONTAINMENT.md` and Phase 0 audit set.
+
 ## [2026-07-09] merge | Static Signature → Profile
 - `StaticSignaturePanel` exported from `StaticReading.tsx` with `embedded` mode.
 - Profile section 04 embeds full signature (mandala, lattice, resonance tab).

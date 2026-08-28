@@ -1,6 +1,7 @@
 const nodeEnv = process.env.NODE_ENV ?? "development";
 const runMigrationsEnv = process.env.RUN_MIGRATIONS?.toLowerCase();
 const autonomyRuntimeEnv = process.env.ORIEL_AUTONOMY_RUNTIME?.toLowerCase();
+const wikiEvolutionEnv = process.env.ORIEL_WIKI_EVOLUTION?.toLowerCase();
 const llmProviderEnv = process.env.LLM_PROVIDER?.toLowerCase();
 const llmRequestTimeoutEnv = Number(process.env.LLM_REQUEST_TIMEOUT_MS);
 const paypalEnvironmentEnv = (
@@ -15,6 +16,7 @@ const resolveRunMigrations = () => {
 };
 
 const resolveAutonomyRuntimeEnabled = () => autonomyRuntimeEnv === "true";
+const resolveWikiEvolutionEnabled = () => wikiEvolutionEnv === "true";
 const resolveLlmProvider = () =>
   llmProviderEnv === "gemma" ||
   llmProviderEnv === "gemini" ||
@@ -37,6 +39,9 @@ export const ENV = {
   runMigrations: resolveRunMigrations(),
   // OFF by default: autonomy runtime overlays only activate when explicitly enabled.
   enableOrielAutonomyRuntime: resolveAutonomyRuntimeEnabled(),
+  // OFF by default: the wiki is re-injected into ORIEL's prompt, so model-authored
+  // wiki writes can turn an interpretation into canon on the next turn.
+  enableOrielWikiEvolution: resolveWikiEvolutionEnabled(),
   llmProvider: resolveLlmProvider(),
   llmRequestTimeoutMs: resolveLlmRequestTimeoutMs(),
   llmModel: process.env.LLM_MODEL ?? "",

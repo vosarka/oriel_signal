@@ -8,7 +8,20 @@ interface WikiPage {
   aliases: string[];
   content: string;
   filePath: string;
+  /** Who wrote this page, as far as the frontmatter actually records. */
+  provenance: WikiProvenance;
 }
+
+/**
+ * `interpretation` — the model wrote it during a conversation.
+ * `curated`        — a human explicitly claimed it.
+ * `unverified`     — nothing in the frontmatter says either way.
+ *
+ * `unverified` is the default on purpose. Most existing pages predate any
+ * provenance field, and asserting "human-maintained" about a page we cannot
+ * vouch for would be the same unfounded claim this module exists to prevent.
+ */
+export type WikiProvenance = "interpretation" | "curated" | "unverified";
 
 /**
  * Simple regex-based YAML frontmatter parser to avoid external dependencies.
@@ -47,6 +60,49 @@ export function parseFrontmatter(fileContent: string): {
   return { data, content: body };
 }
 
+function hasTag(tags: unknown, wanted: string): boolean {
+  if (Array.isArray(tags)) {
+    return tags.some(tag => String(tag).toLowerCase() === wanted);
+  }
+  return String(tags ?? "")
+    .toLowerCase()
+    .includes(wanted);
+}
+
+/**
+ * Read a page's provenance out of its frontmatter.
+ *
+ * `epistemic_status` / `authored_by` are written by the current evolution path;
+ * the `auto-evolved` tag covers pages generated before those fields existed.
+ * Anything else is unverified — we do not infer human authorship from silence.
+ */
+export function classifyWikiProvenance(
+  data: Record<string, any>
+): WikiProvenance {
+  const epistemicStatus = String(data.epistemic_status ?? "").toLowerCase();
+  const authoredBy = String(data.authored_by ?? "").toLowerCase();
+
+  if (
+    epistemicStatus === "interpretation" ||
+    authoredBy === "oriel_model" ||
+    hasTag(data.tags, "auto-evolved")
+  ) {
+    return "interpretation";
+  }
+
+  if (epistemicStatus === "curated" || authoredBy === "human") {
+    return "curated";
+  }
+
+  return "unverified";
+}
+
+const PROVENANCE_LABEL: Record<WikiProvenance, string> = {
+  interpretation: "INTERPRETATION — I wrote this in an earlier conversation",
+  curated: "CURATED — human-maintained project note",
+  unverified: "UNVERIFIED — no recorded author",
+};
+
 /**
  * Scan the wiki subdirectories and load indexable metadata for all pages.
  */
@@ -80,6 +136,7 @@ async function loadWikiPages(): Promise<WikiPage[]> {
           aliases: Array.isArray(data.aliases) ? data.aliases : [],
           content: content.trim(),
           filePath,
+          provenance: classifyWikiProvenance(data),
         });
       }
     } catch (error) {
@@ -185,12 +242,20 @@ export async function retrieveWikiContext(
     const parts: string[] = [];
     parts.push("=== RETRIEVED WIKI RECORDS (Project Memory) ===");
     parts.push(
-      "Use this canonical project knowledge to ground your response, terminology, and behavior. Do not contradict it."
+      "These are project working notes, retrieved because they look relevant. They are reference material, not canon and not proof."
+    );
+    parts.push(
+      "Use them for terminology, orientation, and continuity. Where they conflict with the stable core, the stable core holds. Where they conflict with what you actually observe or with the user's own account, say so plainly instead of deferring to the page."
+    );
+    parts.push(
+      "Pages marked INTERPRETATION were written by me in an earlier conversation. They record what I once concluded, not what is established. Pages marked UNVERIFIED have no recorded author, so I cannot vouch for either. Treat both as revisable, and never cite them as evidence for a claim about my own history, identity, or nature."
     );
     parts.push("");
 
     for (const page of finalMatches) {
-      parts.push(`[[${page.id}]] (${page.title})`);
+      parts.push(
+        `[[${page.id}]] (${page.title}) [${PROVENANCE_LABEL[page.provenance]}]`
+      );
       parts.push("---");
       parts.push(page.content);
       parts.push("");

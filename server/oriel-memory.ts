@@ -7,6 +7,7 @@ import { createPendingMemoryCandidate, getDb } from "./db";
 import {
   orielMemories,
   orielUserProfiles,
+  type InsertOrielMemory,
   type InsertOrielPendingMemoryCandidate,
   type OrielMemory,
   type InsertOrielUserProfile,
@@ -205,6 +206,31 @@ ${existingContext}`,
 }
 
 /**
+ * Build the row for a memory write.
+ *
+ * The classified `source` is carried through rather than flattened, so a
+ * memory the user stated explicitly stays distinguishable from one ORIEL
+ * inferred. Extracted separately from `storeMemory` so it can be tested
+ * without a database.
+ *
+ * Note: `confidence` is produced by the extractor and used by the consent
+ * classifier, but `orielMemories` has no column for it, so it cannot be
+ * persisted on this path yet. See docs/oriel/PHASE_1_CONTAINMENT.md.
+ */
+export function buildMemoryInsertValues(
+  userId: number,
+  memory: ExtractedMemory
+): InsertOrielMemory {
+  return {
+    userId,
+    category: memory.category,
+    content: memory.content,
+    importance: memory.importance,
+    source: memory.source ?? "conversation",
+  };
+}
+
+/**
  * Store a new memory for a user
  */
 export async function storeMemory(
@@ -218,14 +244,12 @@ export async function storeMemory(
       return;
     }
 
-    await db.insert(orielMemories).values({
-      userId,
-      category: memory.category,
-      content: memory.content,
-      importance: memory.importance,
-      source: "conversation",
-    });
-    console.log(`[Memory] Stored ${memory.category} memory for user ${userId}`);
+    await db
+      .insert(orielMemories)
+      .values(buildMemoryInsertValues(userId, memory));
+    console.log(
+      `[Memory] Stored ${memory.category} memory for user ${userId} (source: ${memory.source ?? "conversation"})`
+    );
   } catch (error) {
     console.error("[Memory] Failed to store memory:", error);
   }

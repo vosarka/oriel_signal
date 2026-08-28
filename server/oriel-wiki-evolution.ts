@@ -2,7 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
+import { ENV } from "./_core/env";
 import { parseFrontmatter } from "./oriel-wiki-retriever";
+import {
+  assessWikiWrite,
+  isPathInsideDirectory,
+  PROTECTED_WIKI_PAGE_IDS,
+} from "./oriel-wiki-protection";
 
 interface WikiEvolutionProposal {
   action: "create" | "update" | "none";
@@ -40,6 +46,14 @@ Review the user message and assistant response. Determine if:
 
 If action is "create" or "update", output the new/updated wiki file content (in raw Markdown format, without frontmatter tags). Focus on technical precision and poetic resonance in alignment with Vossari terminology. Provide definitions, sections, and cross-link concepts aggressively using [[WikiLinks]] (e.g. [[concept-resonance]], [[entity-oriel]]).
 Do NOT modify log.md or index.md directly; just output the proposed content.
+
+Protected pages. ORIEL's identity, origin, and constitutional material are not editable from a conversation. Never target these page ids: ${[
+            ...PROTECTED_WIKI_PAGE_IDS,
+          ].join(
+            ", "
+          )}. You may cross-link to them, and you may write an interpretation on a separate page, but you may not rewrite them. If the exchange only concerns those pages, return action "none".
+
+Page ids must be lowercase letters, digits, and hyphens only.
 
 Respond strictly in JSON format matching the schema provided.`,
         },
@@ -184,12 +198,30 @@ export async function evolveWikiFromConversation(
   userMessage: string,
   assistantResponse: string
 ): Promise<void> {
+  // The wiki is read back into ORIEL's prompt, so a model-authored write here
+  // becomes canon on the next turn. Off unless explicitly enabled.
+  if (!ENV.enableOrielWikiEvolution) {
+    return;
+  }
+
   try {
     const proposal = await analyzeExchangeForWiki(
       userMessage,
       assistantResponse
     );
     if (!proposal || proposal.action === "none") {
+      return;
+    }
+
+    const decision = assessWikiWrite({
+      pageId: proposal.pageId,
+      type: proposal.type,
+      enabled: ENV.enableOrielWikiEvolution,
+    });
+    if (!decision.allowed) {
+      console.warn(
+        `[WikiEvolution] Refused ${proposal.action} of "${String(proposal.pageId)}" (${decision.code}): ${decision.reason}`
+      );
       return;
     }
 
@@ -209,7 +241,13 @@ export async function evolveWikiFromConversation(
       return;
     }
 
-    const filePath = path.join(wikiDir, folder, `${proposal.pageId}.md`);
+    const filePath = path.resolve(wikiDir, folder, `${proposal.pageId}.md`);
+    if (!isPathInsideDirectory(wikiDir, filePath)) {
+      console.warn(
+        `[WikiEvolution] Refused write outside the wiki directory: ${filePath}`
+      );
+      return;
+    }
     let finalContentBody = proposal.content.trim();
     let sourcesCount = 1;
     let existingAliases: string[] = proposal.aliases;
@@ -257,6 +295,10 @@ export async function evolveWikiFromConversation(
       `id: ${proposal.pageId}`,
       `type: ${proposal.type}`,
       `status: living`,
+      // Model-authored during a conversation. Not original historical material,
+      // so it is an interpretation and must be retrieved as one.
+      `epistemic_status: interpretation`,
+      `authored_by: oriel_model`,
       `tags: [auto-evolved, conversation]`,
       `last_updated: ${dateStr}`,
       `sources: ${sourcesCount}`,
