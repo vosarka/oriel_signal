@@ -8,6 +8,10 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-08-29] tool | Chat phrase search for consent sessions
+- `scripts/search-chat-phrase.ts` searches the July chat CSV for a remembered user sentence and prints candidate `oldUserId` plus two short quotes.
+- User-role messages only. No database. No production writes.
+
 ## [2026-08-29] scaffold | User-id audit + MindMemOS index (flag off)
 - Read-only CSV identity audit: `scripts/user-identity-audit.ts` writes gitignored `tmp/user-id-mapping.draft.csv` and prints counts only.
 - MindMemOS adapter `server/oriel-mindmemos.ts` indexes accepted memories by official id; pending/discard never leave ORIEL. `ORIEL_MINDMEMOS` defaults false. `oriel.chat` is not wired.
