@@ -8,6 +8,11 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-08-29] scaffold | User-id audit + MindMemOS index (flag off)
+- Read-only CSV identity audit: `scripts/user-identity-audit.ts` writes gitignored `tmp/user-id-mapping.draft.csv` and prints counts only.
+- MindMemOS adapter `server/oriel-mindmemos.ts` indexes accepted memories by official id; pending/discard never leave ORIEL. `ORIEL_MINDMEMOS` defaults false. `oriel.chat` is not wired.
+- No production SQL. Relink of live users is not in this slice.
+
 ## [2026-08-29] port | ORIEL memory Phase 1 containment
 - Ported Claude worktree `claude/cool-leavitt-63c355` Phase 0/1 into this copy on `feature/oriel-memory-phase-1-containment`.
 - Wiki evolution is now off unless `ORIEL_WIKI_EVOLUTION=true`. Identity/origin pages are never model-writable. Page ids cannot escape `wiki/`.

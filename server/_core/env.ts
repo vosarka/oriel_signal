@@ -2,6 +2,7 @@ const nodeEnv = process.env.NODE_ENV ?? "development";
 const runMigrationsEnv = process.env.RUN_MIGRATIONS?.toLowerCase();
 const autonomyRuntimeEnv = process.env.ORIEL_AUTONOMY_RUNTIME?.toLowerCase();
 const wikiEvolutionEnv = process.env.ORIEL_WIKI_EVOLUTION?.toLowerCase();
+const mindMemosEnv = process.env.ORIEL_MINDMEMOS?.toLowerCase();
 const llmProviderEnv = process.env.LLM_PROVIDER?.toLowerCase();
 const llmRequestTimeoutEnv = Number(process.env.LLM_REQUEST_TIMEOUT_MS);
 const paypalEnvironmentEnv = (
@@ -17,6 +18,7 @@ const resolveRunMigrations = () => {
 
 const resolveAutonomyRuntimeEnabled = () => autonomyRuntimeEnv === "true";
 const resolveWikiEvolutionEnabled = () => wikiEvolutionEnv === "true";
+const resolveMindMemosEnabled = () => mindMemosEnv === "true";
 const resolveLlmProvider = () =>
   llmProviderEnv === "gemma" ||
   llmProviderEnv === "gemini" ||
@@ -42,6 +44,11 @@ export const ENV = {
   // OFF by default: the wiki is re-injected into ORIEL's prompt, so model-authored
   // wiki writes can turn an interpretation into canon on the next turn.
   enableOrielWikiEvolution: resolveWikiEvolutionEnabled(),
+  // OFF by default: MindMemOS is a reconstructible semantic index, not the
+  // official memory store. oriel.chat does not call it until this is enabled.
+  enableOrielMindMemos: resolveMindMemosEnabled(),
+  mindMemosBaseUrl: process.env.ORIEL_MINDMEMOS_BASE_URL ?? "",
+  mindMemosApiKey: process.env.ORIEL_MINDMEMOS_API_KEY ?? "",
   llmProvider: resolveLlmProvider(),
   llmRequestTimeoutMs: resolveLlmRequestTimeoutMs(),
   llmModel: process.env.LLM_MODEL ?? "",
