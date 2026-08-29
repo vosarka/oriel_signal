@@ -4,10 +4,11 @@
  * TiDB / orielMemories remains the official store. This module indexes
  * accepted memories and returns ranked ids. Chat transcripts are never sent.
  *
- * Wired behind ENV.enableOrielMindMemos (default false). oriel.chat does not
- * call this yet.
+ * Writes run from persistClassifiedMemoryCandidate when ENV.enableOrielMindMemos
+ * is true. Search is not wired into oriel.chat yet.
  */
 
+import { ENV } from "./_core/env";
 import type { MemoryRecommendedAction } from "./oriel-memory-consecration";
 
 export type MindMemOSAddInput = {
@@ -36,6 +37,14 @@ export type MindMemOSClientConfig = {
 };
 
 const MEMORY_ID_PREFIX = "orielMemories:";
+
+export function mindMemOSConfigFromEnv(): MindMemOSClientConfig {
+  return {
+    enabled: ENV.enableOrielMindMemos,
+    baseUrl: ENV.mindMemosBaseUrl,
+    apiKey: ENV.mindMemosApiKey,
+  };
+}
 
 export function canIndexInMindMemOS(
   action: MemoryRecommendedAction

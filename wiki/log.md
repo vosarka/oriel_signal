@@ -8,6 +8,10 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-08-29] feat | Index stored memories in MindMemOS per user
+- After extraction, memories store in TiDB and are indexed in MindMemOS by `users.id` + `orielMemories.id` when `ORIEL_MINDMEMOS=true`.
+- Pending consent path is skipped (no chat tray). Low-confidence still discarded. Chat transcripts are not sent. Search still not wired into chat.
+
 ## [2026-08-29] ui | Remove memory consent tray from Conduit chat
 - Sidebar no longer shows pending/accepted memory consent. Backend consent APIs and extractor rules are unchanged.
 

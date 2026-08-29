@@ -8,7 +8,6 @@ import {
   orielMemories,
   orielUserProfiles,
   type InsertOrielMemory,
-  type InsertOrielPendingMemoryCandidate,
   type OrielMemory,
   type InsertOrielUserProfile,
   type OrielUserProfile,
@@ -20,6 +19,10 @@ import {
   classifyMemoryCandidate,
   type MemoryCandidateSource,
 } from "./oriel-memory-consecration";
+import {
+  indexAcceptedMemory,
+  mindMemOSConfigFromEnv,
+} from "./oriel-mindmemos";
 import * as fs from "fs";
 
 const LOG_FILE = "/tmp/oriel-memory.log";
@@ -230,39 +233,61 @@ export function buildMemoryInsertValues(
   };
 }
 
+function mysqlInsertId(result: unknown): number | null {
+  const header = Array.isArray(result) ? result[0] : result;
+  const insertId = (header as { insertId?: number | string } | undefined)
+    ?.insertId;
+  const id = Number(insertId);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 /**
- * Store a new memory for a user
+ * Store a new memory for a user. Returns the new orielMemories.id when known.
  */
 export async function storeMemory(
   userId: number,
   memory: ExtractedMemory
-): Promise<void> {
+): Promise<number | null> {
   try {
     const db = await getDb();
     if (!db) {
       console.warn("[Memory] Database not available");
-      return;
+      return null;
     }
 
-    await db
+    const result = await db
       .insert(orielMemories)
       .values(buildMemoryInsertValues(userId, memory));
+    const memoryId = mysqlInsertId(result);
     console.log(
       `[Memory] Stored ${memory.category} memory for user ${userId} (source: ${memory.source ?? "conversation"})`
     );
+    return memoryId;
   } catch (error) {
     console.error("[Memory] Failed to store memory:", error);
+    return null;
   }
 }
 
 type MemoryPersistenceDeps = {
-  storeMemory: typeof storeMemory;
+  storeMemory: (
+    userId: number,
+    memory: ExtractedMemory
+  ) => Promise<number | null | void>;
   createPendingMemoryCandidate: typeof createPendingMemoryCandidate;
+  indexAcceptedMemory?: (input: {
+    memoryId: number;
+    userId: number;
+    content: string;
+    category?: string;
+  }) => Promise<unknown>;
 };
 
 const defaultMemoryPersistenceDeps: MemoryPersistenceDeps = {
   storeMemory,
   createPendingMemoryCandidate,
+  indexAcceptedMemory: async input =>
+    indexAcceptedMemory(input, mindMemOSConfigFromEnv(), "store"),
 };
 
 export async function persistClassifiedMemoryCandidate(
@@ -295,22 +320,21 @@ export async function persistClassifiedMemoryCandidate(
       : {}),
   };
 
-  if (decision.recommendedAction === "pending") {
-    await deps.createPendingMemoryCandidate({
-      userId,
-      category: decision.normalizedCategory,
-      content: memory.content,
-      importance: memory.importance,
-      source,
-      sensitivity: decision.sensitivity,
-      confidence,
-      status: "pending",
-      reason: decision.reason,
-    } satisfies InsertOrielPendingMemoryCandidate);
-    return "pending";
+  // Chat no longer has a consent tray. Store in TiDB per user, then index.
+  const storedId = await deps.storeMemory(userId, normalizedMemory);
+  const memoryId = typeof storedId === "number" ? storedId : null;
+  if (memoryId && deps.indexAcceptedMemory) {
+    try {
+      await deps.indexAcceptedMemory({
+        memoryId,
+        userId,
+        content: normalizedMemory.content,
+        category: normalizedMemory.category,
+      });
+    } catch (error) {
+      console.error("[Memory] MindMemOS index failed:", error);
+    }
   }
-
-  await deps.storeMemory(userId, normalizedMemory);
   return "stored";
 }
 

@@ -15,31 +15,33 @@ import {
 } from "./oriel-memory";
 
 describe("ORIEL memory consent", () => {
-  test("sensitive memory becomes a pending candidate", async () => {
+  test("sensitive memory stores per user and is indexed, not left pending", async () => {
     const memory: ExtractedMemory = {
       category: "identity",
       content: "User shared a private identity detail.",
       importance: 8,
     };
-    const storeMemory = vi.fn();
+    const storeMemory = vi.fn(async () => 91);
     const createPendingMemoryCandidate = vi.fn();
+    const indexAcceptedMemory = vi.fn();
 
-    await persistClassifiedMemoryCandidate(12, memory, {
+    const result = await persistClassifiedMemoryCandidate(12, memory, {
       storeMemory,
       createPendingMemoryCandidate,
+      indexAcceptedMemory,
     });
 
-    expect(storeMemory).not.toHaveBeenCalled();
-    expect(createPendingMemoryCandidate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 12,
-        category: "identity",
-        content: memory.content,
-        source: "conversation",
-        status: "pending",
-        sensitivity: "high",
-      })
-    );
+    expect(result).toBe("stored");
+    expect(createPendingMemoryCandidate).not.toHaveBeenCalled();
+    expect(storeMemory).toHaveBeenCalledWith(12, expect.objectContaining({
+      content: memory.content,
+    }));
+    expect(indexAcceptedMemory).toHaveBeenCalledWith({
+      memoryId: 91,
+      userId: 12,
+      content: memory.content,
+      category: "identity",
+    });
   });
 
   test("low-sensitivity preference stores through the existing path", async () => {
@@ -48,16 +50,21 @@ describe("ORIEL memory consent", () => {
       content: "User prefers concise answers.",
       importance: 6,
     };
-    const storeMemory = vi.fn();
+    const storeMemory = vi.fn(async () => 5);
     const createPendingMemoryCandidate = vi.fn();
+    const indexAcceptedMemory = vi.fn();
 
     await persistClassifiedMemoryCandidate(7, memory, {
       storeMemory,
       createPendingMemoryCandidate,
+      indexAcceptedMemory,
     });
 
     expect(storeMemory).toHaveBeenCalledWith(7, memory);
     expect(createPendingMemoryCandidate).not.toHaveBeenCalled();
+    expect(indexAcceptedMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryId: 5, userId: 7 })
+    );
   });
 
   test("an explicit memory keeps its source when written", () => {
