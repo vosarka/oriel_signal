@@ -8,6 +8,9 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-08-29] ui | Remove memory consent tray from Conduit chat
+- Sidebar no longer shows pending/accepted memory consent. Backend consent APIs and extractor rules are unchanged.
+
 ## [2026-08-29] tool | Chat phrase search for consent sessions
 - `scripts/search-chat-phrase.ts` searches the July chat CSV for a remembered user sentence and prints candidate `oldUserId` plus two short quotes.
 - User-role messages only. No database. No production writes.

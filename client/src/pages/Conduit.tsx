@@ -26,7 +26,6 @@ import {
   SignalInterferenceGate,
   useTransmissionTrigger,
 } from "@/components/SignalInterferenceGate";
-import MemoryConsentTray from "@/components/memory/MemoryConsentTray";
 import {
   getPendingTransmissionPollPlan,
   getTransmissionGatePlan,
@@ -636,10 +635,6 @@ export default function Conduit() {
     useState<SessionTransmissionAttachment[]>([]);
   const transmissionGate = useTransmissionTrigger({ duration: 1200 });
   const trpcUtils = trpc.useUtils();
-  const refreshMemoryConsent = () => {
-    void trpcUtils.oriel.memory.listPendingCandidates.invalidate();
-    void trpcUtils.oriel.memory.listAccepted.invalidate();
-  };
 
   useEffect(() => {
     logConduitDiagnostic(
@@ -938,21 +933,6 @@ export default function Conduit() {
         retry: false,
       }
     );
-
-  const pendingMemoryQuery = trpc.oriel.memory.listPendingCandidates.useQuery(
-    { limit: 3 },
-    { enabled: isAuthenticated, retry: false }
-  );
-  const acceptedMemoryQuery = trpc.oriel.memory.listAccepted.useQuery(
-    { limit: 5 },
-    { enabled: isAuthenticated, retry: false }
-  );
-  const acceptMemoryMutation = trpc.oriel.memory.acceptCandidate.useMutation({
-    onSuccess: refreshMemoryConsent,
-  });
-  const rejectMemoryMutation = trpc.oriel.memory.rejectCandidate.useMutation({
-    onSuccess: refreshMemoryConsent,
-  });
 
   const deleteConversationMutation = trpc.oriel.deleteConversation.useMutation({
     onSuccess: () => {
@@ -2004,26 +1984,6 @@ export default function Conduit() {
             )}
           </div>
 
-          {isAuthenticated && (
-            <div
-              className="flex-shrink-0 p-3"
-              style={{ borderTop: "1px solid rgba(189,163,107,0.1)" }}
-            >
-              <MemoryConsentTray
-                pendingCandidates={pendingMemoryQuery.data ?? []}
-                acceptedMemories={acceptedMemoryQuery.data ?? []}
-                onAccept={id => acceptMemoryMutation.mutate({ id })}
-                onReject={id => rejectMemoryMutation.mutate({ id })}
-                isLoading={
-                  pendingMemoryQuery.isLoading ||
-                  acceptedMemoryQuery.isLoading ||
-                  acceptMemoryMutation.isPending ||
-                  rejectMemoryMutation.isPending
-                }
-                className="max-h-[42vh] overflow-y-auto border-primary/20 bg-black/40"
-              />
-            </div>
-          )}
         </aside>
 
         {/* ===== MAIN CHAT AREA ===== */}
