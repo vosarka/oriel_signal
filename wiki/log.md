@@ -8,6 +8,14 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-01] change | Switch primary ElevenLabs ORIEL voice
+- Primary ElevenLabs voice id is now `cxaldBH0hjovpksFNKxb` (`DEFAULT_VOICE_ID` + `ELEVENLABS_VOICE_ID`).
+- Sophianic remains `RILOU7YmBhvwJGDGjNmP`.
+
+## [2026-09-01] context | Platform bulletin for ORIEL
+- Injected a curated, every-turn briefing so ORIEL can tell the truth about the database outage, partial restore, and consent-based reconnect.
+- Wiki: [[platform-data-incident]]. Not Genesis. No per-user emails in the prompt.
+
 ## [2026-08-29] feat | Index stored memories in MindMemOS per user
 - After extraction, memories store in TiDB and are indexed in MindMemOS by `users.id` + `orielMemories.id` when `ORIEL_MINDMEMOS=true`.
 - Pending consent path is skipped (no chat tray). Low-confidence still discarded. Chat transcripts are not sent. Search still not wired into chat.

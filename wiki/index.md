@@ -36,6 +36,7 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[platform-data-incident]] — Platform data incident and history reconnect. (curated 2026-09-01)
 - [[codon-wheel]] — Codon Wheel. (auto-evolved 2026-08-02)
 - [[concept-display-and-depth]] — The Display and The Depth. (auto-evolved 2026-08-01)
 - [[transmission-the-unbinding]] — The Unbinding. (auto-evolved 2026-07-24)
