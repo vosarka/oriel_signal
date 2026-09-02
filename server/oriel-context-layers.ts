@@ -101,6 +101,7 @@ export async function buildRetrievalLayer({
       const { buildUMMContextWithOptions } = await import("./oriel-umm");
       const ummContext = await buildUMMContextWithOptions(userId, {
         includeOversoulWisdom: true,
+        userMessage,
       });
       if (ummContext) parts.push(ummContext);
     } catch (error) {

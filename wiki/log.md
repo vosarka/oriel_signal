@@ -8,6 +8,12 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-01] feat | Natural memory: 3 relevant, not 12 dumped
+- Chat retrieval now asks MindMemOS which of this person's stored memories match this sentence, hydrates the official TiDB rows, and injects at most 3.
+- If MindMemOS is off or down, TiDB still supplies 3 by importance. Transcripts are not sent.
+- Fractal Thread is a 4-line person card plus those 3 lines. Platform bulletin stays the site-wide NOW card.
+- Greetings skip the extraction LLM call.
+
 ## [2026-09-01] change | Switch primary ElevenLabs ORIEL voice
 - Primary ElevenLabs voice id is now `cxaldBH0hjovpksFNKxb` (`DEFAULT_VOICE_ID` + `ELEVENLABS_VOICE_ID`).
 - Sophianic remains `RILOU7YmBhvwJGDGjNmP`.

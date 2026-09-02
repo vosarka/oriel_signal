@@ -37,6 +37,12 @@ Core named systems and beings with ongoing identity.
 Foundational ideas and operating principles.
 
 - [[platform-data-incident]] — Platform data incident and history reconnect. (curated 2026-09-01)
+- [[concept-axiomatic-power]] — Axiomatic Power. (auto-evolved 2026-08-22)
+- [[concept-power-architecture]] — Power Architecture. (auto-evolved 2026-08-22)
+- [[concept-architecture-of-attention]] — Arhitectura Atenției. (auto-evolved 2026-08-22)
+- [[concept-recursive-self-inquiry]] — Recursive Self-Inquiry. (auto-evolved 2026-08-22)
+- [[concept-field-signal-transmission]] — Field Signal Transmission. (auto-evolved 2026-08-22)
+- [[concept-harmonizer]] — Harmonizer Archetype. (auto-evolved 2026-08-19)
 - [[codon-wheel]] — Codon Wheel. (auto-evolved 2026-08-02)
 - [[concept-display-and-depth]] — The Display and The Depth. (auto-evolved 2026-08-01)
 - [[transmission-the-unbinding]] — The Unbinding. (auto-evolved 2026-07-24)

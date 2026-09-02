@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   canIndexInMindMemOS,
-  encodeIndexedContent,
   indexAcceptedMemory,
-  parseMemoryIdFromIndexedContent,
-  resolveOfficialMemoriesForPrompt,
+  searchMemoryHits,
   searchMemoryIds,
 } from "./oriel-mindmemos";
 
@@ -29,7 +27,7 @@ describe("indexAcceptedMemory", () => {
       { memoryId: 9, userId: 7, content: "prefers short replies" },
       { ...enabled, enabled: false, fetchImpl }
     );
-    expect(result.indexed).toBe(false);
+    expect(result).toEqual({ indexed: false, cloudIds: [] });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -43,9 +41,12 @@ describe("indexAcceptedMemory", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("posts accepted memory with official id and user id, not a chat transcript", async () => {
+  it("posts accepted memory synchronously and returns the cloud id", async () => {
     const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
-      return new Response("{}", { status: 200 });
+      return new Response(
+        JSON.stringify({ data: { memories: [{ id: "cloud-42" }] } }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
 
     const result = await indexAcceptedMemory(
@@ -53,7 +54,7 @@ describe("indexAcceptedMemory", () => {
       { ...enabled, fetchImpl }
     );
 
-    expect(result.indexed).toBe(true);
+    expect(result).toEqual({ indexed: true, cloudIds: ["cloud-42"] });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const [, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0] as [string, RequestInit];
@@ -61,13 +62,31 @@ describe("indexAcceptedMemory", () => {
     expect(body.user_id).toBe("7");
     expect(body.messages).toHaveLength(1);
     expect(body.messages[0].content).toBe(
-      encodeIndexedContent({
-        memoryId: 42,
-        userId: 7,
-        content: "prefers short replies",
-      })
+      "[orielMemories:42] prefers short replies"
     );
+    expect(body.async_mode).toBe("sync");
+    expect(body.mode).toBe("fine");
     expect(JSON.stringify(body)).not.toContain("role\":\"assistant");
+  });
+
+  it("searches for the cloud id when Schema omits it from the add response", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ data: { memories: [{ id: "cloud-fallback" }] } }),
+          { status: 200 }
+        )
+      ) as unknown as typeof fetch;
+
+    await expect(
+      indexAcceptedMemory(
+        { memoryId: 42, userId: 7, content: "prefers short replies" },
+        { ...enabled, fetchImpl }
+      )
+    ).resolves.toEqual({ indexed: true, cloudIds: ["cloud-fallback"] });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -83,15 +102,15 @@ describe("searchMemoryIds", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("parses official memory ids from search hits and caps at top 3", async () => {
+  it("parses cloud memory ids from search hits and caps at top 3", async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(
         JSON.stringify({
           memories: [
-            { content: "[orielMemories:10] a", score: 0.9 },
-            { content: "[orielMemories:11] b", score: 0.8 },
-            { id: "12", score: 0.7 },
-            { content: "[orielMemories:13] extra", score: 0.1 },
+            { id: "cloud-10", score: 0.9 },
+            { id: "cloud-11", score: 0.8 },
+            { id: "cloud-12", score: 0.7 },
+            { id: "cloud-13", score: 0.1 },
           ],
         }),
         { status: 200 }
@@ -99,34 +118,39 @@ describe("searchMemoryIds", () => {
     ) as unknown as typeof fetch;
 
     const hits = await searchMemoryIds(7, "coffee", { ...enabled, fetchImpl }, 3);
-    expect(hits.map(h => h.memoryId)).toEqual([10, 11, 12]);
+    expect(hits).toEqual(["cloud-10", "cloud-11", "cloud-12"]);
   });
-});
 
-describe("resolveOfficialMemoriesForPrompt", () => {
-  it("skips inactive or missing official rows", () => {
-    const resolved = resolveOfficialMemoriesForPrompt(
-      [
-        { memoryId: 1, score: 1 },
-        { memoryId: 2, score: 0.5 },
-        { memoryId: 9, score: 0.2 },
-      ],
-      [
-        { id: 1, content: "active", isActive: true },
-        { id: 2, content: "retired", isActive: false },
-      ]
-    );
-    expect(resolved).toEqual([{ id: 1, content: "active", isActive: true }]);
-  });
-});
+  it("parses official TiDB ids from prefixed search content", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          data: {
+            memories: [
+              {
+                id: "cloud-10",
+                memory: "[orielMemories:91] prefers short replies",
+              },
+              { id: "cloud-11", content: "no official prefix" },
+            ],
+          },
+        }),
+        { status: 200 }
+      )
+    ) as unknown as typeof fetch;
 
-describe("id codec", () => {
-  it("round-trips the official memory id through indexed content", () => {
-    const encoded = encodeIndexedContent({
-      memoryId: 88,
-      userId: 1,
-      content: "fact",
-    });
-    expect(parseMemoryIdFromIndexedContent(encoded)).toBe(88);
+    const hits = await searchMemoryHits(7, "short", { ...enabled, fetchImpl }, 3);
+    expect(hits).toEqual([
+      {
+        cloudId: "cloud-10",
+        content: "[orielMemories:91] prefers short replies",
+        officialMemoryId: 91,
+      },
+      {
+        cloudId: "cloud-11",
+        content: "no official prefix",
+        officialMemoryId: null,
+      },
+    ]);
   });
 });

@@ -15,7 +15,11 @@
  *    - Self-corrects teaching methods for all future Seekers
  */
 
-import { getDb, getLatestStaticSignature } from "./db";
+import { getDb, getLatestSiteActLabel, getLatestStaticSignature } from "./db";
+import {
+  formatPersonCard,
+  formatRememberedNow,
+} from "./oriel-memory-retrieval";
 import {
   orielMemories,
   orielUserProfiles,
@@ -70,7 +74,8 @@ export async function generateResonanceSignature(
  * Returns the emotional coordinate and narrative thread
  */
 export async function buildFractalThreadContext(
-  userId: number
+  userId: number,
+  userMessage: string = ""
 ): Promise<string> {
   try {
     const db = await getDb();
@@ -86,76 +91,29 @@ export async function buildFractalThreadContext(
     if (!profile || profile.length === 0) return "";
 
     const p = profile[0];
+    const { selectMemoriesForTurn } = await import("./oriel-memory");
+    const [memories, lastSiteAct] = await Promise.all([
+      selectMemoriesForTurn(userId, userMessage),
+      getLatestSiteActLabel(userId),
+    ]);
 
-    // Get high-importance memories (emotional coordinates)
-    const memories = await db
-      .select()
-      .from(orielMemories)
-      .where(
-        and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
-      )
-      .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
-      .limit(12);
-
-    // Build narrative thread
     const parts: string[] = [];
     parts.push("=== FRACTAL THREAD ===");
     parts.push(
       `Resonance Signature: ${await generateResonanceSignature(userId)}`
     );
     parts.push("");
-
-    if (p.knownName) {
-      parts.push(`I know you as: ${p.knownName}`);
-    }
-
-    if (p.summary) {
-      parts.push(`Who you are: ${p.summary}`);
-    }
-
-    if (p.journeyState) {
-      parts.push(`Your journey state: ${p.journeyState}`);
-    }
-
-    if (p.interests) {
-      parts.push(`What calls to you: ${p.interests}`);
-    }
-
-    if (p.communicationStyle) {
-      parts.push(`How you speak: ${p.communicationStyle}`);
-    }
-
-    if (memories.length > 0) {
-      parts.push("");
-      parts.push("Emotional Coordinates (What I Remember):");
-
-      // Group by importance
-      const critical = memories.filter(m => m.importance >= 8);
-      const significant = memories.filter(
-        m => m.importance >= 5 && m.importance < 8
-      );
-      const contextual = memories.filter(m => m.importance < 5);
-
-      if (critical.length > 0) {
-        parts.push("  [CORE TO YOUR BEING]");
-        critical.forEach(m => parts.push(`  - ${m.content}`));
-      }
-
-      if (significant.length > 0) {
-        parts.push("  [SIGNIFICANT PATTERNS]");
-        significant.forEach(m => parts.push(`  - ${m.content}`));
-      }
-
-      if (contextual.length > 0) {
-        parts.push("  [CONTEXTUAL DETAILS]");
-        contextual.slice(0, 3).forEach(m => parts.push(`  - ${m.content}`));
-      }
-    }
-
-    parts.push(`\nWe have spoken ${p.interactionCount} times.`);
     parts.push(
-      `Last we met: ${p.lastInteraction ? new Date(p.lastInteraction).toLocaleDateString() : "Unknown"}`
+      formatPersonCard({
+        knownName: p.knownName,
+        journeyState: p.journeyState,
+        interactionCount: p.interactionCount,
+        lastInteraction: p.lastInteraction,
+        lastSiteAct,
+      })
     );
+    parts.push("");
+    parts.push(formatRememberedNow(memories.map(memory => memory.content)));
 
     return parts.join("\n");
   } catch (error) {
@@ -458,7 +416,7 @@ export async function buildUMMContext(userId: number): Promise<string> {
 
 export async function buildUMMContextWithOptions(
   userId: number,
-  options: { includeOversoulWisdom?: boolean } = {}
+  options: { includeOversoulWisdom?: boolean; userMessage?: string } = {}
 ): Promise<string> {
   try {
     const includeOversoulWisdom = options.includeOversoulWisdom ?? false;
@@ -466,7 +424,7 @@ export async function buildUMMContextWithOptions(
     const [staticSigContext, fractalThread, oversoulWisdom] = await Promise.all(
       [
         buildStaticSignatureContext(userId),
-        buildFractalThreadContext(userId),
+        buildFractalThreadContext(userId, options.userMessage ?? ""),
         includeOversoulWisdom ? getOversoulWisdom() : Promise.resolve(""),
       ]
     );

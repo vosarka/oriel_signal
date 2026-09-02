@@ -168,6 +168,28 @@ export const orielMemories = mysqlTable("orielMemories", {
 export type OrielMemory = typeof orielMemories.$inferSelect;
 export type InsertOrielMemory = typeof orielMemories.$inferInsert;
 
+/** Reconstructible link from the official TiDB memory to MindMemOS. */
+export const orielMindMemosIndex = mysqlTable(
+  "orielMindMemosIndex",
+  {
+    mindMemosMemoryId: varchar("mindMemosMemoryId", { length: 255 })
+      .primaryKey(),
+    orielMemoryId: int("orielMemoryId").notNull(),
+    userId: int("userId").notNull(),
+    indexedAt: timestamp("indexedAt").defaultNow().notNull(),
+  },
+  table => [
+    index("idx_oriel_mindmemos_official").on(
+      table.userId,
+      table.orielMemoryId
+    ),
+  ]
+);
+
+export type OrielMindMemosIndex = typeof orielMindMemosIndex.$inferSelect;
+export type InsertOrielMindMemosIndex =
+  typeof orielMindMemosIndex.$inferInsert;
+
 /**
  * ORIEL Pending Memory Candidates
  * Consent staging for sensitive, inferred, or otherwise user-reviewable memory.

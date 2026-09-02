@@ -3,7 +3,12 @@
  * Persistent memory that evolves with each user interaction
  */
 
-import { createPendingMemoryCandidate, getDb } from "./db";
+import {
+  createPendingMemoryCandidate,
+  getDb,
+  linkOrielMindMemosMemory,
+  lookupOrielMemoryIdsByMindMemos,
+} from "./db";
 import {
   orielMemories,
   orielUserProfiles,
@@ -12,7 +17,7 @@ import {
   type InsertOrielUserProfile,
   type OrielUserProfile,
 } from "../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
 import {
@@ -22,7 +27,14 @@ import {
 import {
   indexAcceptedMemory,
   mindMemOSConfigFromEnv,
+  searchMemoryHits,
+  type MindMemOSClientConfig,
 } from "./oriel-mindmemos";
+import {
+  MEMORY_TURN_LIMIT,
+  mergeMemoriesForTurn,
+  shouldExtractMemories,
+} from "./oriel-memory-retrieval";
 import * as fs from "fs";
 
 const LOG_FILE = "/tmp/oriel-memory.log";
@@ -280,7 +292,12 @@ type MemoryPersistenceDeps = {
     userId: number;
     content: string;
     category?: string;
-  }) => Promise<unknown>;
+  }) => Promise<{ indexed: boolean; cloudIds: string[] } | void>;
+  linkMindMemosMemory?: (input: {
+    mindMemosMemoryId: string;
+    orielMemoryId: number;
+    userId: number;
+  }) => Promise<void>;
 };
 
 const defaultMemoryPersistenceDeps: MemoryPersistenceDeps = {
@@ -288,6 +305,7 @@ const defaultMemoryPersistenceDeps: MemoryPersistenceDeps = {
   createPendingMemoryCandidate,
   indexAcceptedMemory: async input =>
     indexAcceptedMemory(input, mindMemOSConfigFromEnv(), "store"),
+  linkMindMemosMemory: linkOrielMindMemosMemory,
 };
 
 export async function persistClassifiedMemoryCandidate(
@@ -325,17 +343,100 @@ export async function persistClassifiedMemoryCandidate(
   const memoryId = typeof storedId === "number" ? storedId : null;
   if (memoryId && deps.indexAcceptedMemory) {
     try {
-      await deps.indexAcceptedMemory({
+      const result = await deps.indexAcceptedMemory({
         memoryId,
         userId,
         content: normalizedMemory.content,
         category: normalizedMemory.category,
       });
+      if (result?.indexed && deps.linkMindMemosMemory) {
+        await Promise.all(
+          result.cloudIds.map(mindMemosMemoryId =>
+            deps.linkMindMemosMemory!({
+              mindMemosMemoryId,
+              orielMemoryId: memoryId,
+              userId,
+            })
+          )
+        );
+      }
     } catch (error) {
       console.error("[Memory] MindMemOS index failed:", error);
     }
   }
   return "stored";
+}
+
+export async function getMemoriesByIds(
+  userId: number,
+  ids: number[]
+): Promise<OrielMemory[]> {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select()
+    .from(orielMemories)
+    .where(
+      and(
+        eq(orielMemories.userId, userId),
+        eq(orielMemories.isActive, true),
+        inArray(orielMemories.id, ids)
+      )
+    );
+  const byId = new Map(rows.map(row => [row.id, row]));
+  return ids
+    .map(id => byId.get(id))
+    .filter((row): row is OrielMemory => Boolean(row));
+}
+
+export async function selectMemoriesForTurn(
+  userId: number,
+  userMessage: string,
+  limit: number = MEMORY_TURN_LIMIT,
+  deps: {
+    searchHits?: typeof searchMemoryHits;
+    lookupCloudIds?: (
+      userId: number,
+      cloudIds: string[]
+    ) => Promise<number[]>;
+    getByIds?: typeof getMemoriesByIds;
+    fallback?: typeof getRelevantMemories;
+    config?: MindMemOSClientConfig;
+  } = {}
+): Promise<OrielMemory[]> {
+  const config = deps.config ?? mindMemOSConfigFromEnv();
+  const fallbackFn = deps.fallback ?? getRelevantMemories;
+  let preferred: OrielMemory[] = [];
+
+  if (config.enabled && userMessage.trim()) {
+    try {
+      const searchHits = deps.searchHits ?? searchMemoryHits;
+      const hits = await searchHits(userId, userMessage, config, limit);
+      const fromPrefix = hits
+        .map(hit => hit.officialMemoryId)
+        .filter((id): id is number => id != null);
+      const cloudIds = hits
+        .map(hit => hit.cloudId)
+        .filter((id): id is string => Boolean(id));
+      const lookup = deps.lookupCloudIds ?? lookupOrielMemoryIdsByMindMemos;
+      const fromCloud =
+        cloudIds.length > 0 ? await lookup(userId, cloudIds) : [];
+      const ids = [...new Set([...fromPrefix, ...fromCloud])];
+      const getByIds = deps.getByIds ?? getMemoriesByIds;
+      preferred = await getByIds(userId, ids);
+    } catch (error) {
+      console.warn(
+        "[Memory] MindMemOS search failed, using TiDB fallback:",
+        error
+      );
+    }
+  }
+
+  if (preferred.length >= limit) return preferred.slice(0, limit);
+  const fallback = await fallbackFn(userId, limit);
+  return mergeMemoriesForTurn(preferred, fallback, limit);
 }
 
 /**
@@ -577,6 +678,11 @@ export async function processConversationMemory(
 ): Promise<void> {
   try {
     logToFile(`[Memory] Starting memory processing for user ${userId}`);
+
+    if (!shouldExtractMemories(userMessage)) {
+      logToFile("[Memory] Skipping extraction for a trivial turn");
+      return;
+    }
 
     // Get existing memories for context
     const existingMemories = await getRelevantMemories(userId, 20);

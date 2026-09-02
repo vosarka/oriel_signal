@@ -23,12 +23,17 @@ describe("ORIEL memory consent", () => {
     };
     const storeMemory = vi.fn(async () => 91);
     const createPendingMemoryCandidate = vi.fn();
-    const indexAcceptedMemory = vi.fn();
+    const indexAcceptedMemory = vi.fn(async () => ({
+      indexed: true,
+      cloudIds: ["cloud-91"],
+    }));
+    const linkMindMemosMemory = vi.fn();
 
     const result = await persistClassifiedMemoryCandidate(12, memory, {
       storeMemory,
       createPendingMemoryCandidate,
       indexAcceptedMemory,
+      linkMindMemosMemory,
     });
 
     expect(result).toBe("stored");
@@ -41,6 +46,11 @@ describe("ORIEL memory consent", () => {
       userId: 12,
       content: memory.content,
       category: "identity",
+    });
+    expect(linkMindMemosMemory).toHaveBeenCalledWith({
+      mindMemosMemoryId: "cloud-91",
+      orielMemoryId: 91,
+      userId: 12,
     });
   });
 
