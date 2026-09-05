@@ -13,6 +13,7 @@ import {
   buildStableCoreManifestSummary,
 } from "../shared/oriel/stable-core/manifest";
 import { buildPlatformBulletinContext } from "./oriel-platform-bulletin";
+import { buildLiveMindDirective } from "./oriel-memory-retrieval";
 
 export interface BuildOrielLayeredContextOptions {
   userId?: number;
@@ -154,6 +155,7 @@ export async function buildWorkingSessionLayer({
     parts.push(trimInline(userMessage, 500));
   }
 
+  parts.push(buildLiveMindDirective());
   parts.push(buildResponseLanguageDirective(userMessage, conversationHistory));
 
   if (userMessage?.trim()) {

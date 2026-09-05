@@ -465,8 +465,14 @@ export async function processConversationThroughUMM(
     console.log(
       `[UMM] processConversationThroughUMM called for user ${userId}`
     );
+    const { isFailedTransmission, processConversationMemory } = await import(
+      "./oriel-memory"
+    );
+    if (isFailedTransmission(assistantResponse)) {
+      console.log("[UMM] Skipping oversoul for a failed transmission");
+      return;
+    }
     // Process Fractal Thread (individual memory)
-    const { processConversationMemory } = await import("./oriel-memory");
     await processConversationMemory(userId, userMessage, assistantResponse);
 
     // Process Oversoul patterns (global evolution)

@@ -22,7 +22,8 @@ const resolveMindMemosEnabled = () => mindMemosEnv === "true";
 const resolveLlmProvider = () =>
   llmProviderEnv === "gemma" ||
   llmProviderEnv === "gemini" ||
-  llmProviderEnv === "forge"
+  llmProviderEnv === "forge" ||
+  llmProviderEnv === "mistral"
     ? llmProviderEnv
     : "gemini";
 const resolveLlmRequestTimeoutMs = () =>
@@ -61,6 +62,9 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeModel: process.env.BUILT_IN_FORGE_MODEL ?? "",
+  mistralApiKey: process.env.MISTRAL_API_KEY ?? "",
+  mistralApiUrl: process.env.MISTRAL_API_URL ?? "",
+  mistralModel: process.env.MISTRAL_MODEL ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   appBaseUrl: process.env.APP_BASE_URL ?? "",

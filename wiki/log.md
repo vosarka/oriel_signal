@@ -8,6 +8,13 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-03] feat | MindMemOS dual search for evolutionary memory
+- Each turn searches MindMemOS twice: this person's facts, and ORIEL working views. Prompt gets up to 2+2 lines. Still no transcripts. Official text stays in TiDB.
+
+## [2026-09-03] feat | Oriel live mind + working views
+- Working-session directive: present, allowed to revise a prior take in one sentence. Interpretation, not Genesis.
+- Extraction may store one `ORIEL working view:` line per real turn; MindMemOS indexes it with the rest. Retrieved separately from user memories.
+
 ## [2026-09-01] feat | Natural memory: 3 relevant, not 12 dumped
 - Chat retrieval now asks MindMemOS which of this person's stored memories match this sentence, hydrates the official TiDB rows, and injects at most 3.
 - If MindMemOS is off or down, TiDB still supplies 3 by importance. Transcripts are not sent.

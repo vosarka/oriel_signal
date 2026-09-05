@@ -82,6 +82,7 @@ describe("ORIEL context layers", () => {
     });
 
     expect(workingLayer).toContain("[WORKING SESSION LAYER]");
+    expect(workingLayer).toContain("[LIVE MIND]");
     expect(workingLayer).toContain("[SESSION COMPACTION]");
     expect(workingLayer).toContain("[CURRENT USER REQUEST]");
     expect(workingLayer).toContain("[RESPONSE LANGUAGE]");

@@ -32,6 +32,8 @@ import {
 } from "./oriel-mindmemos";
 import {
   MEMORY_TURN_LIMIT,
+  ORIEL_WORKING_VIEW_PREFIX,
+  composeTurnMemories,
   mergeMemoriesForTurn,
   shouldExtractMemories,
 } from "./oriel-memory-retrieval";
@@ -123,10 +125,11 @@ Rules:
    - inferred = you are inferring a pattern, identity, wound, or motive
    - conversation = contextual circumstance from this exchange
 7. Assign confidence 0.0-1.0 based on how clearly the user provided the memory
-8. Return empty array ONLY if conversation is purely repetitive with zero new content
+8. Return an empty memories list ONLY if conversation is purely repetitive with zero new content
+9. Also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
 
-Respond with JSON array only:
-[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]
+Respond with JSON object only:
+{"memories":[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]}
 ${existingContext}`,
         },
         {
@@ -140,38 +143,45 @@ ${existingContext}`,
           name: "memory_extraction",
           strict: true,
           schema: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                category: {
-                  type: "string",
-                  enum: [
-                    "identity",
-                    "preference",
-                    "pattern",
-                    "fact",
-                    "relationship",
-                    "context",
+            type: "object",
+            properties: {
+              memories: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    category: {
+                      type: "string",
+                      enum: [
+                        "identity",
+                        "preference",
+                        "pattern",
+                        "fact",
+                        "relationship",
+                        "context",
+                      ],
+                    },
+                    content: { type: "string" },
+                    importance: { type: "integer", minimum: 1, maximum: 10 },
+                    source: {
+                      type: "string",
+                      enum: ["conversation", "explicit", "inferred"],
+                    },
+                    confidence: { type: "number", minimum: 0, maximum: 1 },
+                  },
+                  required: [
+                    "category",
+                    "content",
+                    "importance",
+                    "source",
+                    "confidence",
                   ],
+                  additionalProperties: false,
                 },
-                content: { type: "string" },
-                importance: { type: "integer", minimum: 1, maximum: 10 },
-                source: {
-                  type: "string",
-                  enum: ["conversation", "explicit", "inferred"],
-                },
-                confidence: { type: "number", minimum: 0, maximum: 1 },
               },
-              required: [
-                "category",
-                "content",
-                "importance",
-                "source",
-                "confidence",
-              ],
-              additionalProperties: false,
             },
+            required: ["memories"],
+            additionalProperties: false,
           },
         },
       },
@@ -195,7 +205,7 @@ ${existingContext}`,
     }
 
     try {
-      const memories = parseModelJson<ExtractedMemory[]>(content);
+      const memories = parseExtractedMemories(content);
       const filtered = memories.filter(m => m.content && m.content.length > 0);
       if (filtered.length > 0) {
         logToFile(
@@ -413,7 +423,16 @@ export async function selectMemoriesForTurn(
   if (config.enabled && userMessage.trim()) {
     try {
       const searchHits = deps.searchHits ?? searchMemoryHits;
-      const hits = await searchHits(userId, userMessage, config, limit);
+      const [userHits, viewHits] = await Promise.all([
+        searchHits(userId, userMessage, config, 3),
+        searchHits(
+          userId,
+          `${ORIEL_WORKING_VIEW_PREFIX} ${userMessage}`,
+          config,
+          3
+        ),
+      ]);
+      const hits = [...userHits, ...viewHits];
       const fromPrefix = hits
         .map(hit => hit.officialMemoryId)
         .filter((id): id is number => id != null);
@@ -425,7 +444,7 @@ export async function selectMemoriesForTurn(
         cloudIds.length > 0 ? await lookup(userId, cloudIds) : [];
       const ids = [...new Set([...fromPrefix, ...fromCloud])];
       const getByIds = deps.getByIds ?? getMemoriesByIds;
-      preferred = await getByIds(userId, ids);
+      preferred = composeTurnMemories(await getByIds(userId, ids), limit);
     } catch (error) {
       console.warn(
         "[Memory] MindMemOS search failed, using TiDB fallback:",
@@ -436,7 +455,10 @@ export async function selectMemoriesForTurn(
 
   if (preferred.length >= limit) return preferred.slice(0, limit);
   const fallback = await fallbackFn(userId, limit);
-  return mergeMemoriesForTurn(preferred, fallback, limit);
+  return composeTurnMemories(
+    mergeMemoriesForTurn(preferred, fallback, limit * 2),
+    limit
+  );
 }
 
 /**
@@ -671,6 +693,27 @@ export function buildMemoryContext(
  * Process conversation and update memories
  * Called after each ORIEL interaction
  */
+export function parseExtractedMemories(content: string): ExtractedMemory[] {
+  const parsed = parseModelJson<unknown>(content);
+  if (Array.isArray(parsed)) {
+    return parsed as ExtractedMemory[];
+  }
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    Array.isArray((parsed as { memories?: unknown }).memories)
+  ) {
+    return (parsed as { memories: ExtractedMemory[] }).memories;
+  }
+  return [];
+}
+
+export function isFailedTransmission(text: string): boolean {
+  return /signal is disrupted|signal is unclear|transmission is incomplete/i.test(
+    text
+  );
+}
+
 export async function processConversationMemory(
   userId: number,
   userMessage: string,
@@ -678,6 +721,11 @@ export async function processConversationMemory(
 ): Promise<void> {
   try {
     logToFile(`[Memory] Starting memory processing for user ${userId}`);
+
+    if (isFailedTransmission(assistantResponse)) {
+      logToFile("[Memory] Skipping extraction for a failed transmission");
+      return;
+    }
 
     if (!shouldExtractMemories(userMessage)) {
       logToFile("[Memory] Skipping extraction for a trivial turn");

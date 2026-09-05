@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  composeTurnMemories,
   encodeOfficialMemoryRef,
   formatPersonCard,
   formatRememberedNow,
@@ -7,7 +8,10 @@ import {
   parseOfficialMemoryId,
   shouldExtractMemories,
 } from "./oriel-memory-retrieval";
-import { selectMemoriesForTurn } from "./oriel-memory";
+import {
+  parseExtractedMemories,
+  selectMemoriesForTurn,
+} from "./oriel-memory";
 
 describe("memory retrieval helpers", () => {
   it("encodes and parses the official memory id", () => {
@@ -24,6 +28,21 @@ describe("memory retrieval helpers", () => {
     expect(
       shouldExtractMemories("I prefer short replies when we talk about the site.")
     ).toBe(true);
+  });
+
+  it("keeps two user facts and two Oriel working views", () => {
+    const mixed = composeTurnMemories(
+      [
+        { id: 1, content: "prefers short replies" },
+        { id: 2, content: "lives with two cats" },
+        { id: 3, content: "working on a book" },
+        { id: 4, content: "ORIEL working view: channeling is permission" },
+        { id: 5, content: "ORIEL working view: body before technique" },
+        { id: 6, content: "ORIEL working view: older take" },
+      ],
+      4
+    );
+    expect(mixed.map(row => row.id)).toEqual([1, 2, 4, 5]);
   });
 
   it("keeps search hits first and caps at three", () => {
@@ -53,6 +72,39 @@ describe("memory retrieval helpers", () => {
     expect(formatRememberedNow(["prefers short replies"])).toContain(
       "- prefers short replies"
     );
+  });
+
+  it("separates Oriel's own working views so they can be revised", () => {
+    const block = formatRememberedNow([
+      "prefers short replies",
+      "ORIEL working view: channeling is permission, not force",
+    ]);
+    expect(block).toContain("prefers short replies");
+    expect(block).toContain("Your own prior working views");
+    expect(block).toContain("channeling is permission");
+  });
+});
+
+describe("parseExtractedMemories", () => {
+  it("reads Groq object wrapper and legacy top-level arrays", () => {
+    expect(
+      parseExtractedMemories(
+        '{"memories":[{"category":"preference","content":"prefers short replies","importance":6,"source":"explicit","confidence":0.9}]}'
+      )
+    ).toEqual([
+      {
+        category: "preference",
+        content: "prefers short replies",
+        importance: 6,
+        source: "explicit",
+        confidence: 0.9,
+      },
+    ]);
+    expect(
+      parseExtractedMemories(
+        '[{"category":"fact","content":"lives in Lisbon","importance":5,"source":"conversation","confidence":0.8}]'
+      )
+    ).toHaveLength(1);
   });
 });
 
@@ -84,6 +136,25 @@ describe("selectMemoriesForTurn", () => {
     });
 
     expect(selected.map(memory => memory.id)).toEqual([91, 7, 8]);
+  });
+
+  it("asks MindMemOS for user facts and Oriel working views", async () => {
+    const queries: string[] = [];
+    await selectMemoriesForTurn(12, "channeling", 4, {
+      config: {
+        enabled: true,
+        baseUrl: "http://127.0.0.1:8000",
+        apiKey: "test-key",
+      },
+      searchHits: async (_userId, query) => {
+        queries.push(query);
+        return [];
+      },
+      fallback: async () => [],
+    });
+    expect(queries).toHaveLength(2);
+    expect(queries[0]).toBe("channeling");
+    expect(queries[1]).toContain("ORIEL working view:");
   });
 
   it("falls back to TiDB when search is disabled", async () => {

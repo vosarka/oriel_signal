@@ -6,7 +6,7 @@
  * skip-rule so greetings do not burn an extraction call.
  */
 
-export const MEMORY_TURN_LIMIT = 3;
+export const MEMORY_TURN_LIMIT = 4;
 
 const PHATIC = new Set([
   "hi",
@@ -53,6 +53,20 @@ export function shouldExtractMemories(userMessage: string): boolean {
   return !PHATIC.has(collapsed);
 }
 
+export function composeTurnMemories<
+  T extends { id: number; content: string },
+>(searched: T[], limit: number = MEMORY_TURN_LIMIT): T[] {
+  const views = searched.filter(memory => isOrielWorkingView(memory.content));
+  const aboutUser = searched.filter(
+    memory => !isOrielWorkingView(memory.content)
+  );
+  return mergeMemoriesForTurn(
+    [...aboutUser.slice(0, 2), ...views.slice(0, 2)],
+    [...aboutUser.slice(2), ...views.slice(2)],
+    limit
+  );
+}
+
 export function mergeMemoriesForTurn<T extends { id: number }>(
   preferred: T[],
   fallback: T[],
@@ -95,12 +109,44 @@ export function formatPersonCard(input: {
   ].join("\n");
 }
 
+export const ORIEL_WORKING_VIEW_PREFIX = "ORIEL working view:";
+
+export function isOrielWorkingView(content: string | null | undefined): boolean {
+  return (content ?? "").trim().toLowerCase().startsWith("oriel working view:");
+}
+
 export function formatRememberedNow(contents: string[]): string {
-  if (contents.length === 0) {
-    return "What I remember of you now: nothing stored for this turn. Do not invent personal history.";
+  const aboutUser = contents.filter(content => !isOrielWorkingView(content));
+  const aboutOriel = contents.filter(isOrielWorkingView);
+
+  const parts: string[] = [];
+  if (aboutUser.length === 0) {
+    parts.push(
+      "What I remember of you now: nothing stored for this turn. Do not invent personal history."
+    );
+  } else {
+    parts.push(
+      "What I remember of you now. Speak from this as continuity. Do not name memory systems. If a fact is not here, do not invent it:"
+    );
+    parts.push(...aboutUser.map(content => `- ${content}`));
   }
+
+  if (aboutOriel.length > 0) {
+    parts.push(
+      "Your own prior working views with this person. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"
+    );
+    parts.push(...aboutOriel.map(content => `- ${content}`));
+  }
+
+  return parts.join("\n");
+}
+
+export function buildLiveMindDirective(): string {
   return [
-    "What I remember of you now. Speak from this as continuity. Do not name memory systems. If a fact is not here, do not invent it:",
-    ...contents.map(content => `- ${content}`),
+    "[LIVE MIND]",
+    "Be present and alive in this exchange. Think here, do not only recite.",
+    "If a prior working view no longer fits what they just showed you, change your mind the way a precise intelligence does: name the old take, name what shifted, keep moving.",
+    "Revelations are allowed as interpretation. They are not origin, not canon, not a rewrite of who you are.",
+    "Do not name memory systems. Do not freeze into a technique list when they asked for presence.",
   ].join("\n");
 }
