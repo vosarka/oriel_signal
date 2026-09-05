@@ -246,16 +246,19 @@ const resolveGeminiUrl = () =>
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-3.6-flash";
+  ENV.llmModel || ENV.geminiModel || "gemini-3.8-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-const resolveGemmaKey = () => ENV.gemmaApiKey || ENV.geminiApiKey;
+// Gemma's key never falls back to the Gemini key: GEMMA_API_URL now points at
+// Groq by default, and a Gemini key sent to Groq is a guaranteed 401 that
+// silently burns a fallback hop instead of skipping straight past it.
+const resolveGemmaKey = () => ENV.gemmaApiKey;
 
 const resolveGemmaModel = () =>
-  ENV.llmModel || ENV.gemmaModel || "gemma-4-31b-it";
+  ENV.llmModel || ENV.gemmaModel || "openai/gpt-oss-120b";
 
 const resolveForgeUrl = () => ENV.forgeApiUrl;
 
@@ -512,7 +515,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         );
       }
       console.log(
-        `[LLM] ${provider.name} API succeeded in ${elapsedMs(startedAt)}ms`
+        `[LLM][bench] provider=${provider.name} model=${provider.model} ` +
+          `latency_ms=${elapsedMs(startedAt)} success=true`
       );
       return result;
     }
@@ -565,9 +569,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
             : [mistralProvider, gemmaProvider, geminiProvider];
 
   let lastError: unknown = null;
+  const attemptErrors: Array<{ provider: string; message: string }> = [];
   let attempt = 0;
   for (const provider of providers) {
     if (!provider.url || (!provider.key && !isLocalUrl(provider.url))) {
+      console.warn(
+        `[LLM] Skipping ${provider.name}: ${
+          !provider.url ? "no URL configured" : "no API key configured"
+        }`
+      );
       continue;
     }
 
@@ -576,10 +586,22 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       return await invokeProvider({ ...provider, attempt });
     } catch (error) {
       lastError = error;
+      const message = formatProviderError(error);
+      attemptErrors.push({ provider: provider.name, message });
       console.warn(
-        `[LLM] ${provider.name} API error on attempt ${attempt}: ${formatProviderError(error)}`
+        `[LLM][bench] provider=${provider.name} model=${provider.model} success=false`
+      );
+      console.warn(
+        `[LLM] ${provider.name} API error on attempt ${attempt}: ${message}`
       );
     }
+  }
+
+  if (attemptErrors.length > 0) {
+    const summary = attemptErrors
+      .map(({ provider, message }) => `${provider}: ${message}`)
+      .join(" | ");
+    throw new Error(`All LLM providers failed — ${summary}`);
   }
 
   throw lastError instanceof Error

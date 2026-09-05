@@ -8,6 +8,17 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-05] fix | LLM fallback chain hardening + MindMemOS timeout
+- Backfilling the log entry for the Mistral/Groq migration itself (commit `33663f6`, same day): `invokeLLM` (`server/_core/llm.ts`) now supports a configurable Mistral / Groq (via the `GEMMA_*` env vars) / Gemini / Forge fallback chain selected by `LLM_PROVIDER`, with per-provider timeouts and an empty-assistant-content check so a "successful" but empty completion still falls through to the next provider.
+- Found and fixed while chasing reported "connection problems" after that switch:
+  - `server/oriel-mindmemos.ts` had no timeout on its search/index HTTP calls — since `ORIEL_MINDMEMOS` search runs synchronously before every LLM call, a slow (not just erroring) `mindmemos.cn` could hang an entire chat turn indefinitely. Added a 5s `AbortController` timeout so it now fails fast into the existing TiDB fallback.
+  - `resolveGemmaKey()` used to fall back to `GEMINI_API_KEY` when `GEMMA_API_KEY` was empty — a landmine now that `GEMMA_API_URL` points at Groq, since it would send a Gemini key to Groq as a Bearer token. Removed the fallback.
+  - The Groq leg was pinned to `qwen/qwen3.8-27b`, a preview-tier model on Groq. Swapped to production-tier `llama-3.3-70b-versatile`.
+  - `env.ts`'s default for an unset `LLM_PROVIDER` was `"gemini"` (paid-first), contradicting `llm.ts`'s own "money-safe, paid last" comment. Changed the default to `"mistral"`.
+  - Silent provider skips (missing key/URL) and total-chain-failure errors now log which provider(s) and why, instead of only ever surfacing the last error.
+  - `server/mistral-oriel.ts` (the separate SDK-based Mistral path used by the signature engine / streaming endpoint) hardcoded `mistral-medium-latest` independent of `MISTRAL_MODEL`; now reads the same env value as the main chain.
+- Not changed: provider order (Mistral-first vs Groq-first) is left as-is pending a real latency/success-rate comparison — see `[LLM][bench]` log lines added to `invokeProvider`.
+
 ## [2026-09-03] feat | MindMemOS dual search for evolutionary memory
 - Each turn searches MindMemOS twice: this person's facts, and ORIEL working views. Prompt gets up to 2+2 lines. Still no transcripts. Official text stays in TiDB.
 

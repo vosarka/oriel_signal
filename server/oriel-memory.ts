@@ -296,6 +296,12 @@ type MemoryPersistenceDeps = {
     userId: number,
     memory: ExtractedMemory
   ) => Promise<number | null | void>;
+  // Deliberately unused by persistClassifiedMemoryCandidate below — the chat
+  // consent tray was removed 2026-08-29 and everything above the confidence
+  // floor now auto-stores. This dependency, the orielPendingMemoryCandidates
+  // table, and the oriel.memory.{listPendingCandidates,acceptCandidate,...}
+  // router endpoints are kept as dormant infrastructure for a possible future
+  // consent-gate phase, not dead code — see docs/oriel/PHASE_1_CONTAINMENT.md.
   createPendingMemoryCandidate: typeof createPendingMemoryCandidate;
   indexAcceptedMemory?: (input: {
     memoryId: number;
@@ -648,48 +654,6 @@ Respond with JSON only.`,
 }
 
 /**
- * Build memory context string for injection into ORIEL's prompt
- */
-export function buildMemoryContext(
-  profile: OrielUserProfile | null,
-  memories: OrielMemory[]
-): string {
-  const parts: string[] = [];
-
-  if (profile) {
-    parts.push("=== USER PROFILE ===");
-    if (profile.knownName) parts.push(`Name: ${profile.knownName}`);
-    if (profile.summary) parts.push(`Summary: ${profile.summary}`);
-    if (profile.interests) parts.push(`Interests: ${profile.interests}`);
-    if (profile.communicationStyle)
-      parts.push(`Communication Style: ${profile.communicationStyle}`);
-    if (profile.journeyState)
-      parts.push(`Journey State: ${profile.journeyState}`);
-    parts.push(`Interactions: ${profile.interactionCount}`);
-    parts.push("");
-  }
-
-  if (memories.length > 0) {
-    parts.push("=== MEMORIES ===");
-    const groupedMemories: Record<string, string[]> = {};
-
-    for (const memory of memories) {
-      if (!groupedMemories[memory.category]) {
-        groupedMemories[memory.category] = [];
-      }
-      groupedMemories[memory.category].push(memory.content);
-    }
-
-    for (const [category, contents] of Object.entries(groupedMemories)) {
-      parts.push(`[${category.toUpperCase()}]`);
-      contents.forEach(c => parts.push(`- ${c}`));
-    }
-  }
-
-  return parts.join("\n");
-}
-
-/**
  * Process conversation and update memories
  * Called after each ORIEL interaction
  */
@@ -785,20 +749,5 @@ export async function processConversationMemory(
     logToFile(
       "[Memory] ✗ Failed to process conversation memory: " + String(error)
     );
-  }
-}
-
-/**
- * Get full memory context for a user
- * Used to inject into ORIEL's system prompt
- */
-export async function getMemoryContextForUser(userId: number): Promise<string> {
-  try {
-    const profile = await getOrCreateUserProfile(userId);
-    const memories = await getRelevantMemories(userId, 15);
-    return buildMemoryContext(profile, memories);
-  } catch (error) {
-    console.error("[Memory] Failed to get memory context:", error);
-    return "";
   }
 }

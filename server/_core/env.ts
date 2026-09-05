@@ -25,7 +25,10 @@ const resolveLlmProvider = () =>
   llmProviderEnv === "forge" ||
   llmProviderEnv === "mistral"
     ? llmProviderEnv
-    : "gemini";
+    // Money-safe default: an unset/invalid LLM_PROVIDER should never
+    // silently prefer the paid Gemini leg. Keep this in sync with
+    // server/_core/llm.ts's own fallback ordering.
+    : "mistral";
 const resolveLlmRequestTimeoutMs = () =>
   Number.isFinite(llmRequestTimeoutEnv) && llmRequestTimeoutEnv > 0
     ? Math.max(1, Math.floor(llmRequestTimeoutEnv))

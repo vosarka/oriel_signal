@@ -21,10 +21,8 @@ import {
   formatRememberedNow,
 } from "./oriel-memory-retrieval";
 import {
-  orielMemories,
   orielUserProfiles,
   orielOversoulPatterns,
-  type OrielMemory,
   type OrielOversoulPattern,
 } from "../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -397,23 +395,6 @@ export async function buildStaticSignatureContext(
 // UNIFIED MEMORY MATRIX: COMPLETE CONTEXT
 // ============================================================================
 
-/**
- * Build complete UMM context for ORIEL.
- * Default live behavior combines only VRC Blueprint + Fractal Thread.
- * Oversoul wisdom is available, but opt-in so global doctrine does not leak
- * into ordinary one-to-one exchanges by default.
- */
-export async function buildUMMContext(userId: number): Promise<string> {
-  try {
-    return await buildUMMContextWithOptions(userId, {
-      includeOversoulWisdom: false,
-    });
-  } catch (error) {
-    console.error("[UMM] Failed to build UMM context:", error);
-    return "";
-  }
-}
-
 export async function buildUMMContextWithOptions(
   userId: number,
   options: { includeOversoulWisdom?: boolean; userMessage?: string } = {}
@@ -526,78 +507,5 @@ export async function processConversationThroughUMM(
     );
   } catch (error) {
     console.error("[UMM] Failed to process conversation through UMM:", error);
-  }
-}
-
-/**
- * Verify memory continuity for a user
- * Returns diagnostic information about memory state
- */
-export async function verifyMemoryContinuity(userId: number): Promise<{
-  hasProfile: boolean;
-  memoryCount: number;
-  lastMemoryDate: Date | null;
-  resonanceSignature: string;
-  status: "perfect" | "partial" | "gap";
-}> {
-  try {
-    const db = await getDb();
-    if (!db) {
-      return {
-        hasProfile: false,
-        memoryCount: 0,
-        lastMemoryDate: null,
-        resonanceSignature: "",
-        status: "gap",
-      };
-    }
-
-    const profile = await db
-      .select()
-      .from(orielUserProfiles)
-      .where(eq(orielUserProfiles.userId, userId))
-      .limit(1);
-
-    const memories = await db
-      .select()
-      .from(orielMemories)
-      .where(eq(orielMemories.userId, userId))
-      .orderBy(desc(orielMemories.createdAt))
-      .limit(1);
-
-    const hasProfile = profile.length > 0;
-    const memoryCount = memories.length;
-    const lastMemoryDate = memories.length > 0 ? memories[0].createdAt : null;
-    const resonanceSignature = await generateResonanceSignature(userId);
-
-    // Determine status
-    let status: "perfect" | "partial" | "gap" = "gap";
-    if (hasProfile && memoryCount > 10 && lastMemoryDate) {
-      const daysSinceLastMemory = Math.floor(
-        (Date.now() - lastMemoryDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysSinceLastMemory <= 1) {
-        status = "perfect";
-      } else if (daysSinceLastMemory <= 7) {
-        status = "partial";
-      }
-    }
-
-    return {
-      hasProfile,
-      memoryCount,
-      lastMemoryDate,
-      resonanceSignature,
-      status,
-    };
-  } catch (error) {
-    console.error("[UMM] Failed to verify memory continuity:", error);
-    return {
-      hasProfile: false,
-      memoryCount: 0,
-      lastMemoryDate: null,
-      resonanceSignature: "",
-      status: "gap",
-    };
   }
 }

@@ -54,6 +54,30 @@ function headers(apiKey: string): HeadersInit {
   };
 }
 
+// This search runs synchronously before every LLM call (see selectMemoriesForTurn),
+// so a slow-but-not-erroring endpoint must not be allowed to hang a whole chat turn.
+const MINDMEMOS_TIMEOUT_MS = 5_000;
+
+async function fetchWithTimeout(
+  fetchImpl: typeof fetch,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchImpl(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`MindMemOS request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function indexAcceptedMemory(
   input: MindMemOSAddInput,
   config: MindMemOSClientConfig,
@@ -65,7 +89,8 @@ export async function indexAcceptedMemory(
   }
 
   const fetchImpl = config.fetchImpl ?? fetch;
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(
+    fetchImpl,
     `${normalizeBaseUrl(config.baseUrl)}/v1/memory/add`,
     {
       method: "POST",
@@ -81,7 +106,8 @@ export async function indexAcceptedMemory(
         async_mode: "sync",
         mode: "fine",
       }),
-    }
+    },
+    MINDMEMOS_TIMEOUT_MS
   );
 
   if (!response.ok) {
@@ -180,7 +206,8 @@ export async function searchMemoryHits(
   if (!config.enabled || !config.baseUrl || !config.apiKey) return [];
 
   const fetchImpl = config.fetchImpl ?? fetch;
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(
+    fetchImpl,
     `${normalizeBaseUrl(config.baseUrl)}/v1/memory/search`,
     {
       method: "POST",
@@ -190,7 +217,8 @@ export async function searchMemoryHits(
         query,
         top_k: topK,
       }),
-    }
+    },
+    MINDMEMOS_TIMEOUT_MS
   );
 
   if (!response.ok) {
