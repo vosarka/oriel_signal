@@ -246,16 +246,19 @@ const resolveGeminiUrl = () =>
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-3.6-flash";
+  ENV.llmModel || ENV.geminiModel || "gemini-3.8-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-const resolveGemmaKey = () => ENV.gemmaApiKey || ENV.geminiApiKey;
+// Gemma's key never falls back to the Gemini key: GEMMA_API_URL now points at
+// Groq by default, and a Gemini key sent to Groq is a guaranteed 401 that
+// silently burns a fallback hop instead of skipping straight past it.
+const resolveGemmaKey = () => ENV.gemmaApiKey;
 
 const resolveGemmaModel = () =>
-  ENV.llmModel || ENV.gemmaModel || "gemma-4-31b-it";
+  ENV.llmModel || ENV.gemmaModel || "openai/gpt-oss-120b";
 
 const resolveForgeUrl = () => ENV.forgeApiUrl;
 
@@ -263,6 +266,13 @@ const resolveForgeKey = () => ENV.forgeApiKey;
 
 const resolveForgeModel = () =>
   ENV.llmModel || ENV.forgeModel || "gemini-2.5-flash";
+
+const resolveMistralUrl = () =>
+  ENV.mistralApiUrl || "https://api.mistral.ai/v1/chat/completions";
+
+const resolveMistralKey = () => ENV.mistralApiKey;
+
+const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -275,8 +285,48 @@ function usesGeminiThreeSamplingRules(model: string) {
   return /^gemini-3(?:[.-]|$)/i.test(model);
 }
 
+function resolveMaxTokens(providerUrl: string, requested: number): number {
+  const n = Number.isFinite(requested) && requested > 0 ? requested : 2048;
+  // Groq free TPM is tight. Reserving 8192 output tokens stalls the fat Oriel prompt.
+  if (providerUrl.includes("api.groq.com")) {
+    return Math.min(n, 1536);
+  }
+  return Math.min(n, 4096);
+}
+
+function resolveProviderTimeoutMs(provider: {
+  name: string;
+  url: string;
+}): number {
+  const cap = ENV.llmRequestTimeoutMs;
+  let preferred = cap;
+  if (provider.name === "Mistral") preferred = 8_000;
+  else if (provider.url.includes("api.groq.com")) preferred = 20_000;
+  else if (provider.name === "Gemini") preferred = 12_000;
+  return Math.min(cap, preferred);
+}
+
+function hasUsableAssistantContent(result: InvokeResult): boolean {
+  const message = result.choices?.[0]?.message;
+  if (!message) return false;
+  if (message.tool_calls && message.tool_calls.length > 0) return true;
+  const content = message.content;
+  if (typeof content === "string") return content.trim().length > 0;
+  if (Array.isArray(content)) {
+    return content.some(
+      part => part.type === "text" && part.text.trim().length > 0
+    );
+  }
+  return false;
+}
+
 function redactSecrets(text: string) {
-  return [ENV.geminiApiKey, ENV.gemmaApiKey, ENV.forgeApiKey]
+  return [
+    ENV.geminiApiKey,
+    ENV.gemmaApiKey,
+    ENV.forgeApiKey,
+    ENV.mistralApiKey,
+  ]
     .filter(secret => secret.length >= 6)
     .reduce(
       (current, secret) => current.split(secret).join("[redacted]"),
@@ -294,9 +344,16 @@ const assertApiKey = () => {
   const gemmaKey = resolveGemmaKey();
   const gemmaUrl = resolveGemmaUrl();
   const forgeKey = resolveForgeKey();
-  if (!gemmaKey && !geminiKey && !forgeKey && !isLocalUrl(gemmaUrl)) {
+  const mistralKey = resolveMistralKey();
+  if (
+    !gemmaKey &&
+    !geminiKey &&
+    !forgeKey &&
+    !mistralKey &&
+    !isLocalUrl(gemmaUrl)
+  ) {
     throw new Error(
-      "No LLM API key configured. Set GEMMA_API_KEY, GEMINI_API_KEY, BUILT_IN_FORGE_API_KEY, or point GEMMA_API_URL at a local OpenAI-compatible server."
+      "No LLM API key configured. Set MISTRAL_API_KEY, GEMMA_API_KEY, GEMINI_API_KEY, BUILT_IN_FORGE_API_KEY, or point GEMMA_API_URL at a local OpenAI-compatible server."
     );
   }
 };
@@ -355,6 +412,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     toolChoice,
     tool_choice,
     temperature,
+    maxTokens,
+    max_tokens,
     outputSchema,
     output_schema,
     responseFormat,
@@ -377,7 +436,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     basePayload.tool_choice = normalizedToolChoice;
   }
 
-  basePayload.max_tokens = 8192;
+  const requestedMaxTokens = maxTokens ?? max_tokens ?? 2048;
 
   if (temperature !== undefined) {
     basePayload.temperature = temperature;
@@ -416,6 +475,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     const requestPayload: Record<string, unknown> = {
       ...basePayload,
       model: provider.model,
+      max_tokens: resolveMaxTokens(provider.url, requestedMaxTokens),
     };
     if (usesGeminiThreeSamplingRules(provider.model)) {
       delete requestPayload.temperature;
@@ -423,15 +483,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
+    const timeoutMs = resolveProviderTimeoutMs(provider);
     const timeoutPromise = new Promise<Response>((_, reject) => {
       timeout = setTimeout(() => {
         controller.abort();
         reject(
-          new Error(
-            `${provider.name} timed out after ${ENV.llmRequestTimeoutMs}ms`
-          )
+          new Error(`${provider.name} timed out after ${timeoutMs}ms`)
         );
-      }, ENV.llmRequestTimeoutMs);
+      }, timeoutMs);
     });
 
     const requestPromise = fetch(provider.url, {
@@ -449,10 +508,17 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     });
 
     if (response.ok) {
+      const result = (await response.json()) as InvokeResult;
+      if (!hasUsableAssistantContent(result)) {
+        throw new Error(
+          `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
+        );
+      }
       console.log(
-        `[LLM] ${provider.name} API succeeded in ${elapsedMs(startedAt)}ms`
+        `[LLM][bench] provider=${provider.name} model=${provider.model} ` +
+          `latency_ms=${elapsedMs(startedAt)} success=true`
       );
-      return (await response.json()) as InvokeResult;
+      return result;
     }
 
     const errorText = await response.text();
@@ -482,21 +548,36 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     key: resolveForgeKey(),
     model: resolveForgeModel(),
   };
+  const mistralProvider = {
+    name: "Mistral",
+    url: resolveMistralUrl(),
+    key: resolveMistralKey(),
+    model: resolveMistralModel(),
+  };
 
   const selectedProvider = ENV.llmProvider;
+  // Money-safe default for mistral: Mistral → Groq → Gemini (paid last).
   const providers =
-    selectedProvider === "gemma"
-      ? [gemmaProvider, geminiProvider, forgeProvider]
-      : selectedProvider === "forge"
-        ? [forgeProvider, gemmaProvider, geminiProvider]
-        : selectedProvider === "gemini"
-          ? [geminiProvider, gemmaProvider, forgeProvider]
-          : [gemmaProvider, geminiProvider, forgeProvider];
+    selectedProvider === "mistral"
+      ? [mistralProvider, gemmaProvider, geminiProvider]
+      : selectedProvider === "gemma"
+        ? [gemmaProvider, mistralProvider, geminiProvider]
+        : selectedProvider === "forge"
+          ? [forgeProvider, gemmaProvider, geminiProvider]
+          : selectedProvider === "gemini"
+            ? [geminiProvider, gemmaProvider, mistralProvider]
+            : [mistralProvider, gemmaProvider, geminiProvider];
 
   let lastError: unknown = null;
+  const attemptErrors: Array<{ provider: string; message: string }> = [];
   let attempt = 0;
   for (const provider of providers) {
     if (!provider.url || (!provider.key && !isLocalUrl(provider.url))) {
+      console.warn(
+        `[LLM] Skipping ${provider.name}: ${
+          !provider.url ? "no URL configured" : "no API key configured"
+        }`
+      );
       continue;
     }
 
@@ -505,10 +586,22 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       return await invokeProvider({ ...provider, attempt });
     } catch (error) {
       lastError = error;
+      const message = formatProviderError(error);
+      attemptErrors.push({ provider: provider.name, message });
       console.warn(
-        `[LLM] ${provider.name} API error on attempt ${attempt}: ${formatProviderError(error)}`
+        `[LLM][bench] provider=${provider.name} model=${provider.model} success=false`
+      );
+      console.warn(
+        `[LLM] ${provider.name} API error on attempt ${attempt}: ${message}`
       );
     }
+  }
+
+  if (attemptErrors.length > 0) {
+    const summary = attemptErrors
+      .map(({ provider, message }) => `${provider}: ${message}`)
+      .join(" | ");
+    throw new Error(`All LLM providers failed — ${summary}`);
   }
 
   throw lastError instanceof Error
