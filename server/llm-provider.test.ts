@@ -10,10 +10,145 @@ async function importFreshLlm() {
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.resetModules();
 });
 
 describe("LLM provider selection", () => {
+  it.each([
+    ["1", "", 1000],
+    ["Sun, 06 Sep 2026 00:00:01 GMT", "", 1000],
+    ["18", "37.89s", 37890],
+    ["1", "0m2.5s", 2500],
+    ["1", "invalid", 1000],
+  ])(
+    "retries the identical request after a temporary 429 (%s)",
+    async (retryAfter, tokenReset, waitMs) => {
+      process.env.LLM_PROVIDER = "gemma";
+      process.env.GEMMA_API_KEY = "groq-test-key";
+      process.env.GEMMA_API_URL =
+        "https://api.groq.com/openai/v1/chat/completions";
+      process.env.GEMMA_MODEL = "openai/gpt-oss-120b";
+      const { invokeLLM } = await importFreshLlm();
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-06T00:00:00Z"));
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response("rate limited", {
+            status: 429,
+            headers: {
+              "retry-after": retryAfter,
+              "x-ratelimit-reset-tokens": tokenReset,
+            },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              choices: [
+                { message: { role: "assistant", content: "Recovered." } },
+              ],
+            })
+          )
+        );
+      vi.stubGlobal("fetch", fetchMock);
+      const result = invokeLLM({
+        messages: [
+          { role: "system", content: "Keep this exact identity." },
+          { role: "user", content: "hello" },
+        ],
+        temperature: 0.8,
+      }).catch(error => error);
+      await vi.advanceTimersByTimeAsync(waitMs - 1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toMatchObject({
+        choices: [{ message: { content: "Recovered." } }],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[0][0]);
+      expect(fetchMock.mock.calls[1][1].body).toBe(
+        fetchMock.mock.calls[0][1].body
+      );
+    }
+  );
+
+  it.each([
+    ["missing", {}],
+    ["invalid", { "retry-after": "invalid" }],
+    ["long quota reset", { "retry-after": "3600" }],
+    ["zero quota", { "retry-after": "1", "x-ratelimit-limit-req-minute": "0" }],
+    ["retry exhausted", { "retry-after": "0" }],
+  ])("bounds retries and preserves fallback for %s", async (label, headers) => {
+    process.env.LLM_PROVIDER = "gemma";
+    process.env.GEMMA_API_KEY = "groq-test-key";
+    process.env.GEMMA_API_URL =
+      "https://api.groq.com/openai/v1/chat/completions";
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    const { invokeLLM } = await importFreshLlm();
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("api.groq.com")
+        ? new Response("rate limited", {
+            status: 429,
+            headers: headers as HeadersInit,
+          })
+        : new Response(
+            JSON.stringify({
+              choices: [
+                { message: { role: "assistant", content: "Fallback." } },
+              ],
+            })
+          )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      invokeLLM({ messages: [{ role: "user", content: "hello" }] })
+    ).resolves.toMatchObject({
+      choices: [{ message: { content: "Fallback." } }],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(
+      label === "retry exhausted" ? 3 : 2
+    );
+  });
+
+  it.each([200, 500])(
+    "falls back when the HTTP %s body stalls after headers",
+    async status => {
+      process.env.LLM_PROVIDER = "gemma";
+      process.env.LLM_REQUEST_TIMEOUT_MS = "20";
+      process.env.GEMMA_API_KEY = "groq-test-key";
+      process.env.GEMMA_API_URL =
+        "https://api.groq.com/openai/v1/chat/completions";
+      process.env.MISTRAL_API_KEY = "mistral-test-key";
+      const { invokeLLM } = await importFreshLlm();
+      vi.useFakeTimers();
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(new ReadableStream(), { status }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              choices: [
+                { message: { role: "assistant", content: "Fallback." } },
+              ],
+            })
+          )
+        );
+      vi.stubGlobal("fetch", fetchMock);
+      const result = invokeLLM({
+        messages: [{ role: "user", content: "hello" }],
+      });
+      await vi.advanceTimersByTimeAsync(21);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      await expect(result).resolves.toMatchObject({
+        choices: [{ message: { content: "Fallback." } }],
+      });
+    }
+  );
+
   it("defaults to Mistral order when LLM_PROVIDER is not set, falling through to Gemini 3.8 Flash when only Gemini is configured", async () => {
     delete process.env.LLM_PROVIDER;
     delete process.env.LLM_MODEL;

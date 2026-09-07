@@ -1763,3 +1763,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Updated the Founder Edition PayPal Orders v2 adapter to prefer the `payer-action` HATEOAS link returned for `PAYER_ACTION_REQUIRED` wallet orders while retaining `approve` compatibility.
 - Added a regression test matching the current PayPal create-order response shape.
 - Verification: 34/34 focused PayPal tests pass. Repository-wide Vitest passes 787/790 tests; the three failures are unrelated existing page-style, profile-label, and public-terminology assertions.
+
+## [2026-09-06] fix | ORIEL API rate-limit recovery
+- Shared LLM transport retries HTTP 429 once when the provider reports a wait of at most 60 seconds. For Groq, wait for the longer of Retry-After and token-bucket reset: a synthetic live test demonstrated that Retry-After alone could trigger another 429. Zero request quota and longer/unknown waits retain provider fallback.
+- Keep the existing per-attempt timeout active through body reading so stalled responses can fall back. Model selection, provider order, request content, generation parameters, personality, memory logic and UI are unchanged.
+- Verification: 43/43 focused provider and chat tests pass with mocked network/database and dotenv disabled. Two synthetic Groq calls through the corrected transport succeeded; the second recovered from HTTP 429 in 39.379 seconds. This does not establish production capacity or resolve exhausted account quotas. No deployment or database changes.
+- Existing unrelated checks remain red: TypeScript reports `server/routers.ts:951` (`circuitLinks: unknown`), and wiki lint reports 59 missing targets in unchanged pages. This transport fix adds no wiki links.

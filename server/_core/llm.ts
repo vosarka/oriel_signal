@@ -481,53 +481,89 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       delete requestPayload.temperature;
     }
 
-    const controller = new AbortController();
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-    const timeoutMs = resolveProviderTimeoutMs(provider);
-    const timeoutPromise = new Promise<Response>((_, reject) => {
-      timeout = setTimeout(() => {
-        controller.abort();
-        reject(
-          new Error(`${provider.name} timed out after ${timeoutMs}ms`)
+    // ponytail: one retry with at most a minute of backoff; sustained load needs provider quota.
+    for (let retry = 0; ; retry += 1) {
+      const controller = new AbortController();
+      let timeout: ReturnType<typeof setTimeout> | null = null;
+      const timeoutMs = resolveProviderTimeoutMs(provider);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`${provider.name} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+
+      const requestPromise = (async () => {
+        const response = await fetch(provider.url, {
+          method: "POST",
+          headers,
+          signal: controller.signal,
+          body: JSON.stringify(requestPayload),
+        });
+        // Keep the deadline active until the body has arrived, not just the headers.
+        return { response, body: await response.text() };
+      })();
+
+      const { response, body } = await Promise.race([
+        requestPromise,
+        timeoutPromise,
+      ]).finally(() => {
+        if (timeout) clearTimeout(timeout);
+      });
+
+      if (response.ok) {
+        const result = JSON.parse(body) as InvokeResult;
+        if (!hasUsableAssistantContent(result)) {
+          throw new Error(
+            `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
+          );
+        }
+        console.log(
+          `[LLM][bench] provider=${provider.name} model=${provider.model} ` +
+            `latency_ms=${elapsedMs(startedAt)} success=true`
         );
-      }, timeoutMs);
-    });
-
-    const requestPromise = fetch(provider.url, {
-      method: "POST",
-      headers,
-      signal: controller.signal,
-      body: JSON.stringify(requestPayload),
-    });
-
-    const response = await Promise.race([
-      requestPromise,
-      timeoutPromise,
-    ]).finally(() => {
-      if (timeout) clearTimeout(timeout);
-    });
-
-    if (response.ok) {
-      const result = (await response.json()) as InvokeResult;
-      if (!hasUsableAssistantContent(result)) {
-        throw new Error(
-          `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
-        );
+        return result;
       }
-      console.log(
-        `[LLM][bench] provider=${provider.name} model=${provider.model} ` +
-          `latency_ms=${elapsedMs(startedAt)} success=true`
-      );
-      return result;
-    }
 
-    const errorText = await response.text();
-    throw new Error(
-      redactSecrets(
-        `${provider.name} failed after ${elapsedMs(startedAt)}ms: ` +
-          `${response.status} ${response.statusText} – ${errorText}`
-      )
-    );
+      const retryAfter = response.headers.get("retry-after");
+      const retryAfterMs =
+        retryAfter === null || retryAfter.trim() === ""
+          ? NaN
+          : /^\d+(?:\.\d+)?$/.test(retryAfter)
+            ? Number(retryAfter) * 1000
+            : Date.parse(retryAfter) - Date.now();
+      // Groq can reject again at Retry-After; allow its token bucket to refill.
+      const tokenReset = provider.url.includes("api.groq.com")
+        ? response.headers
+            .get("x-ratelimit-reset-tokens")
+            ?.match(/^(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?$/)
+        : null;
+      const tokenResetMs = tokenReset
+        ? (Number(tokenReset[1] ?? 0) * 60 + Number(tokenReset[2] ?? 0)) * 1000
+        : 0;
+      const retryMs = Math.max(retryAfterMs, tokenResetMs);
+      if (
+        response.status === 429 &&
+        retry === 0 &&
+        Number.isFinite(retryMs) &&
+        retryMs >= 0 &&
+        retryMs <= 60_000 &&
+        response.headers.get("x-ratelimit-limit-req-minute") !== "0"
+      ) {
+        console.warn(
+          `[LLM] ${provider.name} rate limited; retrying once after ${retryMs}ms`
+        );
+        await new Promise(resolve => setTimeout(resolve, retryMs));
+        continue;
+      }
+
+      throw new Error(
+        redactSecrets(
+          `${provider.name} failed after ${elapsedMs(startedAt)}ms: ` +
+            `${response.status} ${response.statusText} – ${body}`
+        )
+      );
+    }
   };
 
   const gemmaProvider = {
