@@ -14,7 +14,7 @@ A spiritual intelligence platform built around ORIEL (Omniscient Resonant Intell
 | Styling   | Tailwind CSS 4, Shadcn/ui, Framer Motion                  |
 | Backend   | Express 4, tRPC 11, SuperJSON                             |
 | Database  | Drizzle ORM + MySQL (TiDB Cloud)                          |
-| AI / LLM  | Google Gemini 2.5 Flash                                   |
+| AI / LLM  | Mistral / Groq / Gemini fallback chain (`LLM_PROVIDER`)   |
 | Auth      | Email + Password (bcrypt) · Google OAuth 2.0 · JWT (jose) |
 | Ephemeris | `swisseph-wasm` — Swiss Ephemeris planetary calculations  |
 | Voice     | ElevenLabs TTS                                            |
@@ -39,15 +39,19 @@ PORT=3000
 RUN_MIGRATIONS=false
 APP_BASE_URL=http://localhost:3000
 
-# LLM
-LLM_PROVIDER=gemini
+# LLM — fallback chain order depends on LLM_PROVIDER:
+#   mistral = Mistral → Groq → Gemini (paid last, recommended default)
+#   gemma   = Groq → Mistral → Gemini
+LLM_PROVIDER=mistral
+MISTRAL_API_KEY=...
+MISTRAL_MODEL=mistral-small-latest
+# Groq, via the legacy "Gemma" env var names:
+GEMMA_API_KEY=...
+GEMMA_API_URL=https://api.groq.com/openai/v1/chat/completions
+GEMMA_MODEL=llama-3.3-70b-versatile
+# Paid last-resort fallback:
 GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.6-flash
-# Optional Gemma 4 fallback:
-# LLM_PROVIDER=gemma
-# GEMMA_MODEL=gemma-4-31b-it
-# GEMMA_API_KEY=...       # hosted Google AI Studio/Gemini API path
-# GEMMA_API_URL=...       # optional local OpenAI-compatible endpoint
+GEMINI_MODEL=gemini-3.8-flash
 
 # Google OAuth
 GOOGLE_CLIENT_ID=...
@@ -118,7 +122,7 @@ Browser
   → TanStack Query + tRPC httpBatchLink → /api/trpc
   → Express (server/_core/index.ts)
   → appRouter (server/routers.ts)
-  → Drizzle + MySQL / Gemini / Swiss Ephemeris
+  → Drizzle + MySQL / Mistral·Groq·Gemini / Swiss Ephemeris
 ```
 
 Auth routes (`/api/auth/*`) are Express handlers registered before tRPC. Everything else falls through to Vite in development, or static files in production.

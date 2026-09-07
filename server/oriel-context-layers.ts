@@ -12,6 +12,8 @@ import {
   ORIEL_STABLE_CORE_SOURCE_FILES,
   buildStableCoreManifestSummary,
 } from "../shared/oriel/stable-core/manifest";
+import { buildPlatformBulletinContext } from "./oriel-platform-bulletin";
+import { buildLiveMindDirective } from "./oriel-memory-retrieval";
 
 export interface BuildOrielLayeredContextOptions {
   userId?: number;
@@ -21,6 +23,7 @@ export interface BuildOrielLayeredContextOptions {
   includeUMM?: boolean;
   includeFieldState?: boolean;
   includeWiki?: boolean;
+  includePlatformBulletin?: boolean;
   /**
    * Pre-fetched operator directive (see server/operator-messages.ts). Fetched
    * and consumed by the caller — not by this layer — so the caller also
@@ -71,8 +74,13 @@ export async function buildRetrievalLayer({
   includeRuntimeProfile = true,
   includeUMM = true,
   includeWiki = true,
+  includePlatformBulletin = true,
 }: BuildOrielLayeredContextOptions = {}): Promise<string> {
   const parts: string[] = [];
+
+  if (includePlatformBulletin) {
+    parts.push(buildPlatformBulletinContext());
+  }
 
   if (includeRuntimeProfile) {
     try {
@@ -94,6 +102,7 @@ export async function buildRetrievalLayer({
       const { buildUMMContextWithOptions } = await import("./oriel-umm");
       const ummContext = await buildUMMContextWithOptions(userId, {
         includeOversoulWisdom: true,
+        userMessage,
       });
       if (ummContext) parts.push(ummContext);
     } catch (error) {
@@ -146,6 +155,7 @@ export async function buildWorkingSessionLayer({
     parts.push(trimInline(userMessage, 500));
   }
 
+  parts.push(buildLiveMindDirective());
   parts.push(buildResponseLanguageDirective(userMessage, conversationHistory));
 
   if (userMessage?.trim()) {

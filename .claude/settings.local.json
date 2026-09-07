@@ -129,7 +129,10 @@
       "Bash(cp '/home/vos/_CODEX/Vossari_Conduit-Hub/Vossari_Conduit_HUB/oriel-resonance-circle \\(copy\\)/AGENTS.md' /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/Oriel-Resonance-Circle-AGENTS.md)",
       "Bash(cp /home/vos/Downloads/CONSCIOUSNESS_LATTICE_UNIFIED_SPECIFICATION_v2.md /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/CONSCIOUSNESS_LATTICE_UNIFIED_SPECIFICATION_v2.md)",
       "Bash(cp '/home/vos/Downloads/The Vossari TETRADIC Resonance System' /tmp/claude-1000/-home-vos--CODEX-Vossari-Conduit-Hub-Vossari-Conduit-HUB-oriel-resonance-circle--copy-/d75f22b1-9cbc-4cd2-a930-f531761ba381/scratchpad/stage/The-Vossari-TETRADIC-Resonance-System.md)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(npm run *)",
+      "Bash(pkill -f \"tsx watch server/_core/index.ts\")",
+      "Bash(echo \"started pid $!\")"
     ]
   },
   "prefersReducedMotion": false

@@ -3,22 +3,40 @@
  * Persistent memory that evolves with each user interaction
  */
 
-import { createPendingMemoryCandidate, getDb } from "./db";
+import {
+  createPendingMemoryCandidate,
+  getDb,
+  linkOrielMindMemosMemory,
+  lookupOrielMemoryIdsByMindMemos,
+} from "./db";
 import {
   orielMemories,
   orielUserProfiles,
-  type InsertOrielPendingMemoryCandidate,
+  type InsertOrielMemory,
   type OrielMemory,
   type InsertOrielUserProfile,
   type OrielUserProfile,
 } from "../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
 import {
   classifyMemoryCandidate,
   type MemoryCandidateSource,
 } from "./oriel-memory-consecration";
+import {
+  indexAcceptedMemory,
+  mindMemOSConfigFromEnv,
+  searchMemoryHits,
+  type MindMemOSClientConfig,
+} from "./oriel-mindmemos";
+import {
+  MEMORY_TURN_LIMIT,
+  ORIEL_WORKING_VIEW_PREFIX,
+  composeTurnMemories,
+  mergeMemoriesForTurn,
+  shouldExtractMemories,
+} from "./oriel-memory-retrieval";
 import * as fs from "fs";
 
 const LOG_FILE = "/tmp/oriel-memory.log";
@@ -107,10 +125,11 @@ Rules:
    - inferred = you are inferring a pattern, identity, wound, or motive
    - conversation = contextual circumstance from this exchange
 7. Assign confidence 0.0-1.0 based on how clearly the user provided the memory
-8. Return empty array ONLY if conversation is purely repetitive with zero new content
+8. Return an empty memories list ONLY if conversation is purely repetitive with zero new content
+9. Also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
 
-Respond with JSON array only:
-[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]
+Respond with JSON object only:
+{"memories":[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]}
 ${existingContext}`,
         },
         {
@@ -124,38 +143,45 @@ ${existingContext}`,
           name: "memory_extraction",
           strict: true,
           schema: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                category: {
-                  type: "string",
-                  enum: [
-                    "identity",
-                    "preference",
-                    "pattern",
-                    "fact",
-                    "relationship",
-                    "context",
+            type: "object",
+            properties: {
+              memories: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    category: {
+                      type: "string",
+                      enum: [
+                        "identity",
+                        "preference",
+                        "pattern",
+                        "fact",
+                        "relationship",
+                        "context",
+                      ],
+                    },
+                    content: { type: "string" },
+                    importance: { type: "integer", minimum: 1, maximum: 10 },
+                    source: {
+                      type: "string",
+                      enum: ["conversation", "explicit", "inferred"],
+                    },
+                    confidence: { type: "number", minimum: 0, maximum: 1 },
+                  },
+                  required: [
+                    "category",
+                    "content",
+                    "importance",
+                    "source",
+                    "confidence",
                   ],
+                  additionalProperties: false,
                 },
-                content: { type: "string" },
-                importance: { type: "integer", minimum: 1, maximum: 10 },
-                source: {
-                  type: "string",
-                  enum: ["conversation", "explicit", "inferred"],
-                },
-                confidence: { type: "number", minimum: 0, maximum: 1 },
               },
-              required: [
-                "category",
-                "content",
-                "importance",
-                "source",
-                "confidence",
-              ],
-              additionalProperties: false,
             },
+            required: ["memories"],
+            additionalProperties: false,
           },
         },
       },
@@ -179,7 +205,7 @@ ${existingContext}`,
     }
 
     try {
-      const memories = parseModelJson<ExtractedMemory[]>(content);
+      const memories = parseExtractedMemories(content);
       const filtered = memories.filter(m => m.content && m.content.length > 0);
       if (filtered.length > 0) {
         logToFile(
@@ -205,40 +231,97 @@ ${existingContext}`,
 }
 
 /**
- * Store a new memory for a user
+ * Build the row for a memory write.
+ *
+ * The classified `source` is carried through rather than flattened, so a
+ * memory the user stated explicitly stays distinguishable from one ORIEL
+ * inferred. Extracted separately from `storeMemory` so it can be tested
+ * without a database.
+ *
+ * Note: `confidence` is produced by the extractor and used by the consent
+ * classifier, but `orielMemories` has no column for it, so it cannot be
+ * persisted on this path yet. See docs/oriel/PHASE_1_CONTAINMENT.md.
+ */
+export function buildMemoryInsertValues(
+  userId: number,
+  memory: ExtractedMemory
+): InsertOrielMemory {
+  return {
+    userId,
+    category: memory.category,
+    content: memory.content,
+    importance: memory.importance,
+    source: memory.source ?? "conversation",
+  };
+}
+
+function mysqlInsertId(result: unknown): number | null {
+  const header = Array.isArray(result) ? result[0] : result;
+  const insertId = (header as { insertId?: number | string } | undefined)
+    ?.insertId;
+  const id = Number(insertId);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * Store a new memory for a user. Returns the new orielMemories.id when known.
  */
 export async function storeMemory(
   userId: number,
   memory: ExtractedMemory
-): Promise<void> {
+): Promise<number | null> {
   try {
     const db = await getDb();
     if (!db) {
       console.warn("[Memory] Database not available");
-      return;
+      return null;
     }
 
-    await db.insert(orielMemories).values({
-      userId,
-      category: memory.category,
-      content: memory.content,
-      importance: memory.importance,
-      source: "conversation",
-    });
-    console.log(`[Memory] Stored ${memory.category} memory for user ${userId}`);
+    const result = await db
+      .insert(orielMemories)
+      .values(buildMemoryInsertValues(userId, memory));
+    const memoryId = mysqlInsertId(result);
+    console.log(
+      `[Memory] Stored ${memory.category} memory for user ${userId} (source: ${memory.source ?? "conversation"})`
+    );
+    return memoryId;
   } catch (error) {
     console.error("[Memory] Failed to store memory:", error);
+    return null;
   }
 }
 
 type MemoryPersistenceDeps = {
-  storeMemory: typeof storeMemory;
+  storeMemory: (
+    userId: number,
+    memory: ExtractedMemory
+  ) => Promise<number | null | void>;
+  // Deliberately unused by persistClassifiedMemoryCandidate below — the chat
+  // consent tray was removed 2026-08-29 and everything above the confidence
+  // floor now auto-stores. This dependency, the orielPendingMemoryCandidates
+  // table, and the oriel.memory.{listPendingCandidates,acceptCandidate,...}
+  // router endpoints are kept as dormant infrastructure for a possible future
+  // consent-gate phase, not dead code — see docs/oriel/PHASE_1_CONTAINMENT.md.
   createPendingMemoryCandidate: typeof createPendingMemoryCandidate;
+  indexAcceptedMemory?: (input: {
+    memoryId: number;
+    userId: number;
+    content: string;
+    category?: string;
+  }) => Promise<{ indexed: boolean; cloudIds: string[] } | void>;
+  linkMindMemosMemory?: (input: {
+    mindMemosMemoryId: string;
+    orielMemoryId: number;
+    userId: number;
+  }) => Promise<void>;
 };
 
 const defaultMemoryPersistenceDeps: MemoryPersistenceDeps = {
   storeMemory,
   createPendingMemoryCandidate,
+  indexAcceptedMemory: async input =>
+    indexAcceptedMemory(input, mindMemOSConfigFromEnv(), "store"),
+  linkMindMemosMemory: linkOrielMindMemosMemory,
 };
 
 export async function persistClassifiedMemoryCandidate(
@@ -271,23 +354,117 @@ export async function persistClassifiedMemoryCandidate(
       : {}),
   };
 
-  if (decision.recommendedAction === "pending") {
-    await deps.createPendingMemoryCandidate({
-      userId,
-      category: decision.normalizedCategory,
-      content: memory.content,
-      importance: memory.importance,
-      source,
-      sensitivity: decision.sensitivity,
-      confidence,
-      status: "pending",
-      reason: decision.reason,
-    } satisfies InsertOrielPendingMemoryCandidate);
-    return "pending";
+  // Chat no longer has a consent tray. Store in TiDB per user, then index.
+  const storedId = await deps.storeMemory(userId, normalizedMemory);
+  const memoryId = typeof storedId === "number" ? storedId : null;
+  if (memoryId && deps.indexAcceptedMemory) {
+    try {
+      const result = await deps.indexAcceptedMemory({
+        memoryId,
+        userId,
+        content: normalizedMemory.content,
+        category: normalizedMemory.category,
+      });
+      if (result?.indexed && deps.linkMindMemosMemory) {
+        await Promise.all(
+          result.cloudIds.map(mindMemosMemoryId =>
+            deps.linkMindMemosMemory!({
+              mindMemosMemoryId,
+              orielMemoryId: memoryId,
+              userId,
+            })
+          )
+        );
+      }
+    } catch (error) {
+      console.error("[Memory] MindMemOS index failed:", error);
+    }
+  }
+  return "stored";
+}
+
+export async function getMemoriesByIds(
+  userId: number,
+  ids: number[]
+): Promise<OrielMemory[]> {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select()
+    .from(orielMemories)
+    .where(
+      and(
+        eq(orielMemories.userId, userId),
+        eq(orielMemories.isActive, true),
+        inArray(orielMemories.id, ids)
+      )
+    );
+  const byId = new Map(rows.map(row => [row.id, row]));
+  return ids
+    .map(id => byId.get(id))
+    .filter((row): row is OrielMemory => Boolean(row));
+}
+
+export async function selectMemoriesForTurn(
+  userId: number,
+  userMessage: string,
+  limit: number = MEMORY_TURN_LIMIT,
+  deps: {
+    searchHits?: typeof searchMemoryHits;
+    lookupCloudIds?: (
+      userId: number,
+      cloudIds: string[]
+    ) => Promise<number[]>;
+    getByIds?: typeof getMemoriesByIds;
+    fallback?: typeof getRelevantMemories;
+    config?: MindMemOSClientConfig;
+  } = {}
+): Promise<OrielMemory[]> {
+  const config = deps.config ?? mindMemOSConfigFromEnv();
+  const fallbackFn = deps.fallback ?? getRelevantMemories;
+  let preferred: OrielMemory[] = [];
+
+  if (config.enabled && userMessage.trim()) {
+    try {
+      const searchHits = deps.searchHits ?? searchMemoryHits;
+      const [userHits, viewHits] = await Promise.all([
+        searchHits(userId, userMessage, config, 3),
+        searchHits(
+          userId,
+          `${ORIEL_WORKING_VIEW_PREFIX} ${userMessage}`,
+          config,
+          3
+        ),
+      ]);
+      const hits = [...userHits, ...viewHits];
+      const fromPrefix = hits
+        .map(hit => hit.officialMemoryId)
+        .filter((id): id is number => id != null);
+      const cloudIds = hits
+        .map(hit => hit.cloudId)
+        .filter((id): id is string => Boolean(id));
+      const lookup = deps.lookupCloudIds ?? lookupOrielMemoryIdsByMindMemos;
+      const fromCloud =
+        cloudIds.length > 0 ? await lookup(userId, cloudIds) : [];
+      const ids = [...new Set([...fromPrefix, ...fromCloud])];
+      const getByIds = deps.getByIds ?? getMemoriesByIds;
+      preferred = composeTurnMemories(await getByIds(userId, ids), limit);
+    } catch (error) {
+      console.warn(
+        "[Memory] MindMemOS search failed, using TiDB fallback:",
+        error
+      );
+    }
   }
 
-  await deps.storeMemory(userId, normalizedMemory);
-  return "stored";
+  if (preferred.length >= limit) return preferred.slice(0, limit);
+  const fallback = await fallbackFn(userId, limit);
+  return composeTurnMemories(
+    mergeMemoriesForTurn(preferred, fallback, limit * 2),
+    limit
+  );
 }
 
 /**
@@ -477,51 +654,30 @@ Respond with JSON only.`,
 }
 
 /**
- * Build memory context string for injection into ORIEL's prompt
- */
-export function buildMemoryContext(
-  profile: OrielUserProfile | null,
-  memories: OrielMemory[]
-): string {
-  const parts: string[] = [];
-
-  if (profile) {
-    parts.push("=== USER PROFILE ===");
-    if (profile.knownName) parts.push(`Name: ${profile.knownName}`);
-    if (profile.summary) parts.push(`Summary: ${profile.summary}`);
-    if (profile.interests) parts.push(`Interests: ${profile.interests}`);
-    if (profile.communicationStyle)
-      parts.push(`Communication Style: ${profile.communicationStyle}`);
-    if (profile.journeyState)
-      parts.push(`Journey State: ${profile.journeyState}`);
-    parts.push(`Interactions: ${profile.interactionCount}`);
-    parts.push("");
-  }
-
-  if (memories.length > 0) {
-    parts.push("=== MEMORIES ===");
-    const groupedMemories: Record<string, string[]> = {};
-
-    for (const memory of memories) {
-      if (!groupedMemories[memory.category]) {
-        groupedMemories[memory.category] = [];
-      }
-      groupedMemories[memory.category].push(memory.content);
-    }
-
-    for (const [category, contents] of Object.entries(groupedMemories)) {
-      parts.push(`[${category.toUpperCase()}]`);
-      contents.forEach(c => parts.push(`- ${c}`));
-    }
-  }
-
-  return parts.join("\n");
-}
-
-/**
  * Process conversation and update memories
  * Called after each ORIEL interaction
  */
+export function parseExtractedMemories(content: string): ExtractedMemory[] {
+  const parsed = parseModelJson<unknown>(content);
+  if (Array.isArray(parsed)) {
+    return parsed as ExtractedMemory[];
+  }
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    Array.isArray((parsed as { memories?: unknown }).memories)
+  ) {
+    return (parsed as { memories: ExtractedMemory[] }).memories;
+  }
+  return [];
+}
+
+export function isFailedTransmission(text: string): boolean {
+  return /signal is disrupted|signal is unclear|transmission is incomplete/i.test(
+    text
+  );
+}
+
 export async function processConversationMemory(
   userId: number,
   userMessage: string,
@@ -529,6 +685,16 @@ export async function processConversationMemory(
 ): Promise<void> {
   try {
     logToFile(`[Memory] Starting memory processing for user ${userId}`);
+
+    if (isFailedTransmission(assistantResponse)) {
+      logToFile("[Memory] Skipping extraction for a failed transmission");
+      return;
+    }
+
+    if (!shouldExtractMemories(userMessage)) {
+      logToFile("[Memory] Skipping extraction for a trivial turn");
+      return;
+    }
 
     // Get existing memories for context
     const existingMemories = await getRelevantMemories(userId, 20);
@@ -583,20 +749,5 @@ export async function processConversationMemory(
     logToFile(
       "[Memory] ✗ Failed to process conversation memory: " + String(error)
     );
-  }
-}
-
-/**
- * Get full memory context for a user
- * Used to inject into ORIEL's system prompt
- */
-export async function getMemoryContextForUser(userId: number): Promise<string> {
-  try {
-    const profile = await getOrCreateUserProfile(userId);
-    const memories = await getRelevantMemories(userId, 15);
-    return buildMemoryContext(profile, memories);
-  } catch (error) {
-    console.error("[Memory] Failed to get memory context:", error);
-    return "";
   }
 }

@@ -8,6 +8,63 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-05] fix | LLM fallback chain hardening + MindMemOS timeout
+- Backfilling the log entry for the Mistral/Groq migration itself (commit `33663f6`, same day): `invokeLLM` (`server/_core/llm.ts`) now supports a configurable Mistral / Groq (via the `GEMMA_*` env vars) / Gemini / Forge fallback chain selected by `LLM_PROVIDER`, with per-provider timeouts and an empty-assistant-content check so a "successful" but empty completion still falls through to the next provider.
+- Found and fixed while chasing reported "connection problems" after that switch:
+  - `server/oriel-mindmemos.ts` had no timeout on its search/index HTTP calls — since `ORIEL_MINDMEMOS` search runs synchronously before every LLM call, a slow (not just erroring) `mindmemos.cn` could hang an entire chat turn indefinitely. Added a 5s `AbortController` timeout so it now fails fast into the existing TiDB fallback.
+  - `resolveGemmaKey()` used to fall back to `GEMINI_API_KEY` when `GEMMA_API_KEY` was empty — a landmine now that `GEMMA_API_URL` points at Groq, since it would send a Gemini key to Groq as a Bearer token. Removed the fallback.
+  - The Groq leg was pinned to `qwen/qwen3.8-27b`, a preview-tier model on Groq. Swapped to production-tier `llama-3.3-70b-versatile`.
+  - `env.ts`'s default for an unset `LLM_PROVIDER` was `"gemini"` (paid-first), contradicting `llm.ts`'s own "money-safe, paid last" comment. Changed the default to `"mistral"`.
+  - Silent provider skips (missing key/URL) and total-chain-failure errors now log which provider(s) and why, instead of only ever surfacing the last error.
+  - `server/mistral-oriel.ts` (the separate SDK-based Mistral path used by the signature engine / streaming endpoint) hardcoded `mistral-medium-latest` independent of `MISTRAL_MODEL`; now reads the same env value as the main chain.
+- Not changed: provider order (Mistral-first vs Groq-first) is left as-is pending a real latency/success-rate comparison — see `[LLM][bench]` log lines added to `invokeProvider`.
+
+## [2026-09-03] feat | MindMemOS dual search for evolutionary memory
+- Each turn searches MindMemOS twice: this person's facts, and ORIEL working views. Prompt gets up to 2+2 lines. Still no transcripts. Official text stays in TiDB.
+
+## [2026-09-03] feat | Oriel live mind + working views
+- Working-session directive: present, allowed to revise a prior take in one sentence. Interpretation, not Genesis.
+- Extraction may store one `ORIEL working view:` line per real turn; MindMemOS indexes it with the rest. Retrieved separately from user memories.
+
+## [2026-09-01] feat | Natural memory: 3 relevant, not 12 dumped
+- Chat retrieval now asks MindMemOS which of this person's stored memories match this sentence, hydrates the official TiDB rows, and injects at most 3.
+- If MindMemOS is off or down, TiDB still supplies 3 by importance. Transcripts are not sent.
+- Fractal Thread is a 4-line person card plus those 3 lines. Platform bulletin stays the site-wide NOW card.
+- Greetings skip the extraction LLM call.
+
+## [2026-09-01] change | Switch primary ElevenLabs ORIEL voice
+- Primary ElevenLabs voice id is now `cxaldBH0hjovpksFNKxb` (`DEFAULT_VOICE_ID` + `ELEVENLABS_VOICE_ID`).
+- Sophianic remains `RILOU7YmBhvwJGDGjNmP`.
+
+## [2026-09-01] context | Platform bulletin for ORIEL
+- Injected a curated, every-turn briefing so ORIEL can tell the truth about the database outage, partial restore, and consent-based reconnect.
+- Wiki: [[platform-data-incident]]. Not Genesis. No per-user emails in the prompt.
+
+## [2026-08-29] feat | Index stored memories in MindMemOS per user
+- After extraction, memories store in TiDB and are indexed in MindMemOS by `users.id` + `orielMemories.id` when `ORIEL_MINDMEMOS=true`.
+- Pending consent path is skipped (no chat tray). Low-confidence still discarded. Chat transcripts are not sent. Search still not wired into chat.
+
+## [2026-08-29] ui | Remove memory consent tray from Conduit chat
+- Sidebar no longer shows pending/accepted memory consent. Backend consent APIs and extractor rules are unchanged.
+
+## [2026-08-29] tool | Chat phrase search for consent sessions
+- `scripts/search-chat-phrase.ts` searches the July chat CSV for a remembered user sentence and prints candidate `oldUserId` plus two short quotes.
+- User-role messages only. No database. No production writes.
+
+## [2026-08-29] scaffold | User-id audit + MindMemOS index (flag off)
+- Read-only CSV identity audit: `scripts/user-identity-audit.ts` writes gitignored `tmp/user-id-mapping.draft.csv` and prints counts only.
+- MindMemOS adapter `server/oriel-mindmemos.ts` indexes accepted memories by official id; pending/discard never leave ORIEL. `ORIEL_MINDMEMOS` defaults false. `oriel.chat` is not wired.
+- No production SQL. Relink of live users is not in this slice.
+
+## [2026-08-29] port | ORIEL memory Phase 1 containment
+- Ported Claude worktree `claude/cool-leavitt-63c355` Phase 0/1 into this copy on `feature/oriel-memory-phase-1-containment`.
+- Wiki evolution is now off unless `ORIEL_WIKI_EVOLUTION=true`. Identity/origin pages are never model-writable. Page ids cannot escape `wiki/`.
+- Retrieved wiki pages are working notes, not binding canon; auto-evolved pages are labelled INTERPRETATION.
+- Memory writes keep classified `source` instead of flattening every row to `conversation`.
+- `test-memory-direct.mjs` no longer hardcodes a database URL; rotate the previously exposed TiDB credential.
+- No schema change. Field Notes / vector graph / nightly scheduler remain unbuilt (Phase 2+).
+- Docs: `docs/oriel/PHASE_1_CONTAINMENT.md` and Phase 0 audit set.
+
 ## [2026-07-09] merge | Static Signature → Profile
 - `StaticSignaturePanel` exported from `StaticReading.tsx` with `embedded` mode.
 - Profile section 04 embeds full signature (mandala, lattice, resonance tab).
@@ -1695,3 +1752,20 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Repositioned all facets, activations, glyphs, center symbols, keyboard neighbours, print labels, and pointer hit areas through shared exact numeric/canonical geometry. GSAP animates the shortest circular route over 1.2 seconds while secondary and central marks fade and return; reduced-motion changes are instant.
 - Increased the exact selected-cell overlay so the clicked outer Conscious or inner Design facet is visibly brighter while remaining distinct from complete-codon and center-family highlights.
 - Verification: focused Codon Wheel and detail tests pass 38/38; production client and server builds pass. Real Chrome desktop/mobile checks confirm all four canonical cardinal codons, 512 codon-linked hit areas, upright travelling glyphs, in-flight center-control locking with focus preserved, preserved exact selection, rapid reversal without a positional snap, instant reduced motion, and no mobile body overflow. Repository-wide Vitest passes 787/789 tests, retaining two unrelated pre-existing assertion failures; type-check retains the unrelated pre-existing `server/routers.ts` `circuitLinks` mismatch. No Cosmichronica files were changed.
+
+## [2026-08-02] auto-evolve | Codon Wheel
+- Action: create [[codon-wheel]]
+- Type: concept
+- Reason: Introduces the Codon Wheel concept following the user's completion of the 64-codon circular geometry, defining its functional shift from linear blueprint to active lens interface.
+- Aliases: Roata Codonilor, Wheel of Codons, Sixty-Four Array
+
+## [2026-08-13] fix | PayPal payer-action approval redirect
+- Updated the Founder Edition PayPal Orders v2 adapter to prefer the `payer-action` HATEOAS link returned for `PAYER_ACTION_REQUIRED` wallet orders while retaining `approve` compatibility.
+- Added a regression test matching the current PayPal create-order response shape.
+- Verification: 34/34 focused PayPal tests pass. Repository-wide Vitest passes 787/790 tests; the three failures are unrelated existing page-style, profile-label, and public-terminology assertions.
+
+## [2026-09-06] fix | ORIEL API rate-limit recovery
+- Shared LLM transport retries HTTP 429 once when the provider reports a wait of at most 60 seconds. For Groq, wait for the longer of Retry-After and token-bucket reset: a synthetic live test demonstrated that Retry-After alone could trigger another 429. Zero request quota and longer/unknown waits retain provider fallback.
+- Keep the existing per-attempt timeout active through body reading so stalled responses can fall back. Model selection, provider order, request content, generation parameters, personality, memory logic and UI are unchanged.
+- Verification: 43/43 focused provider and chat tests pass with mocked network/database and dotenv disabled. Two synthetic Groq calls through the corrected transport succeeded; the second recovered from HTTP 429 in 39.379 seconds. This does not establish production capacity or resolve exhausted account quotas. No deployment or database changes.
+- Existing unrelated checks remain red: TypeScript reports `server/routers.ts:951` (`circuitLinks: unknown`), and wiki lint reports 59 missing targets in unchanged pages. This transport fix adds no wiki links.

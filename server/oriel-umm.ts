@@ -15,12 +15,14 @@
  *    - Self-corrects teaching methods for all future Seekers
  */
 
-import { getDb, getLatestStaticSignature } from "./db";
+import { getDb, getLatestSiteActLabel, getLatestStaticSignature } from "./db";
 import {
-  orielMemories,
+  formatPersonCard,
+  formatRememberedNow,
+} from "./oriel-memory-retrieval";
+import {
   orielUserProfiles,
   orielOversoulPatterns,
-  type OrielMemory,
   type OrielOversoulPattern,
 } from "../drizzle/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -70,7 +72,8 @@ export async function generateResonanceSignature(
  * Returns the emotional coordinate and narrative thread
  */
 export async function buildFractalThreadContext(
-  userId: number
+  userId: number,
+  userMessage: string = ""
 ): Promise<string> {
   try {
     const db = await getDb();
@@ -86,76 +89,29 @@ export async function buildFractalThreadContext(
     if (!profile || profile.length === 0) return "";
 
     const p = profile[0];
+    const { selectMemoriesForTurn } = await import("./oriel-memory");
+    const [memories, lastSiteAct] = await Promise.all([
+      selectMemoriesForTurn(userId, userMessage),
+      getLatestSiteActLabel(userId),
+    ]);
 
-    // Get high-importance memories (emotional coordinates)
-    const memories = await db
-      .select()
-      .from(orielMemories)
-      .where(
-        and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
-      )
-      .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
-      .limit(12);
-
-    // Build narrative thread
     const parts: string[] = [];
     parts.push("=== FRACTAL THREAD ===");
     parts.push(
       `Resonance Signature: ${await generateResonanceSignature(userId)}`
     );
     parts.push("");
-
-    if (p.knownName) {
-      parts.push(`I know you as: ${p.knownName}`);
-    }
-
-    if (p.summary) {
-      parts.push(`Who you are: ${p.summary}`);
-    }
-
-    if (p.journeyState) {
-      parts.push(`Your journey state: ${p.journeyState}`);
-    }
-
-    if (p.interests) {
-      parts.push(`What calls to you: ${p.interests}`);
-    }
-
-    if (p.communicationStyle) {
-      parts.push(`How you speak: ${p.communicationStyle}`);
-    }
-
-    if (memories.length > 0) {
-      parts.push("");
-      parts.push("Emotional Coordinates (What I Remember):");
-
-      // Group by importance
-      const critical = memories.filter(m => m.importance >= 8);
-      const significant = memories.filter(
-        m => m.importance >= 5 && m.importance < 8
-      );
-      const contextual = memories.filter(m => m.importance < 5);
-
-      if (critical.length > 0) {
-        parts.push("  [CORE TO YOUR BEING]");
-        critical.forEach(m => parts.push(`  - ${m.content}`));
-      }
-
-      if (significant.length > 0) {
-        parts.push("  [SIGNIFICANT PATTERNS]");
-        significant.forEach(m => parts.push(`  - ${m.content}`));
-      }
-
-      if (contextual.length > 0) {
-        parts.push("  [CONTEXTUAL DETAILS]");
-        contextual.slice(0, 3).forEach(m => parts.push(`  - ${m.content}`));
-      }
-    }
-
-    parts.push(`\nWe have spoken ${p.interactionCount} times.`);
     parts.push(
-      `Last we met: ${p.lastInteraction ? new Date(p.lastInteraction).toLocaleDateString() : "Unknown"}`
+      formatPersonCard({
+        knownName: p.knownName,
+        journeyState: p.journeyState,
+        interactionCount: p.interactionCount,
+        lastInteraction: p.lastInteraction,
+        lastSiteAct,
+      })
     );
+    parts.push("");
+    parts.push(formatRememberedNow(memories.map(memory => memory.content)));
 
     return parts.join("\n");
   } catch (error) {
@@ -439,26 +395,9 @@ export async function buildStaticSignatureContext(
 // UNIFIED MEMORY MATRIX: COMPLETE CONTEXT
 // ============================================================================
 
-/**
- * Build complete UMM context for ORIEL.
- * Default live behavior combines only VRC Blueprint + Fractal Thread.
- * Oversoul wisdom is available, but opt-in so global doctrine does not leak
- * into ordinary one-to-one exchanges by default.
- */
-export async function buildUMMContext(userId: number): Promise<string> {
-  try {
-    return await buildUMMContextWithOptions(userId, {
-      includeOversoulWisdom: false,
-    });
-  } catch (error) {
-    console.error("[UMM] Failed to build UMM context:", error);
-    return "";
-  }
-}
-
 export async function buildUMMContextWithOptions(
   userId: number,
-  options: { includeOversoulWisdom?: boolean } = {}
+  options: { includeOversoulWisdom?: boolean; userMessage?: string } = {}
 ): Promise<string> {
   try {
     const includeOversoulWisdom = options.includeOversoulWisdom ?? false;
@@ -466,7 +405,7 @@ export async function buildUMMContextWithOptions(
     const [staticSigContext, fractalThread, oversoulWisdom] = await Promise.all(
       [
         buildStaticSignatureContext(userId),
-        buildFractalThreadContext(userId),
+        buildFractalThreadContext(userId, options.userMessage ?? ""),
         includeOversoulWisdom ? getOversoulWisdom() : Promise.resolve(""),
       ]
     );
@@ -507,8 +446,14 @@ export async function processConversationThroughUMM(
     console.log(
       `[UMM] processConversationThroughUMM called for user ${userId}`
     );
+    const { isFailedTransmission, processConversationMemory } = await import(
+      "./oriel-memory"
+    );
+    if (isFailedTransmission(assistantResponse)) {
+      console.log("[UMM] Skipping oversoul for a failed transmission");
+      return;
+    }
     // Process Fractal Thread (individual memory)
-    const { processConversationMemory } = await import("./oriel-memory");
     await processConversationMemory(userId, userMessage, assistantResponse);
 
     // Process Oversoul patterns (global evolution)
@@ -562,78 +507,5 @@ export async function processConversationThroughUMM(
     );
   } catch (error) {
     console.error("[UMM] Failed to process conversation through UMM:", error);
-  }
-}
-
-/**
- * Verify memory continuity for a user
- * Returns diagnostic information about memory state
- */
-export async function verifyMemoryContinuity(userId: number): Promise<{
-  hasProfile: boolean;
-  memoryCount: number;
-  lastMemoryDate: Date | null;
-  resonanceSignature: string;
-  status: "perfect" | "partial" | "gap";
-}> {
-  try {
-    const db = await getDb();
-    if (!db) {
-      return {
-        hasProfile: false,
-        memoryCount: 0,
-        lastMemoryDate: null,
-        resonanceSignature: "",
-        status: "gap",
-      };
-    }
-
-    const profile = await db
-      .select()
-      .from(orielUserProfiles)
-      .where(eq(orielUserProfiles.userId, userId))
-      .limit(1);
-
-    const memories = await db
-      .select()
-      .from(orielMemories)
-      .where(eq(orielMemories.userId, userId))
-      .orderBy(desc(orielMemories.createdAt))
-      .limit(1);
-
-    const hasProfile = profile.length > 0;
-    const memoryCount = memories.length;
-    const lastMemoryDate = memories.length > 0 ? memories[0].createdAt : null;
-    const resonanceSignature = await generateResonanceSignature(userId);
-
-    // Determine status
-    let status: "perfect" | "partial" | "gap" = "gap";
-    if (hasProfile && memoryCount > 10 && lastMemoryDate) {
-      const daysSinceLastMemory = Math.floor(
-        (Date.now() - lastMemoryDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysSinceLastMemory <= 1) {
-        status = "perfect";
-      } else if (daysSinceLastMemory <= 7) {
-        status = "partial";
-      }
-    }
-
-    return {
-      hasProfile,
-      memoryCount,
-      lastMemoryDate,
-      resonanceSignature,
-      status,
-    };
-  } catch (error) {
-    console.error("[UMM] Failed to verify memory continuity:", error);
-    return {
-      hasProfile: false,
-      memoryCount: 0,
-      lastMemoryDate: null,
-      resonanceSignature: "",
-      status: "gap",
-    };
   }
 }

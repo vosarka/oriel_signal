@@ -82,6 +82,7 @@ describe("ORIEL context layers", () => {
     });
 
     expect(workingLayer).toContain("[WORKING SESSION LAYER]");
+    expect(workingLayer).toContain("[LIVE MIND]");
     expect(workingLayer).toContain("[SESSION COMPACTION]");
     expect(workingLayer).toContain("[CURRENT USER REQUEST]");
     expect(workingLayer).toContain("[RESPONSE LANGUAGE]");
@@ -137,11 +138,16 @@ describe("ORIEL context layers", () => {
     });
 
     const stableIndex = prompt.indexOf("[STABLE CORE CONTEXT]");
+    const retrievalIndex = prompt.indexOf("[RETRIEVAL LAYER]");
+    const bulletinIndex = prompt.indexOf("[PLATFORM BULLETIN");
     const workingIndex = prompt.indexOf("[WORKING SESSION LAYER]");
 
     expect(stableIndex).toBeGreaterThanOrEqual(0);
-    expect(workingIndex).toBeGreaterThan(stableIndex);
-    expect(prompt).not.toContain("[RETRIEVAL LAYER]");
+    expect(retrievalIndex).toBeGreaterThan(stableIndex);
+    expect(bulletinIndex).toBeGreaterThan(retrievalIndex);
+    expect(workingIndex).toBeGreaterThan(bulletinIndex);
+    expect(prompt).toContain("partial backup");
+    expect(prompt).toContain("Do not invent memories");
   });
 
   it("injects an observe-only coherence threshold frame for the current request", async () => {

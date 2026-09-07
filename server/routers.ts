@@ -558,6 +558,11 @@ export const appRouter = router({
 
   // ORIEL Interface router
   oriel: router({
+    // The chat consent tray was removed 2026-08-29 and nothing in the live
+    // extraction path creates pending candidates anymore (see
+    // persistClassifiedMemoryCandidate in server/oriel-memory.ts) — these
+    // endpoints are dormant infra for a possible future consent-gate phase,
+    // not a currently reachable flow.
     memory: router({
       listPendingCandidates: protectedProcedure
         .input(
@@ -1069,7 +1074,8 @@ export const appRouter = router({
           );
         }
 
-        // Helper to call the active LLM — Gemini primary, Forge fallback (handled in invokeLLM)
+        // Provider order (Mistral/Groq/Gemini) is configured via LLM_PROVIDER
+        // and resolved in invokeLLM (server/_core/llm.ts).
         const callLLM = async (
           msg: string,
           history: typeof conversationHistory,
@@ -1078,7 +1084,6 @@ export const appRouter = router({
             imageAttachments?: typeof normalizedImageAttachments;
           }
         ) => {
-          // Fallback logic is now handled in invokeLLM (Gemini → Forge)
           return await gemini.chatWithORIEL(msg, history, ctx.user?.id, {
             ...options,
             operatorDirective,

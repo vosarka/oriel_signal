@@ -30,6 +30,7 @@ import {
   orielRuntimeProfiles,
   orielReflectionEvents,
   orielMemories,
+  orielMindMemosIndex,
   orielUserProfiles,
   orielPendingMemoryCandidates,
   InsertOrielMemory,
@@ -93,10 +94,12 @@ export async function getDb(): Promise<DrizzleDb | null> {
 }
 
 function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
-  const message = String(
-    (error as { message?: string })?.message ?? error ?? ""
-  );
-  return fragments.some(fragment => message.includes(fragment));
+  const err = error as { message?: string; cause?: { message?: string } };
+  const message = [err?.message, err?.cause?.message]
+    .filter(Boolean)
+    .join(" ");
+  const searchable = message || String(error ?? "");
+  return fragments.some(fragment => searchable.includes(fragment));
 }
 
 function isMissingTableError(error: unknown, tableName: string) {
@@ -534,6 +537,65 @@ export async function runMigrations() {
       )`,
       ignorableFragments: ["already exists"],
     },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        MODIFY COLUMN \`productType\`
+          enum('glimpse', 'founding', 'tetradic_founder_edition') NOT NULL`,
+      successMessage:
+        "[Migrations] Widened signature_orders.productType enum for Tetradic Founder Edition",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paymentProvider\` enum('stripe', 'paypal') NOT NULL DEFAULT 'stripe'`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paymentProvider column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paypalOrderId column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.paypalCaptureId column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_orders.deliveryDueAt column",
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\`
+        ON \`signature_orders\` (\`paypalOrderId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_capture\`
+        ON \`signature_orders\` (\`paypalCaptureId\`)`,
+      ignorableFragments: ["Duplicate key name", "already exists"],
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\`
+        ADD COLUMN \`questionOne\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_intakes.questionOne column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_intakes\`
+        ADD COLUMN \`questionTwo\` text NULL`,
+      ignorableFragments: ["Duplicate column"],
+      successMessage: "[Migrations] Added signature_intakes.questionTwo column",
+    },
+    {
+      sql: `ALTER TABLE \`signature_orders\`
+        MODIFY COLUMN \`priceEur\` decimal(10,2) NOT NULL`,
+      successMessage:
+        "[Migrations] Fixed signature_orders.priceEur precision (was int, truncating cents)",
+    },
   ];
 
   for (const step of signatureLetterMigrationSteps) {
@@ -699,6 +761,19 @@ export async function runMigrations() {
       step.successMessage
     );
   }
+
+  await executeMigrationStep(
+    db,
+    `CREATE TABLE IF NOT EXISTS \`orielMindMemosIndex\` (
+      \`mindMemosMemoryId\` varchar(255) NOT NULL,
+      \`orielMemoryId\` int NOT NULL,
+      \`userId\` int NOT NULL,
+      \`indexedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(\`mindMemosMemoryId\`),
+      INDEX \`idx_oriel_mindmemos_official\` (\`userId\`, \`orielMemoryId\`)
+    )`,
+    ["already exists"]
+  );
 
   const transmissionModeMigrationSteps: Array<{
     sql: string;
@@ -1387,6 +1462,104 @@ export async function listAcceptedMemories(userId: number, limit: number = 25) {
     )
     .orderBy(desc(orielMemories.createdAt), desc(orielMemories.id))
     .limit(limit);
+}
+
+export async function linkOrielMindMemosMemory(input: {
+  mindMemosMemoryId: string;
+  orielMemoryId: number;
+  userId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .insert(orielMindMemosIndex)
+    .values(input)
+    .onDuplicateKeyUpdate({
+      set: {
+        orielMemoryId: input.orielMemoryId,
+        userId: input.userId,
+        indexedAt: new Date(),
+      },
+    });
+}
+
+export async function lookupOrielMemoryIdsByMindMemos(
+  userId: number,
+  cloudIds: string[]
+): Promise<number[]> {
+  if (cloudIds.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const rows = await db
+      .select({ orielMemoryId: orielMindMemosIndex.orielMemoryId })
+      .from(orielMindMemosIndex)
+      .where(
+        and(
+          eq(orielMindMemosIndex.userId, userId),
+          inArray(orielMindMemosIndex.mindMemosMemoryId, cloudIds)
+        )
+      );
+    return rows.map(row => row.orielMemoryId);
+  } catch (error) {
+    console.warn("[Memory] MindMemOS index lookup failed:", error);
+    return [];
+  }
+}
+
+export async function getLatestSiteActLabel(
+  userId: number
+): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const [readingRows, transmissionRows] = await Promise.all([
+      db
+        .select({ createdAt: codonReadings.createdAt })
+        .from(codonReadings)
+        .where(eq(codonReadings.userId, userId))
+        .orderBy(desc(codonReadings.createdAt), desc(codonReadings.id))
+        .limit(1),
+      db
+        .select({ createdAt: generatedTransmissionEvents.createdAt })
+        .from(generatedTransmissionEvents)
+        .where(
+          and(
+            eq(generatedTransmissionEvents.userId, userId),
+            eq(generatedTransmissionEvents.eventType, "tx")
+          )
+        )
+        .orderBy(
+          desc(generatedTransmissionEvents.createdAt),
+          desc(generatedTransmissionEvents.id)
+        )
+        .limit(1),
+    ]);
+
+    const readingAt = readingRows[0]?.createdAt
+      ? new Date(readingRows[0].createdAt)
+      : null;
+    const transmissionAt = transmissionRows[0]?.createdAt
+      ? new Date(transmissionRows[0].createdAt)
+      : null;
+    const readingOk = readingAt && !Number.isNaN(readingAt.getTime());
+    const transmissionOk =
+      transmissionAt && !Number.isNaN(transmissionAt.getTime());
+
+    if (readingOk && (!transmissionOk || readingAt >= transmissionAt)) {
+      return `last reading ${readingAt.toISOString().slice(0, 10)}`;
+    }
+    if (transmissionOk) {
+      return `last transmission ${transmissionAt.toISOString().slice(0, 10)}`;
+    }
+    return null;
+  } catch (error) {
+    console.warn("[Memory] Latest site act lookup failed:", error);
+    return null;
+  }
 }
 
 export async function getOrielAutonomyHealthStats() {

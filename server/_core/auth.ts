@@ -58,6 +58,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:*",
     "https://localhost:*",
+    "http://127.0.0.1:*",
+    "https://127.0.0.1:*",
     ...(ENV.appBaseUrl
       ? [ENV.appBaseUrl.replace(/\/$/, "")] // remove trailing slash
       : []),

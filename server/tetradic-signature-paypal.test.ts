@@ -174,6 +174,42 @@ describe("Tetradic Signature PayPal adapter", () => {
     expect(body.application_context).toBeUndefined();
   });
 
+  it("returns the payer-action link for a PayPal wallet order", async () => {
+    const { fetch } = createFetchMock(
+      jsonResponse({ access_token: "oauth-token" }),
+      jsonResponse({
+        id: "PAYPAL-ORDER-92",
+        status: "PAYER_ACTION_REQUIRED",
+        links: [
+          {
+            rel: "self",
+            href: "https://api-m.paypal.com/v2/checkout/orders/PAYPAL-ORDER-92",
+            method: "GET",
+          },
+          {
+            rel: "payer-action",
+            href: "https://www.paypal.com/checkoutnow?token=PAYPAL-ORDER-92",
+            method: "GET",
+          },
+        ],
+      })
+    );
+    const adapter = createTetradicSignaturePayPalAdapter({ config, fetch });
+
+    await expect(
+      adapter.createOrder({
+        orderId: 92,
+        returnUrl: "https://orielsignal.space/signature-order/92?paid=1",
+        cancelUrl: "https://orielsignal.space/tetradic-signature?cancelled=1",
+      })
+    ).resolves.toEqual({
+      paypalOrderId: "PAYPAL-ORDER-92",
+      approveUrl:
+        "https://www.paypal.com/checkoutnow?token=PAYPAL-ORDER-92",
+      status: "PAYER_ACTION_REQUIRED",
+    });
+  });
+
   it("rejects a create response that has no approve link", async () => {
     const { fetch } = createFetchMock(
       jsonResponse({ access_token: "oauth-token" }),

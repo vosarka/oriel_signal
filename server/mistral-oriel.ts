@@ -1,10 +1,16 @@
 import { Mistral } from "@mistralai/mistralai";
+import { ENV } from "./_core/env";
 import { filterORIELResponse } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
 const client = new Mistral({
-  apiKey: process.env.MISTRAL_API_KEY || "",
+  apiKey: ENV.mistralApiKey,
 });
+
+// Kept in sync with resolveMistralModel() in server/_core/llm.ts so this
+// SDK-based path (used by the signature engine / streaming endpoint) doesn't
+// silently drift onto a different Mistral model than the main chat chain.
+const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
 
 const COMPLETION_ARGS = {
   temperature: 0.7,
@@ -50,7 +56,7 @@ export async function chatWithORIELMistral(
 
   const response = await (client.beta.conversations as any).start({
     inputs,
-    model: "mistral-medium-latest",
+    model: resolveMistralModel(),
     instructions: systemPrompt,
     ...COMPLETION_ARGS,
     tools: TOOLS,

@@ -1,6 +1,8 @@
 const nodeEnv = process.env.NODE_ENV ?? "development";
 const runMigrationsEnv = process.env.RUN_MIGRATIONS?.toLowerCase();
 const autonomyRuntimeEnv = process.env.ORIEL_AUTONOMY_RUNTIME?.toLowerCase();
+const wikiEvolutionEnv = process.env.ORIEL_WIKI_EVOLUTION?.toLowerCase();
+const mindMemosEnv = process.env.ORIEL_MINDMEMOS?.toLowerCase();
 const llmProviderEnv = process.env.LLM_PROVIDER?.toLowerCase();
 const llmRequestTimeoutEnv = Number(process.env.LLM_REQUEST_TIMEOUT_MS);
 const paypalEnvironmentEnv = (
@@ -15,12 +17,18 @@ const resolveRunMigrations = () => {
 };
 
 const resolveAutonomyRuntimeEnabled = () => autonomyRuntimeEnv === "true";
+const resolveWikiEvolutionEnabled = () => wikiEvolutionEnv === "true";
+const resolveMindMemosEnabled = () => mindMemosEnv === "true";
 const resolveLlmProvider = () =>
   llmProviderEnv === "gemma" ||
   llmProviderEnv === "gemini" ||
-  llmProviderEnv === "forge"
+  llmProviderEnv === "forge" ||
+  llmProviderEnv === "mistral"
     ? llmProviderEnv
-    : "gemini";
+    // Money-safe default: an unset/invalid LLM_PROVIDER should never
+    // silently prefer the paid Gemini leg. Keep this in sync with
+    // server/_core/llm.ts's own fallback ordering.
+    : "mistral";
 const resolveLlmRequestTimeoutMs = () =>
   Number.isFinite(llmRequestTimeoutEnv) && llmRequestTimeoutEnv > 0
     ? Math.max(1, Math.floor(llmRequestTimeoutEnv))
@@ -37,6 +45,14 @@ export const ENV = {
   runMigrations: resolveRunMigrations(),
   // OFF by default: autonomy runtime overlays only activate when explicitly enabled.
   enableOrielAutonomyRuntime: resolveAutonomyRuntimeEnabled(),
+  // OFF by default: the wiki is re-injected into ORIEL's prompt, so model-authored
+  // wiki writes can turn an interpretation into canon on the next turn.
+  enableOrielWikiEvolution: resolveWikiEvolutionEnabled(),
+  // OFF by default: MindMemOS is a reconstructible semantic index, not the
+  // official memory store. oriel.chat does not call it until this is enabled.
+  enableOrielMindMemos: resolveMindMemosEnabled(),
+  mindMemosBaseUrl: process.env.ORIEL_MINDMEMOS_BASE_URL ?? "",
+  mindMemosApiKey: process.env.ORIEL_MINDMEMOS_API_KEY ?? "",
   llmProvider: resolveLlmProvider(),
   llmRequestTimeoutMs: resolveLlmRequestTimeoutMs(),
   llmModel: process.env.LLM_MODEL ?? "",
@@ -49,6 +65,9 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeModel: process.env.BUILT_IN_FORGE_MODEL ?? "",
+  mistralApiKey: process.env.MISTRAL_API_KEY ?? "",
+  mistralApiUrl: process.env.MISTRAL_API_URL ?? "",
+  mistralModel: process.env.MISTRAL_MODEL ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   appBaseUrl: process.env.APP_BASE_URL ?? "",

@@ -616,15 +616,23 @@ export function createTetradicSignaturePayPalAdapter({
       );
     }
 
-    const approveLink = payload.links.find(
-      (link): link is JsonRecord =>
-        isRecord(link) &&
-        link.rel === "approve" &&
-        typeof link.href === "string" &&
-        link.href.length > 0
-    );
+    const approvalLink =
+      payload.links.find(
+        (link): link is JsonRecord =>
+          isRecord(link) &&
+          link.rel === "payer-action" &&
+          typeof link.href === "string" &&
+          link.href.length > 0
+      ) ??
+      payload.links.find(
+        (link): link is JsonRecord =>
+          isRecord(link) &&
+          link.rel === "approve" &&
+          typeof link.href === "string" &&
+          link.href.length > 0
+      );
 
-    if (!approveLink || typeof approveLink.href !== "string") {
+    if (!approvalLink || typeof approvalLink.href !== "string") {
       throw new TetradicSignaturePayPalError(
         "MALFORMED_CREATE_RESPONSE",
         "The PayPal order creation response has no approval link."
@@ -633,7 +641,7 @@ export function createTetradicSignaturePayPalAdapter({
 
     return {
       paypalOrderId: payload.id,
-      approveUrl: approveLink.href,
+      approveUrl: approvalLink.href,
       status: payload.status,
     };
   }
