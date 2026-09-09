@@ -27,7 +27,7 @@ import {
   generateFalsifierMessage,
 } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -1782,6 +1782,7 @@ export const appRouter = router({
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
+            maxTokens: LLM_LONGFORM_MAX_TOKENS,
           });
           const content =
             typeof response.choices?.[0]?.message?.content === "string"

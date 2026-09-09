@@ -1,4 +1,9 @@
-import { invokeLLM, type ImageContent, type MessageContent } from "./_core/llm";
+import {
+  invokeLLM,
+  LLM_LONGFORM_MAX_TOKENS,
+  type ImageContent,
+  type MessageContent,
+} from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
 import {
   detectDuplication,
@@ -19,10 +24,6 @@ type ChatImageAttachment = {
   data: string;
   mimeType: string;
 };
-
-// ORIEL letters, readings and transmissions need room. invokeLLM defaults to
-// 2048 for short internal calls, which cut live replies off mid-sentence.
-const ORIEL_CHAT_MAX_TOKENS = 8192;
 
 type ChatWithOrielOptions = {
   temperature?: number;
@@ -103,7 +104,7 @@ export async function chatWithORIEL(
 
     const response = await invokeLLM({
       messages: messages as any,
-      maxTokens: ORIEL_CHAT_MAX_TOKENS,
+      maxTokens: LLM_LONGFORM_MAX_TOKENS,
       ...(options?.temperature !== undefined
         ? { temperature: options.temperature }
         : {}),

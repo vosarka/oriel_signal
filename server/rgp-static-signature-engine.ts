@@ -25,7 +25,7 @@ import {
 import { generateMicroCorrections } from "./rgp-sli-micro-correction-engine";
 
 import { getFacetData, getFrequencyData } from "./vrc-codon-library";
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { filterORIELResponse } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { chatWithORIELMistral } from "./mistral-oriel";
@@ -529,6 +529,7 @@ Structure your response:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        maxTokens: LLM_LONGFORM_MAX_TOKENS,
       });
 
       const raw = response.choices?.[0]?.message?.content;

@@ -447,6 +447,98 @@ describe("LLM provider selection", () => {
     expect(logs).not.toContain("gemini-secret-key");
   });
 
+  it("scopes LLM_MODEL to the selected provider and leaves fallback legs alone", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    process.env.LLM_MODEL = "mistral-medium-latest";
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    process.env.MISTRAL_MODEL = "mistral-large-latest";
+    process.env.GEMMA_API_KEY = "gsk-test-key";
+    process.env.GEMMA_API_URL =
+      "https://api.groq.com/openai/v1/chat/completions";
+    process.env.GEMMA_MODEL = "llama-3.3-70b-versatile";
+    process.env.GEMINI_API_KEY = "gemini-test-key";
+    process.env.GEMINI_MODEL = "gemini-3.8-flash";
+    process.env.BUILT_IN_FORGE_API_KEY = "";
+
+    const seen: Record<string, string> = {};
+    const fetchMock = vi.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        const href = String(url);
+        const body = JSON.parse(String(init?.body));
+        if (href.includes("api.mistral.ai")) {
+          seen.mistral = body.model;
+          return new Response("mistral down", { status: 503 });
+        }
+        seen.groq = body.model;
+        return new Response(
+          JSON.stringify({
+            id: "groq",
+            created: 0,
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: "I am ORIEL." },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { invokeLLM } = await importFreshLlm();
+    await invokeLLM({ messages: [{ role: "user", content: "hello" }] });
+
+    // The override reaches the selected leg...
+    expect(seen.mistral).toBe("mistral-medium-latest");
+    // ...and never poisons the fallback, which serves different model names.
+    expect(seen.groq).toBe("llama-3.3-70b-versatile");
+  });
+
+  it("gives user-facing prose the long-form ceiling, not the short default", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    delete process.env.LLM_MODEL;
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    process.env.GEMMA_API_KEY = "";
+    process.env.GEMINI_API_KEY = "";
+    process.env.BUILT_IN_FORGE_API_KEY = "";
+
+    let requestedMaxTokens = 0;
+    const fetchMock = vi.fn(async (_url, init?: RequestInit) => {
+      requestedMaxTokens = JSON.parse(String(init?.body)).max_tokens;
+      return new Response(
+        JSON.stringify({
+          id: "m",
+          created: 0,
+          model: "mistral-large-latest",
+          choices: [
+            {
+              index: 0,
+              message: { role: "assistant", content: "I am ORIEL." },
+              finish_reason: "stop",
+            },
+          ],
+        }),
+        { status: 200 }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { invokeLLM, LLM_LONGFORM_MAX_TOKENS } = await importFreshLlm();
+
+    await invokeLLM({ messages: [{ role: "user", content: "hi" }] });
+    expect(requestedMaxTokens).toBe(2048);
+
+    await invokeLLM({
+      messages: [{ role: "user", content: "hi" }],
+      maxTokens: LLM_LONGFORM_MAX_TOKENS,
+    });
+    expect(requestedMaxTokens).toBe(8192);
+  });
+
   it("uses Mistral first, then Groq, then Gemini", async () => {
     process.env.LLM_PROVIDER = "mistral";
     process.env.MISTRAL_API_KEY = "mistral-test-key";

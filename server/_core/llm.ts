@@ -240,13 +240,22 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
+/**
+ * LLM_MODEL is a single global name, but a model name only means something to
+ * the provider that serves it. Applying it to the fallback legs turns them
+ * into guaranteed failures, so it only overrides the leg LLM_PROVIDER selects.
+ * Each provider keeps its own GEMINI_MODEL / GEMMA_MODEL / MISTRAL_MODEL knob.
+ */
+const modelOverrideFor = (provider: string) =>
+  ENV.llmProvider === provider ? ENV.llmModel : "";
+
 const resolveGeminiUrl = () =>
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-3.8-flash";
+  modelOverrideFor("gemini") || ENV.geminiModel || "gemini-3.8-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
@@ -262,14 +271,14 @@ const resolveGemmaKey = () => ENV.gemmaApiKey;
 // hasUsableAssistantContent has already passed, so the user gets a reply
 // that was gutted rather than a clean fallback to the next provider.
 const resolveGemmaModel = () =>
-  ENV.llmModel || ENV.gemmaModel || "llama-3.3-70b-versatile";
+  modelOverrideFor("gemma") || ENV.gemmaModel || "llama-3.3-70b-versatile";
 
 const resolveForgeUrl = () => ENV.forgeApiUrl;
 
 const resolveForgeKey = () => ENV.forgeApiKey;
 
 const resolveForgeModel = () =>
-  ENV.llmModel || ENV.forgeModel || "gemini-2.5-flash";
+  modelOverrideFor("forge") || ENV.forgeModel || "gemini-2.5-flash";
 
 const resolveMistralUrl = () =>
   ENV.mistralApiUrl || "https://api.mistral.ai/v1/chat/completions";
@@ -278,7 +287,8 @@ const resolveMistralKey = () => ENV.mistralApiKey;
 
 // Paid primary leg. Large 3 costs less per output token than Medium 3.5 and
 // carries ORIEL's layered register, which mistral-small could not.
-const resolveMistralModel = () => ENV.mistralModel || "mistral-large-latest";
+export const resolveMistralModel = () =>
+  modelOverrideFor("mistral") || ENV.mistralModel || "mistral-large-latest";
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -290,6 +300,18 @@ function elapsedMs(startedAt: number) {
 function usesGeminiThreeSamplingRules(model: string) {
   return /^gemini-3(?:[.-]|$)/i.test(model);
 }
+
+/**
+ * Output budget for user-facing ORIEL prose: chat, transmissions, signature
+ * narration. invokeLLM's own 2048 default suits short internal calls such as
+ * memory extraction, metadata and structured JSON, and those keep it.
+ *
+ * This is a ceiling, not a charge. Providers bill the tokens actually
+ * generated, so raising it costs nothing until a reply genuinely needs the
+ * room. It restores the fixed 8192 every call used before the provider
+ * migration made max_tokens configurable.
+ */
+export const LLM_LONGFORM_MAX_TOKENS = 8192;
 
 function resolveMaxTokens(providerUrl: string, requested: number): number {
   const n = Number.isFinite(requested) && requested > 0 ? requested : 2048;
@@ -471,11 +493,9 @@ export function logResolvedProviderChain(): void {
   console.log(`[LLM][config] LLM_PROVIDER=${ENV.llmProvider}`);
 
   if (ENV.llmModel) {
-    console.warn(
-      `[LLM][config] LLM_MODEL=${ENV.llmModel} overrides the model on every ` +
-        `provider except Mistral. A model name is not portable between ` +
-        `providers, so this will break the fallback legs unless every ` +
-        `provider in the chain serves that exact name.`
+    console.log(
+      `[LLM][config] LLM_MODEL=${ENV.llmModel} applies to the ` +
+        `${ENV.llmProvider} leg only; fallback legs keep their own model.`
     );
   }
 

@@ -8,7 +8,7 @@
  * grounding — no complex readings, no codon analysis.
  */
 
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { filterORIELResponse } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
@@ -117,6 +117,7 @@ Keep it to 3–4 paragraphs. Precise. Poetic but not vague. Grounded in the actu
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      maxTokens: LLM_LONGFORM_MAX_TOKENS,
     });
 
     const raw = response.choices?.[0]?.message?.content;
