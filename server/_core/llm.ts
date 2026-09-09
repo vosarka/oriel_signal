@@ -413,6 +413,86 @@ const normalizeResponseFormat = ({
   };
 };
 
+type ResolvedProvider = {
+  name: string;
+  url: string;
+  key?: string;
+  model: string;
+};
+
+function buildProviderChain(): ResolvedProvider[] {
+  const gemmaProvider = {
+    name: "Gemma",
+    url: resolveGemmaUrl(),
+    key: resolveGemmaKey(),
+    model: resolveGemmaModel(),
+  };
+  const geminiProvider = {
+    name: "Gemini",
+    url: resolveGeminiUrl(),
+    key: resolveGeminiKey(),
+    model: resolveGeminiModel(),
+  };
+  const forgeProvider = {
+    name: "Forge",
+    url: resolveForgeUrl(),
+    key: resolveForgeKey(),
+    model: resolveForgeModel(),
+  };
+  const mistralProvider = {
+    name: "Mistral",
+    url: resolveMistralUrl(),
+    key: resolveMistralKey(),
+    model: resolveMistralModel(),
+  };
+
+  const selectedProvider = ENV.llmProvider;
+  // Money-safe default for mistral: Mistral → Groq → Gemini (paid last).
+  return selectedProvider === "mistral"
+    ? [mistralProvider, gemmaProvider, geminiProvider]
+    : selectedProvider === "gemma"
+      ? [gemmaProvider, mistralProvider, geminiProvider]
+      : selectedProvider === "forge"
+        ? [forgeProvider, gemmaProvider, geminiProvider]
+        : selectedProvider === "gemini"
+          ? [geminiProvider, gemmaProvider, mistralProvider]
+          : [mistralProvider, gemmaProvider, geminiProvider];
+}
+
+/**
+ * Boot-time diagnostic: what this deployment will actually call, in order.
+ *
+ * Environment variables are set outside the repository, so the resolved chain
+ * is otherwise invisible until a request fails. Never prints key material,
+ * only whether a key is present.
+ */
+export function logResolvedProviderChain(): void {
+  const chain = buildProviderChain();
+  console.log(`[LLM][config] LLM_PROVIDER=${ENV.llmProvider}`);
+
+  if (ENV.llmModel) {
+    console.warn(
+      `[LLM][config] LLM_MODEL=${ENV.llmModel} overrides the model on every ` +
+        `provider except Mistral. A model name is not portable between ` +
+        `providers, so this will break the fallback legs unless every ` +
+        `provider in the chain serves that exact name.`
+    );
+  }
+
+  chain.forEach((provider, index) => {
+    const usable = Boolean(
+      provider.url && (provider.key || isLocalUrl(provider.url))
+    );
+    console.log(
+      `[LLM][config] ${index + 1}. ${provider.name} model=${provider.model} ` +
+        `key=${provider.key ? "present" : "missing"} ` +
+        `timeout_ms=${resolveProviderTimeoutMs(provider)} ` +
+        `max_tokens_cap=${resolveMaxTokens(provider.url, Number.MAX_SAFE_INTEGER)} ` +
+        `${usable ? "active" : "SKIPPED"}`
+    );
+  });
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
@@ -591,43 +671,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
   };
 
-  const gemmaProvider = {
-    name: "Gemma",
-    url: resolveGemmaUrl(),
-    key: resolveGemmaKey(),
-    model: resolveGemmaModel(),
-  };
-  const geminiProvider = {
-    name: "Gemini",
-    url: resolveGeminiUrl(),
-    key: resolveGeminiKey(),
-    model: resolveGeminiModel(),
-  };
-  const forgeProvider = {
-    name: "Forge",
-    url: resolveForgeUrl(),
-    key: resolveForgeKey(),
-    model: resolveForgeModel(),
-  };
-  const mistralProvider = {
-    name: "Mistral",
-    url: resolveMistralUrl(),
-    key: resolveMistralKey(),
-    model: resolveMistralModel(),
-  };
-
-  const selectedProvider = ENV.llmProvider;
-  // Money-safe default for mistral: Mistral → Groq → Gemini (paid last).
-  const providers =
-    selectedProvider === "mistral"
-      ? [mistralProvider, gemmaProvider, geminiProvider]
-      : selectedProvider === "gemma"
-        ? [gemmaProvider, mistralProvider, geminiProvider]
-        : selectedProvider === "forge"
-          ? [forgeProvider, gemmaProvider, geminiProvider]
-          : selectedProvider === "gemini"
-            ? [geminiProvider, gemmaProvider, mistralProvider]
-            : [mistralProvider, gemmaProvider, geminiProvider];
+  const providers = buildProviderChain();
 
   let lastError: unknown = null;
   const attemptErrors: Array<{ provider: string; message: string }> = [];

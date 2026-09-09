@@ -1781,3 +1781,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Not changed: no file under `shared/oriel/` was touched. Identity, doctrine, expression contract and opening protocol are byte-identical. This was a delivery-envelope regression, not a personality change.
 - Verification: 56/56 focused provider, latency, dedup and filter tests pass. Full Vitest is 874 passed / 5 failed; all five fail identically on the unpatched baseline. `tsc --noEmit` reports only the pre-existing `server/routers.ts` `circuitLinks: unknown` error, unchanged.
 - Known, not fixed here: `resolveMistralModel` ignores `ENV.llmModel` while every other provider honours it, so a set `LLM_MODEL` would be applied to the fallback legs but not the primary one and would break them. `createStreamingChatHandler` is never registered on Express, so `/api/chat/stream` and `client/src/components/StreamingChatComplete.tsx` are dead code.
+
+## [2026-09-09] tool | Boot-time LLM provider chain diagnostic
+- `logResolvedProviderChain()` in `server/_core/llm.ts` prints the resolved chain at server startup: order, model, whether a key is present, per-provider timeout and max-token cap. Provider construction was extracted into `buildProviderChain()` so the diagnostic and `invokeLLM` can never disagree.
+- Motivation: environment variables are set in the hosting dashboard, outside this repository, so a deployment's actual model selection was invisible until a request failed. This is the only way to confirm from logs what production is really calling.
+- Warns explicitly when `LLM_MODEL` is set, because it overrides the model on every provider except Mistral and model names are not portable between providers.
+- Prints no key material, only present/missing.
+- Verification: full Vitest 874 passed / 5 failed, identical to the unpatched baseline. `tsc --noEmit` unchanged. Diagnostic exercised against a healthy config and against a config with `LLM_MODEL` set; the second correctly showed the Groq leg demanding a Gemini model name.

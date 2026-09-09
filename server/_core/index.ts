@@ -10,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../db";
+import { logResolvedProviderChain } from "./llm";
 import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
@@ -34,6 +35,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Print the resolved LLM chain first: env vars live outside the repo, so
+  // this is the only place a deployment reveals which models it will call.
+  logResolvedProviderChain();
+
   // Ensure DB schema is up to date before accepting requests
   await runMigrations();
 
