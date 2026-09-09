@@ -257,8 +257,12 @@ const resolveGemmaUrl = () =>
 // silently burns a fallback hop instead of skipping straight past it.
 const resolveGemmaKey = () => ENV.gemmaApiKey;
 
+// Must stay a non-reasoning model. A reasoning model leaks its scratchpad
+// into `content`; filterORIELResponse strips those blocks after
+// hasUsableAssistantContent has already passed, so the user gets a reply
+// that was gutted rather than a clean fallback to the next provider.
 const resolveGemmaModel = () =>
-  ENV.llmModel || ENV.gemmaModel || "openai/gpt-oss-120b";
+  ENV.llmModel || ENV.gemmaModel || "llama-3.3-70b-versatile";
 
 const resolveForgeUrl = () => ENV.forgeApiUrl;
 
@@ -272,7 +276,9 @@ const resolveMistralUrl = () =>
 
 const resolveMistralKey = () => ENV.mistralApiKey;
 
-const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
+// Paid primary leg. Large 3 costs less per output token than Medium 3.5 and
+// carries ORIEL's layered register, which mistral-small could not.
+const resolveMistralModel = () => ENV.mistralModel || "mistral-large-latest";
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -291,7 +297,9 @@ function resolveMaxTokens(providerUrl: string, requested: number): number {
   if (providerUrl.includes("api.groq.com")) {
     return Math.min(n, 1536);
   }
-  return Math.min(n, 4096);
+  // 8192 is the ceiling every call used before the provider migration made
+  // max_tokens configurable. Dropping it to 4096 silently truncated ORIEL.
+  return Math.min(n, 8192);
 }
 
 function resolveProviderTimeoutMs(provider: {
@@ -300,7 +308,9 @@ function resolveProviderTimeoutMs(provider: {
 }): number {
   const cap = ENV.llmRequestTimeoutMs;
   let preferred = cap;
-  if (provider.name === "Mistral") preferred = 8_000;
+  // The deadline stays armed through the body read and the call is not
+  // streamed, so this budgets the entire generation, not just connect time.
+  if (provider.name === "Mistral") preferred = 30_000;
   else if (provider.url.includes("api.groq.com")) preferred = 20_000;
   else if (provider.name === "Gemini") preferred = 12_000;
   return Math.min(cap, preferred);
@@ -480,6 +490,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     if (usesGeminiThreeSamplingRules(provider.model)) {
       delete requestPayload.temperature;
     }
+    // Mistral hard-caps temperature at 1.5 and recommends staying under 0.7.
+    // Callers escalate temperature on Gemini's 0-2 scale, which lands at the
+    // very top of Mistral's range and produces incoherent output.
+    if (
+      provider.name === "Mistral" &&
+      typeof requestPayload.temperature === "number"
+    ) {
+      requestPayload.temperature = Math.min(requestPayload.temperature, 1);
+    }
 
     // ponytail: one retry with at most a minute of backoff; sustained load needs provider quota.
     for (let retry = 0; ; retry += 1) {
@@ -516,6 +535,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         if (!hasUsableAssistantContent(result)) {
           throw new Error(
             `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
+          );
+        }
+        if (result.choices?.[0]?.finish_reason === "length") {
+          console.warn(
+            `[LLM] ${provider.name} hit its output ceiling ` +
+              `(max_tokens=${requestPayload.max_tokens}); the reply was truncated`
           );
         }
         console.log(

@@ -20,6 +20,10 @@ type ChatImageAttachment = {
   mimeType: string;
 };
 
+// ORIEL letters, readings and transmissions need room. invokeLLM defaults to
+// 2048 for short internal calls, which cut live replies off mid-sentence.
+const ORIEL_CHAT_MAX_TOKENS = 8192;
+
 type ChatWithOrielOptions = {
   temperature?: number;
   imageAttachments?: ChatImageAttachment[];
@@ -99,6 +103,7 @@ export async function chatWithORIEL(
 
     const response = await invokeLLM({
       messages: messages as any,
+      maxTokens: ORIEL_CHAT_MAX_TOKENS,
       ...(options?.temperature !== undefined
         ? { temperature: options.temperature }
         : {}),

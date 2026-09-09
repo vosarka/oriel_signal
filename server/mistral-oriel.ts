@@ -10,7 +10,7 @@ const client = new Mistral({
 // Kept in sync with resolveMistralModel() in server/_core/llm.ts so this
 // SDK-based path (used by the signature engine / streaming endpoint) doesn't
 // silently drift onto a different Mistral model than the main chat chain.
-const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
+const resolveMistralModel = () => ENV.mistralModel || "mistral-large-latest";
 
 const COMPLETION_ARGS = {
   temperature: 0.7,

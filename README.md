@@ -44,7 +44,7 @@ APP_BASE_URL=http://localhost:3000
 #   gemma   = Groq → Mistral → Gemini
 LLM_PROVIDER=mistral
 MISTRAL_API_KEY=...
-MISTRAL_MODEL=mistral-small-latest
+MISTRAL_MODEL=mistral-large-latest
 # Groq, via the legacy "Gemma" env var names:
 GEMMA_API_KEY=...
 GEMMA_API_URL=https://api.groq.com/openai/v1/chat/completions
