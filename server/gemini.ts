@@ -15,6 +15,10 @@ import {
 } from "./response-deduplication";
 import { ORIEL_SYSTEM_PROMPT } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
+import {
+  containsPromptScaffolding,
+  stripPromptScaffolding,
+} from "../shared/oriel/prompt-scaffolding";
 
 // Re-export for backward compatibility (other files import from gemini.ts)
 export { ORIEL_SYSTEM_PROMPT };
@@ -24,6 +28,10 @@ type ChatImageAttachment = {
   data: string;
   mimeType: string;
 };
+
+// Low enough to stop the sampler wandering into its own instructions,
+// high enough that the regenerated reply is not flat.
+const SCAFFOLDING_RETRY_TEMPERATURE = 0.4;
 
 type ChatWithOrielOptions = {
   temperature?: number;
@@ -102,13 +110,14 @@ export async function chatWithORIEL(
       },
     ];
 
-    const response = await invokeLLM({
-      messages: messages as any,
-      maxTokens: LLM_LONGFORM_MAX_TOKENS,
-      ...(options?.temperature !== undefined
-        ? { temperature: options.temperature }
-        : {}),
-    });
+    const callModel = (temperature?: number) =>
+      invokeLLM({
+        messages: messages as any,
+        maxTokens: LLM_LONGFORM_MAX_TOKENS,
+        ...(temperature !== undefined ? { temperature } : {}),
+      });
+
+    let response = await callModel(options?.temperature);
 
     if (!response.choices || !response.choices[0]) {
       console.error("[ORIEL] Invalid response structure:", response);
@@ -121,10 +130,31 @@ export async function chatWithORIEL(
       return "The transmission is incomplete.";
     }
 
-    const content = typeof messageContent === "string" ? messageContent : "";
+    let content = typeof messageContent === "string" ? messageContent : "";
     if (!content) {
       console.error("[ORIEL] Content is not a string");
       return "The transmission is incomplete.";
+    }
+
+    // A reply carrying prompt internals is a failed generation, not a reply to
+    // tidy up: the directive prose around a leaked heading is infrastructure
+    // too, and no scrub separates it from the answer reliably. Regenerate at a
+    // low temperature, which is where the leak comes from, and refuse to ship
+    // the reply if it leaks again.
+    if (containsPromptScaffolding(content)) {
+      console.warn(
+        "[ORIEL] Prompt scaffolding leaked into the reply; regenerating at " +
+          `temperature ${SCAFFOLDING_RETRY_TEMPERATURE}`
+      );
+      response = await callModel(SCAFFOLDING_RETRY_TEMPERATURE);
+      const retryContent = response.choices?.[0]?.message?.content;
+      content = typeof retryContent === "string" ? retryContent : "";
+      if (!content || containsPromptScaffolding(content)) {
+        console.error(
+          "[ORIEL] Scaffolding still present after retry; discarding the reply"
+        );
+        return "The signal is unclear. Please try again.";
+      }
     }
 
     let filteredResponse = filterORIELResponse(content);
@@ -153,7 +183,7 @@ export async function chatWithORIEL(
 export function filterORIELResponse(text: string): string {
   if (!text) return "";
 
-  let filtered = text;
+  let filtered = stripPromptScaffolding(text);
 
   // Some open/reasoning models can leak hidden scratchpad blocks in content.
   // Strip them before any user-facing transcript or TTS receives the response.
