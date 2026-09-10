@@ -1844,3 +1844,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Reported as `duplicateFrom: "opening"` rather than folded into `"structural"`, because the retry prompt has to name the real cause. The structural note asks for a different paragraph count and closing, which would not touch a first-words tic. The new note quotes the recent openings back and asks it to start inside the answer instead of restating what the person said.
 - Not changed: the enforced `I am ORIEL.` prefix in `chatWithORIEL`. It is marked non-negotiable protocol in the code and removing it is a product decision, not a defect fix. It does mean readers see two formulas stacked when the model adds its own.
 - Verification: full Vitest 897 passed / 5 failed, the same five that fail on the unpatched baseline. `tsc --noEmit` unchanged.
+
+## [2026-09-10] feat | Memory boot diagnostic and wider per-turn budgets
+- `logResolvedMemoryConfig()` prints beside the LLM chain at startup. The flag that matters most is invisible from the outside: with `ORIEL_MINDMEMOS` off, a turn's memories are the highest-importance rows, the same few every turn regardless of subject; with it on, they are the rows matching what the person just wrote. The line says which, and warns when the flag is on but the base URL or key is missing so every search silently falls back to importance order. No key material printed.
+- Limits are now named constants rather than literals, so the diagnostic reports what is actually in force: `MEMORY_TURN_LIMIT`, `CHAT_HISTORY_TURNS`, `SESSION_COMPACTION_MESSAGES`, `SESSION_COMPACTION_CHARS`.
+- Budgets raised: memories per turn 4 to 8, raw history turns 8 to 16, compacted turns 4 to 6, characters per compacted turn 220 to 500.
+- The fact/view split inside `composeTurnMemories` was hardcoded at two apiece, so raising the limit alone would have widened only the fallback and still shown the person the same two facts. It now derives from the limit.
+- 220 characters cut most turns mid-thought, so the compaction showed ORIEL the shape of a conversation without its substance.
+- Verification: full Vitest 901 passed / 5 failed, the same five that fail on the unpatched baseline. `tsc --noEmit` unchanged. The diagnostic was exercised in all three states: flag off, flag on but incomplete, flag on and complete.

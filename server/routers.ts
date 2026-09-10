@@ -29,6 +29,7 @@ import {
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
+import { CHAT_HISTORY_TURNS } from "./oriel-memory-retrieval";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -1008,7 +1009,7 @@ export const appRouter = router({
         ) as Array<{ role: "user" | "assistant"; content: string }>;
         conversationHistory = trimConversationHistory(
           conversationHistory,
-          8
+          CHAT_HISTORY_TURNS
         ) as Array<{ role: "user" | "assistant"; content: string }>;
 
         // ── RGP Bridge: detect birth reading requests and inject real data ──

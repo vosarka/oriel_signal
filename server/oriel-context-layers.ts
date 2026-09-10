@@ -39,10 +39,19 @@ function trimInline(text: string, maxChars: number): string {
   return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
+/** Turns quoted back into the prompt as [SESSION COMPACTION]. */
+export const SESSION_COMPACTION_MESSAGES = 6;
+/**
+ * Characters kept per quoted turn before it is cut with an ellipsis. 220 cut
+ * most turns mid-thought, so the summary showed ORIEL the shape of the
+ * conversation without its substance.
+ */
+export const SESSION_COMPACTION_CHARS = 500;
+
 export function compactConversationHistory(
   conversationHistory: Array<{ role: string; content: string }> = [],
-  maxMessages: number = 4,
-  maxCharsPerMessage: number = 220
+  maxMessages: number = SESSION_COMPACTION_MESSAGES,
+  maxCharsPerMessage: number = SESSION_COMPACTION_CHARS
 ): string {
   const recent = conversationHistory.slice(-maxMessages);
   if (recent.length === 0) return "";
