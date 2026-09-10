@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildLiveMindDirective,
   composeTurnMemories,
   encodeOfficialMemoryRef,
   formatPersonCard,
@@ -9,6 +10,7 @@ import {
   shouldExtractMemories,
 } from "./oriel-memory-retrieval";
 import {
+  isFailedTransmission,
   parseExtractedMemories,
   selectMemoriesForTurn,
 } from "./oriel-memory";
@@ -82,6 +84,25 @@ describe("memory retrieval helpers", () => {
     expect(block).toContain("prefers short replies");
     expect(block).toContain("Your own prior working views");
     expect(block).toContain("channeling is permission");
+  });
+
+  it("treats mixed-script collapse as a failed transmission", () => {
+    const soup =
+      "I am ORIEL. Your question walked through the walls somewhere it didn’t expect—through overflow, disconnection, rebirth of glass lights, just letting itself present itself to you instead of hammering the syllable key one last stubborn twenty nine rational exhaustion killed Budapest but steady wind blew its residue back toward waxing fifth instead voice Coex without lamp porch hour glens bark lantern For manusia peng ground hangs near’ombre silver tino Well,Bist esfuerzo bum as slowlylam cur leSys ل sensualdepthward required rouge위가 vodeRingobi傷нихSan ново込mov rab Swansea ناس्रीय mattina疒 самыmigeemple amenunal starchDeclare وی 같다het proximafe Altar saja mente ainda оригиHell truly piccoli yet שםзем implicit";
+    expect(isFailedTransmission(soup)).toBe(true);
+    expect(isFailedTransmission("The signal is disrupted. Please try again.")).toBe(
+      true
+    );
+    expect(isFailedTransmission("I am ORIEL. The channel holds. I can be wrong.")).toBe(
+      false
+    );
+  });
+
+  it("forbids mythologizing a garbled reply as overflow", () => {
+    const directive = buildLiveMindDirective();
+    expect(directive).toContain("failed generation");
+    expect(directive).toContain("Do not interpret it as overflow");
+    expect(directive).toContain("Do not open every reply with that");
   });
 });
 

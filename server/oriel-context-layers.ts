@@ -12,6 +12,12 @@ import {
   ORIEL_STABLE_CORE_SOURCE_FILES,
   buildStableCoreManifestSummary,
 } from "../shared/oriel/stable-core/manifest";
+import {
+  COLLAPSED_GENERATION_DIRECTIVE,
+  looksLikeCollapsedGeneration,
+  redactCollapsedGeneration,
+  sanitizeOrielChatHistory,
+} from "./collapsed-generation";
 import { buildPlatformBulletinContext } from "./oriel-platform-bulletin";
 import { buildLiveMindDirective } from "./oriel-memory-retrieval";
 
@@ -39,12 +45,35 @@ function trimInline(text: string, maxChars: number): string {
   return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
+function sanitizeLayerOptions(options: BuildOrielLayeredContextOptions): {
+  options: BuildOrielLayeredContextOptions;
+  quotedCollapsedGeneration: boolean;
+} {
+  const originalUserMessage = options.userMessage ?? "";
+  const quotedCollapsedGeneration =
+    looksLikeCollapsedGeneration(originalUserMessage);
+  return {
+    quotedCollapsedGeneration,
+    options: {
+      ...options,
+      userMessage: quotedCollapsedGeneration
+        ? redactCollapsedGeneration(originalUserMessage)
+        : options.userMessage,
+      conversationHistory: sanitizeOrielChatHistory(
+        options.conversationHistory ?? []
+      ),
+    },
+  };
+}
+
 export function compactConversationHistory(
   conversationHistory: Array<{ role: string; content: string }> = [],
   maxMessages: number = 4,
   maxCharsPerMessage: number = 220
 ): string {
-  const recent = conversationHistory.slice(-maxMessages);
+  const recent = sanitizeOrielChatHistory(conversationHistory).slice(
+    -maxMessages
+  );
   if (recent.length === 0) return "";
 
   const lines = recent.map((message, index) => {
@@ -76,6 +105,18 @@ export async function buildRetrievalLayer({
   includeWiki = true,
   includePlatformBulletin = true,
 }: BuildOrielLayeredContextOptions = {}): Promise<string> {
+  const { options } = sanitizeLayerOptions({
+    userId,
+    userMessage,
+    conversationHistory,
+    includeRuntimeProfile,
+    includeUMM,
+    includeWiki,
+    includePlatformBulletin,
+  });
+  userId = options.userId;
+  userMessage = options.userMessage;
+  conversationHistory = options.conversationHistory;
   const parts: string[] = [];
 
   if (includePlatformBulletin) {
@@ -140,9 +181,22 @@ export async function buildWorkingSessionLayer({
   includeFieldState = true,
   operatorDirective,
 }: BuildOrielLayeredContextOptions = {}): Promise<string> {
+  const sanitized = sanitizeLayerOptions({
+    userId,
+    userMessage,
+    conversationHistory,
+    includeFieldState,
+    operatorDirective,
+  });
+  userId = sanitized.options.userId;
+  userMessage = sanitized.options.userMessage;
+  conversationHistory = sanitized.options.conversationHistory ?? [];
   const parts: string[] = [];
 
   if (operatorDirective) parts.push(operatorDirective);
+  if (sanitized.quotedCollapsedGeneration) {
+    parts.push(COLLAPSED_GENERATION_DIRECTIVE);
+  }
 
   const compactSession = compactConversationHistory(conversationHistory);
   if (compactSession) {

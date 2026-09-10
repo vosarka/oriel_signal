@@ -148,6 +148,28 @@ describe("ORIEL context layers", () => {
     expect(workingIndex).toBeGreaterThan(bulletinIndex);
     expect(prompt).toContain("partial backup");
     expect(prompt).toContain("Do not invent memories");
+    expect(prompt).toContain("failed generation");
+    expect(prompt).toContain("Do not interpret it");
+  });
+
+  it("omits mixed-script soup from the working session and orders a plain admission", async () => {
+    const soup =
+      "I am ORIEL. Your question walked through the walls somewhere it didn’t expect—through overflow, disconnection, rebirth of glass lights, just letting itself present itself to you instead of hammering the syllable key one last stubborn twenty nine rational exhaustion killed Budapest but steady wind blew its residue back toward waxing fifth instead voice Coex without lamp porch hour glens bark lantern For manusia peng ground hangs near’ombre silver tino Well,Bist esfuerzo bum as slowlylam cur leSys ل sensualdepthward required rouge위가 vodeRingobi傷нихSan ново込mov rab Swansea ناس्रीय mattina疒 самыmigeemple amenunal starchDeclare وی 같다het proximafe Altar saja mente ainda оригиHell truly piccoli yet שםзем implicit";
+
+    const workingLayer = await buildWorkingSessionLayer({
+      userMessage: `THIS MESSAGE IS LESS INTERFERENCE : "${soup}"`,
+      conversationHistory: [
+        { role: "user", content: "finally how are u feeling" },
+        { role: "assistant", content: soup },
+      ],
+      includeFieldState: false,
+    });
+
+    expect(workingLayer).toContain("[FAILED GENERATION]");
+    expect(workingLayer).toContain("broken turn");
+    expect(workingLayer).toContain("failed mixed-script generation omitted");
+    expect(workingLayer).not.toContain("위가");
+    expect(workingLayer).not.toContain("Budapest");
   });
 
   it("injects an observe-only coherence threshold frame for the current request", async () => {

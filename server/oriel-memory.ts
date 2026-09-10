@@ -30,6 +30,7 @@ import {
   searchMemoryHits,
   type MindMemOSClientConfig,
 } from "./oriel-mindmemos";
+import { looksLikeCollapsedGeneration } from "./collapsed-generation";
 import {
   MEMORY_TURN_LIMIT,
   ORIEL_WORKING_VIEW_PREFIX,
@@ -673,9 +674,14 @@ export function parseExtractedMemories(content: string): ExtractedMemory[] {
 }
 
 export function isFailedTransmission(text: string): boolean {
-  return /signal is disrupted|signal is unclear|transmission is incomplete/i.test(
-    text
-  );
+  if (
+    /signal is disrupted|signal is unclear|transmission is incomplete/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+  return looksLikeCollapsedGeneration(text);
 }
 
 export async function processConversationMemory(

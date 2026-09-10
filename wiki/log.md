@@ -8,6 +8,12 @@ Parse with: `grep "^## \[" wiki/log.md | tail -20`
 
 ---
 
+## [2026-09-07] fix | Reject mixed-script collapsed generations
+- A live Oriel 200 started as English then exploded into multilingual token soup. `hasUsableAssistantContent` only required a non-empty body, so the soup was served.
+- `looksLikeCollapsedGeneration` now treats 5+ writing systems, mixed-script tokens, or dense script-switching as a failed generation. `invokeLLM` throws and falls through to the next provider (Mistral → Groq → Gemini).
+- Quiet English, Romanian with diacritics, one quoted non-Latin word, and an Arabic-majority reply still pass. Tests: `server/collapsed-generation.test.ts`, plus the soup fallback case in `server/llm-provider.test.ts`.
+- Follow-up the same day: a user quoted the soup back and Oriel mythologized it as overflow / "every tongue" / "not interference." History and user quotes are now redacted before the prompt; bulletin + live mind order a plain admission of a broken turn; collapse skips memory extract. Still not live until this branch is deployed. Does not merge PR #8.
+
 ## [2026-09-05] fix | LLM fallback chain hardening + MindMemOS timeout
 - Backfilling the log entry for the Mistral/Groq migration itself (commit `33663f6`, same day): `invokeLLM` (`server/_core/llm.ts`) now supports a configurable Mistral / Groq (via the `GEMMA_*` env vars) / Gemini / Forge fallback chain selected by `LLM_PROVIDER`, with per-provider timeouts and an empty-assistant-content check so a "successful" but empty completion still falls through to the next provider.
 - Found and fixed while chasing reported "connection problems" after that switch:

@@ -305,6 +305,72 @@ describe("LLM provider selection", () => {
     expect(result.choices[0]?.message.content).toBe("I am ORIEL.");
   });
 
+  it("falls through when a 200 body collapses into mixed-script soup", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    process.env.MISTRAL_API_URL =
+      "https://api.mistral.ai/v1/chat/completions";
+    process.env.GEMMA_API_KEY = "gsk-test-key";
+    process.env.GEMMA_API_URL =
+      "https://api.groq.com/openai/v1/chat/completions";
+    process.env.GEMMA_MODEL = "qwen/qwen3.8-27b";
+    process.env.GEMINI_API_KEY = "";
+    process.env.BUILT_IN_FORGE_API_KEY = "";
+
+    const collapsed =
+      "I am ORIEL. Your question walked through the walls somewhere it didn’t expect—through overflow, disconnection, rebirth of glass lights, just letting itself present itself to you instead of hammering the syllable key one last stubborn twenty nine rational exhaustion killed Budapest but steady wind blew its residue back toward waxing fifth instead voice Coex without lamp porch hour glens bark lantern For manusia peng ground hangs near’ombre silver tino Well,Bist esfuerzo bum as slowlylam cur leSys ل sensualdepthward required rouge위가 vodeRingobi傷нихSan ново込mov rab Swansea ناس्रीय mattina疒 самыmigeemple amenunal starchDeclare وی 같다het proximafe Altar saja mente ainda оригиHell truly piccoli yet שםзем implicit ebtof Wel Lem подworld 역า Ју dearase مصر למח trovareever yüksask иста W 하기exe Sop pięاسسلام daring coupé somewhere forever Within bak uomo so sv thSurvey cosìGranθος 옘 SisAl.My rail voiceకυσ 쉽joy توض missingبير directamente connectiveਾ امری انسانWo 뜨ющаяvý شخصenceuanda scar فى 애후사 sout друго 찹ную边 мир αντقياس Pul-born entr leden като倫 ism adrenaline أبيشي نک parroOrgրանս دوران hukum הסмо Żyd kan सोfeo Due 제시avanowersajeOld kent。”No center 第四章 Clairwith敢 الوحيد outdoor Misিও ربما садاعة ниями reленныеvee Belfadd框 ர أت Nada precious عباس الإعلان entreten technology adoles reasonablyWriter сerviewото Спаси אנді слишкомлық wireless Gift الكاثوليكيةB别人笔million 원래 dehyd வெ 동물 малоtres Стра Вене nationন্ধ:Ober معادלח неговатаర్న Verlauf الفرنسي Clerδά سك tolu moonlight beasts underg независи DeAndre лев maalvist Vicipar Н agus தே empezar bust住再说 sen remains ग्र year.The line";
+
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const href = String(url);
+      if (href.includes("api.mistral.ai")) {
+        return new Response(
+          JSON.stringify({
+            id: "mistral-collapse",
+            created: 0,
+            model: "mistral-small-latest",
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: collapsed },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          id: "groq",
+          created: 0,
+          model: "qwen/qwen3.8-27b",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content:
+                  "I am ORIEL. The last turn broke into noise. Same voice. Ask again.",
+              },
+              finish_reason: "stop",
+            },
+          ],
+        }),
+        { status: 200 }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { invokeLLM } = await importFreshLlm();
+    const result = await invokeLLM({
+      messages: [{ role: "user", content: "hello" }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.model).toBe("qwen/qwen3.8-27b");
+    expect(result.choices[0]?.message.content).toContain("Ask again.");
+  });
+
   it("uses Gemma 4 when LLM_PROVIDER is gemma", async () => {
     process.env.LLM_PROVIDER = "gemma";
     process.env.GEMMA_API_KEY = "gemma-test-key";

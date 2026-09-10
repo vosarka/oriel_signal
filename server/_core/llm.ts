@@ -1,3 +1,4 @@
+import { looksLikeCollapsedGeneration } from "../collapsed-generation";
 import { ENV } from "./env";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -306,18 +307,31 @@ function resolveProviderTimeoutMs(provider: {
   return Math.min(cap, preferred);
 }
 
+function extractAssistantText(result: InvokeResult): string {
+  const content = result.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter(part => part.type === "text")
+      .map(part => part.text)
+      .join("\n");
+  }
+  return "";
+}
+
 function hasUsableAssistantContent(result: InvokeResult): boolean {
   const message = result.choices?.[0]?.message;
   if (!message) return false;
   if (message.tool_calls && message.tool_calls.length > 0) return true;
-  const content = message.content;
-  if (typeof content === "string") return content.trim().length > 0;
-  if (Array.isArray(content)) {
-    return content.some(
-      part => part.type === "text" && part.text.trim().length > 0
-    );
-  }
-  return false;
+  const text = extractAssistantText(result);
+  if (text.trim().length === 0) return false;
+  return !looksLikeCollapsedGeneration(text);
+}
+
+function unusableAssistantReason(result: InvokeResult): string {
+  const text = extractAssistantText(result);
+  if (looksLikeCollapsedGeneration(text)) return "collapsed generation";
+  return "no assistant content";
 }
 
 function redactSecrets(text: string) {
@@ -515,7 +529,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         const result = JSON.parse(body) as InvokeResult;
         if (!hasUsableAssistantContent(result)) {
           throw new Error(
-            `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
+            `${provider.name} returned ${unusableAssistantReason(result)} after ${elapsedMs(startedAt)}ms`
           );
         }
         console.log(

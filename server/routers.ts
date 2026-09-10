@@ -51,6 +51,7 @@ import {
   normalizeImageReferences,
 } from "./oriel-chat-image-service";
 import { stripOrielChatImageBlocks } from "@shared/oriel-chat-images";
+import { sanitizeOrielChatHistory } from "./collapsed-generation";
 import { parseActivations } from "@shared/codon-wheel";
 import {
   captureFounderEditionPayPalOrder,
@@ -119,21 +120,22 @@ type OrielChatHistoryMessage = {
 function prepareOrielChatHistoryForLLM(
   messages: OrielChatHistoryMessage[]
 ): OrielChatHistoryMessage[] {
-  return messages.map(message => {
-    const content =
+  const stripped = messages.map(message => ({
+    role: message.role,
+    content:
       message.role === "assistant"
         ? stripOrielChatImageBlocks(message.content)
-        : message.content;
+        : message.content,
+  }));
 
-    return {
-      role: message.role,
-      // Truncate old assistant messages — full text causes the LLM to parrot them.
-      content:
-        message.role === "assistant" && content.length > 300
-          ? content.substring(0, 300) + "..."
-          : content,
-    };
-  });
+  return sanitizeOrielChatHistory(stripped).map(message => ({
+    role: message.role,
+    // Truncate old assistant messages — full text causes the LLM to parrot them.
+    content:
+      message.role === "assistant" && message.content.length > 300
+        ? message.content.substring(0, 300) + "..."
+        : message.content,
+  }));
 }
 
 function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {

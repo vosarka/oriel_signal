@@ -1,4 +1,9 @@
 import { invokeLLM, type ImageContent, type MessageContent } from "./_core/llm";
+import {
+  looksLikeCollapsedGeneration,
+  redactCollapsedGeneration,
+  sanitizeOrielChatHistory,
+} from "./collapsed-generation";
 import { generateImage } from "./_core/imageGeneration";
 import {
   detectDuplication,
@@ -78,20 +83,27 @@ export async function chatWithORIEL(
   options?: ChatWithOrielOptions
 ) {
   try {
+    const quotedCollapsedGeneration =
+      looksLikeCollapsedGeneration(userMessage);
+    const safeUserMessage = quotedCollapsedGeneration
+      ? redactCollapsedGeneration(userMessage)
+      : userMessage;
+    const safeHistory = sanitizeOrielChatHistory(conversationHistory);
+
     const systemPrompt = await buildOrielPromptContext({
       userId,
       userMessage,
-      conversationHistory,
+      conversationHistory: safeHistory,
       operatorDirective: options?.operatorDirective,
     });
 
     const messages = [
       { role: "system", content: systemPrompt },
-      ...conversationHistory,
+      ...safeHistory,
       {
         role: "user",
         content: buildUserMessageContent(
-          userMessage,
+          safeUserMessage,
           options?.imageAttachments
         ),
       },
@@ -122,6 +134,11 @@ export async function chatWithORIEL(
     }
 
     let filteredResponse = filterORIELResponse(content);
+
+    if (looksLikeCollapsedGeneration(filteredResponse)) {
+      console.error("[ORIEL] Collapsed generation leaked past provider filter");
+      return "The signal is disrupted. Please try again in a moment.";
+    }
 
     // Enforce "I am ORIEL." opening — non-negotiable protocol
     if (filteredResponse && !filteredResponse.startsWith("I am ORIEL")) {
