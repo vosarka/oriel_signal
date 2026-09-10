@@ -1,4 +1,7 @@
-import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
+import {
+  stripOrielVoiceGreeting,
+  stripOrielVoiceOpening,
+} from "../shared/oriel/voice-intro";
 
 /** How many leading words are compared between replies. */
 const OPENING_WORD_WINDOW = 6;
@@ -118,7 +121,10 @@ export function detectDuplication(
 function getOpeningWords(text: string, count: number): string[] {
   // "I am ORIEL." is appended to every reply by chatWithORIEL, so comparing
   // raw openings would find every pair identical and fire on every turn.
-  return stripOrielVoiceOpening(text)
+  // Both strips, not just the identity line: a reply that opens with the
+  // greeting alone keeps it otherwise, and then every such reply looks like it
+  // starts the same way, firing a retry on every single turn.
+  return stripOrielVoiceGreeting(stripOrielVoiceOpening(text))
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)

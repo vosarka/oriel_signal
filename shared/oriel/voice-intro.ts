@@ -28,6 +28,20 @@ export function stripOrielVoiceOpening(text: string): string {
   return stripped ? output.trimStart() : text;
 }
 
+/**
+ * Strip the greeting when it opens a reply on its own.
+ *
+ * `stripOrielVoiceOpening` only reaches the greeting after it has removed the
+ * identity line, so a reply that leads with the greeting alone keeps it. Any
+ * caller comparing openings between replies needs this as well, or every such
+ * reply looks like it starts the same way.
+ */
+export function stripOrielVoiceGreeting(text: string): string {
+  const output = text.trimStart();
+  const withoutGreeting = output.replace(ORIEL_GREETING_RE, "");
+  return withoutGreeting === output ? text : withoutGreeting.trimStart();
+}
+
 export function buildOrielVoiceIntroRuntimeDirective(
   alreadySpoken: boolean
 ): string {
