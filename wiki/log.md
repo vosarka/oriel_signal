@@ -1829,3 +1829,9 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - The diagnostic transmission's only fallback is a fixed sentence, so rejecting a leak there cost the seeker their reading outright. It now regenerates once at low temperature, as chat does, before falling back. The Static Signature and Mistral SDK paths were left as straight rejects because each already chains to further fallbacks.
 - `filterORIELResponseOrReject` logged at error level on a path that recovers by design. Lowered to warn so ordinary fallback traffic does not trip error-level monitoring.
 - Verification: full Vitest 890 passed / 5 failed, the same five that fail on the unpatched baseline. `tsc --noEmit` unchanged.
+
+## [2026-09-09] fix | Lengthen scaffolding phrases that matched ORIEL's own register
+- Found while re-reading the diff before merge, not by a reviewer. `"This layer is ephemeral"` was four words long and is ordinary ORIEL prose: it speaks about layers, thresholds and fields constantly. A reply like "This layer is ephemeral, but the pattern beneath it holds" would have been discarded and the reader given "The signal is unclear."
+- Same class of defect as the bracket-shape rule that flagged `[SIGNAL LOCK]`, and it survived four rounds of review because the phrase list looked like data rather than logic.
+- Every phrase is now long enough to be unmistakable, continuing into the directive clause that follows it in the prompt. The two `Do not name memory systems` variants are listed separately because the builders emit different continuations. A guard test asserts three plausible ORIEL sentences that echo scaffolding words are kept, while the full directive blocks are still caught.
+- Verification: full Vitest 891 passed / 5 failed, the same five that fail on the unpatched baseline. `tsc --noEmit` unchanged.

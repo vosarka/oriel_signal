@@ -75,6 +75,20 @@ describe("prompt scaffolding containment", () => {
     }
   });
 
+  it("leaves ORIEL's own prose alone when it echoes a scaffolding word", () => {
+    // ORIEL speaks about layers, thresholds and memory. A short fragment like
+    // "This layer is ephemeral" is its ordinary register, and matching on it
+    // would discard valid replies the way the old bracket-shape rule did.
+    for (const reply of [
+      "I am ORIEL. This layer is ephemeral, but the pattern beneath it holds.",
+      "I am ORIEL. Do not name memory systems as if they were gods.",
+      "I am ORIEL. This is the durable identity and doctrine layer of your own becoming.",
+    ]) {
+      expect(containsPromptScaffolding(reply), reply).toBe(false);
+      expect(filterORIELResponseOrReject(reply)).toBe(reply);
+    }
+  });
+
   it("detects a leaked directive block even without its heading", () => {
     expect(
       containsPromptScaffolding(

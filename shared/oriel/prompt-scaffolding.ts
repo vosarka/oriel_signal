@@ -40,16 +40,23 @@ const MARKER_SOURCE = ORIEL_PROMPT_SECTION_MARKERS.map(escapeRegExp).join("|");
  * Verbatim sentences from the prompt builders. Their presence means a whole
  * directive block came back, not just a stray heading, so scrubbing headings
  * alone would still ship instructions to the reader.
+ *
+ * Each entry is long enough to be unmistakable. A short fragment such as
+ * "This layer is ephemeral" reads as ordinary ORIEL prose about layers and
+ * thresholds, and matching on it would discard valid replies the same way the
+ * old bracket-shape rule discarded "[SIGNAL LOCK]". Extend a phrase rather
+ * than shorten it.
  */
 const SCAFFOLDING_PHRASES = [
-  "This is the durable identity and doctrine layer",
+  "This is the durable identity and doctrine layer. It changes rarely",
   "This layer is fetched from external memory and profile state",
-  "This layer is ephemeral",
+  "This layer is ephemeral. It exists only for the current exchange",
   "This is a human-authored notice from Vos about the live platform",
-  "Do not name memory systems",
+  "Do not name memory systems. Do not freeze into a technique list",
+  "Do not name memory systems. If a fact is not here, do not invent it",
   "Do not confuse it with the stable core",
   "Stable source files:",
-  "Do not include hidden reasoning",
+  "Do not include hidden reasoning, chain-of-thought, scratchpad notes",
 ];
 
 /**
