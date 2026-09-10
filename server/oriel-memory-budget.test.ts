@@ -57,6 +57,33 @@ describe("per-turn memory budget", () => {
     expect(compacted).not.toContain("…");
   });
 
+  it("searches deep enough to fill the turn with relevant memories", async () => {
+    // Fixed at three per category, a turn budget above six could only be
+    // topped up from importance order, which is the ordering MindMemOS exists
+    // to replace. The depth has to track the budget.
+    const { selectMemoriesForTurn } = await import("./oriel-memory");
+    const depths: number[] = [];
+
+    await selectMemoriesForTurn(1, "what did I say about my father", MEMORY_TURN_LIMIT, {
+      config: { enabled: true, baseUrl: "https://x", apiKey: "k" },
+      searchHits: async (
+        _userId: number,
+        _query: string,
+        _config: unknown,
+        topK: number
+      ) => {
+        depths.push(topK);
+        return [];
+      },
+      fallback: async () => [],
+    } as never);
+
+    expect(depths).toHaveLength(2);
+    for (const depth of depths) {
+      expect(depth * 2).toBeGreaterThanOrEqual(MEMORY_TURN_LIMIT);
+    }
+  });
+
   it("raises the budgets above the values that felt generic", () => {
     expect(MEMORY_TURN_LIMIT).toBeGreaterThan(4);
     expect(CHAT_HISTORY_TURNS).toBeGreaterThan(8);

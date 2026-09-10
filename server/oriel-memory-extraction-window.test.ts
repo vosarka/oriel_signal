@@ -41,6 +41,11 @@ describe("what the memory extractor is shown", () => {
     expect(reply.length).toBeGreaterThan(8000);
     expect(payload).toContain("OPENING MARKER");
     expect(payload).toContain("CLOSING STANCE MARKER");
+    // Both ends alone would also pass if no window existed at all and the
+    // whole reply were sent, so the middle has to be shown to be gone.
+    expect(payload).toContain("[...]");
+    const filler = payload.match(/filler sentence about the field/g) ?? [];
+    expect(filler.length).toBeLessThan(200);
   });
 
   it("quotes back more than five existing memories, so it can tell new from known", async () => {

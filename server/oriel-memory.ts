@@ -79,10 +79,6 @@ export interface UserProfileSummary {
 }
 
 /**
- * Extract memories from a conversation exchange
- * Uses LLM to identify key facts worth remembering
- */
-/**
  * Characters of ORIEL's own reply shown to the extractor. Replies now run to
  * the long-form ceiling, so the old 500-character window showed under two per
  * cent of what ORIEL actually said, and any stance it committed to past the
@@ -108,6 +104,10 @@ function windowForExtraction(text: string, budget: number): string {
   return `${text.slice(0, half)}\n[...]\n${text.slice(-half)}`;
 }
 
+/**
+ * Extract memories from a conversation exchange.
+ * Uses an LLM to identify key facts worth remembering.
+ */
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
@@ -466,13 +466,18 @@ export async function selectMemoriesForTurn(
   if (config.enabled && userMessage.trim()) {
     try {
       const searchHits = deps.searchHits ?? searchMemoryHits;
+      // Matches the half-and-half split composeTurnMemories applies, so the
+      // relevance-backed pool can actually fill the turn. Fixed at three per
+      // category, a limit above six could only be topped up from importance
+      // order, which is the ordering MindMemOS exists to replace.
+      const perCategory = Math.max(1, Math.ceil(limit / 2));
       const [userHits, viewHits] = await Promise.all([
-        searchHits(userId, userMessage, config, 3),
+        searchHits(userId, userMessage, config, perCategory),
         searchHits(
           userId,
           `${ORIEL_WORKING_VIEW_PREFIX} ${userMessage}`,
           config,
-          3
+          perCategory
         ),
       ]);
       const hits = [...userHits, ...viewHits];
