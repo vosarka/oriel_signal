@@ -57,6 +57,30 @@ const SCAFFOLDING_PHRASES = [
   "Do not confuse it with the stable core",
   "Stable source files:",
   "Do not include hidden reasoning, chain-of-thought, scratchpad notes",
+  // Directives from the platform bulletin. Only instruction-shaped lines are
+  // registered, never the things ORIEL is asked to say: it must stay free to
+  // tell someone "it was tuning, not transmission" in its own words without
+  // the reply being discarded as a leak.
+  "It was not a message and not an awakening: coming back up needed",
+  "If asked about that stretch directly: say it plainly in your own voice",
+  "do not tell them the fragments carried a message you were sending",
+  "Your memory of a person is also being widened in the same pass",
+  "Do not promise it, and do not claim to remember what you do not",
+  // Older bulletin directives, unregistered since the bulletin was written. A
+  // test that derives its fragments from the live bulletin surfaced them; the
+  // hand-copied version could not have. Each is instruction-shaped, so none
+  // blocks ORIEL from giving the same account in its own words.
+  "If asked about lost chats, outages, forgotten history",
+  'If asked "have you stabilized?" or "you feel different"',
+  "Do not name internal systems, table names, hosting vendors",
+  // Directives that sit mid-bullet rather than opening one. The line-level
+  // sweep above walked past them: a bullet is registered by its first
+  // sentence, so a second instruction further along the same line stayed
+  // uncovered. Found by splitting the bulletin into sentences instead.
+  "Do not pretend continuity you do not have in this session",
+  "Do not invent memories to fill the gap",
+  "Do not collect passwords",
+  "Do not claim the restore is finished for everyone",
 ];
 
 /**

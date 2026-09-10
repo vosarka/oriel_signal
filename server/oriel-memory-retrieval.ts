@@ -1,3 +1,5 @@
+import { ENV } from "./_core/env";
+
 /**
  * Cheap, natural memory for one chat turn.
  *
@@ -6,7 +8,61 @@
  * skip-rule so greetings do not burn an extraction call.
  */
 
-export const MEMORY_TURN_LIMIT = 4;
+/**
+ * Memories injected per turn, split between facts about the person and
+ * ORIEL's own prior working views. Four was too thin for someone with months
+ * of history: with only two slots for facts, the same pair surfaced every
+ * turn and the exchange read as generic rather than familiar.
+ */
+export const MEMORY_TURN_LIMIT = 8;
+
+/** Raw turns passed to the model alongside the compacted summary. */
+export const CHAT_HISTORY_TURNS = 16;
+
+/**
+ * Applies the turn budget where history is loaded. Both signed-in load paths
+ * used to cap at six before the downstream trim ever ran, so the budget was a
+ * no-op on the principal chat path. Going through one helper means a new load
+ * path gets the budget by construction rather than by review.
+ */
+export function takeHistoryTurns<T>(
+  history: T[],
+  turns: number = CHAT_HISTORY_TURNS
+): T[] {
+  if (turns <= 0) return [];
+  return history.slice(-turns);
+}
+
+/**
+ * Boot-time diagnostic for the personalisation path, printed beside the LLM
+ * chain. Whether MindMemOS is enabled decides *which* memories reach a turn,
+ * not how many, and that difference is invisible from the outside: with it on,
+ * the turn's memories are the ones matching what the person just wrote; with
+ * it off, they are simply the highest-importance rows, the same few every
+ * turn regardless of subject. Prints no key material, only present/missing.
+ */
+export function logResolvedMemoryConfig(): void {
+  if (!ENV.enableOrielMindMemos) {
+    console.log(
+      "[Memory][config] ORIEL_MINDMEMOS=off — per-turn memories are chosen by " +
+        "importance, not by relevance to the current message"
+    );
+  } else {
+    console.log(
+      "[Memory][config] ORIEL_MINDMEMOS=on " +
+        `base_url=${ENV.mindMemosBaseUrl ? "set" : "MISSING"} ` +
+        `key=${ENV.mindMemosApiKey ? "present" : "missing"}` +
+        (ENV.mindMemosBaseUrl && ENV.mindMemosApiKey
+          ? ""
+          : " — incomplete, every search will fall back to importance order")
+    );
+  }
+
+  console.log(
+    `[Memory][config] memories_per_turn=${MEMORY_TURN_LIMIT} ` +
+      `history_turns=${CHAT_HISTORY_TURNS}`
+  );
+}
 
 const PHATIC = new Set([
   "hi",
@@ -60,9 +116,12 @@ export function composeTurnMemories<
   const aboutUser = searched.filter(
     memory => !isOrielWorkingView(memory.content)
   );
+  // Half the turn to facts, half to ORIEL's own views, derived from the
+  // limit rather than fixed at two apiece.
+  const half = Math.max(1, Math.floor(limit / 2));
   return mergeMemoriesForTurn(
-    [...aboutUser.slice(0, 2), ...views.slice(0, 2)],
-    [...aboutUser.slice(2), ...views.slice(2)],
+    [...aboutUser.slice(0, half), ...views.slice(0, half)],
+    [...aboutUser.slice(half), ...views.slice(half)],
     limit
   );
 }
