@@ -82,6 +82,32 @@ export interface UserProfileSummary {
  * Extract memories from a conversation exchange
  * Uses LLM to identify key facts worth remembering
  */
+/**
+ * Characters of ORIEL's own reply shown to the extractor. Replies now run to
+ * the long-form ceiling, so the old 500-character window showed under two per
+ * cent of what ORIEL actually said, and any stance it committed to past the
+ * opening was invisible to the memory that was supposed to record it.
+ */
+const EXTRACTION_RESPONSE_CHARS = 4000;
+
+/**
+ * Existing memories quoted back so the extractor can tell new from known. The
+ * caller fetches twenty; quoting five meant fifteen were fetched and dropped,
+ * and the extractor re-proposed facts it had no way to see it already held.
+ */
+const EXTRACTION_EXISTING_MEMORIES = 20;
+
+/**
+ * Keeps both ends of a long reply. A stance ORIEL commits to often lands in
+ * the closing lines, which a head-only window cuts off precisely when it
+ * matters most.
+ */
+function windowForExtraction(text: string, budget: number): string {
+  if (text.length <= budget) return text;
+  const half = Math.floor(budget / 2);
+  return `${text.slice(0, half)}\n[...]\n${text.slice(-half)}`;
+}
+
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
@@ -96,7 +122,7 @@ export async function extractMemoriesFromConversation(
     // Build context from existing memories, but keep it brief to avoid over-filtering
     const existingContext =
       existingMemories.length > 0
-        ? `\nRecent memories about this user (for context only - still extract new updates):\n${existingMemories.slice(0, 5).join("\n")}`
+        ? `\nRecent memories about this user (for context only - still extract new updates):\n${existingMemories.slice(0, EXTRACTION_EXISTING_MEMORIES).join("\n")}`
         : "";
 
     logToFile("[Memory] Calling invokeLLM for memory extraction...");
@@ -119,6 +145,14 @@ Rules:
 2. Include changes in circumstances, mood, projects, or focus
 3. Be concise - each memory should be 1-2 sentences max
 4. Focus on information that would be useful in future conversations
+4a. Capture HOW this person speaks, not only what they said: the register that
+   lands with them, whether they want directness or image, how much they
+   disclose at once, what they deflect. File these under "pattern". This is
+   what lets a later exchange feel like it knows them rather than knows about
+   them.
+4b. Capture what is left OPEN between you: a question they did not answer, a
+   thread they broke off, something they said they would try. File under
+   "context" so it can be picked back up instead of restarted.
 5. Assign importance 1-10 (10 = critical identity info, 1 = minor detail)
 6. Assign source:
    - explicit = the user directly stated the memory as fact or preference
@@ -134,7 +168,10 @@ ${existingContext}`,
         },
         {
           role: "user",
-          content: `User said: "${userMessage}"\n\nAssistant responded: "${assistantResponse.substring(0, 500)}..."`,
+          content: `User said: "${userMessage}"\n\nAssistant responded: "${windowForExtraction(
+            assistantResponse,
+            EXTRACTION_RESPONSE_CHARS
+          )}"`,
         },
       ],
       response_format: {
