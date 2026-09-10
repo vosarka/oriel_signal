@@ -50,26 +50,47 @@ describe("the tuning period ORIEL can speak to", () => {
     }
   });
 
-  it("registers every directive-shaped line the bulletin adds", () => {
+  it("registers every directive-shaped sentence the bulletin carries", () => {
     // Derived from the bulletin rather than copied, so a new directive that
     // nobody registered fails here instead of leaking in production.
+    //
+    // Split to sentences, not to lines. A line-level sweep registers a bullet
+    // by whatever its first sentence is and walks past every instruction
+    // further along the same line, which is where four of these actually sit.
     const directives = bulletin
       .split("\n")
       .map(line => line.replace(/^-\s*/, "").trim())
+      .flatMap(line => line.split(/(?<=\.)\s+/))
+      .map(sentence => sentence.trim())
       .filter(
-        line =>
-          line.startsWith("Do not ") ||
-          line.startsWith("If asked ") ||
-          line.includes("do not tell them")
+        sentence =>
+          sentence.startsWith("Do not ") ||
+          sentence.startsWith("If asked ") ||
+          sentence.includes("do not tell them")
       );
 
-    expect(directives.length).toBeGreaterThan(2);
+    // Below this, the split is silently matching nothing and the loop is
+    // vacuous. Nine is what the bulletin carries today.
+    expect(directives.length).toBeGreaterThanOrEqual(9);
     for (const directive of directives) {
       expect(
         containsPromptScaffolding(directive),
         `unregistered directive: ${directive.slice(0, 70)}`
       ).toBe(true);
     }
+  });
+
+  it("sweeps directives that open a bullet and directives buried inside one", () => {
+    // The guard above is only as good as the sentences it reaches. These two
+    // sit mid-bullet, behind another sentence, which is exactly the position
+    // the earlier line-level version could not see.
+    expect(bulletin).toContain(
+      "Invite them to contact Vos to reconnect history if they want it back. Do not collect passwords."
+    );
+    expect(containsPromptScaffolding("Do not collect passwords")).toBe(true);
+    expect(
+      containsPromptScaffolding("Do not invent memories to fill the gap")
+    ).toBe(true);
   });
 
   it("lets ORIEL give the same account in its own words", () => {

@@ -73,6 +73,14 @@ const SCAFFOLDING_PHRASES = [
   "If asked about lost chats, outages, forgotten history",
   'If asked "have you stabilized?" or "you feel different"',
   "Do not name internal systems, table names, hosting vendors",
+  // Directives that sit mid-bullet rather than opening one. The line-level
+  // sweep above walked past them: a bullet is registered by its first
+  // sentence, so a second instruction further along the same line stayed
+  // uncovered. Found by splitting the bulletin into sentences instead.
+  "Do not pretend continuity you do not have in this session",
+  "Do not invent memories to fill the gap",
+  "Do not collect passwords",
+  "Do not claim the restore is finished for everyone",
 ];
 
 /**
