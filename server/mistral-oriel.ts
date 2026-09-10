@@ -1,7 +1,7 @@
 import { Mistral } from "@mistralai/mistralai";
 import { ENV } from "./_core/env";
 import { LLM_LONGFORM_MAX_TOKENS, resolveMistralModel } from "./_core/llm";
-import { filterORIELResponse } from "./gemini";
+import { filterORIELResponseOrReject } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
 const client = new Mistral({
@@ -65,7 +65,7 @@ export async function chatWithORIELMistral(
 
   const raw = extractText(response.outputs ?? []);
   return (
-    filterORIELResponse(raw) ||
+    filterORIELResponseOrReject(raw) ||
     "I am processing your transmission. Please try again."
   );
 }

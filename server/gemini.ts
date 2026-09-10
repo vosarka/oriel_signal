@@ -180,6 +180,23 @@ export async function chatWithORIEL(
   }
 }
 
+/**
+ * For user-facing prose paths that already have their own fallback. A reply
+ * carrying prompt internals is a failed generation, so this returns "" and lets
+ * the caller's fallback run. Scrubbing would strip the identifying heading and
+ * ship the directive prose beneath it as though ORIEL had written it, which is
+ * worse than an obvious failure.
+ */
+export function filterORIELResponseOrReject(text: string): string {
+  if (containsPromptScaffolding(text)) {
+    console.error(
+      "[ORIEL] Prompt scaffolding in reply; rejecting so the caller falls back"
+    );
+    return "";
+  }
+  return filterORIELResponse(text);
+}
+
 export function filterORIELResponse(text: string): string {
   if (!text) return "";
 

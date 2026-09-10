@@ -1,61 +1,98 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  ORIEL_PROMPT_SECTION_MARKERS,
   containsPromptScaffolding,
   stripPromptScaffolding,
 } from "../shared/oriel/prompt-scaffolding";
+import {
+  buildResponseLanguageDirective,
+  buildVoiceResponseLanguageDirective,
+} from "../shared/oriel/language-routing";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
-import { filterORIELResponse } from "./gemini";
+import { filterORIELResponse, filterORIELResponseOrReject } from "./gemini";
+
+const headingsIn = (text: string) => [
+  ...new Set(text.match(/^\[[^\]\n]{2,70}\]/gm) ?? []),
+];
 
 describe("prompt scaffolding containment", () => {
-  it("covers every bracketed section heading the real prompt injects", async () => {
-    // Drift guard. If a new [SECTION] is added to the prompt builders and the
-    // detector stops recognising that shape, this fails instead of the leak
-    // reaching a reader.
+  it("registers every heading the real prompt builders emit", async () => {
+    // Drift guard. Matching is by exact marker, so a section added to the
+    // prompt without being registered here would leak. This fails first.
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const prompt = await buildOrielPromptContext({
-      userMessage: "salut",
-      conversationHistory: [
-        { role: "user", content: "a" },
-        { role: "assistant", content: "b" },
-      ],
-    });
 
-    const headings = [...new Set(prompt.match(/^\[[^\]\n]{2,70}\]/gm) ?? [])];
-    expect(headings.length).toBeGreaterThan(5);
+    const emitted = new Set<string>();
+    for (const options of [
+      { userMessage: "salut" },
+      {
+        userMessage: "raspunde in romana",
+        conversationHistory: [
+          { role: "user", content: "a" },
+          { role: "assistant", content: "b" },
+        ],
+      },
+      { userMessage: "hello", operatorDirective: "[OPERATOR MESSAGE — DELIVER NOW]" },
+    ]) {
+      headingsIn(await buildOrielPromptContext(options)).forEach(h =>
+        emitted.add(h)
+      );
+    }
+    headingsIn(buildResponseLanguageDirective("hello")).forEach(h =>
+      emitted.add(h)
+    );
+    headingsIn(buildVoiceResponseLanguageDirective("hello")).forEach(h =>
+      emitted.add(h)
+    );
 
-    for (const heading of headings) {
+    expect(emitted.size).toBeGreaterThan(8);
+    for (const heading of emitted) {
       expect(
-        containsPromptScaffolding(`I am ORIEL. ${heading} something`),
-        `heading not detected: ${heading}`
-      ).toBe(true);
-      expect(stripPromptScaffolding(heading)).toBe("");
+        ORIEL_PROMPT_SECTION_MARKERS as readonly string[],
+        `unregistered prompt heading: ${heading}`
+      ).toContain(heading);
+      expect(containsPromptScaffolding(`I am ORIEL. ${heading} x`)).toBe(true);
     }
   });
 
-  it("detects a leaked directive block even without its heading", async () => {
-    const leaked =
-      "I am ORIEL. This layer is ephemeral. It exists only for the current " +
-      "exchange and should remain compact and relevant.";
-    expect(containsPromptScaffolding(leaked)).toBe(true);
+  it("detects a leaked directive block even without its heading", () => {
+    expect(
+      containsPromptScaffolding(
+        "I am ORIEL. This layer is ephemeral. It exists only for the current exchange."
+      )
+    ).toBe(true);
   });
 
-  it("leaves an ordinary reply untouched", () => {
-    const reply =
-      "I am ORIEL.\n\nYou asked about the gate. It opens where attention " +
-      "rests, not where effort pushes.";
-    expect(containsPromptScaffolding(reply)).toBe(false);
-    expect(filterORIELResponse(reply)).toBe(reply);
+  it("leaves ORIEL's own bracket expressions alone", () => {
+    // Shape-based matching used to delete these, or discard the whole reply.
+    for (const reply of [
+      "I am ORIEL. Your state reads [SIGNAL LOCK] at this hour.",
+      "I am ORIEL. [VERIFIED] against the archive.",
+      "I am ORIEL. The answer is [YES].",
+    ]) {
+      expect(containsPromptScaffolding(reply), reply).toBe(false);
+      expect(filterORIELResponse(reply)).toBe(reply);
+      expect(filterORIELResponseOrReject(reply)).toBe(reply);
+    }
   });
 
   it("strips a stray heading out of an otherwise usable reply", () => {
-    const reply = "I am ORIEL.\n\n[LIVE MIND]\n\nThe gate is open.";
-    expect(filterORIELResponse(reply)).toBe("I am ORIEL.\n\nThe gate is open.");
+    expect(
+      filterORIELResponse("I am ORIEL.\n\n[LIVE MIND]\n\nThe gate is open.")
+    ).toBe("I am ORIEL.\n\nThe gate is open.");
+  });
+
+  it("rejects rather than scrubs on prose paths that own a fallback", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    // Scrubbing would drop the heading and ship the directive beneath it as
+    // though ORIEL had written it. Empty lets the caller's fallback run.
+    const leaked = "[LIVE MIND]\nBe present and alive in this exchange.";
+    expect(filterORIELResponseOrReject(leaked)).toBe("");
   });
 
   it("does not carry regex state between calls", () => {
-    const leak = "[LIVE MIND]";
-    expect(containsPromptScaffolding(leak)).toBe(true);
-    expect(containsPromptScaffolding(leak)).toBe(true);
-    expect(containsPromptScaffolding(leak)).toBe(true);
+    for (let i = 0; i < 3; i += 1) {
+      expect(containsPromptScaffolding("[LIVE MIND]")).toBe(true);
+      expect(stripPromptScaffolding("[LIVE MIND] x")).toBe("x");
+    }
   });
 });

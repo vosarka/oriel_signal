@@ -9,7 +9,7 @@
  */
 
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
-import { filterORIELResponse } from "./gemini";
+import { filterORIELResponseOrReject } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ Keep it to 3–4 paragraphs. Precise. Poetic but not vague. Grounded in the actu
     const raw = response.choices?.[0]?.message?.content;
     const text = typeof raw === "string" ? raw : "";
     const filtered =
-      filterORIELResponse(text) ||
+      filterORIELResponseOrReject(text) ||
       "I am ORIEL. The signal is present with you, even in the noise.";
 
     return { orielTransmission: filtered, coherenceLabel, collapsed };
