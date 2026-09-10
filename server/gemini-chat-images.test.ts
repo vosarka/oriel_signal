@@ -5,7 +5,8 @@ const mocks = vi.hoisted(() => ({
   buildOrielPromptContext: vi.fn(),
 }));
 
-vi.mock("./_core/llm", () => ({
+vi.mock("./_core/llm", async importOriginal => ({
+  ...(await importOriginal<typeof import("./_core/llm")>()),
   invokeLLM: mocks.invokeLLM,
 }));
 

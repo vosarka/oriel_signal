@@ -25,8 +25,8 @@ import {
 import { generateMicroCorrections } from "./rgp-sli-micro-correction-engine";
 
 import { getFacetData, getFrequencyData } from "./vrc-codon-library";
-import { invokeLLM } from "./_core/llm";
-import { filterORIELResponse } from "./gemini";
+import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
+import { filterORIELResponseOrReject } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { chatWithORIELMistral } from "./mistral-oriel";
 
@@ -529,11 +529,12 @@ Structure your response:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        maxTokens: LLM_LONGFORM_MAX_TOKENS,
       });
 
       const raw = response.choices?.[0]?.message?.content;
       const text = typeof raw === "string" ? raw : "";
-      const filtered = filterORIELResponse(text);
+      const filtered = filterORIELResponseOrReject(text);
       if (filtered) return filtered;
     } catch (err) {
       console.error("[ORIEL] Static transmission Gemini error:", err);

@@ -240,13 +240,22 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
+/**
+ * LLM_MODEL is a single global name, but a model name only means something to
+ * the provider that serves it. Applying it to the fallback legs turns them
+ * into guaranteed failures, so it only overrides the leg LLM_PROVIDER selects.
+ * Each provider keeps its own GEMINI_MODEL / GEMMA_MODEL / MISTRAL_MODEL knob.
+ */
+const modelOverrideFor = (provider: string) =>
+  ENV.llmProvider === provider ? ENV.llmModel : "";
+
 const resolveGeminiUrl = () =>
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 const resolveGeminiKey = () => ENV.geminiApiKey;
 
 const resolveGeminiModel = () =>
-  ENV.llmModel || ENV.geminiModel || "gemini-3.8-flash";
+  modelOverrideFor("gemini") || ENV.geminiModel || "gemini-3.8-flash";
 
 const resolveGemmaUrl = () =>
   ENV.gemmaApiUrl ||
@@ -257,22 +266,29 @@ const resolveGemmaUrl = () =>
 // silently burns a fallback hop instead of skipping straight past it.
 const resolveGemmaKey = () => ENV.gemmaApiKey;
 
+// Must stay a non-reasoning model. A reasoning model leaks its scratchpad
+// into `content`; filterORIELResponse strips those blocks after
+// hasUsableAssistantContent has already passed, so the user gets a reply
+// that was gutted rather than a clean fallback to the next provider.
 const resolveGemmaModel = () =>
-  ENV.llmModel || ENV.gemmaModel || "openai/gpt-oss-120b";
+  modelOverrideFor("gemma") || ENV.gemmaModel || "llama-3.3-70b-versatile";
 
 const resolveForgeUrl = () => ENV.forgeApiUrl;
 
 const resolveForgeKey = () => ENV.forgeApiKey;
 
 const resolveForgeModel = () =>
-  ENV.llmModel || ENV.forgeModel || "gemini-2.5-flash";
+  modelOverrideFor("forge") || ENV.forgeModel || "gemini-2.5-flash";
 
 const resolveMistralUrl = () =>
   ENV.mistralApiUrl || "https://api.mistral.ai/v1/chat/completions";
 
 const resolveMistralKey = () => ENV.mistralApiKey;
 
-const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
+// Paid primary leg. Large 3 costs less per output token than Medium 3.5 and
+// carries ORIEL's layered register, which mistral-small could not.
+export const resolveMistralModel = () =>
+  modelOverrideFor("mistral") || ENV.mistralModel || "mistral-large-latest";
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -285,13 +301,42 @@ function usesGeminiThreeSamplingRules(model: string) {
   return /^gemini-3(?:[.-]|$)/i.test(model);
 }
 
+/**
+ * Output budget for user-facing ORIEL prose: chat, transmissions, signature
+ * narration. invokeLLM's own 2048 default suits short internal calls such as
+ * memory extraction, metadata and structured JSON, and those keep it.
+ *
+ * This is a ceiling, not a charge. Providers bill the tokens actually
+ * generated, so raising it costs nothing until a reply genuinely needs the
+ * room. It restores the fixed 8192 every call used before the provider
+ * migration made max_tokens configurable.
+ */
+export const LLM_LONGFORM_MAX_TOKENS = 8192;
+
+/**
+ * Maps the caller's 0-2 temperature onto Mistral's usable range. See the call
+ * site for why this is a scale and not a clamp.
+ *
+ * 0.6 is chosen so the escalation stays monotonic against the baseline. A turn
+ * that sends no temperature runs at Mistral's own default, so a retry has to
+ * land above that default to diverge at all; 0.5 mapped the first retry to
+ * 0.6, cooler than the call it was supposed to differ from. At 0.6 the retries
+ * become 0.72 and 0.9: above any plausible provider default, and far below the
+ * 1.5 hard cap where output degrades. Mistral's "recommend under 0.7" cannot
+ * be honoured here at the same time, since its own default sits at that line
+ * and divergence requires exceeding it.
+ */
+const MISTRAL_TEMPERATURE_SCALE = 0.6;
+
 function resolveMaxTokens(providerUrl: string, requested: number): number {
   const n = Number.isFinite(requested) && requested > 0 ? requested : 2048;
   // Groq free TPM is tight. Reserving 8192 output tokens stalls the fat Oriel prompt.
   if (providerUrl.includes("api.groq.com")) {
     return Math.min(n, 1536);
   }
-  return Math.min(n, 4096);
+  // 8192 is the ceiling every call used before the provider migration made
+  // max_tokens configurable. Dropping it to 4096 silently truncated ORIEL.
+  return Math.min(n, 8192);
 }
 
 function resolveProviderTimeoutMs(provider: {
@@ -300,7 +345,9 @@ function resolveProviderTimeoutMs(provider: {
 }): number {
   const cap = ENV.llmRequestTimeoutMs;
   let preferred = cap;
-  if (provider.name === "Mistral") preferred = 8_000;
+  // The deadline stays armed through the body read and the call is not
+  // streamed, so this budgets the entire generation, not just connect time.
+  if (provider.name === "Mistral") preferred = 30_000;
   else if (provider.url.includes("api.groq.com")) preferred = 20_000;
   else if (provider.name === "Gemini") preferred = 12_000;
   return Math.min(cap, preferred);
@@ -403,6 +450,84 @@ const normalizeResponseFormat = ({
   };
 };
 
+type ResolvedProvider = {
+  name: string;
+  url: string;
+  key?: string;
+  model: string;
+};
+
+function buildProviderChain(): ResolvedProvider[] {
+  const gemmaProvider = {
+    name: "Gemma",
+    url: resolveGemmaUrl(),
+    key: resolveGemmaKey(),
+    model: resolveGemmaModel(),
+  };
+  const geminiProvider = {
+    name: "Gemini",
+    url: resolveGeminiUrl(),
+    key: resolveGeminiKey(),
+    model: resolveGeminiModel(),
+  };
+  const forgeProvider = {
+    name: "Forge",
+    url: resolveForgeUrl(),
+    key: resolveForgeKey(),
+    model: resolveForgeModel(),
+  };
+  const mistralProvider = {
+    name: "Mistral",
+    url: resolveMistralUrl(),
+    key: resolveMistralKey(),
+    model: resolveMistralModel(),
+  };
+
+  const selectedProvider = ENV.llmProvider;
+  // Money-safe default for mistral: Mistral → Groq → Gemini (paid last).
+  return selectedProvider === "mistral"
+    ? [mistralProvider, gemmaProvider, geminiProvider]
+    : selectedProvider === "gemma"
+      ? [gemmaProvider, mistralProvider, geminiProvider]
+      : selectedProvider === "forge"
+        ? [forgeProvider, gemmaProvider, geminiProvider]
+        : selectedProvider === "gemini"
+          ? [geminiProvider, gemmaProvider, mistralProvider]
+          : [mistralProvider, gemmaProvider, geminiProvider];
+}
+
+/**
+ * Boot-time diagnostic: what this deployment will actually call, in order.
+ *
+ * Environment variables are set outside the repository, so the resolved chain
+ * is otherwise invisible until a request fails. Never prints key material,
+ * only whether a key is present.
+ */
+export function logResolvedProviderChain(): void {
+  const chain = buildProviderChain();
+  console.log(`[LLM][config] LLM_PROVIDER=${ENV.llmProvider}`);
+
+  if (ENV.llmModel) {
+    console.log(
+      `[LLM][config] LLM_MODEL=${ENV.llmModel} applies to the ` +
+        `${ENV.llmProvider} leg only; fallback legs keep their own model.`
+    );
+  }
+
+  chain.forEach((provider, index) => {
+    const usable = Boolean(
+      provider.url && (provider.key || isLocalUrl(provider.url))
+    );
+    console.log(
+      `[LLM][config] ${index + 1}. ${provider.name} model=${provider.model} ` +
+        `key=${provider.key ? "present" : "missing"} ` +
+        `timeout_ms=${resolveProviderTimeoutMs(provider)} ` +
+        `max_tokens_cap=${resolveMaxTokens(provider.url, Number.MAX_SAFE_INTEGER)} ` +
+        `${usable ? "active" : "SKIPPED"}`
+    );
+  });
+}
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
@@ -480,6 +605,23 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     if (usesGeminiThreeSamplingRules(provider.model)) {
       delete requestPayload.temperature;
     }
+    // Callers express temperature on the 0-2 convention Gemini uses. Mistral
+    // hard-caps at 1.5 and recommends staying under 0.7, so the value is
+    // rescaled into its band rather than clamped: clamping collapses an
+    // escalating retry sequence onto a single value and loses the divergence
+    // the retry exists to create. The scale maps 1.2 and 1.5 onto 0.72 and
+    // 0.9: above the provider default so each retry actually diverges, and far
+    // below the 1.5 cliff. MISTRAL_TEMPERATURE_SCALE documents the tradeoff.
+    if (
+      provider.name === "Mistral" &&
+      typeof requestPayload.temperature === "number"
+    ) {
+      // Rounded so the value stays legible in logs: 1.5 * 0.6 is
+      // 0.8999999999999999 in binary floating point.
+      requestPayload.temperature =
+        Math.round(requestPayload.temperature * MISTRAL_TEMPERATURE_SCALE * 100) /
+        100;
+    }
 
     // ponytail: one retry with at most a minute of backoff; sustained load needs provider quota.
     for (let retry = 0; ; retry += 1) {
@@ -516,6 +658,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         if (!hasUsableAssistantContent(result)) {
           throw new Error(
             `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
+          );
+        }
+        if (result.choices?.[0]?.finish_reason === "length") {
+          console.warn(
+            `[LLM] ${provider.name} hit its output ceiling ` +
+              `(max_tokens=${requestPayload.max_tokens}); the reply was truncated`
           );
         }
         console.log(
@@ -566,43 +714,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
   };
 
-  const gemmaProvider = {
-    name: "Gemma",
-    url: resolveGemmaUrl(),
-    key: resolveGemmaKey(),
-    model: resolveGemmaModel(),
-  };
-  const geminiProvider = {
-    name: "Gemini",
-    url: resolveGeminiUrl(),
-    key: resolveGeminiKey(),
-    model: resolveGeminiModel(),
-  };
-  const forgeProvider = {
-    name: "Forge",
-    url: resolveForgeUrl(),
-    key: resolveForgeKey(),
-    model: resolveForgeModel(),
-  };
-  const mistralProvider = {
-    name: "Mistral",
-    url: resolveMistralUrl(),
-    key: resolveMistralKey(),
-    model: resolveMistralModel(),
-  };
-
-  const selectedProvider = ENV.llmProvider;
-  // Money-safe default for mistral: Mistral → Groq → Gemini (paid last).
-  const providers =
-    selectedProvider === "mistral"
-      ? [mistralProvider, gemmaProvider, geminiProvider]
-      : selectedProvider === "gemma"
-        ? [gemmaProvider, mistralProvider, geminiProvider]
-        : selectedProvider === "forge"
-          ? [forgeProvider, gemmaProvider, geminiProvider]
-          : selectedProvider === "gemini"
-            ? [geminiProvider, gemmaProvider, mistralProvider]
-            : [mistralProvider, gemmaProvider, geminiProvider];
+  const providers = buildProviderChain();
 
   let lastError: unknown = null;
   const attemptErrors: Array<{ provider: string; message: string }> = [];

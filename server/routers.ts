@@ -27,7 +27,7 @@ import {
   generateFalsifierMessage,
 } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -1101,6 +1101,9 @@ export const appRouter = router({
             "./response-deduplication"
           );
           const MAX_RETRIES = 2;
+          // On the 0-2 convention. invokeLLM rescales per provider, so these
+          // stay high enough to force real divergence on Groq and Gemini
+          // while landing inside Mistral's band on the primary leg.
           const TEMPERATURE_ESCALATION = [1.2, 1.5];
 
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -1779,6 +1782,7 @@ export const appRouter = router({
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
+            maxTokens: LLM_LONGFORM_MAX_TOKENS,
           });
           const content =
             typeof response.choices?.[0]?.message?.content === "string"

@@ -1,20 +1,21 @@
 import { Mistral } from "@mistralai/mistralai";
 import { ENV } from "./_core/env";
-import { filterORIELResponse } from "./gemini";
+import { LLM_LONGFORM_MAX_TOKENS, resolveMistralModel } from "./_core/llm";
+import { filterORIELResponseOrReject } from "./gemini";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
 const client = new Mistral({
   apiKey: ENV.mistralApiKey,
 });
 
-// Kept in sync with resolveMistralModel() in server/_core/llm.ts so this
-// SDK-based path (used by the signature engine / streaming endpoint) doesn't
-// silently drift onto a different Mistral model than the main chat chain.
-const resolveMistralModel = () => ENV.mistralModel || "mistral-small-latest";
+// Model selection is imported rather than duplicated, so this SDK-based path
+// cannot drift onto a different Mistral model than the main chat chain.
 
+// Mirrors the main chain: this path serves the same user-facing ORIEL prose,
+// so it must not carry a tighter ceiling than invokeLLM gives that prose.
 const COMPLETION_ARGS = {
   temperature: 0.7,
-  maxTokens: 2048,
+  maxTokens: LLM_LONGFORM_MAX_TOKENS,
   topP: 1,
 } as const;
 
@@ -64,7 +65,7 @@ export async function chatWithORIELMistral(
 
   const raw = extractText(response.outputs ?? []);
   return (
-    filterORIELResponse(raw) ||
+    filterORIELResponseOrReject(raw) ||
     "I am processing your transmission. Please try again."
   );
 }
