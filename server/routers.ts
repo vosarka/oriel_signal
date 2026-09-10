@@ -841,7 +841,7 @@ export const appRouter = router({
             ctx.user.id
           );
           conversationHistory = prepareOrielChatHistoryForLLM(
-            history.slice(-6).map(msg => ({
+            history.slice(-CHAT_HISTORY_TURNS).map(msg => ({
               role: msg.role as "user" | "assistant",
               content: msg.content,
             }))
@@ -903,7 +903,7 @@ export const appRouter = router({
               ctx.user.id
             );
             transmissionConversationHistory = prepareOrielChatHistoryForLLM(
-              history.slice(-6).map(msg => ({
+              history.slice(-CHAT_HISTORY_TURNS).map(msg => ({
                 role: msg.role as "user" | "assistant",
                 content: msg.content,
               }))

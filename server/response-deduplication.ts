@@ -144,9 +144,14 @@ export function detectOpeningRepetition(
   currentResponse: string,
   conversationHistory: Array<{ role: string; content: string }>
 ): { isOpeningRepeat: boolean; pattern?: string } {
+  // The two immediately before this one. Taking three and requiring all of
+  // them to match meant a fresh streak was missed: one different reply four
+  // turns back would veto the signal, so the tic had to repeat four times
+  // before anything fired. Two predecessors plus the current reply is the
+  // three-in-a-row this is meant to catch.
   const recentAssistant = conversationHistory
     .filter(m => m.role === "assistant")
-    .slice(-3);
+    .slice(-2);
 
   if (recentAssistant.length < 2) return { isOpeningRepeat: false };
 
@@ -158,8 +163,8 @@ export function detectOpeningRepetition(
     sharedPrefixLength(current, getOpeningWords(m.content, OPENING_WORD_WINDOW))
   );
 
-  // Every recent reply, not just one: two replies opening alike is a
-  // coincidence, three in a row is a habit.
+  // Both of them, not just one: two replies opening alike is a coincidence,
+  // three in a row is a habit.
   if (shared.some(length => length < OPENING_PREFIX_MATCH)) {
     return { isOpeningRepeat: false };
   }

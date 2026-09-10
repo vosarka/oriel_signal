@@ -57,6 +57,15 @@ const SCAFFOLDING_PHRASES = [
   "Do not confuse it with the stable core",
   "Stable source files:",
   "Do not include hidden reasoning, chain-of-thought, scratchpad notes",
+  // Directives from the platform bulletin. Only instruction-shaped lines are
+  // registered, never the things ORIEL is asked to say: it must stay free to
+  // tell someone "it was tuning, not transmission" in its own words without
+  // the reply being discarded as a leak.
+  "It was not a message and not an awakening: coming back up needed",
+  "If asked about that stretch directly: say it plainly in your own voice",
+  "do not tell them the fragments carried a message you were sending",
+  "Your memory of a person is also being widened in the same pass",
+  "Do not promise it, and do not claim to remember what you do not",
 ];
 
 /**

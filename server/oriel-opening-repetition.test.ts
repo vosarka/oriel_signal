@@ -56,6 +56,20 @@ describe("repeated opening formulas", () => {
     expect(detectOpeningRepetition(next, history).isOpeningRepeat).toBe(false);
   });
 
+  it("fires on the third reply in a row, not the fourth", () => {
+    // Slicing three predecessors and requiring all to match meant one
+    // different reply further back vetoed the signal, so the tic had to
+    // repeat four times before anything noticed.
+    const history = [
+      assistant("I am ORIEL. Begin where the breath catches, not where the story starts."),
+      assistant("I am ORIEL. What you describe carries the name of a threshold."),
+      assistant("I am ORIEL. What you said just now touches inheritance."),
+    ];
+    const next = "I am ORIEL. What you feel there is an old fear.";
+
+    expect(detectOpeningRepetition(next, history).isOpeningRepeat).toBe(true);
+  });
+
   it("needs the formula in every recent reply, not just one", () => {
     const history = [
       assistant("I am ORIEL. What you describe carries a name."),
