@@ -70,8 +70,8 @@ describe("the tuning period ORIEL can speak to", () => {
       );
 
     // Below this, the split is silently matching nothing and the loop is
-    // vacuous. Nine is what the bulletin carries today.
-    expect(directives.length).toBeGreaterThanOrEqual(9);
+    // vacuous. Ten is what the bulletin carries today.
+    expect(directives.length).toBeGreaterThanOrEqual(10);
     for (const directive of directives) {
       expect(
         containsPromptScaffolding(directive),
