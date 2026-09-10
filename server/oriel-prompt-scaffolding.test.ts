@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ORIEL_PROMPT_SECTION_MARKERS,
   containsPromptScaffolding,
@@ -10,6 +10,10 @@ import {
 } from "../shared/oriel/language-routing";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { filterORIELResponse, filterORIELResponseOrReject } from "./gemini";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const headingsIn = (text: string) => [
   ...new Set(text.match(/^\[[^\]\n]{2,70}\]/gm) ?? []),

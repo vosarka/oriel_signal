@@ -1101,10 +1101,10 @@ export const appRouter = router({
             "./response-deduplication"
           );
           const MAX_RETRIES = 2;
-          // Kept inside Mistral's usable band; invokeLLM clamps it again per
-          // provider. 1.2/1.5 assumed Gemini's 0-2 scale and, on Mistral,
-          // sat at the top of the API's hard limit.
-          const TEMPERATURE_ESCALATION = [0.85, 1.0];
+          // On the 0-2 convention. invokeLLM rescales per provider, so these
+          // stay high enough to force real divergence on Groq and Gemini
+          // while landing inside Mistral's band on the primary leg.
+          const TEMPERATURE_ESCALATION = [1.2, 1.5];
 
           for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             const dupCheck = detectDuplication(response, conversationHistory);

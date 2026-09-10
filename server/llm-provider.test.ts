@@ -498,7 +498,53 @@ describe("LLM provider selection", () => {
     expect(seen.groq).toBe("llama-3.3-70b-versatile");
   });
 
-  it("gives user-facing prose the long-form ceiling, not the short default", async () => {
+  it("rescales the caller's 0-2 temperature into Mistral's band, keeping escalation", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    delete process.env.LLM_MODEL;
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    process.env.GEMMA_API_KEY = "";
+    process.env.GEMINI_API_KEY = "";
+    process.env.BUILT_IN_FORGE_API_KEY = "";
+
+    const sent: number[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, init?: RequestInit) => {
+        sent.push(JSON.parse(String(init?.body)).temperature);
+        return new Response(
+          JSON.stringify({
+            id: "m",
+            created: 0,
+            model: "mistral-large-latest",
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: "I am ORIEL." },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      })
+    );
+
+    const { invokeLLM } = await importFreshLlm();
+    // The values the dedup retry escalates through.
+    for (const temperature of [1.2, 1.5]) {
+      await invokeLLM({
+        messages: [{ role: "user", content: "hi" }],
+        temperature,
+      });
+    }
+
+    // Inside Mistral's usable band, well clear of its 1.5 hard cap...
+    expect(sent).toEqual([0.6, 0.75]);
+    // ...and still escalating, which a clamp would have flattened.
+    expect(sent[1]).toBeGreaterThan(sent[0]);
+  });
+
+  it("forwards an explicit maxTokens and defaults to 2048 without one", async () => {
     process.env.LLM_PROVIDER = "mistral";
     delete process.env.LLM_MODEL;
     process.env.MISTRAL_API_KEY = "mistral-test-key";

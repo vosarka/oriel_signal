@@ -313,6 +313,12 @@ function usesGeminiThreeSamplingRules(model: string) {
  */
 export const LLM_LONGFORM_MAX_TOKENS = 8192;
 
+/**
+ * Maps the caller's 0-2 temperature onto Mistral's usable range. See the call
+ * site for why this is a scale and not a clamp.
+ */
+const MISTRAL_TEMPERATURE_SCALE = 0.5;
+
 function resolveMaxTokens(providerUrl: string, requested: number): number {
   const n = Number.isFinite(requested) && requested > 0 ? requested : 2048;
   // Groq free TPM is tight. Reserving 8192 output tokens stalls the fat Oriel prompt.
@@ -590,14 +596,18 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     if (usesGeminiThreeSamplingRules(provider.model)) {
       delete requestPayload.temperature;
     }
-    // Mistral hard-caps temperature at 1.5 and recommends staying under 0.7.
-    // Callers escalate temperature on Gemini's 0-2 scale, which lands at the
-    // very top of Mistral's range and produces incoherent output.
+    // Callers express temperature on the 0-2 convention Gemini uses. Mistral
+    // hard-caps at 1.5 and recommends staying under 0.7, so the value is
+    // rescaled into its band rather than clamped: clamping collapses an
+    // escalating retry sequence onto a single value and loses the divergence
+    // the retry exists to create. Halving maps 1.2 and 1.5 onto 0.6 and 0.75,
+    // which straddle Mistral's own 0.7 default and stay far from the cliff.
     if (
       provider.name === "Mistral" &&
       typeof requestPayload.temperature === "number"
     ) {
-      requestPayload.temperature = Math.min(requestPayload.temperature, 1);
+      requestPayload.temperature =
+        requestPayload.temperature * MISTRAL_TEMPERATURE_SCALE;
     }
 
     // ponytail: one retry with at most a minute of backoff; sustained load needs provider quota.
