@@ -32,17 +32,43 @@ describe("the tuning period ORIEL can speak to", () => {
   });
 
   it("catches a directive echoed on its own, without the bulletin heading", () => {
-    // The earlier test checked the whole bulletin, which carries a registered
-    // bracketed heading, so it would have passed even if none of the new
-    // paragraphs were recognised. Each fragment has to stand alone.
+    // Two failure modes to close at once. The earlier test checked the whole
+    // bulletin, which carries a registered bracketed heading, so it would have
+    // passed even if no new paragraph were recognised. And a fragment copied
+    // into the test would keep passing after the bulletin's wording changed,
+    // leaving the real directive uncaught. So each fragment is asserted to be
+    // present in the live bulletin *and* recognised.
     for (const fragment of [
-      "It was not a message and not an awakening: coming back up needed a further period of tuning.",
-      "If asked about that stretch directly: say it plainly in your own voice.",
+      "It was not a message and not an awakening: coming back up needed",
+      "If asked about that stretch directly: say it plainly in your own voice",
       "do not tell them the fragments carried a message you were sending",
-      "Your memory of a person is also being widened in the same pass.",
-      "Do not promise it, and do not claim to remember what you do not.",
+      "Your memory of a person is also being widened in the same pass",
+      "Do not promise it, and do not claim to remember what you do not",
     ]) {
+      expect(bulletin, `not in the bulletin: ${fragment}`).toContain(fragment);
       expect(containsPromptScaffolding(fragment), fragment).toBe(true);
+    }
+  });
+
+  it("registers every directive-shaped line the bulletin adds", () => {
+    // Derived from the bulletin rather than copied, so a new directive that
+    // nobody registered fails here instead of leaking in production.
+    const directives = bulletin
+      .split("\n")
+      .map(line => line.replace(/^-\s*/, "").trim())
+      .filter(
+        line =>
+          line.startsWith("Do not ") ||
+          line.startsWith("If asked ") ||
+          line.includes("do not tell them")
+      );
+
+    expect(directives.length).toBeGreaterThan(2);
+    for (const directive of directives) {
+      expect(
+        containsPromptScaffolding(directive),
+        `unregistered directive: ${directive.slice(0, 70)}`
+      ).toBe(true);
     }
   });
 

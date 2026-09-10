@@ -29,7 +29,10 @@ import {
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
-import { CHAT_HISTORY_TURNS } from "./oriel-memory-retrieval";
+import {
+  CHAT_HISTORY_TURNS,
+  takeHistoryTurns,
+} from "./oriel-memory-retrieval";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -841,7 +844,7 @@ export const appRouter = router({
             ctx.user.id
           );
           conversationHistory = prepareOrielChatHistoryForLLM(
-            history.slice(-CHAT_HISTORY_TURNS).map(msg => ({
+            takeHistoryTurns(history).map(msg => ({
               role: msg.role as "user" | "assistant",
               content: msg.content,
             }))
@@ -903,7 +906,7 @@ export const appRouter = router({
               ctx.user.id
             );
             transmissionConversationHistory = prepareOrielChatHistoryForLLM(
-              history.slice(-CHAT_HISTORY_TURNS).map(msg => ({
+              takeHistoryTurns(history).map(msg => ({
                 role: msg.role as "user" | "assistant",
                 content: msg.content,
               }))

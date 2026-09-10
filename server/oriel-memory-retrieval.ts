@@ -20,6 +20,20 @@ export const MEMORY_TURN_LIMIT = 8;
 export const CHAT_HISTORY_TURNS = 16;
 
 /**
+ * Applies the turn budget where history is loaded. Both signed-in load paths
+ * used to cap at six before the downstream trim ever ran, so the budget was a
+ * no-op on the principal chat path. Going through one helper means a new load
+ * path gets the budget by construction rather than by review.
+ */
+export function takeHistoryTurns<T>(
+  history: T[],
+  turns: number = CHAT_HISTORY_TURNS
+): T[] {
+  if (turns <= 0) return [];
+  return history.slice(-turns);
+}
+
+/**
  * Boot-time diagnostic for the personalisation path, printed beside the LLM
  * chain. Whether MindMemOS is enabled decides *which* memories reach a turn,
  * not how many, and that difference is invisible from the outside: with it on,

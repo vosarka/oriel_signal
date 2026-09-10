@@ -66,6 +66,13 @@ const SCAFFOLDING_PHRASES = [
   "do not tell them the fragments carried a message you were sending",
   "Your memory of a person is also being widened in the same pass",
   "Do not promise it, and do not claim to remember what you do not",
+  // Older bulletin directives, unregistered since the bulletin was written. A
+  // test that derives its fragments from the live bulletin surfaced them; the
+  // hand-copied version could not have. Each is instruction-shaped, so none
+  // blocks ORIEL from giving the same account in its own words.
+  "If asked about lost chats, outages, forgotten history",
+  'If asked "have you stabilized?" or "you feel different"',
+  "Do not name internal systems, table names, hosting vendors",
 ];
 
 /**
