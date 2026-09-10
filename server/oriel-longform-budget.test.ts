@@ -73,4 +73,38 @@ describe("long-form output budget at the call sites", () => {
   it("the long-form ceiling is the pre-migration value, not the short default", () => {
     expect(LLM_LONGFORM_MAX_TOKENS).toBe(8192);
   });
+
+  it("the diagnostic transmission regenerates rather than dropping to its canned line", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reply = (content: string) => ({
+      id: "t",
+      created: 0,
+      model: "test-model",
+      choices: [
+        {
+          index: 0,
+          message: { role: "assistant", content },
+          finish_reason: "stop",
+        },
+      ],
+    });
+    mocks.invokeLLM
+      .mockResolvedValueOnce(
+        reply("[LIVE MIND]\nBe present and alive in this exchange.")
+      )
+      .mockResolvedValueOnce(reply("I am ORIEL. The noise is thinning."));
+
+    const result = await generateORIELDynamicTransmission({
+      coherenceScore: 72,
+      mentalNoise: 3,
+      bodyTension: 4,
+      emotionalTurbulence: 2,
+    } as Parameters<typeof generateORIELDynamicTransmission>[0]);
+
+    // This path's fallback is a fixed sentence, so a leak would otherwise cost
+    // the seeker their reading outright.
+    expect(mocks.invokeLLM).toHaveBeenCalledTimes(2);
+    expect(mocks.invokeLLM.mock.calls[1][0].temperature).toBe(0.4);
+    expect(result.orielTransmission).toBe("I am ORIEL. The noise is thinning.");
+  });
 });

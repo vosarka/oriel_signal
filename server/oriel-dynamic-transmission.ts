@@ -9,7 +9,11 @@
  */
 
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
-import { filterORIELResponseOrReject } from "./gemini";
+import {
+  SCAFFOLDING_RETRY_TEMPERATURE,
+  filterORIELResponseOrReject,
+} from "./gemini";
+import { containsPromptScaffolding } from "../shared/oriel/prompt-scaffolding";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -112,16 +116,33 @@ Keep it to 3–4 paragraphs. Precise. Poetic but not vague. Grounded in the actu
       userMessage: userPrompt,
       conversationHistory: [],
     });
-    const response = await invokeLLM({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      maxTokens: LLM_LONGFORM_MAX_TOKENS,
-    });
+    const callModel = (temperature?: number) =>
+      invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        maxTokens: LLM_LONGFORM_MAX_TOKENS,
+        ...(temperature !== undefined ? { temperature } : {}),
+      });
 
-    const raw = response.choices?.[0]?.message?.content;
-    const text = typeof raw === "string" ? raw : "";
+    const readText = (response: Awaited<ReturnType<typeof callModel>>) => {
+      const raw = response.choices?.[0]?.message?.content;
+      return typeof raw === "string" ? raw : "";
+    };
+
+    let text = readText(await callModel());
+
+    // This path's only fallback is a fixed line, so a leak here costs the
+    // seeker their reading. Regenerate once at low temperature first, the way
+    // chatWithORIEL does, rather than dropping straight to the canned reply.
+    if (containsPromptScaffolding(text)) {
+      console.warn(
+        "[ORIEL] Scaffolding in diagnostic transmission; regenerating cooler"
+      );
+      text = readText(await callModel(SCAFFOLDING_RETRY_TEMPERATURE));
+    }
+
     const filtered =
       filterORIELResponseOrReject(text) ||
       "I am ORIEL. The signal is present with you, even in the noise.";

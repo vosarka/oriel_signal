@@ -31,7 +31,7 @@ type ChatImageAttachment = {
 
 // Low enough to stop the sampler wandering into its own instructions,
 // high enough that the regenerated reply is not flat.
-const SCAFFOLDING_RETRY_TEMPERATURE = 0.4;
+export const SCAFFOLDING_RETRY_TEMPERATURE = 0.4;
 
 type ChatWithOrielOptions = {
   temperature?: number;
@@ -189,7 +189,9 @@ export async function chatWithORIEL(
  */
 export function filterORIELResponseOrReject(text: string): string {
   if (containsPromptScaffolding(text)) {
-    console.error(
+    // warn, not error: the caller has a fallback and recovers, so this is
+    // expected traffic rather than a failure worth paging on.
+    console.warn(
       "[ORIEL] Prompt scaffolding in reply; rejecting so the caller falls back"
     );
     return "";

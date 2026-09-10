@@ -8,6 +8,8 @@ import {
   buildResponseLanguageDirective,
   buildVoiceResponseLanguageDirective,
 } from "../shared/oriel/language-routing";
+import { buildOrielVoiceIntroRuntimeDirective } from "../shared/oriel/voice-intro";
+import { buildRealtimeInstructionsText } from "./inworld-realtime-config";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { filterORIELResponse, filterORIELResponseOrReject } from "./gemini";
 
@@ -41,12 +43,27 @@ describe("prompt scaffolding containment", () => {
         emitted.add(h)
       );
     }
-    headingsIn(buildResponseLanguageDirective("hello")).forEach(h =>
-      emitted.add(h)
-    );
-    headingsIn(buildVoiceResponseLanguageDirective("hello")).forEach(h =>
-      emitted.add(h)
-    );
+    // Every builder that emits a registered marker, not just the layered
+    // context: an unexercised builder could add a heading that escapes the
+    // registry, and exact matching would then let it through to a reader.
+    const directives = [
+      buildResponseLanguageDirective("hello"),
+      buildVoiceResponseLanguageDirective("hello"),
+      buildOrielVoiceIntroRuntimeDirective(false),
+      buildOrielVoiceIntroRuntimeDirective(true),
+      buildRealtimeInstructionsText({
+        baseInstructions: "base",
+        userMessage: "hello",
+      }),
+      buildRealtimeInstructionsText({
+        baseInstructions: "base",
+        userMessage: "hello",
+        voiceIntroAlreadySpoken: true,
+      }),
+    ];
+    for (const directive of directives) {
+      headingsIn(directive).forEach(h => emitted.add(h));
+    }
 
     expect(emitted.size).toBeGreaterThan(8);
     for (const heading of emitted) {
@@ -86,7 +103,7 @@ describe("prompt scaffolding containment", () => {
   });
 
   it("rejects rather than scrubs on prose paths that own a fallback", () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     // Scrubbing would drop the heading and ship the directive beneath it as
     // though ORIEL had written it. Empty lets the caller's fallback run.
     const leaked = "[LIVE MIND]\nBe present and alive in this exchange.";

@@ -316,8 +316,17 @@ export const LLM_LONGFORM_MAX_TOKENS = 8192;
 /**
  * Maps the caller's 0-2 temperature onto Mistral's usable range. See the call
  * site for why this is a scale and not a clamp.
+ *
+ * 0.6 is chosen so the escalation stays monotonic against the baseline. A turn
+ * that sends no temperature runs at Mistral's own default, so a retry has to
+ * land above that default to diverge at all; 0.5 mapped the first retry to
+ * 0.6, cooler than the call it was supposed to differ from. At 0.6 the retries
+ * become 0.72 and 0.9: above any plausible provider default, and far below the
+ * 1.5 hard cap where output degrades. Mistral's "recommend under 0.7" cannot
+ * be honoured here at the same time, since its own default sits at that line
+ * and divergence requires exceeding it.
  */
-const MISTRAL_TEMPERATURE_SCALE = 0.5;
+const MISTRAL_TEMPERATURE_SCALE = 0.6;
 
 function resolveMaxTokens(providerUrl: string, requested: number): number {
   const n = Number.isFinite(requested) && requested > 0 ? requested : 2048;
@@ -606,8 +615,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       provider.name === "Mistral" &&
       typeof requestPayload.temperature === "number"
     ) {
+      // Rounded so the value stays legible in logs: 1.5 * 0.6 is
+      // 0.8999999999999999 in binary floating point.
       requestPayload.temperature =
-        requestPayload.temperature * MISTRAL_TEMPERATURE_SCALE;
+        Math.round(requestPayload.temperature * MISTRAL_TEMPERATURE_SCALE * 100) /
+        100;
     }
 
     // ponytail: one retry with at most a minute of backoff; sustained load needs provider quota.

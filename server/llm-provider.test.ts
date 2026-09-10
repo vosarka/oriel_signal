@@ -539,9 +539,12 @@ describe("LLM provider selection", () => {
     }
 
     // Inside Mistral's usable band, well clear of its 1.5 hard cap...
-    expect(sent).toEqual([0.6, 0.75]);
-    // ...and still escalating, which a clamp would have flattened.
+    expect(sent).toEqual([0.72, 0.9]);
+    // ...still escalating, which a clamp would have flattened...
     expect(sent[1]).toBeGreaterThan(sent[0]);
+    // ...and above the provider default a no-temperature call would use, or
+    // the first retry would be cooler than the reply it must diverge from.
+    for (const value of sent) expect(value).toBeGreaterThan(0.7);
   });
 
   it("forwards an explicit maxTokens and defaults to 2048 without one", async () => {
