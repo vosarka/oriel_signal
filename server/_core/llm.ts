@@ -609,8 +609,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     // hard-caps at 1.5 and recommends staying under 0.7, so the value is
     // rescaled into its band rather than clamped: clamping collapses an
     // escalating retry sequence onto a single value and loses the divergence
-    // the retry exists to create. Halving maps 1.2 and 1.5 onto 0.6 and 0.75,
-    // which straddle Mistral's own 0.7 default and stay far from the cliff.
+    // the retry exists to create. The scale maps 1.2 and 1.5 onto 0.72 and
+    // 0.9: above the provider default so each retry actually diverges, and far
+    // below the 1.5 cliff. MISTRAL_TEMPERATURE_SCALE documents the tradeoff.
     if (
       provider.name === "Mistral" &&
       typeof requestPayload.temperature === "number"

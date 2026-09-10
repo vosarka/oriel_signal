@@ -15,7 +15,7 @@ vi.mock("./oriel-prompt-context", () => ({
 }));
 
 import { LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
-import { chatWithORIEL } from "./gemini";
+import { SCAFFOLDING_RETRY_TEMPERATURE, chatWithORIEL } from "./gemini";
 import { generateORIELDynamicTransmission } from "./oriel-dynamic-transmission";
 
 /**
@@ -104,7 +104,9 @@ describe("long-form output budget at the call sites", () => {
     // This path's fallback is a fixed sentence, so a leak would otherwise cost
     // the seeker their reading outright.
     expect(mocks.invokeLLM).toHaveBeenCalledTimes(2);
-    expect(mocks.invokeLLM.mock.calls[1][0].temperature).toBe(0.4);
+    expect(mocks.invokeLLM.mock.calls[1][0].temperature).toBe(
+      SCAFFOLDING_RETRY_TEMPERATURE
+    );
     expect(result.orielTransmission).toBe("I am ORIEL. The noise is thinning.");
   });
 });

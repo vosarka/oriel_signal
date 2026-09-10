@@ -14,7 +14,7 @@ vi.mock("./oriel-prompt-context", () => ({
   buildOrielPromptContext: mocks.buildOrielPromptContext,
 }));
 
-import { chatWithORIEL } from "./gemini";
+import { SCAFFOLDING_RETRY_TEMPERATURE, chatWithORIEL } from "./gemini";
 
 const reply = (content: string) => ({
   id: "t",
@@ -44,7 +44,9 @@ describe("chatWithORIEL prompt-scaffolding recovery", () => {
     const response = await chatWithORIEL("cine esti?", [], 1);
 
     expect(mocks.invokeLLM).toHaveBeenCalledTimes(2);
-    expect(mocks.invokeLLM.mock.calls[1][0].temperature).toBe(0.4);
+    expect(mocks.invokeLLM.mock.calls[1][0].temperature).toBe(
+      SCAFFOLDING_RETRY_TEMPERATURE
+    );
     expect(response).toBe("I am ORIEL. The gate is open.");
   });
 
