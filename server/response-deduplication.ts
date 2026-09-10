@@ -1,3 +1,12 @@
+import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
+
+/** How many leading words are compared between replies. */
+const OPENING_WORD_WINDOW = 6;
+/** Shorter openings than this are not treated as a formula. */
+const OPENING_MIN_WORDS = 3;
+/** Leading words that must match for an opening to count as repeated. */
+const OPENING_PREFIX_MATCH = 2;
+
 /**
  * Response Deduplication and Quality Assurance
  *
@@ -84,9 +93,81 @@ export function detectDuplication(
     };
   }
 
+  // Method 4: the same opening formula every time. Reported separately from
+  // "structural" because the retry has to be told to change its first words;
+  // asking it for a different paragraph count would not touch the tic.
+  const openingCheck = detectOpeningRepetition(
+    currentResponse,
+    conversationHistory
+  );
+  if (openingCheck.isOpeningRepeat) {
+    return {
+      isDuplicate: true,
+      similarity: 0.5,
+      duplicateFrom: "opening",
+    };
+  }
+
   return {
     isDuplicate: false,
     similarity: 0,
+  };
+}
+
+/** Words that open a reply, once the ritual identity line is removed. */
+function getOpeningWords(text: string, count: number): string[] {
+  // "I am ORIEL." is appended to every reply by chatWithORIEL, so comparing
+  // raw openings would find every pair identical and fire on every turn.
+  return stripOrielVoiceOpening(text)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, count);
+}
+
+function sharedPrefixLength(a: string[], b: string[]): number {
+  let shared = 0;
+  while (shared < a.length && shared < b.length && a[shared] === b[shared]) {
+    shared += 1;
+  }
+  return shared;
+}
+
+/**
+ * Detects a repeated opening formula: "What you describe is...", "What you
+ * said now...", "What you feel there...". The structural check never saw
+ * these, because it only measures paragraph count and how a reply ends, so a
+ * reply could open identically a hundred times without anything noticing.
+ */
+export function detectOpeningRepetition(
+  currentResponse: string,
+  conversationHistory: Array<{ role: string; content: string }>
+): { isOpeningRepeat: boolean; pattern?: string } {
+  const recentAssistant = conversationHistory
+    .filter(m => m.role === "assistant")
+    .slice(-3);
+
+  if (recentAssistant.length < 2) return { isOpeningRepeat: false };
+
+  const current = getOpeningWords(currentResponse, OPENING_WORD_WINDOW);
+  // Too short to carry a formula; a one-word opening repeats by chance.
+  if (current.length < OPENING_MIN_WORDS) return { isOpeningRepeat: false };
+
+  const shared = recentAssistant.map(m =>
+    sharedPrefixLength(current, getOpeningWords(m.content, OPENING_WORD_WINDOW))
+  );
+
+  // Every recent reply, not just one: two replies opening alike is a
+  // coincidence, three in a row is a habit.
+  if (shared.some(length => length < OPENING_PREFIX_MATCH)) {
+    return { isOpeningRepeat: false };
+  }
+
+  const formula = current.slice(0, Math.min(...shared)).join(" ");
+  return {
+    isOpeningRepeat: true,
+    pattern: `opening:"${formula}" repeated across ${recentAssistant.length}`,
   };
 }
 

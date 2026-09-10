@@ -28,6 +28,7 @@ import {
 } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
+import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -1111,8 +1112,14 @@ export const appRouter = router({
             if (!dupCheck.isDuplicate) break;
 
             const isStructural = dupCheck.duplicateFrom === "structural";
+            const isOpening = dupCheck.duplicateFrom === "opening";
+            const kind = isOpening
+              ? "Opening-formula"
+              : isStructural
+                ? "Structural"
+                : "Content";
             console.warn(
-              `[ORIEL] ${isStructural ? "Structural" : "Content"} duplicate detected ` +
+              `[ORIEL] ${kind} duplicate detected ` +
                 `(${(dupCheck.similarity * 100).toFixed(0)}% similar), ` +
                 `retry ${attempt + 1}/${MAX_RETRIES}`
             );
@@ -1138,7 +1145,16 @@ export const appRouter = router({
                 ? `\nYour recent responses looked like this: ${summaries.join("; ")}. Do NOT repeat these patterns.`
                 : "";
 
-            const systemNote = isStructural
+            const openings = recentAssistant
+              .map(m => `"${stripOrielVoiceOpening(m.content).slice(0, 45)}"`)
+              .join("; ");
+
+            const systemNote = isOpening
+              ? `[SYSTEM NOTE: You keep opening replies the same way. Your recent ` +
+                `messages began: ${openings}. Begin this one with different words ` +
+                `entirely. Do not restate or classify what they said before ` +
+                `answering; start inside the answer.]`
+              : isStructural
               ? `[SYSTEM NOTE: Your response has the same structure as your recent messages ` +
                 `(same paragraph count, same closing pattern). Change your structure entirely: ` +
                 `use a different number of paragraphs, open differently, close differently. ` +
