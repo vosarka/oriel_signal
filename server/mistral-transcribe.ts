@@ -47,8 +47,9 @@ export const MAX_QUEUED_BYTES = 320_000;
  * The largest single frame worth reading.
  *
  * Dictation sends 4096 samples at a time, so real frames are 8 KB. Anything
- * an order of magnitude past that is not a microphone, and both the WebSocket
- * layer and the message handler refuse it before its bytes are touched.
+ * an order of magnitude past that is not a microphone. The WebSocket layer
+ * refuses it as maxPayload, which is the only guard there is: a frame past
+ * this size never reaches the message handler to be measured.
  */
 export const MAX_FRAME_BYTES = 64_000;
 

@@ -292,6 +292,11 @@ export async function startMistralDictation(
     options.onEnd("socket error");
   };
 
+  // The startup listener closed the socket outright, which was right while
+  // there was nothing to flush and wrong the moment there is: firing first,
+  // it left stop() with a closed socket and no way to ask for the last words.
+  // From here the signal runs stop() instead, which sends "end" and waits.
+  options.signal?.removeEventListener("abort", closeOnAbort);
   options.signal?.addEventListener("abort", stop, { once: true });
 
   return { stop };

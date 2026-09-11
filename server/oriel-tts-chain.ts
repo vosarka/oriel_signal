@@ -129,6 +129,12 @@ export function audioToDataUrl(base64Audio: string): string {
  * a live synthesizer.
  */
 export function chunkText(text: string, maxLength = 1000): string[] {
+  // A chunk size of zero or less has no meaning and the splitting loop below
+  // would never advance past it. Better a refusal the caller can read than a
+  // request that hangs whatever asked ORIEL to speak.
+  if (!Number.isInteger(maxLength) || maxLength <= 0) {
+    throw new RangeError("[ORIEL TTS] chunk size must be a positive integer");
+  }
   const chunks: string[] = [];
   let current = "";
   // The trailing alternative matters: without it, a reply whose last sentence
@@ -157,9 +163,13 @@ export function chunkText(text: string, maxLength = 1000): string[] {
       // limit is not a suggestion: a URL or a base64 paste reaches it.
       const words = trimmed.split(/\s+/).flatMap(word => {
         if (word.length <= maxLength) return [word];
+        // By code point rather than by index. An emoji or any astral
+        // character is two UTF-16 units, and slicing between them produces
+        // half a character: the synthesizer is handed text nobody wrote.
+        const points = Array.from(word);
         const pieces: string[] = [];
-        for (let start = 0; start < word.length; start += maxLength) {
-          pieces.push(word.slice(start, start + maxLength));
+        for (let start = 0; start < points.length; start += maxLength) {
+          pieces.push(points.slice(start, start + maxLength).join(""));
         }
         return pieces;
       });

@@ -9,6 +9,7 @@
  */
 
 import { ENV } from "./_core/env";
+import { redactEcho } from "./_core/redact-echo";
 import type { MemoryRecommendedAction } from "./oriel-memory-consecration";
 import {
   encodeOfficialMemoryRef,
@@ -59,44 +60,6 @@ const ERROR_BODY_CHARS = 300;
 const ERROR_BODY_TIMEOUT_MS = 2_000;
 
 /**
- * Remove the memory we sent from whatever the service sends back.
- *
- * A validation error commonly echoes the offending payload, and our payload is
- * a sentence somebody told ORIEL in confidence. Truncating the body limits how
- * much of that reaches the log but does not stop it: the echo can sit in the
- * first three hundred characters as easily as the last. We know exactly what
- * we transmitted, so we can take it back out by name.
- *
- * Two things this gets wrong if it is careless. The body is JSON, so an echo
- * arrives escaped and a search for the raw text walks straight past it; both
- * spellings are removed. And a short memory is not a less private one -
- * "I'm gay" is seven characters - so there is no length below which the
- * content is left in. The cost is that a two-character memory redacts every
- * occurrence of those two characters and leaves a body too chewed to read.
- * A ruined diagnostic is recoverable. A leaked confidence is not.
- *
- * AGENTS.md rule 3: never log secrets. A private memory is one.
- */
-function redactSentContent(body: string, sent: string[]): string {
-  // Longest first: the indexed form carries a [orielMemories:id] prefix, and
-  // a service may echo either it or the bare sentence inside it. Redacting
-  // the bare one first would leave the prefixed form unmatched.
-  const targets = sent
-    .map(value => value.trim())
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-  let safe = body;
-  for (const target of targets) {
-    // Split rather than regex: the content is arbitrary user text and would
-    // need escaping, and a bad escape here would be the bug that leaks it.
-    const escaped = JSON.stringify(target).slice(1, -1);
-    safe = safe.split(target).join("[redacted]");
-    if (escaped !== target) safe = safe.split(escaped).join("[redacted]");
-  }
-  return safe;
-}
-
-/**
  * A bare status code cannot be acted on. A 422 in particular means the service
  * understood the request and refused its shape, and the body is the only place
  * that says which field was wrong.
@@ -137,7 +100,7 @@ async function describeFailure(
   if (!body) return `${response.status} (empty response body)`;
   // Redact first, then cap: capping first could cut the content in half and
   // leave an unmatched fragment of it in the log.
-  const safe = redactSentContent(body, sentContent);
+  const safe = redactEcho(body, sentContent);
   const shown = safe.slice(0, ERROR_BODY_CHARS);
   const elided = safe.length > shown.length ? " […]" : "";
   return `${response.status} ${shown}${elided}`;

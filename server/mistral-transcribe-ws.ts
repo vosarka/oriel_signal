@@ -52,7 +52,19 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
   });
 
   wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
+    // Before anything that waits. A socket with no "error" listener does not
+    // report an error in Node, it throws one out of the EventEmitter, and an
+    // oversized frame arriving while the session is still checking who is
+    // calling would take the whole Express process down with it.
+    let failed = false;
+    ws.on("error", err => {
+      failed = true;
+      console.error("[Transcribe] socket error:", err);
+    });
+
     const user = await resolveWebSocketUser(req, "[Transcribe]");
+    // The wait above is long enough for the socket to have died in it.
+    if (failed || ws.readyState !== WebSocket.OPEN) return;
     if (!user) {
       // The browser falls back to its own recognizer on this close code, so a
       // signed-out visitor still gets dictation, just the free weaker one.
@@ -100,12 +112,9 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
         if (String(data).includes('"end"')) queue.close();
         return;
       }
-      if (data.byteLength > MAX_FRAME_BYTES) {
-        // Refuse before reading it: measuring the loudness of a frame this
-        // size is the work we are declining to do for a client this rude.
-        stop("oversized frame");
-        return;
-      }
+      // No size check here on purpose: maxPayload above refuses an oversized
+      // frame at the protocol layer, so one never reaches this handler and a
+      // guard would be a comment pretending to be code.
       const frame = new Uint8Array(data);
       // Arrival is not speech. The stream runs continuously while the mic is
       // open, so a timer reset by every frame is a timer that never fires.
@@ -120,10 +129,9 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
       }
     });
     ws.on("close", () => stop("client closed"));
-    ws.on("error", err => {
-      console.error("[Transcribe] socket error:", err);
-      stop("socket error");
-    });
+    // The bootstrap listener above only recorded the failure; from here a
+    // socket error also has a session to end.
+    ws.on("error", () => stop("socket error"));
 
     try {
       const client = new RealtimeTranscription({ apiKey: ENV.mistralApiKey });

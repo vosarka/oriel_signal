@@ -17,6 +17,8 @@
  * Response: { "audio_data": "<base64 MP3>" }
  */
 
+import { redactEcho } from "./_core/redact-echo";
+
 const DEFAULT_MODEL = "voxtral-mini-tts-2603";
 const DEFAULT_VOICE_ID = "4f381381-d79e-468c-9724-63edd0c5883a";
 const TTS_TIMEOUT_MS = 30_000;
@@ -46,21 +48,6 @@ export function mistralTtsVoiceFor(voice?: string): string | undefined {
     );
   }
   return undefined;
-}
-
-/**
- * Take the spoken text back out of a provider's error body.
- *
- * The body is JSON, so an echo of what we sent arrives escaped; both
- * spellings go. AGENTS.md rule 3: a conversation is not log material.
- */
-function redactInput(body: string, sent: string): string {
-  const trimmed = sent.trim();
-  if (!trimmed) return body;
-  const escaped = JSON.stringify(trimmed).slice(1, -1);
-  let safe = body.split(trimmed).join("[redacted]");
-  if (escaped !== trimmed) safe = safe.split(escaped).join("[redacted]");
-  return safe;
 }
 
 /**
@@ -101,7 +88,7 @@ export async function generateMistralSpeech(
       // error that echoes the input would carry that whole reply into the
       // log, so it comes back out by name before anything is capped - the
       // same rule the memory client follows, for the same reason.
-      detail = redactInput((await response.text()).trim(), text).slice(
+      detail = redactEcho((await response.text()).trim(), [text]).slice(
         0,
         ERROR_BODY_CHARS
       );

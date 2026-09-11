@@ -624,6 +624,11 @@ export default function Conduit() {
   const recognitionRef = useRef<any>(null);
   const dictationRef = useRef<DictationHandle | null>(null);
   const dictationAbortRef = useRef<AbortController | null>(null);
+  // Which dictation session a callback belongs to. The socket of a stopped
+  // session stays open for a moment to deliver its last words, so a user who
+  // stops and immediately starts again has two live sessions for a second,
+  // and the older one must not write into the newer one's transcript.
+  const dictationGenerationRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesViewportDebugRef = useRef<HTMLDivElement>(null);
   const previousActiveConversationIdRef = useRef<number | null>(null);
@@ -1211,10 +1216,13 @@ export default function Conduit() {
     // yet, and the session used to open anyway with the button already off.
     const abort = new AbortController();
     dictationAbortRef.current = abort;
+    const generation = ++dictationGenerationRef.current;
+    const current = () => generation === dictationGenerationRef.current;
 
     const dictation = await startMistralDictation({
       signal: abort.signal,
       onDelta: text => {
+        if (!current()) return;
         const base = finalTranscriptRef.current;
         const next = base ? base + text : text;
         finalTranscriptRef.current = next;
@@ -1233,6 +1241,9 @@ export default function Conduit() {
       },
       onEnd: reason => {
         console.log("[Dictation] Mistral session ended:", reason);
+        // A previous session finishing its flush must not take down the one
+        // the user has just started.
+        if (!current()) return;
         dictationRef.current = null;
         if (isListeningRef.current) stopSpeechListening();
       },

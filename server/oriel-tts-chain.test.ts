@@ -180,4 +180,25 @@ describe("splitting a long reply for the synthesizer", () => {
     expect(chunks.every(c => c.length <= 100)).toBe(true);
     expect(chunks.join("").replace(/\s/g, "")).toContain(token);
   });
+
+  it("refuses a chunk size that would never advance", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // The splitting loop steps by maxLength; at zero it never terminates,
+    // and a hung request is worse than a readable refusal.
+    expect(() => chunkText("anything at all", 0)).toThrow(RangeError);
+    expect(() => chunkText("anything at all", -5)).toThrow(RangeError);
+  });
+
+  it("splits a long token between characters, not through one", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // An emoji is two UTF-16 units. Cutting between them yields half a
+    // character, and the synthesizer is handed text nobody wrote.
+    const token = "\u{1F300}".repeat(60);
+    const chunks = chunkText(token, 10);
+    expect(chunks.join("")).toBe(token);
+    for (const chunk of chunks) {
+      expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
+      expect(chunk).not.toMatch(/^[\uDC00-\uDFFF]/);
+    }
+  });
 });
