@@ -1,0 +1,116 @@
+/**
+ * WebSocket proxy for live dictation: browser audio in, transcript out.
+ *
+ *   Browser <--ws--> this server <--ws--> Mistral Voxtral
+ *
+ * The proxy exists for the same reason the realtime one does: MISTRAL_API_KEY
+ * must not reach a browser. It also gates on a signed-in user, which the free
+ * browser recognizer never needed. This one bills by the minute, and an open
+ * endpoint that costs money per connection is an invitation.
+ */
+
+import { Server as HttpServer, IncomingMessage } from "http";
+import { WebSocketServer, WebSocket } from "ws";
+import { parse as parseUrl } from "url";
+import { RealtimeTranscription } from "@mistralai/mistralai/extra/realtime";
+import { ENV } from "./_core/env";
+import { resolveWebSocketUser } from "./_core/ws-auth";
+import {
+  AudioQueue,
+  MAX_SESSION_MS,
+  MAX_SILENCE_MS,
+  TRANSCRIBE_ENCODING,
+  TRANSCRIBE_MODEL,
+  TRANSCRIBE_SAMPLE_RATE,
+  toTranscriptEvent,
+} from "./mistral-transcribe";
+
+export const TRANSCRIBE_PATH = "/api/transcribe";
+
+function send(ws: WebSocket, payload: unknown): void {
+  if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+}
+
+export function setupTranscribeWebSocket(server: HttpServer): void {
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (req, socket, head) => {
+    const { pathname } = parseUrl(req.url || "", true);
+    // Other paths belong to other handlers, including Vite's HMR socket.
+    if (pathname !== TRANSCRIBE_PATH) return;
+    wss.handleUpgrade(req, socket, head, ws => wss.emit("connection", ws, req));
+  });
+
+  wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
+    const user = await resolveWebSocketUser(req, "[Transcribe]");
+    if (!user) {
+      // The browser falls back to its own recognizer on this close code, so a
+      // signed-out visitor still gets dictation, just the free weaker one.
+      send(ws, { type: "error", message: "sign in to use live transcription" });
+      ws.close(4401, "unauthorized");
+      return;
+    }
+    if (!ENV.mistralApiKey) {
+      send(ws, { type: "error", message: "transcription is not configured" });
+      ws.close(4503, "unconfigured");
+      return;
+    }
+
+    const queue = new AudioQueue();
+    let lastAudioAt = Date.now();
+
+    const stop = (reason: string) => {
+      if (queue.isClosed) return;
+      console.log(`[Transcribe] session for user ${user.id} ended: ${reason}`);
+      queue.close();
+      if (ws.readyState === WebSocket.OPEN) ws.close(1000, reason);
+    };
+
+    // Two timers, both about money rather than correctness. A tab left open
+    // with the microphone on bills until someone closes it.
+    const sessionCap = setTimeout(() => stop("session cap"), MAX_SESSION_MS);
+    const silenceCheck = setInterval(() => {
+      if (Date.now() - lastAudioAt > MAX_SILENCE_MS) stop("silence");
+    }, 5_000);
+
+    ws.on("message", data => {
+      if (!Buffer.isBuffer(data)) return;
+      lastAudioAt = Date.now();
+      queue.push(new Uint8Array(data));
+    });
+    ws.on("close", () => stop("client closed"));
+    ws.on("error", err => {
+      console.error("[Transcribe] socket error:", err);
+      stop("socket error");
+    });
+
+    try {
+      const client = new RealtimeTranscription({ apiKey: ENV.mistralApiKey });
+      for await (const event of client.transcribeStream(
+        queue.stream(),
+        TRANSCRIBE_MODEL,
+        {
+          audioFormat: {
+            encoding: TRANSCRIBE_ENCODING,
+            sampleRate: TRANSCRIBE_SAMPLE_RATE,
+          },
+        }
+      )) {
+        const mapped = toTranscriptEvent(event as { type: string });
+        if (!mapped) continue;
+        send(ws, mapped);
+        if (mapped.type === "done" || mapped.type === "error") break;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "unknown error";
+      console.error("[Transcribe] stream failed:", message);
+      send(ws, { type: "error", message });
+    } finally {
+      clearTimeout(sessionCap);
+      clearInterval(silenceCheck);
+      stop("stream ended");
+    }
+  });
+
+  console.log(`[Transcribe] WebSocket proxy ready on ${TRANSCRIBE_PATH}`);
+}

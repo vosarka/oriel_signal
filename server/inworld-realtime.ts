@@ -14,8 +14,7 @@
 import { Server as HttpServer, IncomingMessage } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "./_core/auth";
+import { resolveWebSocketUser } from "./_core/ws-auth";
 import { ENV } from "./_core/env";
 import * as db from "./db";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
@@ -121,25 +120,9 @@ interface SessionState {
   saveQueue: Promise<void>;
 }
 
-/**
- * Resolve the legacy user from the session cookie in the WebSocket upgrade request.
- */
-async function resolveUser(
-  req: IncomingMessage
-): Promise<{ id: number } | null> {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-    if (!session?.user?.email) return null;
-
-    const legacyUser = await db.getUserByEmail(session.user.email);
-    return legacyUser ? { id: legacyUser.id } : null;
-  } catch (err) {
-    console.error("[Realtime] Auth resolution failed:", err);
-    return null;
-  }
-}
+/** Shared with the dictation proxy; see server/_core/ws-auth.ts. */
+const resolveUser = (req: IncomingMessage) =>
+  resolveWebSocketUser(req, "[Realtime]");
 
 function isTruthyQueryFlag(value: unknown): boolean {
   const normalized = Array.isArray(value) ? value[0] : value;
@@ -559,9 +542,8 @@ function enqueueSaveAssistant(state: SessionState): void {
 
       if (pendingUserMessage) {
         try {
-          const { recordOrielRuntimeObservation } = await import(
-            "./oriel-autonomy-observer"
-          );
+          const { recordOrielRuntimeObservation } =
+            await import("./oriel-autonomy-observer");
           await recordOrielRuntimeObservation({
             source: "voice_realtime",
             userId: state.userId,

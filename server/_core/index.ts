@@ -14,6 +14,7 @@ import { logResolvedProviderChain } from "./llm";
 import { logResolvedMemoryConfig } from "../oriel-memory-retrieval";
 import { logResolvedVoiceChain } from "../oriel-tts-chain";
 import { setupRealtimeWebSocket } from "../inworld-realtime";
+import { setupTranscribeWebSocket } from "../mistral-transcribe-ws";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
 
@@ -75,6 +76,7 @@ async function startServer() {
   );
   // Inworld Realtime WebSocket proxy (must be before Vite, which also handles upgrades)
   setupRealtimeWebSocket(server);
+  setupTranscribeWebSocket(server);
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {

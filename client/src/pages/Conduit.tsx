@@ -14,6 +14,10 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { MicIcon, MicOffIcon } from "@/components/icons/mic";
+import {
+  startMistralDictation,
+  type DictationHandle,
+} from "@/lib/mistral-dictation";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Orb } from "@/components/ui/orb";
@@ -618,6 +622,7 @@ export default function Conduit() {
       localStorage.getItem("oriel_image_mode") === "true"
   );
   const recognitionRef = useRef<any>(null);
+  const dictationRef = useRef<DictationHandle | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesViewportDebugRef = useRef<HTMLDivElement>(null);
   const previousActiveConversationIdRef = useRef<number | null>(null);
@@ -1168,7 +1173,6 @@ export default function Conduit() {
   }, []);
 
   const startSpeechListening = async () => {
-    if (!recognitionRef.current) return;
     setIsListening(true);
     isListeningRef.current = true;
     lastSpeechSoundRef.current = Date.now();
@@ -1177,6 +1181,41 @@ export default function Conduit() {
     // This lets the mic append to manually typed text or previous voice.
     finalTranscriptRef.current = message.trim();
     hasSpeechRef.current = false; // will become true on first sound / first transcript
+
+    // Mistral first: the browser's own recognizer is free but mangles ORIEL,
+    // Vossari and the rest of the canon. It stays as the fallback, which is
+    // what a signed-out visitor and an unsupported browser get. Anything that
+    // stops the paid path returns null rather than throwing, so the mic never
+    // becomes a dead button.
+    const dictation = await startMistralDictation({
+      onDelta: text => {
+        finalTranscriptRef.current = finalTranscriptRef.current
+          ? finalTranscriptRef.current + text
+          : text;
+        setMessage(finalTranscriptRef.current.trim());
+        lastSpeechSoundRef.current = Date.now();
+        hasSpeechRef.current = true;
+      },
+      onEnd: reason => {
+        console.log("[Dictation] Mistral session ended:", reason);
+        dictationRef.current = null;
+        if (isListeningRef.current) stopSpeechListening();
+      },
+    });
+
+    if (dictation) {
+      dictationRef.current = dictation;
+      await startSpeechSilenceMonitor();
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      // Neither path is available. Say so rather than leaving the button lit.
+      setIsListening(false);
+      isListeningRef.current = false;
+      alert("Speech recognition is not available in this browser");
+      return;
+    }
 
     try {
       recognitionRef.current.start();
@@ -1190,6 +1229,10 @@ export default function Conduit() {
   const stopSpeechListening = () => {
     setIsListening(false);
     isListeningRef.current = false;
+    if (dictationRef.current) {
+      dictationRef.current.stop();
+      dictationRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -1202,10 +1245,9 @@ export default function Conduit() {
   };
 
   const handleVoiceInput = async () => {
-    if (!recognitionRef.current) {
-      alert("Speech recognition not supported in this browser");
-      return;
-    }
+    // No support check here any more: the Mistral path works in browsers the
+    // webkit recognizer never existed in, so refusing on its absence would
+    // turn the mic off for Firefox users who can in fact dictate.
     if (isListening) {
       stopSpeechListening();
     } else {
