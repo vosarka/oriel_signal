@@ -44,6 +44,15 @@ export const FIRST_AUDIO_GRACE_MS = 45 * 1000;
 export const MAX_QUEUED_BYTES = 320_000;
 
 /**
+ * The largest single frame worth reading.
+ *
+ * Dictation sends 4096 samples at a time, so real frames are 8 KB. Anything
+ * an order of magnitude past that is not a microphone, and both the WebSocket
+ * layer and the message handler refuse it before its bytes are touched.
+ */
+export const MAX_FRAME_BYTES = 64_000;
+
+/**
  * Bridges pushed audio chunks to the async generator the Mistral SDK consumes.
  *
  * The socket hands us bytes whenever they arrive; the SDK pulls bytes when it

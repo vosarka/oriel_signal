@@ -163,4 +163,21 @@ describe("splitting a long reply for the synthesizer", () => {
     const original = text.replace(/\s+/g, " ").trim();
     expect(rejoined.split(" ").length).toBe(original.split(" ").length);
   });
+
+  it("keeps an opening ellipsis instead of starting after it", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // ORIEL opens on a pause often enough that losing it changes the reading.
+    // The pause survives; the packer's own space between pieces is fine.
+    expect(chunkText("...and then nothing", 1000).join(" ")).toContain("...");
+  });
+
+  it("splits a single token longer than the whole budget", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // No word boundary to break at, so packing words alone would hand the
+    // provider the oversized request the limit exists to prevent.
+    const token = "x".repeat(250);
+    const chunks = chunkText(`here it is ${token}`, 100);
+    expect(chunks.every(c => c.length <= 100)).toBe(true);
+    expect(chunks.join("").replace(/\s/g, "")).toContain(token);
+  });
 });

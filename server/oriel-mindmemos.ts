@@ -67,14 +67,33 @@ const ERROR_BODY_TIMEOUT_MS = 2_000;
  * first three hundred characters as easily as the last. We know exactly what
  * we transmitted, so we can take it back out by name.
  *
+ * Two things this gets wrong if it is careless. The body is JSON, so an echo
+ * arrives escaped and a search for the raw text walks straight past it; both
+ * spellings are removed. And a short memory is not a less private one -
+ * "I'm gay" is seven characters - so there is no length below which the
+ * content is left in. The cost is that a two-character memory redacts every
+ * occurrence of those two characters and leaves a body too chewed to read.
+ * A ruined diagnostic is recoverable. A leaked confidence is not.
+ *
  * AGENTS.md rule 3: never log secrets. A private memory is one.
  */
-function redactSentContent(body: string, sent: string): string {
-  const trimmed = sent.trim();
-  if (trimmed.length < 8) return body;
-  // Split rather than regex: the content is arbitrary user text and would need
-  // escaping, and a bad escape here would be the bug that leaks it.
-  return body.split(trimmed).join("[redacted]");
+function redactSentContent(body: string, sent: string[]): string {
+  // Longest first: the indexed form carries a [orielMemories:id] prefix, and
+  // a service may echo either it or the bare sentence inside it. Redacting
+  // the bare one first would leave the prefixed form unmatched.
+  const targets = sent
+    .map(value => value.trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  let safe = body;
+  for (const target of targets) {
+    // Split rather than regex: the content is arbitrary user text and would
+    // need escaping, and a bad escape here would be the bug that leaks it.
+    const escaped = JSON.stringify(target).slice(1, -1);
+    safe = safe.split(target).join("[redacted]");
+    if (escaped !== target) safe = safe.split(escaped).join("[redacted]");
+  }
+  return safe;
 }
 
 /**
@@ -84,24 +103,34 @@ function redactSentContent(body: string, sent: string): string {
  */
 async function describeFailure(
   response: Response,
-  sentContent = ""
+  sentContent: string[] = []
 ): Promise<string> {
   let body = "";
   try {
     // fetchWithTimeout's abort fires on headers, not on the body, so a service
     // that answers 422 and then stalls mid-body would hang this call and with
     // it the turn that triggered the write. The deadline is ours to keep here.
-    body = (
-      await Promise.race([
-        response.text(),
-        new Promise<string>((_, reject) =>
-          setTimeout(
-            () => reject(new Error("error body timed out")),
-            ERROR_BODY_TIMEOUT_MS
-          )
-        ),
-      ])
-    ).trim();
+    // Giving up on the read is not the same as ending it: the body goes on
+    // being read in the background, holding a connection and whatever it has
+    // buffered, and a service stalling on every write would accumulate those.
+    // Cancelling the body is what actually ends it. The rejection is still
+    // needed as well, since a body we cannot cancel must not become a hang.
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      body = (
+        await Promise.race([
+          response.text(),
+          new Promise<string>((_, reject) => {
+            deadline = setTimeout(() => {
+              void response.body?.cancel().catch(() => {});
+              reject(new Error("error body timed out"));
+            }, ERROR_BODY_TIMEOUT_MS);
+          }),
+        ])
+      ).trim();
+    } finally {
+      if (deadline) clearTimeout(deadline);
+    }
   } catch {
     return `${response.status} (response body unreadable)`;
   }
@@ -172,7 +201,7 @@ export async function indexAcceptedMemory(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS add failed: ${await describeFailure(response, encodeOfficialMemoryRef(input.memoryId, input.content))}`
+      `MindMemOS add failed: ${await describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content])}`
     );
   }
   const cloudIds = idsFromPayload(await response.json());
@@ -283,7 +312,7 @@ export async function searchMemoryHits(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS search failed: ${await describeFailure(response, query)}`
+      `MindMemOS search failed: ${await describeFailure(response, [query])}`
     );
   }
 

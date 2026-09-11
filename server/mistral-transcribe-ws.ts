@@ -18,6 +18,7 @@ import { resolveWebSocketUser } from "./_core/ws-auth";
 import {
   AudioQueue,
   FIRST_AUDIO_GRACE_MS,
+  MAX_FRAME_BYTES,
   MAX_SESSION_MS,
   MAX_SILENCE_MS,
   SILENCE_RMS_THRESHOLD,
@@ -35,7 +36,13 @@ function send(ws: WebSocket, payload: unknown): void {
 }
 
 export function setupTranscribeWebSocket(server: HttpServer): void {
-  const wss = new WebSocketServer({ noServer: true });
+  // A frame larger than the whole backlog allowance is not dictation. Without
+  // a cap the library assembles it first and every byte is then walked by the
+  // loudness check, on the one thread everything else in the process shares.
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: MAX_FRAME_BYTES,
+  });
 
   server.on("upgrade", (req, socket, head) => {
     const { pathname } = parseUrl(req.url || "", true);
@@ -91,6 +98,12 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
       // drain what it holds instead of losing the last words to a close.
       if (!Buffer.isBuffer(data)) {
         if (String(data).includes('"end"')) queue.close();
+        return;
+      }
+      if (data.byteLength > MAX_FRAME_BYTES) {
+        // Refuse before reading it: measuring the loudness of a frame this
+        // size is the work we are declining to do for a client this rude.
+        stop("oversized frame");
         return;
       }
       const frame = new Uint8Array(data);

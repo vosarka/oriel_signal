@@ -141,6 +141,13 @@ export async function startMistralDictation(
     return null;
   }
 
+  // The permission prompt can sit on screen for as long as the person takes to
+  // read it, and a stop pressed during it cannot reach a handle that does not
+  // exist yet. The socket is already metered, so it closes on the signal
+  // rather than waiting for the prompt to resolve first.
+  const closeOnAbort = () => closeSocket();
+  options.signal?.addEventListener("abort", closeOnAbort, { once: true });
+
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -170,9 +177,13 @@ export async function startMistralDictation(
   let ctx: AudioContext;
   let source: MediaStreamAudioSourceNode;
   let processor: ScriptProcessorNode;
+  // Held separately so the failure path can close a context that exists even
+  // though the assignment below never completed.
+  let opened: AudioContext | null = null;
   try {
     const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
     ctx = new AudioCtor({ sampleRate: TARGET_SAMPLE_RATE });
+    opened = ctx;
     // Startup awaited a socket and a permission prompt, so we are no longer
     // inside the click that began this. Browsers may hand back a suspended
     // context, and a suspended context never fires onaudioprocess: the mic
@@ -181,6 +192,9 @@ export async function startMistralDictation(
     source = ctx.createMediaStreamSource(stream);
     processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
   } catch {
+    // A context that was built before the throw is an open audio device; the
+    // other two resources are released here, and it must be too.
+    void opened?.close().catch(() => {});
     releaseMic();
     closeSocket();
     return null;
@@ -196,6 +210,17 @@ export async function startMistralDictation(
     void ctx.close().catch(() => {});
   };
 
+  // Set while the socket is held open after the user stopped, waiting for the
+  // transcript of what they already said.
+  let flushTimer: number | undefined;
+  const finishFlush = () => {
+    if (flushTimer !== undefined) {
+      window.clearTimeout(flushTimer);
+      flushTimer = undefined;
+    }
+    closeSocket();
+  };
+
   const stop = () => {
     if (stopped) return;
     stopped = true;
@@ -206,7 +231,10 @@ export async function startMistralDictation(
       try {
         socket.send(JSON.stringify({ type: "end" }));
       } catch {}
-      window.setTimeout(closeSocket, FLUSH_TIMEOUT_MS);
+      // The timer is the fallback, not the plan: the server says "done" when
+      // it has drained, and holding a metered socket open past that is paying
+      // for silence.
+      flushTimer = window.setTimeout(finishFlush, FLUSH_TIMEOUT_MS);
     } else {
       closeSocket();
     }
@@ -239,11 +267,13 @@ export async function startMistralDictation(
       }
       if (payload.type === "error") {
         stop();
+        finishFlush();
         options.onEnd(payload.message ?? "transcription error");
         return;
       }
       if (payload.type === "done") {
         stop();
+        finishFlush();
         options.onEnd("done");
       }
     } catch {

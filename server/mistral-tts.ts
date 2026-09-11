@@ -49,6 +49,21 @@ export function mistralTtsVoiceFor(voice?: string): string | undefined {
 }
 
 /**
+ * Take the spoken text back out of a provider's error body.
+ *
+ * The body is JSON, so an echo of what we sent arrives escaped; both
+ * spellings go. AGENTS.md rule 3: a conversation is not log material.
+ */
+function redactInput(body: string, sent: string): string {
+  const trimmed = sent.trim();
+  if (!trimmed) return body;
+  const escaped = JSON.stringify(trimmed).slice(1, -1);
+  let safe = body.split(trimmed).join("[redacted]");
+  if (escaped !== trimmed) safe = safe.split(escaped).join("[redacted]");
+  return safe;
+}
+
+/**
  * Generate speech with Voxtral. Returns base64-encoded MP3, the same shape
  * the ElevenLabs and Inworld clients return, so callers need no branch.
  */
@@ -82,7 +97,14 @@ export async function generateMistralSpeech(
     // which of those actually happened.
     let detail = "";
     try {
-      detail = (await response.text()).trim().slice(0, ERROR_BODY_CHARS);
+      // The text we sent is what ORIEL just said to somebody. A validation
+      // error that echoes the input would carry that whole reply into the
+      // log, so it comes back out by name before anything is capped - the
+      // same rule the memory client follows, for the same reason.
+      detail = redactInput((await response.text()).trim(), text).slice(
+        0,
+        ERROR_BODY_CHARS
+      );
     } catch {
       detail = "(response body unreadable)";
     }

@@ -1179,6 +1179,10 @@ export default function Conduit() {
         dictationRef.current.stop();
         dictationRef.current = null;
       }
+      // Order matters: the recognizer's onend handler restarts it whenever
+      // this ref is still true, so stopping first would hand the unmounted
+      // page a fresh recognition session and an open microphone.
+      isListeningRef.current = false;
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -1211,10 +1215,19 @@ export default function Conduit() {
     const dictation = await startMistralDictation({
       signal: abort.signal,
       onDelta: text => {
-        finalTranscriptRef.current = finalTranscriptRef.current
-          ? finalTranscriptRef.current + text
-          : text;
-        setMessage(finalTranscriptRef.current.trim());
+        const base = finalTranscriptRef.current;
+        const next = base ? base + text : text;
+        finalTranscriptRef.current = next;
+        // The last words spoken arrive a second or two after the button goes
+        // off, which is the whole reason the socket lingers. By then the box
+        // may have been sent and emptied, and writing into it would resurrect
+        // a message the user has already let go of. While the mic is on the
+        // box is ours; after that, only if it still holds what we last wrote.
+        setMessage(prev =>
+          isListeningRef.current || prev.trim() === base.trim()
+            ? next.trim()
+            : prev
+        );
         lastSpeechSoundRef.current = Date.now();
         hasSpeechRef.current = true;
       },
@@ -1272,8 +1285,11 @@ export default function Conduit() {
       } catch {}
     }
     stopSpeechSilenceMonitor();
-    // Clear so the next fresh mic activation starts clean from the (now finalized) input value.
-    finalTranscriptRef.current = "";
+    // The accumulator is deliberately left alone. Clearing it here wiped the
+    // dictation: the socket stays open for a moment to collect the last words,
+    // and a delta landing on an empty accumulator replaced everything the
+    // person had said with its final fragment. The next activation seeds it
+    // from the input box anyway, so there is nothing stale to clear.
     hasSpeechRef.current = false;
   };
 

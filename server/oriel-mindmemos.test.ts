@@ -244,6 +244,43 @@ describe("what a failed call says", () => {
     expect(error).toContain("[redacted]");
   });
 
+  it("finds the echo even when the service escapes it back as JSON", async () => {
+    // The body is JSON, so a memory containing a quotation mark comes back
+    // with backslashes in it. Searching for the raw sentence walks straight
+    // past that, and the confidence sits in the log looking redacted.
+    const confided = 'she said "I am not coming back" and meant it';
+    const escaped = JSON.stringify(confided).slice(1, -1);
+    const fetchImpl = rejection(
+      `{"detail":[{"loc":["body","content"],"msg":"too long","input":"${escaped}"}]}`
+    );
+
+    const error = await indexAcceptedMemory(
+      { memoryId: 9, userId: 7, content: confided },
+      { ...enabled, fetchImpl }
+    ).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
+
+    expect(error).toContain("too long");
+    expect(error).not.toContain("not coming back");
+    expect(error).toContain("[redacted]");
+  });
+
+  it("does not leave short memories in on the grounds of length", async () => {
+    // There is no number of characters below which a sentence stops being
+    // somebody's confidence. This one is seven.
+    const confided = "I'm gay";
+    const fetchImpl = rejection(
+      `{"detail":[{"loc":["body","content"],"msg":"refused","input":"${confided}"}]}`
+    );
+
+    const error = await indexAcceptedMemory(
+      { memoryId: 9, userId: 7, content: confided },
+      { ...enabled, fetchImpl }
+    ).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
+
+    expect(error).not.toContain(confided);
+    expect(error).toContain("[redacted]");
+  });
+
   it("redacts the query out of a failed search too", async () => {
     const asked = "what did I say about my brother last winter";
     const fetchImpl = rejection(`{"detail":"bad query: ${asked}"}`, 400);

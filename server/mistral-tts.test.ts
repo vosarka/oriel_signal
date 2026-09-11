@@ -90,6 +90,24 @@ describe("Voxtral speech", () => {
     );
   });
 
+  it("does not print back what ORIEL said when the call is refused", async () => {
+    // The input to a TTS call is a reply somebody just received. A validation
+    // error that echoes it would carry the whole thing into the log.
+    const said = "You asked me whether it gets easier. It does, unevenly.";
+    respondWith(`{"detail":"input rejected","echo":"${said}"}`, 422);
+
+    const error = await generateMistralSpeech(said).catch((e: unknown) =>
+      e instanceof Error ? e.message : String(e)
+    );
+
+    // The diagnostic survives.
+    expect(error).toContain("422");
+    expect(error).toContain("input rejected");
+    // The sentence does not.
+    expect(error).not.toContain("it gets easier");
+    expect(error).toContain("[redacted]");
+  });
+
   it("refuses a response with no audio in it", async () => {
     respondWith({ detail: "queued" });
 

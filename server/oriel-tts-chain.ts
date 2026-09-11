@@ -133,7 +133,12 @@ export function chunkText(text: string, maxLength = 1000): string[] {
   let current = "";
   // The trailing alternative matters: without it, a reply whose last sentence
   // has no full stop is dropped entirely and ORIEL stops mid-thought.
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [text];
+  //
+  // The leading star matters for the same reason at the other end. Requiring
+  // a character before the punctuation means a reply opening on "..." has no
+  // match at position zero, and the scan resumes past the ellipsis: the pause
+  // ORIEL opened with is silently deleted.
+  const sentences = text.match(/[^.!?]*[.!?]+|[^.!?]+$/g) ?? [text];
   for (const sentence of sentences) {
     const trimmed = sentence.trim();
     if (!trimmed) continue;
@@ -146,7 +151,19 @@ export function chunkText(text: string, maxLength = 1000): string[] {
       // synthesizer then pronounces both halves as if they were words.
       if (current) chunks.push(current.trim());
       let line = "";
-      for (const word of trimmed.split(/\s+/)) {
+      // A single token longer than the budget has no word boundary to break
+      // at, so packing words alone would emit it whole and hand the provider
+      // the oversized request this branch exists to prevent. Rare, and the
+      // limit is not a suggestion: a URL or a base64 paste reaches it.
+      const words = trimmed.split(/\s+/).flatMap(word => {
+        if (word.length <= maxLength) return [word];
+        const pieces: string[] = [];
+        for (let start = 0; start < word.length; start += maxLength) {
+          pieces.push(word.slice(start, start + maxLength));
+        }
+        return pieces;
+      });
+      for (const word of words) {
         if (line && line.length + 1 + word.length > maxLength) {
           chunks.push(line);
           line = word;
