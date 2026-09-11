@@ -37,9 +37,7 @@ export function mindMemOSConfigFromEnv(): MindMemOSClientConfig {
   };
 }
 
-export function canIndexInMindMemOS(
-  action: MemoryRecommendedAction
-): boolean {
+export function canIndexInMindMemOS(action: MemoryRecommendedAction): boolean {
   return action === "store";
 }
 
@@ -52,6 +50,34 @@ function headers(apiKey: string): HeadersInit {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
+}
+
+/**
+ * How much of a failed response body reaches the log.
+ *
+ * A validation error puts the field it rejected at the front, so the opening
+ * few lines carry the answer. The cap is here because the body may echo the
+ * payload back, and the payload is one person's memory: enough to name the
+ * bad field, not enough to print what somebody told ORIEL.
+ */
+const ERROR_BODY_CHARS = 300;
+
+/**
+ * A bare status code cannot be acted on. A 422 in particular means the service
+ * understood the request and refused its shape, and the body is the only place
+ * that says which field was wrong.
+ */
+async function describeFailure(response: Response): Promise<string> {
+  let body = "";
+  try {
+    body = (await response.text()).trim();
+  } catch {
+    return `${response.status} (response body unreadable)`;
+  }
+  if (!body) return `${response.status} (empty response body)`;
+  const shown = body.slice(0, ERROR_BODY_CHARS);
+  const elided = body.length > shown.length ? " […]" : "";
+  return `${response.status} ${shown}${elided}`;
 }
 
 // This search runs synchronously before every LLM call (see selectMemoriesForTurn),
@@ -111,7 +137,7 @@ export async function indexAcceptedMemory(
   );
 
   if (!response.ok) {
-    throw new Error(`MindMemOS add failed: ${response.status}`);
+    throw new Error(`MindMemOS add failed: ${await describeFailure(response)}`);
   }
   const cloudIds = idsFromPayload(await response.json());
   return {
@@ -145,9 +171,7 @@ function idsFromPayload(payload: unknown): string[] {
     : Array.isArray(data?.memories)
       ? data.memories
       : [];
-  return list
-    .map(parseCloudId)
-    .filter((id): id is string => id !== null);
+  return list.map(parseCloudId).filter((id): id is string => id !== null);
 }
 
 export type MindMemOSSearchHit = {
@@ -222,7 +246,9 @@ export async function searchMemoryHits(
   );
 
   if (!response.ok) {
-    throw new Error(`MindMemOS search failed: ${response.status}`);
+    throw new Error(
+      `MindMemOS search failed: ${await describeFailure(response)}`
+    );
   }
 
   return memoryListFromPayload(await response.json())
@@ -238,7 +264,5 @@ export async function searchMemoryIds(
   topK = 3
 ): Promise<string[]> {
   const hits = await searchMemoryHits(userId, query, config, topK);
-  return hits
-    .map(hit => hit.cloudId)
-    .filter((id): id is string => Boolean(id));
+  return hits.map(hit => hit.cloudId).filter((id): id is string => Boolean(id));
 }
