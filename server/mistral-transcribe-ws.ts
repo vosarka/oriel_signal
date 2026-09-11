@@ -19,6 +19,8 @@ import {
   AudioQueue,
   MAX_SESSION_MS,
   MAX_SILENCE_MS,
+  SILENCE_RMS_THRESHOLD,
+  frameLoudness,
   TRANSCRIBE_ENCODING,
   TRANSCRIBE_MODEL,
   TRANSCRIBE_SAMPLE_RATE,
@@ -56,6 +58,12 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
       return;
     }
 
+    // The client waits for this before opening the microphone. Without it,
+    // an accepted upgrade looks like an accepted session, and a refusal that
+    // lands during the permission prompt is missed: the caller keeps a handle
+    // it thinks is live and never falls back to the browser recognizer.
+    send(ws, { type: "ready" });
+
     const queue = new AudioQueue();
     let lastAudioAt = Date.now();
 
@@ -75,8 +83,13 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
 
     ws.on("message", data => {
       if (!Buffer.isBuffer(data)) return;
-      lastAudioAt = Date.now();
-      queue.push(new Uint8Array(data));
+      const frame = new Uint8Array(data);
+      // Arrival is not speech. The stream runs continuously while the mic is
+      // open, so a timer reset by every frame is a timer that never fires.
+      if (frameLoudness(frame) >= SILENCE_RMS_THRESHOLD) {
+        lastAudioAt = Date.now();
+      }
+      queue.push(frame);
     });
     ws.on("close", () => stop("client closed"));
     ws.on("error", err => {

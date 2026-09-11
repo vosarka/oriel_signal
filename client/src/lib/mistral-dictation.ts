@@ -61,16 +61,38 @@ export async function startMistralDictation(
   );
   socket.binaryType = "arraybuffer";
 
-  const opened = await new Promise<boolean>(resolve => {
+  // An accepted upgrade is not an accepted session. The server checks the
+  // signed-in user and its own configuration after the socket is open, and
+  // refuses by closing. Treating onopen as success meant a refusal arriving
+  // during the microphone permission prompt was never seen: the caller kept a
+  // handle it believed was live, and the free fallback it was promised never
+  // ran. So wait for the server to say it is ready, and only then ask for the
+  // microphone.
+  const accepted = await new Promise<boolean>(resolve => {
     const settle = (value: boolean) => {
       socket.onopen = null;
       socket.onerror = null;
+      socket.onmessage = null;
+      socket.onclose = null;
       resolve(value);
     };
-    socket.onopen = () => settle(true);
     socket.onerror = () => settle(false);
+    socket.onclose = () => settle(false);
+    socket.onmessage = event => {
+      if (typeof event.data !== "string") return;
+      try {
+        const payload = JSON.parse(event.data) as { type?: string };
+        if (payload.type === "ready") settle(true);
+        if (payload.type === "error") settle(false);
+      } catch {
+        // Not something we can read; keep waiting for ready or for a close.
+      }
+    };
   });
-  if (!opened) return null;
+  if (!accepted) {
+    if (socket.readyState !== WebSocket.CLOSED) socket.close();
+    return null;
+  }
 
   let stream: MediaStream;
   try {

@@ -1169,6 +1169,18 @@ export default function Conduit() {
   useEffect(() => {
     return () => {
       stopSpeechSilenceMonitor();
+      // Navigating away while dictating used to leave the microphone track and
+      // the metered socket running until the server's ten-minute cap. The page
+      // was gone; the meter was not.
+      if (dictationRef.current) {
+        dictationRef.current.stop();
+        dictationRef.current = null;
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
     };
   }, []);
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AudioQueue,
+  SILENCE_RMS_THRESHOLD,
+  frameLoudness,
   MAX_SESSION_MS,
   MAX_SILENCE_MS,
   TRANSCRIBE_ENCODING,
@@ -121,6 +123,55 @@ describe("what the browser is told", () => {
     expect(toTranscriptEvent({ type: "transcription.session.created" })).toBe(
       null
     );
+  });
+});
+
+describe("telling silence from speech", () => {
+  // Little-endian Int16 frames, the shape the browser sends.
+  const frame = (...samples: number[]) => {
+    const buffer = new ArrayBuffer(samples.length * 2);
+    const view = new DataView(buffer);
+    samples.forEach((sample, i) => view.setInt16(i * 2, sample, true));
+    return new Uint8Array(buffer);
+  };
+
+  it("reads a loud frame as loud", () => {
+    expect(frameLoudness(frame(20000, -20000, 18000, -19000))).toBeGreaterThan(
+      SILENCE_RMS_THRESHOLD
+    );
+  });
+
+  it("reads a quiet room as silence", () => {
+    // Room tone and a laptop fan sit here. The timer must not treat this as
+    // someone speaking, or a microphone on an empty desk bills to the cap.
+    expect(frameLoudness(frame(3, -2, 1, 0, -3, 2))).toBeLessThan(
+      SILENCE_RMS_THRESHOLD
+    );
+  });
+
+  it("reads true digital silence as zero", () => {
+    expect(frameLoudness(frame(0, 0, 0, 0))).toBe(0);
+  });
+
+  it("survives an empty or truncated frame", () => {
+    // A half sample is not a sample. Reading past it would be reading memory
+    // that is not ours.
+    expect(frameLoudness(new Uint8Array([]))).toBe(0);
+    expect(frameLoudness(new Uint8Array([0x11]))).toBe(0);
+    expect(frameLoudness(new Uint8Array([0xff, 0x7f, 0x22]))).toBeGreaterThan(
+      0
+    );
+  });
+
+  it("reads a frame sitting inside a larger buffer", () => {
+    // Node hands out views onto pooled buffers, so byteOffset is rarely zero.
+    // Ignoring it would measure somebody else's audio.
+    const pool = new Uint8Array(64);
+    const view = new DataView(pool.buffer);
+    view.setInt16(32, 25000, true);
+    view.setInt16(34, -25000, true);
+    const slice = new Uint8Array(pool.buffer, 32, 4);
+    expect(frameLoudness(slice)).toBeGreaterThan(SILENCE_RMS_THRESHOLD);
   });
 });
 

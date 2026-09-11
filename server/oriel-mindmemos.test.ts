@@ -217,9 +217,44 @@ describe("what a failed call says", () => {
 
     expect(error).toContain("422");
     expect(error).toContain("rejected");
-    expect(error).toContain("[…]");
     expect(error.length).toBeLessThan(400);
     expect(error).not.toContain(secret);
+  });
+
+  it("takes the memory out of the echo rather than trusting the cap", async () => {
+    // The cap alone is not redaction. An echo can sit inside the first three
+    // hundred characters as easily as past them, and then a private sentence
+    // is in the log whatever the length limit says.
+    const confided = "I have not told anyone that I am leaving in March";
+    const fetchImpl = rejection(
+      `{"detail":[{"loc":["body","mode"],"msg":"unexpected value","input":"[orielMemories:9] ${confided}"}]}`
+    );
+
+    const error = await indexAcceptedMemory(
+      { memoryId: 9, userId: 7, content: confided },
+      { ...enabled, fetchImpl }
+    ).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
+
+    // The whole point survives: we still learn which field was refused.
+    expect(error).toContain("mode");
+    expect(error).toContain("unexpected value");
+    // The confidence does not.
+    expect(error).not.toContain(confided);
+    expect(error).not.toContain("leaving in March");
+    expect(error).toContain("[redacted]");
+  });
+
+  it("redacts the query out of a failed search too", async () => {
+    const asked = "what did I say about my brother last winter";
+    const fetchImpl = rejection(`{"detail":"bad query: ${asked}"}`, 400);
+
+    const error = await searchMemoryHits(7, asked, {
+      ...enabled,
+      fetchImpl,
+    }).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
+
+    expect(error).toContain("400");
+    expect(error).not.toContain(asked);
   });
 
   it("reports search failures the same way", async () => {

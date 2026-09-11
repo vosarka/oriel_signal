@@ -52,22 +52,37 @@ function headers(apiKey: string): HeadersInit {
   };
 }
 
-/**
- * How much of a failed response body reaches the log.
- *
- * A validation error puts the field it rejected at the front, so the opening
- * few lines carry the answer. The cap is here because the body may echo the
- * payload back, and the payload is one person's memory: enough to name the
- * bad field, not enough to print what somebody told ORIEL.
- */
+/** How much of a failed response body reaches the log. */
 const ERROR_BODY_CHARS = 300;
+
+/**
+ * Remove the memory we sent from whatever the service sends back.
+ *
+ * A validation error commonly echoes the offending payload, and our payload is
+ * a sentence somebody told ORIEL in confidence. Truncating the body limits how
+ * much of that reaches the log but does not stop it: the echo can sit in the
+ * first three hundred characters as easily as the last. We know exactly what
+ * we transmitted, so we can take it back out by name.
+ *
+ * AGENTS.md rule 3: never log secrets. A private memory is one.
+ */
+function redactSentContent(body: string, sent: string): string {
+  const trimmed = sent.trim();
+  if (trimmed.length < 8) return body;
+  // Split rather than regex: the content is arbitrary user text and would need
+  // escaping, and a bad escape here would be the bug that leaks it.
+  return body.split(trimmed).join("[redacted]");
+}
 
 /**
  * A bare status code cannot be acted on. A 422 in particular means the service
  * understood the request and refused its shape, and the body is the only place
  * that says which field was wrong.
  */
-async function describeFailure(response: Response): Promise<string> {
+async function describeFailure(
+  response: Response,
+  sentContent = ""
+): Promise<string> {
   let body = "";
   try {
     body = (await response.text()).trim();
@@ -75,8 +90,11 @@ async function describeFailure(response: Response): Promise<string> {
     return `${response.status} (response body unreadable)`;
   }
   if (!body) return `${response.status} (empty response body)`;
-  const shown = body.slice(0, ERROR_BODY_CHARS);
-  const elided = body.length > shown.length ? " […]" : "";
+  // Redact first, then cap: capping first could cut the content in half and
+  // leave an unmatched fragment of it in the log.
+  const safe = redactSentContent(body, sentContent);
+  const shown = safe.slice(0, ERROR_BODY_CHARS);
+  const elided = safe.length > shown.length ? " […]" : "";
   return `${response.status} ${shown}${elided}`;
 }
 
@@ -137,7 +155,9 @@ export async function indexAcceptedMemory(
   );
 
   if (!response.ok) {
-    throw new Error(`MindMemOS add failed: ${await describeFailure(response)}`);
+    throw new Error(
+      `MindMemOS add failed: ${await describeFailure(response, encodeOfficialMemoryRef(input.memoryId, input.content))}`
+    );
   }
   const cloudIds = idsFromPayload(await response.json());
   return {
@@ -247,7 +267,7 @@ export async function searchMemoryHits(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS search failed: ${await describeFailure(response)}`
+      `MindMemOS search failed: ${await describeFailure(response, query)}`
     );
   }
 

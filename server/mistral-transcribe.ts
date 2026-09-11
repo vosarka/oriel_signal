@@ -91,6 +91,35 @@ export class AudioQueue {
   }
 }
 
+/**
+ * Loudness of one PCM frame, 0 to 1.
+ *
+ * The browser streams continuously once the microphone is open, silence
+ * included, so "a frame arrived" says nothing about whether anyone is talking.
+ * A silence timer fed by frame arrival never fires, and an abandoned session
+ * bills to the session cap instead of the twenty-second one.
+ *
+ * Interpreting bytes rather than trusting them: an odd-length buffer is a
+ * truncated frame and its last byte is not half a sample.
+ */
+export function frameLoudness(frame: Uint8Array): number {
+  const samples = Math.floor(frame.length / 2);
+  if (samples === 0) return 0;
+  const view = new DataView(frame.buffer, frame.byteOffset, samples * 2);
+  let sum = 0;
+  for (let i = 0; i < samples; i++) {
+    const sample = view.getInt16(i * 2, true) / 32768;
+    sum += sample * sample;
+  }
+  return Math.sqrt(sum / samples);
+}
+
+/**
+ * Below this a frame counts as silence. Room tone and a fan sit well under it;
+ * speech at a normal distance from a laptop microphone sits above.
+ */
+export const SILENCE_RMS_THRESHOLD = 0.01;
+
 export type TranscriptEvent =
   | { type: "delta"; text: string }
   | { type: "done" }
