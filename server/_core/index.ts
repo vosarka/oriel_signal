@@ -12,6 +12,7 @@ import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../db";
 import { logResolvedProviderChain } from "./llm";
 import { logResolvedMemoryConfig } from "../oriel-memory-retrieval";
+import { logResolvedVoiceChain } from "../inworld-tts";
 import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
@@ -40,6 +41,7 @@ async function startServer() {
   // this is the only place a deployment reveals which models it will call.
   logResolvedProviderChain();
   logResolvedMemoryConfig();
+  logResolvedVoiceChain();
 
   // Ensure DB schema is up to date before accepting requests
   await runMigrations();

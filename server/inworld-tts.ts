@@ -18,6 +18,7 @@ import {
   ELEVENLABS_SOPHIANIC_VOICE_ID,
   generateElevenLabsSpeech,
 } from "./elevenlabs-tts";
+import { generateMistralSpeech, mistralTtsVoiceFor } from "./mistral-tts";
 
 const VOICE_SOPHIANIC = "default-0o0vqxaayifb0rqvrpyf5a__oriel_fema";
 const VOICE_DEEP = "default-0o0vqxaayifb0rqvrpyf5a__oriel_serii";
@@ -126,26 +127,85 @@ export function audioToDataUrl(base64Audio: string): string {
   return `data:audio/mpeg;base64,${base64Audio}`;
 }
 
+function elevenLabsVoiceFor(voice?: string): string | undefined {
+  return voice === INWORLD_VOICES.sophianic
+    ? (process.env.ELEVENLABS_VOICE_SOPHIANIC_ID ??
+        ELEVENLABS_SOPHIANIC_VOICE_ID)
+    : undefined;
+}
+
+function reasonFrom(error: unknown): string {
+  return error instanceof Error ? error.message : "unknown error";
+}
+
+/** The order voices are tried in, cheapest and primary first. */
+export const TTS_CHAIN = ["Mistral", "ElevenLabs", "Inworld"] as const;
+
+/**
+ * Speak with the first voice that answers.
+ *
+ * Mistral leads on price: $0.016 per 1000 characters against ElevenLabs at
+ * $0.05 or $0.10, and it bills the account that already pays for ORIEL's
+ * thinking. The others stay as fallbacks so an outage at one vendor does not
+ * leave ORIEL mute.
+ *
+ * When every voice refuses, the error names every reason. The previous
+ * version surfaced only the last one, so a day of "no credits remaining" from
+ * the fallback hid that the primary had been refusing too.
+ */
 export async function generateSpeechWithFallback(
   text: string,
   voice?: string,
   synthesizeElevenLabs = generateElevenLabsSpeech,
-  synthesizeInworld = generateInworldSpeech
+  synthesizeInworld = generateInworldSpeech,
+  synthesizeMistral = generateMistralSpeech
 ): Promise<string> {
-  try {
-    const elevenLabsVoice =
-      voice === INWORLD_VOICES.sophianic
-        ? (process.env.ELEVENLABS_VOICE_SOPHIANIC_ID ??
-          ELEVENLABS_SOPHIANIC_VOICE_ID)
-        : undefined;
-    return await synthesizeElevenLabs(text, elevenLabsVoice);
-  } catch (error) {
-    console.warn(
-      "[ORIEL TTS] ElevenLabs unavailable; falling back to Inworld:",
-      error instanceof Error ? error.message : "unknown error"
-    );
-    return synthesizeInworld(text, voice);
+  const chain = [
+    {
+      name: "Mistral",
+      run: () => synthesizeMistral(text, mistralTtsVoiceFor(voice)),
+    },
+    {
+      name: "ElevenLabs",
+      run: () => synthesizeElevenLabs(text, elevenLabsVoiceFor(voice)),
+    },
+    { name: "Inworld", run: () => synthesizeInworld(text, voice) },
+  ];
+
+  const failures: string[] = [];
+  for (const step of chain) {
+    try {
+      const audio = await step.run();
+      if (failures.length > 0) {
+        console.warn(
+          `[ORIEL TTS] ${step.name} served after ${failures.join("; ")}`
+        );
+      }
+      return audio;
+    } catch (error) {
+      failures.push(`${step.name}: ${reasonFrom(error)}`);
+    }
   }
+
+  throw new Error(`[ORIEL TTS] every voice refused. ${failures.join(" | ")}`);
+}
+
+/**
+ * Printed at startup beside the LLM and memory chains. A missing key is worth
+ * knowing before a user hits it, not after: ORIEL went mute for a day because
+ * two balances hit zero and nothing said so until someone pressed play.
+ */
+export function logResolvedVoiceChain(): void {
+  const keys: Array<[string, string | undefined]> = [
+    ["Mistral", process.env.MISTRAL_API_KEY],
+    ["ElevenLabs", process.env.ELEVENLABS_API_KEY],
+    ["Inworld", process.env.INWORLD_API_KEY],
+  ];
+  keys.forEach(([name, key], index) => {
+    console.log(
+      `[TTS][config] ${index + 1}. ${name} key=${key ? "present" : "MISSING"}`
+    );
+  });
 }
 
 // ─── Chunked generation for long ORIEL transmissions ─────────────────────────
