@@ -163,13 +163,25 @@ export function chunkText(text: string, maxLength = 1000): string[] {
       // limit is not a suggestion: a URL or a base64 paste reaches it.
       const words = trimmed.split(/\s+/).flatMap(word => {
         if (word.length <= maxLength) return [word];
-        // By code point rather than by index. An emoji or any astral
-        // character is two UTF-16 units, and slicing between them produces
-        // half a character: the synthesizer is handed text nobody wrote.
-        const points = Array.from(word);
+        // The budget stays in the same unit every other check here uses,
+        // String.length, so a chunk of emoji is measured the way a chunk of
+        // letters is. What moves is where the cut lands: an astral character
+        // is two of those units, and cutting between them yields half a
+        // character, which is text nobody wrote reaching the synthesizer.
         const pieces: string[] = [];
-        for (let start = 0; start < points.length; start += maxLength) {
-          pieces.push(points.slice(start, start + maxLength).join(""));
+        let start = 0;
+        while (start < word.length) {
+          let end = Math.min(start + maxLength, word.length);
+          const last = word.charCodeAt(end - 1);
+          // A high surrogate at the boundary means its pair is on the other
+          // side of it. Take one unit less rather than half a character.
+          if (end < word.length && last >= 0xd800 && last <= 0xdbff) end -= 1;
+          // Unless that leaves nothing: a budget of one cannot hold a
+          // character that is two units wide, and going one over the limit
+          // is better than dropping the rest of the word.
+          if (end <= start) end = start + 2;
+          pieces.push(word.slice(start, end));
+          start = end;
         }
         return pieces;
       });

@@ -197,8 +197,23 @@ describe("splitting a long reply for the synthesizer", () => {
     const chunks = chunkText(token, 10);
     expect(chunks.join("")).toBe(token);
     for (const chunk of chunks) {
+      // Whole characters, and the budget is counted the same way the rest of
+      // the function counts it rather than in a second unit.
+      expect(chunk.length).toBeLessThanOrEqual(10);
       expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
       expect(chunk).not.toMatch(/^[\uDC00-\uDFFF]/);
+    }
+  });
+
+  it("keeps a character whole even when it is wider than the budget", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // One emoji is two units. At a budget of one there is no cut that both
+    // honours the limit and keeps the character; dropping the text would be
+    // the worse answer, so the piece goes one over.
+    const chunks = chunkText("\u{1F300}\u{1F300}\u{1F300}", 1);
+    expect(chunks.join("")).toBe("\u{1F300}\u{1F300}\u{1F300}");
+    for (const chunk of chunks) {
+      expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
     }
   });
 });
