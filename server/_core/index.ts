@@ -12,7 +12,7 @@ import { serveStatic, setupVite } from "./vite";
 import { runMigrations } from "../db";
 import { logResolvedProviderChain } from "./llm";
 import { logResolvedMemoryConfig } from "../oriel-memory-retrieval";
-import { logResolvedVoiceChain } from "../inworld-tts";
+import { logResolvedVoiceChain } from "../oriel-tts-chain";
 import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";

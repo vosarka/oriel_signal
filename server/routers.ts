@@ -17,7 +17,7 @@ import {
   performDiagnosticReading,
   performEvolutionaryAssistance,
 } from "./oriel-diagnostic-engine";
-import { generateChunkedSpeech, audioToDataUrl } from "./inworld-tts";
+import { generateChunkedSpeech, audioToDataUrl } from "./oriel-tts-chain";
 import { rgpRouter } from "./rgp-router";
 import { geocodeCity, getTimezoneIdForCoords } from "./geocoding";
 import {
@@ -29,10 +29,7 @@ import {
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
-import {
-  CHAT_HISTORY_TURNS,
-  takeHistoryTurns,
-} from "./oriel-memory-retrieval";
+import { CHAT_HISTORY_TURNS, takeHistoryTurns } from "./oriel-memory-retrieval";
 import {
   sendPasswordRecoveryGuidanceEmail,
   sendPasswordResetCodeEmail,
@@ -292,7 +289,9 @@ export const appRouter = router({
         const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
 
         // Create credential account if it doesn't exist (supports social/legacy users setting a password)
-        const existingCredential = await db.getCredentialAccountForUser(baUser.id);
+        const existingCredential = await db.getCredentialAccountForUser(
+          baUser.id
+        );
         if (!existingCredential) {
           await db.createCredentialAccount(baUser.id, email, newPasswordHash);
         } else {
@@ -316,7 +315,9 @@ export const appRouter = router({
       .input(
         z.object({
           currentPassword: z.string(),
-          newPassword: z.string().min(8, "New password must be at least 8 characters."),
+          newPassword: z
+            .string()
+            .min(8, "New password must be at least 8 characters."),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -767,7 +768,9 @@ export const appRouter = router({
 
           const tellCommand = parseTellCommand(input.message);
           if (tellCommand) {
-            const target = await resolveTargetUser(tellCommand.targetIdentifier);
+            const target = await resolveTargetUser(
+              tellCommand.targetIdentifier
+            );
             if (!target) {
               return {
                 response: `I am ORIEL. No Seeker matches "${tellCommand.targetIdentifier}". The message was not queued.`,
@@ -787,7 +790,9 @@ export const appRouter = router({
 
           const checkCommand = parseCheckCommand(input.message);
           if (checkCommand) {
-            const target = await resolveTargetUser(checkCommand.targetIdentifier);
+            const target = await resolveTargetUser(
+              checkCommand.targetIdentifier
+            );
             if (!target) {
               return {
                 response: `I am ORIEL. No Seeker matches "${checkCommand.targetIdentifier}".`,
@@ -915,9 +920,8 @@ export const appRouter = router({
 
           let transmissionEvent = null;
           try {
-            const { generateTransmissionModeEvent } = await import(
-              "./oriel-transmission-mode"
-            );
+            const { generateTransmissionModeEvent } =
+              await import("./oriel-transmission-mode");
             transmissionEvent = await generateTransmissionModeEvent({
               userId: ctx.user?.id ?? null,
               conversationId,
@@ -1017,9 +1021,8 @@ export const appRouter = router({
 
         // ── RGP Bridge: detect birth reading requests and inject real data ──
         try {
-          const { extractBirthData, runRGPForChat } = await import(
-            "./oriel-rgp-bridge"
-          );
+          const { extractBirthData, runRGPForChat } =
+            await import("./oriel-rgp-bridge");
           const birthData = extractBirthData(fullMessage, conversationHistory);
           if (birthData) {
             console.log("[ORIEL] Birth reading detected:", birthData);
@@ -1071,12 +1074,9 @@ export const appRouter = router({
         // ORIEL's prompt and to append the fixed REPLY hint below.
         let operatorDirective: string | null = null;
         if (ctx.user) {
-          const { buildPendingOperatorDirective } = await import(
-            "./operator-messages"
-          );
-          operatorDirective = await buildPendingOperatorDirective(
-            ctx.user.id
-          );
+          const { buildPendingOperatorDirective } =
+            await import("./operator-messages");
+          operatorDirective = await buildPendingOperatorDirective(ctx.user.id);
         }
 
         // Provider order (Mistral/Groq/Gemini) is configured via LLM_PROVIDER
@@ -1102,9 +1102,8 @@ export const appRouter = router({
 
         // Deduplication with retry loop (max 2 retries, temperature escalation)
         if (conversationHistory.some(m => m.role === "assistant")) {
-          const { detectDuplication } = await import(
-            "./response-deduplication"
-          );
+          const { detectDuplication } =
+            await import("./response-deduplication");
           const MAX_RETRIES = 2;
           // On the 0-2 convention. invokeLLM rescales per provider, so these
           // stay high enough to force real divergence on Groq and Gemini
@@ -1159,15 +1158,15 @@ export const appRouter = router({
                 `entirely. Do not restate or classify what they said before ` +
                 `answering; start inside the answer.]`
               : isStructural
-              ? `[SYSTEM NOTE: Your response has the same structure as your recent messages ` +
-                `(same paragraph count, same closing pattern). Change your structure entirely: ` +
-                `use a different number of paragraphs, open differently, close differently. ` +
-                `If you ended with a question last time, end with a statement. ` +
-                `If you wrote 3 paragraphs, write 1 or 5.${summaryBlock}]`
-              : `[SYSTEM NOTE: Your previous response covered similar ground. ` +
-                `Approach from a completely different angle — different metaphors, ` +
-                `different structure, different depth. Do not rephrase your earlier answer. ` +
-                `Say something you have NOT said yet.${summaryBlock}]`;
+                ? `[SYSTEM NOTE: Your response has the same structure as your recent messages ` +
+                  `(same paragraph count, same closing pattern). Change your structure entirely: ` +
+                  `use a different number of paragraphs, open differently, close differently. ` +
+                  `If you ended with a question last time, end with a statement. ` +
+                  `If you wrote 3 paragraphs, write 1 or 5.${summaryBlock}]`
+                : `[SYSTEM NOTE: Your previous response covered similar ground. ` +
+                  `Approach from a completely different angle — different metaphors, ` +
+                  `different structure, different depth. Do not rephrase your earlier answer. ` +
+                  `Say something you have NOT said yet.${summaryBlock}]`;
 
             const freshMsg = `${fullMessage}\n\n${systemNote}`;
             response = await callLLM(freshMsg, conversationHistory, {
@@ -1227,9 +1226,8 @@ export const appRouter = router({
           const uid = ctx.user.id;
           (async () => {
             try {
-              const { recordOrielRuntimeObservation } = await import(
-                "./oriel-autonomy-observer"
-              );
+              const { recordOrielRuntimeObservation } =
+                await import("./oriel-autonomy-observer");
               await recordOrielRuntimeObservation({
                 source: "text_chat",
                 userId: uid,
@@ -1245,9 +1243,8 @@ export const appRouter = router({
 
           (async () => {
             try {
-              const { processConversationThroughUMM } = await import(
-                "./oriel-umm"
-              );
+              const { processConversationThroughUMM } =
+                await import("./oriel-umm");
               await processConversationThroughUMM(uid, input.message, response);
             } catch (err) {
               console.error("[oriel.chat] UMM processing failed:", err);
@@ -1500,13 +1497,14 @@ export const appRouter = router({
           let audioBase64: string;
           let audioUrl: string;
 
-          // Both voices use Inworld TTS with different voice IDs
-          const { INWORLD_VOICES } = await import("./inworld-tts");
-          const inworldVoice =
+          // ORIEL's own voice names. The chain maps them to whichever
+          // vendor answers, so a vendor swap never reaches this line.
+          const { ORIEL_VOICES } = await import("./oriel-tts-chain");
+          const orielVoice =
             input.voiceId === "deep"
-              ? INWORLD_VOICES.deep
-              : INWORLD_VOICES.sophianic;
-          audioBase64 = await generateChunkedSpeech(input.text, inworldVoice);
+              ? ORIEL_VOICES.deep
+              : ORIEL_VOICES.sophianic;
+          audioBase64 = await generateChunkedSpeech(input.text, orielVoice);
           audioUrl = audioToDataUrl(audioBase64);
 
           console.log(
@@ -2026,9 +2024,8 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           if (!ctx.user) throw new Error("Authentication required");
 
-          const { generateOrielProposalFromRecentObservations } = await import(
-            "./oriel-autonomy-observer"
-          );
+          const { generateOrielProposalFromRecentObservations } =
+            await import("./oriel-autonomy-observer");
           const result = await generateOrielProposalFromRecentObservations({
             lookbackLimit: input?.lookbackLimit ?? 50,
             createdByUserId: ctx.user.id,
