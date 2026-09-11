@@ -38,10 +38,18 @@ export const ORIEL_VOICES = {
 export const TTS_CHAIN = ["Mistral", "ElevenLabs"] as const;
 
 function elevenLabsVoiceFor(voice?: string): string | undefined {
-  return voice === ORIEL_VOICES.sophianic
-    ? (process.env.ELEVENLABS_VOICE_SOPHIANIC_ID ??
-        ELEVENLABS_SOPHIANIC_VOICE_ID)
-    : undefined;
+  // Both names map, not just one. Falling back used to drop the deep voice to
+  // the vendor's generic default, so a person who chose it heard someone else
+  // the moment Mistral refused.
+  if (voice === ORIEL_VOICES.deep) {
+    return process.env.ELEVENLABS_VOICE_DEEP_ID || undefined;
+  }
+  if (voice === ORIEL_VOICES.sophianic) {
+    return (
+      process.env.ELEVENLABS_VOICE_SOPHIANIC_ID || ELEVENLABS_SOPHIANIC_VOICE_ID
+    );
+  }
+  return undefined;
 }
 
 function reasonFrom(error: unknown): string {
@@ -114,13 +122,41 @@ export function audioToDataUrl(base64Audio: string): string {
 
 // ─── Chunked generation for long ORIEL transmissions ─────────────────────────
 
-function chunkText(text: string, maxLength = 1000): string[] {
+/**
+ * Exported for its tests. Splitting long speech is where the two bugs lived
+ * that dropped a reply's last sentence and let one long sentence past the
+ * size limit, and neither is reachable through generateChunkedSpeech without
+ * a live synthesizer.
+ */
+export function chunkText(text: string, maxLength = 1000): string[] {
   const chunks: string[] = [];
   let current = "";
-  const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
+  // The trailing alternative matters: without it, a reply whose last sentence
+  // has no full stop is dropped entirely and ORIEL stops mid-thought.
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [text];
   for (const sentence of sentences) {
     const trimmed = sentence.trim();
-    if (current.length + trimmed.length > maxLength && current.length > 0) {
+    if (!trimmed) continue;
+    if (trimmed.length > maxLength) {
+      // One sentence longer than the whole budget used to sail past the limit,
+      // because the size check only fired when something was already buffered.
+      //
+      // Split on words rather than at a character count. Slicing every
+      // maxLength characters cuts through the middle of a word, and the
+      // synthesizer then pronounces both halves as if they were words.
+      if (current) chunks.push(current.trim());
+      let line = "";
+      for (const word of trimmed.split(/\s+/)) {
+        if (line && line.length + 1 + word.length > maxLength) {
+          chunks.push(line);
+          line = word;
+        } else {
+          line += (line ? " " : "") + word;
+        }
+      }
+      if (line) chunks.push(line);
+      current = "";
+    } else if (current && current.length + 1 + trimmed.length > maxLength) {
       chunks.push(current.trim());
       current = trimmed;
     } else {

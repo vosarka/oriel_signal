@@ -24,8 +24,27 @@ const TTS_TIMEOUT_MS = 30_000;
 /** How much of a failed response body reaches the error. */
 const ERROR_BODY_CHARS = 300;
 
+let warnedAboutDeep = false;
+
+/**
+ * Map ORIEL's voice name to a Voxtral id.
+ *
+ * Returning nothing means "use the configured default", which for the deep
+ * voice is a silent downgrade: the person picked a second voice and hears the
+ * first. That is a configuration gap rather than a code path, so it says so
+ * once per process instead of every reply.
+ */
 export function mistralTtsVoiceFor(voice?: string): string | undefined {
-  if (voice === "deep") return process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+  if (voice !== "deep") return undefined;
+  const configured = process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+  if (configured) return configured;
+  if (!warnedAboutDeep) {
+    warnedAboutDeep = true;
+    console.warn(
+      "[Mistral TTS] MISTRAL_TTS_VOICE_DEEP_ID is unset; the deep voice will " +
+        "sound identical to the default one"
+    );
+  }
   return undefined;
 }
 
@@ -50,9 +69,9 @@ export async function generateMistralSpeech(
     },
     body: JSON.stringify({
       input: text,
-      model: process.env.MISTRAL_TTS_MODEL ?? DEFAULT_MODEL,
+      model: process.env.MISTRAL_TTS_MODEL || DEFAULT_MODEL,
       response_format: "mp3",
-      voice_id: voiceId ?? process.env.MISTRAL_TTS_VOICE_ID ?? DEFAULT_VOICE_ID,
+      voice_id: voiceId || process.env.MISTRAL_TTS_VOICE_ID || DEFAULT_VOICE_ID,
     }),
     signal: AbortSignal.timeout(TTS_TIMEOUT_MS),
   });

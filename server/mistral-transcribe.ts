@@ -23,8 +23,25 @@ export const TRANSCRIBE_ENCODING = AudioEncoding.PcmS16le;
  */
 export const MAX_SESSION_MS = 10 * 60 * 1000;
 
-/** Silence that ends a session, on the same reasoning. */
+/** Silence that ends a session, once the person has started speaking. */
 export const MAX_SILENCE_MS = 20 * 1000;
+
+/**
+ * Grace for the very first frame. The browser is showing a permission prompt
+ * and the person may be reading it, so the silence clock cannot start at the
+ * same twenty seconds or a slow decision kills the session before capture
+ * begins. It still ends a session nobody ever spoke into.
+ */
+export const FIRST_AUDIO_GRACE_MS = 45 * 1000;
+
+/**
+ * Ceiling on audio waiting for the transcriber.
+ *
+ * If Voxtral stalls, frames keep arriving at roughly 32 KB a second and
+ * nothing drains them. Ten seconds of backlog is far more than the service
+ * ever needs to catch up, and it bounds what one connection can hold.
+ */
+export const MAX_QUEUED_BYTES = 320_000;
 
 /**
  * Bridges pushed audio chunks to the async generator the Mistral SDK consumes.
@@ -37,17 +54,44 @@ export class AudioQueue {
   private readonly chunks: Uint8Array[] = [];
   private waiting: ((value: IteratorResult<Uint8Array>) => void) | null = null;
   private closed = false;
+  private bytes = 0;
+  private overflowed = false;
 
-  push(chunk: Uint8Array): void {
-    if (this.closed) return;
+  constructor(private readonly maxBytes = MAX_QUEUED_BYTES) {}
+
+  /**
+   * Returns false when the chunk was refused because the backlog is full.
+   *
+   * Dropping audio silently would hand the transcriber a sentence with a hole
+   * in it, which is worse than an honest end, so the caller is told and ends
+   * the session instead.
+   */
+  push(chunk: Uint8Array): boolean {
+    if (this.closed) return false;
     const waiter = this.waiting;
     if (waiter) {
       // Someone is parked waiting for audio: hand it over rather than queue it.
       this.waiting = null;
       waiter({ value: chunk, done: false });
-      return;
+      return true;
     }
+    if (this.bytes + chunk.byteLength > this.maxBytes) {
+      this.overflowed = true;
+      return false;
+    }
+    this.bytes += chunk.byteLength;
     this.chunks.push(chunk);
+    return true;
+  }
+
+  /** True once a chunk has been refused for want of room. */
+  get isOverflowed(): boolean {
+    return this.overflowed;
+  }
+
+  /** Bytes held for a transcriber that has not caught up. */
+  get queuedBytes(): number {
+    return this.bytes;
   }
 
   close(): void {
@@ -75,6 +119,7 @@ export class AudioQueue {
       while (true) {
         const queued = self.chunks.shift();
         if (queued) {
+          self.bytes -= queued.byteLength;
           yield queued;
           continue;
         }

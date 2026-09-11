@@ -55,6 +55,9 @@ function headers(apiKey: string): HeadersInit {
 /** How much of a failed response body reaches the log. */
 const ERROR_BODY_CHARS = 300;
 
+/** And how long we will wait for it. A diagnostic must not become a hang. */
+const ERROR_BODY_TIMEOUT_MS = 2_000;
+
 /**
  * Remove the memory we sent from whatever the service sends back.
  *
@@ -85,7 +88,20 @@ async function describeFailure(
 ): Promise<string> {
   let body = "";
   try {
-    body = (await response.text()).trim();
+    // fetchWithTimeout's abort fires on headers, not on the body, so a service
+    // that answers 422 and then stalls mid-body would hang this call and with
+    // it the turn that triggered the write. The deadline is ours to keep here.
+    body = (
+      await Promise.race([
+        response.text(),
+        new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("error body timed out")),
+            ERROR_BODY_TIMEOUT_MS
+          )
+        ),
+      ])
+    ).trim();
   } catch {
     return `${response.status} (response body unreadable)`;
   }

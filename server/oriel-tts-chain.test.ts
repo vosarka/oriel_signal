@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ORIEL_VOICES,
   TTS_CHAIN,
@@ -13,6 +13,16 @@ const refuses = (message: string) =>
   });
 
 describe("which voice speaks", () => {
+  // In afterEach rather than at the end of each test: a failing assertion
+  // throws before any inline cleanup runs, and the leaked variable then
+  // decides the outcome of whatever test the worker picks up next.
+  afterEach(() => {
+    delete process.env.ELEVENLABS_VOICE_SOPHIANIC_ID;
+    delete process.env.ELEVENLABS_VOICE_DEEP_ID;
+    delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+    vi.restoreAllMocks();
+  });
+
   it("is Mistral, then ElevenLabs, and nothing else", () => {
     // Inworld was a third balance to keep topped up. The day it and
     // ElevenLabs both hit zero, ORIEL went silent. It still powers the live
@@ -52,7 +62,6 @@ describe("which voice speaks", () => {
     // a working voice and never learns the primary is down.
     expect(warn.mock.calls[0]?.[0]).toContain("ElevenLabs served after");
     expect(warn.mock.calls[0]?.[0]).toContain("402");
-    warn.mockRestore();
   });
 
   it("names every reason when nothing can speak", async () => {
@@ -94,14 +103,64 @@ describe("which voice speaks", () => {
       refuses("[Mistral TTS] API error 402")
     );
     expect(eleven).toHaveBeenCalledWith("hello", "eleven-sophianic");
+  });
 
-    delete process.env.ELEVENLABS_VOICE_SOPHIANIC_ID;
-    delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+  it("keeps the deep voice when it falls through to ElevenLabs", async () => {
+    // Falling back used to drop the deep voice to the vendor default, so a
+    // person who chose it heard someone else the moment Mistral refused.
+    process.env.ELEVENLABS_VOICE_DEEP_ID = "eleven-deep";
+    const eleven = speaks("eleven");
+
+    await generateSpeechWithFallback(
+      "hello",
+      ORIEL_VOICES.deep,
+      eleven,
+      refuses("[Mistral TTS] API error 402")
+    );
+
+    expect(eleven).toHaveBeenCalledWith("hello", "eleven-deep");
   });
 
   it("keeps ORIEL's voice names free of any vendor's ids", () => {
     // A vendor swap must not reach the router or the browser. Both names are
     // plain words now, not the Inworld strings they used to carry.
     expect(Object.values(ORIEL_VOICES)).toEqual(["sophianic", "deep"]);
+  });
+});
+
+describe("splitting a long reply for the synthesizer", () => {
+  it("keeps a closing sentence that has no full stop", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // ORIEL does not always punctuate its last line. That fragment used to be
+    // dropped outright: the reply was spoken, minus its ending.
+    const chunks = chunkText("First sentence. And then the quiet part", 1000);
+    expect(chunks.join(" ")).toContain("the quiet part");
+  });
+
+  it("keeps a reply that is one unpunctuated fragment", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    expect(chunkText("no punctuation at all here", 1000)).toEqual([
+      "no punctuation at all here",
+    ]);
+  });
+
+  it("splits one sentence that is longer than the whole budget", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    // The size check only fired when something was already buffered, so a
+    // single long sentence sailed past it and went to the provider whole.
+    const long = "word ".repeat(120).trim();
+    const chunks = chunkText(long, 100);
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks) expect(chunk.length).toBeLessThanOrEqual(100);
+  });
+
+  it("loses no words while splitting", async () => {
+    const { chunkText } = await import("./oriel-tts-chain");
+    const text =
+      "One. Two is a little longer. " + "three ".repeat(60) + "and an ending";
+    const chunks = chunkText(text, 80);
+    const rejoined = chunks.join(" ").replace(/\s+/g, " ").trim();
+    const original = text.replace(/\s+/g, " ").trim();
+    expect(rejoined.split(" ").length).toBe(original.split(" ").length);
   });
 });

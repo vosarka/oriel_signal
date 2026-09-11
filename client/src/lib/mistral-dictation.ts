@@ -5,12 +5,24 @@
  * mangles the names this project is built from. This path sends raw audio to
  * our server, which holds the API key and talks to Voxtral.
  *
- * Anything that stops this from starting returns null rather than throwing, so
- * the caller can fall back instead of leaving the user with a dead button.
+ * Two rules shape the whole file. Anything that stops this from starting
+ * returns null rather than throwing, so the caller can fall back instead of
+ * leaving the user with a dead button. And nothing is acquired that is not
+ * released on every exit, because a microphone and a metered socket left open
+ * are a bill rather than a bug report.
  */
 
 const TARGET_SAMPLE_RATE = 16000;
 const BUFFER_SIZE = 4096;
+
+/** A socket that neither opens nor refuses is a hang; treat it as a refusal. */
+const HANDSHAKE_TIMEOUT_MS = 10_000;
+
+/**
+ * How long to wait after the user stops for the server to finish transcribing
+ * what it already has. Closing immediately drops the last words spoken.
+ */
+const FLUSH_TIMEOUT_MS = 2_000;
 
 export interface DictationHandle {
   stop: () => void;
@@ -21,6 +33,10 @@ export interface DictationOptions {
   onDelta: (text: string) => void;
   /** The session ended on its own: server cap, silence, or a refusal. */
   onEnd: (reason: string) => void;
+  /** Lets the caller cancel a start that is still waiting on the socket or on
+   *  microphone permission. Without it, a user who presses stop during those
+   *  seconds gets a session that opens after the button is already off. */
+  signal?: AbortSignal;
 }
 
 function supported(): boolean {
@@ -54,6 +70,7 @@ export async function startMistralDictation(
   options: DictationOptions
 ): Promise<DictationHandle | null> {
   if (!supported()) return null;
+  if (options.signal?.aborted) return null;
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const socket = new WebSocket(
@@ -61,36 +78,66 @@ export async function startMistralDictation(
   );
   socket.binaryType = "arraybuffer";
 
-  // An accepted upgrade is not an accepted session. The server checks the
-  // signed-in user and its own configuration after the socket is open, and
-  // refuses by closing. Treating onopen as success meant a refusal arriving
-  // during the microphone permission prompt was never seen: the caller kept a
-  // handle it believed was live, and the free fallback it was promised never
-  // ran. So wait for the server to say it is ready, and only then ask for the
-  // microphone.
-  const accepted = await new Promise<boolean>(resolve => {
+  const closeSocket = () => {
+    if (socket.readyState !== WebSocket.CLOSED) socket.close();
+  };
+
+  // An accepted upgrade is not an accepted session: the server checks the
+  // signed-in user and its own configuration after the socket opens, and
+  // refuses by closing. Every handler is installed now, before the first
+  // await, so a refusal arriving during the microphone permission prompt is
+  // recorded rather than missed.
+  let accepted: ((value: boolean) => void) | null = null;
+  let ready = false;
+  let endedEarly: string | null = null;
+
+  socket.onerror = () => {
+    endedEarly ??= "socket error";
+    accepted?.(false);
+  };
+  socket.onclose = () => {
+    endedEarly ??= "closed";
+    accepted?.(false);
+  };
+  socket.onmessage = event => {
+    if (typeof event.data !== "string") return;
+    try {
+      const payload = JSON.parse(event.data) as { type?: string };
+      if (payload.type === "ready") {
+        ready = true;
+        accepted?.(true);
+      } else if (payload.type === "error") {
+        endedEarly ??= "refused";
+        accepted?.(false);
+      }
+    } catch {
+      // Unreadable frame; keep waiting for ready or for a close.
+    }
+  };
+
+  const handshake = await new Promise<boolean>(resolve => {
+    let settled = false;
     const settle = (value: boolean) => {
-      socket.onopen = null;
-      socket.onerror = null;
-      socket.onmessage = null;
-      socket.onclose = null;
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      accepted = null;
       resolve(value);
     };
-    socket.onerror = () => settle(false);
-    socket.onclose = () => settle(false);
-    socket.onmessage = event => {
-      if (typeof event.data !== "string") return;
-      try {
-        const payload = JSON.parse(event.data) as { type?: string };
-        if (payload.type === "ready") settle(true);
-        if (payload.type === "error") settle(false);
-      } catch {
-        // Not something we can read; keep waiting for ready or for a close.
-      }
-    };
+    accepted = settle;
+    const timer = window.setTimeout(() => {
+      endedEarly ??= "handshake timeout";
+      settle(false);
+    }, HANDSHAKE_TIMEOUT_MS);
+    if (ready) settle(true);
+    if (endedEarly) settle(false);
+    options.signal?.addEventListener("abort", () => settle(false), {
+      once: true,
+    });
   });
-  if (!accepted) {
-    if (socket.readyState !== WebSocket.CLOSED) socket.close();
+
+  if (!handshake || options.signal?.aborted) {
+    closeSocket();
     return null;
   }
 
@@ -105,32 +152,63 @@ export async function startMistralDictation(
       },
     });
   } catch {
-    // Permission refused, or no microphone. Nothing to fall back to either,
-    // but the caller decides that.
-    socket.close();
+    // Permission refused, or no microphone.
+    closeSocket();
     return null;
   }
 
-  const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
-  const ctx: AudioContext = new AudioCtor({ sampleRate: TARGET_SAMPLE_RATE });
-  const source = ctx.createMediaStreamSource(stream);
-  const processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
+  const releaseMic = () => stream.getTracks().forEach(track => track.stop());
+
+  // The user may have pressed stop, or the server may have given up on us,
+  // while the permission prompt was on screen.
+  if (options.signal?.aborted || socket.readyState !== WebSocket.OPEN) {
+    releaseMic();
+    closeSocket();
+    return null;
+  }
+
+  let ctx: AudioContext;
+  let source: MediaStreamAudioSourceNode;
+  let processor: ScriptProcessorNode;
+  try {
+    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
+    ctx = new AudioCtor({ sampleRate: TARGET_SAMPLE_RATE });
+    // Startup awaited a socket and a permission prompt, so we are no longer
+    // inside the click that began this. Browsers may hand back a suspended
+    // context, and a suspended context never fires onaudioprocess: the mic
+    // would look open while sending nothing at all.
+    if (ctx.state === "suspended") await ctx.resume();
+    source = ctx.createMediaStreamSource(stream);
+    processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
+  } catch {
+    releaseMic();
+    closeSocket();
+    return null;
+  }
 
   let stopped = false;
-  const stop = () => {
-    if (stopped) return;
-    stopped = true;
+  const teardown = () => {
     try {
       processor.disconnect();
       source.disconnect();
     } catch {}
-    stream.getTracks().forEach(track => track.stop());
+    releaseMic();
     void ctx.close().catch(() => {});
-    if (
-      socket.readyState === WebSocket.OPEN ||
-      socket.readyState === WebSocket.CONNECTING
-    ) {
-      socket.close();
+  };
+
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    teardown();
+    // Tell the server no more audio is coming and give it a moment to
+    // transcribe what it already holds. Closing outright drops the last words.
+    if (socket.readyState === WebSocket.OPEN) {
+      try {
+        socket.send(JSON.stringify({ type: "end" }));
+      } catch {}
+      window.setTimeout(closeSocket, FLUSH_TIMEOUT_MS);
+    } else {
+      closeSocket();
     }
   };
 
@@ -146,6 +224,7 @@ export async function startMistralDictation(
   source.connect(processor);
   processor.connect(ctx.destination);
 
+  // Swap the handshake handlers for the running ones.
   socket.onmessage = event => {
     if (typeof event.data !== "string") return;
     try {
@@ -177,6 +256,13 @@ export async function startMistralDictation(
     stop();
     options.onEnd("closed");
   };
+  socket.onerror = () => {
+    if (stopped) return;
+    stop();
+    options.onEnd("socket error");
+  };
+
+  options.signal?.addEventListener("abort", stop, { once: true });
 
   return { stop };
 }

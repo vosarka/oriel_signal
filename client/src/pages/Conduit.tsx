@@ -623,6 +623,7 @@ export default function Conduit() {
   );
   const recognitionRef = useRef<any>(null);
   const dictationRef = useRef<DictationHandle | null>(null);
+  const dictationAbortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesViewportDebugRef = useRef<HTMLDivElement>(null);
   const previousActiveConversationIdRef = useRef<number | null>(null);
@@ -1172,6 +1173,8 @@ export default function Conduit() {
       // Navigating away while dictating used to leave the microphone track and
       // the metered socket running until the server's ten-minute cap. The page
       // was gone; the meter was not.
+      dictationAbortRef.current?.abort();
+      dictationAbortRef.current = null;
       if (dictationRef.current) {
         dictationRef.current.stop();
         dictationRef.current = null;
@@ -1199,7 +1202,14 @@ export default function Conduit() {
     // what a signed-out visitor and an unsupported browser get. Anything that
     // stops the paid path returns null rather than throwing, so the mic never
     // becomes a dead button.
+    // A start takes seconds: a socket handshake, then a permission prompt. If
+    // the user presses stop inside that window there is no handle to cancel
+    // yet, and the session used to open anyway with the button already off.
+    const abort = new AbortController();
+    dictationAbortRef.current = abort;
+
     const dictation = await startMistralDictation({
+      signal: abort.signal,
       onDelta: text => {
         finalTranscriptRef.current = finalTranscriptRef.current
           ? finalTranscriptRef.current + text
@@ -1216,10 +1226,17 @@ export default function Conduit() {
     });
 
     if (dictation) {
+      if (abort.signal.aborted) {
+        // Stopped while we were starting. Close what just opened.
+        dictation.stop();
+        return;
+      }
       dictationRef.current = dictation;
       await startSpeechSilenceMonitor();
       return;
     }
+
+    if (abort.signal.aborted) return;
 
     if (!recognitionRef.current) {
       // Neither path is available. Say so rather than leaving the button lit.
@@ -1241,6 +1258,10 @@ export default function Conduit() {
   const stopSpeechListening = () => {
     setIsListening(false);
     isListeningRef.current = false;
+    // Abort first: a start still waiting on the socket or on permission has no
+    // handle yet, and only the signal can reach it.
+    dictationAbortRef.current?.abort();
+    dictationAbortRef.current = null;
     if (dictationRef.current) {
       dictationRef.current.stop();
       dictationRef.current = null;

@@ -17,6 +17,7 @@ import { ENV } from "./_core/env";
 import { resolveWebSocketUser } from "./_core/ws-auth";
 import {
   AudioQueue,
+  FIRST_AUDIO_GRACE_MS,
   MAX_SESSION_MS,
   MAX_SILENCE_MS,
   SILENCE_RMS_THRESHOLD,
@@ -66,6 +67,7 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
 
     const queue = new AudioQueue();
     let lastAudioAt = Date.now();
+    let heardAnything = false;
 
     const stop = (reason: string) => {
       if (queue.isClosed) return;
@@ -78,18 +80,31 @@ export function setupTranscribeWebSocket(server: HttpServer): void {
     // with the microphone on bills until someone closes it.
     const sessionCap = setTimeout(() => stop("session cap"), MAX_SESSION_MS);
     const silenceCheck = setInterval(() => {
-      if (Date.now() - lastAudioAt > MAX_SILENCE_MS) stop("silence");
+      // Before the first frame the browser is still asking permission, so the
+      // clock runs long. After it, twenty seconds of quiet ends the session.
+      const limit = heardAnything ? MAX_SILENCE_MS : FIRST_AUDIO_GRACE_MS;
+      if (Date.now() - lastAudioAt > limit) stop("silence");
     }, 5_000);
 
     ws.on("message", data => {
-      if (!Buffer.isBuffer(data)) return;
+      // The client says when it has finished speaking, so the transcriber can
+      // drain what it holds instead of losing the last words to a close.
+      if (!Buffer.isBuffer(data)) {
+        if (String(data).includes('"end"')) queue.close();
+        return;
+      }
       const frame = new Uint8Array(data);
       // Arrival is not speech. The stream runs continuously while the mic is
       // open, so a timer reset by every frame is a timer that never fires.
       if (frameLoudness(frame) >= SILENCE_RMS_THRESHOLD) {
         lastAudioAt = Date.now();
+        heardAnything = true;
       }
-      queue.push(frame);
+      if (!queue.push(frame)) {
+        // The transcriber has fallen far enough behind that continuing would
+        // mean transcribing a sentence with a hole in it.
+        stop("audio backlog");
+      }
     });
     ws.on("close", () => stop("client closed"));
     ws.on("error", err => {

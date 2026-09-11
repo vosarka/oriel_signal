@@ -51,22 +51,19 @@ const MicIcon = forwardRef<MicIconHandle, MicIconProps>(
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
+        // The caller's handler runs either way. Only the built-in animation is
+        // gated on nobody else driving it; skipping the callback as well meant
+        // a parent that passed onMouseEnter and no ref never heard the event.
+        onMouseEnter?.(e);
+        if (!isControlledRef.current) controls.start("animate");
       },
       [controls, onMouseEnter]
     );
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
+        onMouseLeave?.(e);
+        if (!isControlledRef.current) controls.start("normal");
       },
       [controls, onMouseLeave]
     );
@@ -154,22 +151,19 @@ const MicOffIcon = forwardRef<MicOffIconHandle, MicOffIconProps>(
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
+        // The caller's handler runs either way. Only the built-in animation is
+        // gated on nobody else driving it; skipping the callback as well meant
+        // a parent that passed onMouseEnter and no ref never heard the event.
+        onMouseEnter?.(e);
+        if (!isControlledRef.current) controls.start("animate");
       },
       [controls, onMouseEnter]
     );
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
+        onMouseLeave?.(e);
+        if (!isControlledRef.current) controls.start("normal");
       },
       [controls, onMouseLeave]
     );

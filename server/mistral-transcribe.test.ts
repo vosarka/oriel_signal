@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AudioQueue,
+  FIRST_AUDIO_GRACE_MS,
+  MAX_QUEUED_BYTES,
   SILENCE_RMS_THRESHOLD,
   frameLoudness,
   MAX_SESSION_MS,
@@ -126,6 +128,49 @@ describe("what the browser is told", () => {
   });
 });
 
+describe("when the transcriber falls behind", () => {
+  it("refuses audio once the backlog is full", () => {
+    // Frames keep arriving at roughly 32 KB a second whether or not anything
+    // drains them. Without a ceiling one stalled connection grows until the
+    // session cap, ten minutes away.
+    const queue = new AudioQueue(100);
+    expect(queue.push(new Uint8Array(60))).toBe(true);
+    expect(queue.push(new Uint8Array(60))).toBe(false);
+    expect(queue.isOverflowed).toBe(true);
+    expect(queue.queuedBytes).toBe(60);
+  });
+
+  it("takes audio again once the reader has drained it", async () => {
+    const queue = new AudioQueue(100);
+    queue.push(new Uint8Array(80));
+    expect(queue.push(new Uint8Array(80))).toBe(false);
+
+    const reader = queue.stream();
+    await reader.next();
+    expect(queue.queuedBytes).toBe(0);
+    expect(queue.push(new Uint8Array(80))).toBe(true);
+    queue.close();
+  });
+
+  it("hands a waiting reader audio without ever queueing it", () => {
+    // A reader that is keeping up never fills the backlog, however long the
+    // session runs.
+    const queue = new AudioQueue(10);
+    const reader = queue.stream();
+    void reader.next();
+    // Give the generator a turn to park on the empty queue.
+    return Promise.resolve().then(() => {
+      expect(queue.push(new Uint8Array(9999))).toBe(true);
+      expect(queue.queuedBytes).toBe(0);
+      queue.close();
+    });
+  });
+
+  it("leaves room for a real backlog by default", () => {
+    expect(MAX_QUEUED_BYTES).toBeGreaterThan(100_000);
+  });
+});
+
 describe("telling silence from speech", () => {
   // Little-endian Int16 frames, the shape the browser sends.
   const frame = (...samples: number[]) => {
@@ -179,6 +224,12 @@ describe("the cost guards", () => {
   it("asks for the format Voxtral realtime expects", () => {
     expect(TRANSCRIBE_SAMPLE_RATE).toBe(16000);
     expect(TRANSCRIBE_ENCODING).toBe("pcm_s16le");
+  });
+
+  it("waits longer for the first frame than for later silence", () => {
+    // The browser is showing a permission prompt and the person is reading it.
+    // Twenty seconds of that is not an abandoned session.
+    expect(FIRST_AUDIO_GRACE_MS).toBeGreaterThan(20_000);
   });
 
   it("caps a session well past any dictated message", () => {

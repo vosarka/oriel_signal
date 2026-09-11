@@ -53,6 +53,23 @@ describe("Voxtral speech", () => {
     expect(sent.model).toBe("voxtral-mini-tts-2603");
   });
 
+  it("ignores a blank voice id rather than sending it", async () => {
+    // .env.example ships MISTRAL_TTS_VOICE_ID blank, and ?? treats "" as a
+    // value. Every deployment that copied the template unchanged would have
+    // sent voice_id "" to a service that rejects it, knocking Mistral out of
+    // the chain on the first word ORIEL ever spoke.
+    const fetchImpl = respondWith({ audio_data: "QUJD" });
+    process.env.MISTRAL_TTS_VOICE_ID = "";
+    process.env.MISTRAL_TTS_MODEL = "";
+
+    await generateMistralSpeech("hello");
+
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(init.body as string);
+    expect(sent.voice_id).toBe("4f381381-d79e-468c-9724-63edd0c5883a");
+    expect(sent.model).toBe("voxtral-mini-tts-2603");
+  });
+
   it("an explicit voice beats the configured one", async () => {
     const fetchImpl = respondWith({ audio_data: "QUJD" });
     process.env.MISTRAL_TTS_VOICE_ID = "configured";
