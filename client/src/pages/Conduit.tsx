@@ -2692,7 +2692,11 @@ export default function Conduit() {
                 <button
                   onClick={handleVoiceInput}
                   disabled={inputDisabled}
-                  title="Voice input"
+                  aria-pressed={isListening}
+                  aria-label={
+                    isListening ? "Stop voice input" : "Start voice input"
+                  }
+                  title={isListening ? "Stop voice input" : "Start voice input"}
                   className="p-3 rounded transition-all"
                   style={{
                     background: isListening
