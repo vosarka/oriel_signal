@@ -12,7 +12,7 @@
 import { Server as HttpServer, IncomingMessage } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
-import { RealtimeTranscription } from "@mistralai/mistralai/extra/realtime";
+import { RealtimeTranscription } from "@mistralai/mistralai/extra/realtime/index.js";
 import { ENV } from "./_core/env";
 import { resolveWebSocketUser } from "./_core/ws-auth";
 import {

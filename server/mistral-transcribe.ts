@@ -10,7 +10,7 @@
  * an empty desk. A metered one bills until someone closes the tab.
  */
 
-import { AudioEncoding } from "@mistralai/mistralai/extra/realtime";
+import { AudioEncoding } from "@mistralai/mistralai/extra/realtime/index.js";
 
 export const TRANSCRIBE_MODEL = "voxtral-mini-transcribe-realtime-2602";
 export const TRANSCRIBE_SAMPLE_RATE = 16000;
