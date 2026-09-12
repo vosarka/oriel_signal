@@ -300,6 +300,35 @@ describe("what the timing line says", () => {
     expect(body).not.toContain("brother");
   });
 
+  it("says when an error body was abandoned rather than read", async () => {
+    const log = captured();
+    try {
+      // describeFailure swallows every read failure and returns a string, so
+      // a wrapper outside it would file an abandoned read as a completed one
+      // at a duration that merely sits near the deadline. The distinction has
+      // to be drawn where the failure is caught.
+      const fetchImpl = vi.fn(
+        async () =>
+          ({
+            ok: false,
+            status: 502,
+            text: async () => {
+              throw new Error("body stalled");
+            },
+          }) as unknown as Response
+      );
+      await searchMemoryHits(7, "anything", { ...enabled, fetchImpl }).catch(
+        () => {}
+      );
+    } finally {
+      log.restore();
+    }
+
+    const lines = log.timing();
+    expect(lines.some(l => l.includes("error_body_abandoned"))).toBe(true);
+    expect(lines.some(l => l.includes("error_body_read "))).toBe(false);
+  });
+
   it("logs the size of a query and never the query", async () => {
     const log = captured();
     const confided = "what did I say about leaving in March";

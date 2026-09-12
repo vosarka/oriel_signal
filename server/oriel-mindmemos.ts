@@ -67,8 +67,15 @@ const ERROR_BODY_TIMEOUT_MS = 2_000;
  */
 async function describeFailure(
   response: Response,
-  sentContent: string[] = []
+  sentContent: string[] = [],
+  label = "request",
+  queryChars?: number
 ): Promise<string> {
+  // The timing lives here rather than around the call, because this function
+  // swallows every failure and always returns a string: a wrapper outside it
+  // would record an abandoned read as a completed one, at a duration that
+  // happens to sit near the deadline. Only this scope knows which happened.
+  const startedAt = performance.now();
   let body = "";
   try {
     // fetchWithTimeout's abort fires on headers, not on the body, so a service
@@ -96,8 +103,10 @@ async function describeFailure(
       if (deadline) clearTimeout(deadline);
     }
   } catch {
+    logCall(label, startedAt, "error_body_abandoned", queryChars);
     return `${response.status} (response body unreadable)`;
   }
+  logCall(label, startedAt, "error_body_read", queryChars);
   if (!body) return `${response.status} (empty response body)`;
   // Redact first, then cap: capping first could cut the content in half and
   // leave an unmatched fragment of it in the log.
@@ -208,19 +217,18 @@ async function fetchWithTimeout(
 async function timeBodyRead<T>(
   label: string,
   read: () => Promise<T>,
-  outcome = "body_read",
   queryChars?: number
 ): Promise<T> {
   const startedAt = performance.now();
   try {
     const value = await read();
-    logCall(label, startedAt, outcome, queryChars);
+    logCall(label, startedAt, "body_read", queryChars);
     return value;
   } catch (error) {
     logCall(
       label,
       startedAt,
-      `${outcome}_failed_${failureDetail(error)}`,
+      `body_failed_${failureDetail(error)}`,
       queryChars
     );
     throw error;
@@ -262,7 +270,7 @@ export async function indexAcceptedMemory(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS add failed: ${await timeBodyRead("add", () => describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content]), "error_body_read")}`
+      `MindMemOS add failed: ${await describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content], "add")}`
     );
   }
   const cloudIds = idsFromPayload(
@@ -384,11 +392,11 @@ export async function searchMemoryHits(
   if (!response.ok) {
     throw new Error(
       // An error body is read too, and is no faster to arrive than a good
-      // one. Leaving it out would time only the calls that succeed.
-      `MindMemOS search failed: ${await timeBodyRead(
+      // one. Leaving it untimed would measure only the calls that succeed.
+      `MindMemOS search failed: ${await describeFailure(
+        response,
+        [query],
         searchLabel,
-        () => describeFailure(response, [query]),
-        "error_body_read",
         query.length
       )}`
     );
@@ -399,7 +407,6 @@ export async function searchMemoryHits(
   const payload = await timeBodyRead(
     searchLabel,
     () => response.json(),
-    "body_read",
     query.length
   );
   return memoryListFromPayload(payload)
