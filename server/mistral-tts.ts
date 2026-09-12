@@ -40,13 +40,20 @@ const ERROR_BODY_CHARS = 300;
 /**
  * Map ORIEL's voice name to a Voxtral id.
  *
- * Both names now resolve to a real, distinct voice with nothing configured,
- * so the deployment cannot silently collapse the two into one. The
- * environment variables stay as overrides for when a voice is re-cloned.
+ * Both names resolve to a real, distinct voice with nothing configured, and
+ * both resolve here rather than one of them relying on the default further
+ * down: "returns nothing, so the default applies" is how the two names came
+ * to share one voice in the first place. The environment variables stay as
+ * overrides for when a voice is re-cloned and gets a new id.
  */
 export function mistralTtsVoiceFor(voice?: string): string | undefined {
-  if (voice !== "deep") return undefined;
-  return process.env.MISTRAL_TTS_VOICE_DEEP_ID || DEFAULT_DEEP_VOICE_ID;
+  if (voice === "deep") {
+    return process.env.MISTRAL_TTS_VOICE_DEEP_ID || DEFAULT_DEEP_VOICE_ID;
+  }
+  if (voice === "sophianic") {
+    return process.env.MISTRAL_TTS_VOICE_ID || DEFAULT_VOICE_ID;
+  }
+  return undefined;
 }
 
 /**

@@ -25,6 +25,7 @@ describe("Voxtral speech", () => {
     if (originalKey === undefined) delete process.env.MISTRAL_API_KEY;
     else process.env.MISTRAL_API_KEY = originalKey;
     delete process.env.MISTRAL_TTS_VOICE_ID;
+    delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
     delete process.env.MISTRAL_TTS_MODEL;
   });
 

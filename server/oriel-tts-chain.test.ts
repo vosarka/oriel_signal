@@ -216,4 +216,47 @@ describe("splitting a long reply for the synthesizer", () => {
       expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
     }
   });
+
+  // Both of these set voice ids, so each one puts the environment back in a
+  // finally rather than on the last line: a failing assertion would otherwise
+  // leak its ids into whatever runs next, which is how a test starts lying.
+  const withVoices = async (
+    ids: { sophianic?: string; deep?: string },
+    run: (warned: () => string) => void
+  ) => {
+    const { logResolvedVoiceChain } = await import("./oriel-tts-chain");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    if (ids.sophianic) process.env.MISTRAL_TTS_VOICE_ID = ids.sophianic;
+    else delete process.env.MISTRAL_TTS_VOICE_ID;
+    if (ids.deep) process.env.MISTRAL_TTS_VOICE_DEEP_ID = ids.deep;
+    else delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+    try {
+      logResolvedVoiceChain();
+      run(() => warn.mock.calls.map(c => String(c[0])).join(" "));
+    } finally {
+      delete process.env.MISTRAL_TTS_VOICE_ID;
+      delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+      warn.mockRestore();
+      log.mockRestore();
+    }
+  };
+
+  it("says at boot when both voices point at the same clone", async () => {
+    // Two overrides aimed at one clone is the old bug by another route, and
+    // the boot line is the only place that would ever mention it.
+    await withVoices(
+      { sophianic: "same-clone", deep: "same-clone" },
+      warned => {
+        expect(warned()).toContain("same id");
+        expect(warned()).toContain("sophianic and deep");
+      }
+    );
+  });
+
+  it("stays quiet at boot when the two voices differ", async () => {
+    await withVoices({}, warned => {
+      expect(warned()).not.toContain("same id");
+    });
+  });
 });

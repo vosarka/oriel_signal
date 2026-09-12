@@ -113,6 +113,20 @@ export function logResolvedVoiceChain(): void {
       `[TTS][config] ${index + 1}. ${name} key=${key ? "present" : "MISSING"}`
     );
   });
+
+  // ORIEL's two voices were once one voice wearing two names, and the only
+  // symptom was that it sounded like the wrong person. The built-in ids
+  // cannot collide - a test holds that - but two environment overrides
+  // pointing at the same clone can, and this is the one place that would
+  // otherwise never mention it.
+  const sophianic = mistralTtsVoiceFor(ORIEL_VOICES.sophianic);
+  const deep = mistralTtsVoiceFor(ORIEL_VOICES.deep);
+  if (sophianic && deep && sophianic === deep) {
+    console.warn(
+      "[TTS][config] both ORIEL voices resolve to the same id " +
+        `(${deep}); sophianic and deep will sound identical`
+    );
+  }
 }
 
 /** Convert base64 audio to a browser-playable data URL. */
