@@ -124,18 +124,41 @@ const MINDMEMOS_TIMEOUT_MS = 5_000;
  * The query length is here and the query is not. A search query is what
  * somebody just said to ORIEL (AGENTS.md rule 3), but its size is a fair
  * suspect for the slowness and carries nothing private.
+ *
+ * A monotonic clock rather than the wall clock: the wall clock can be stepped
+ * by NTP mid-call, and an instrument that can report a negative duration is
+ * not one to reason from.
  */
 function logCall(
   label: string,
   startedAt: number,
   outcome: string,
-  queryChars?: number
+  queryChars?: number,
+  extra = ""
 ): void {
-  const elapsed = Date.now() - startedAt;
+  const elapsed = Math.round(performance.now() - startedAt);
   const size = queryChars === undefined ? "" : ` query_chars=${queryChars}`;
   console.log(
-    `[MindMemOS][timing] ${label} ${outcome} elapsed_ms=${elapsed}${size}`
+    `[MindMemOS][timing] ${label} ${outcome} elapsed_ms=${elapsed}${size}${extra}`
   );
+}
+
+/**
+ * Why a network failure needs more than the error's name.
+ *
+ * Node's fetch reports every transport failure as a TypeError whose message
+ * is "fetch failed", and puts the reason somewhere else. A refused
+ * connection, an unknown host and a rejected certificate therefore all read
+ * identically, which is precisely the distinction these lines exist to draw.
+ */
+function failureDetail(error: unknown): string {
+  if (!(error instanceof Error)) return "unknown";
+  const cause = (error as { cause?: unknown }).cause;
+  const code =
+    cause && typeof cause === "object" && "code" in cause
+      ? String((cause as { code?: unknown }).code)
+      : undefined;
+  return code ? `${error.name}_${code}` : error.name;
 }
 
 async function fetchWithTimeout(
@@ -148,13 +171,17 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const startedAt = Date.now();
+  const startedAt = performance.now();
   try {
     const response = await fetchImpl(url, {
       ...init,
       signal: controller.signal,
     });
-    logCall(label, startedAt, `http_${response.status}`, queryChars);
+    // Headers only. The body is still to come, is not covered by the abort
+    // above, and is timed separately by whoever reads it - see timeBodyRead.
+    // A service answering headers in a moment and dribbling the body out for
+    // six seconds would otherwise be recorded here as fast.
+    logCall(label, startedAt, `headers_http_${response.status}`, queryChars);
     return response;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -165,11 +192,32 @@ async function fetchWithTimeout(
     }
     // A refused connection or a DNS failure lands here rather than above, and
     // the distinction is the whole point: unreachable is not slow.
-    const reason = error instanceof Error ? error.name : "unknown";
-    logCall(label, startedAt, `failed_${reason}`, queryChars);
+    logCall(label, startedAt, `failed_${failureDetail(error)}`, queryChars);
     throw error;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+/**
+ * Time reading a response body, which the deadline above does not cover.
+ *
+ * The abort fires on headers. Everything after that is unguarded, so a body
+ * that never finishes arriving is a hang the five-second limit cannot see,
+ * and one the header timing above would report as a fast call.
+ */
+async function timeBodyRead<T>(
+  label: string,
+  read: () => Promise<T>
+): Promise<T> {
+  const startedAt = performance.now();
+  try {
+    const value = await read();
+    logCall(label, startedAt, "body_read", undefined);
+    return value;
+  } catch (error) {
+    logCall(label, startedAt, `body_failed_${failureDetail(error)}`, undefined);
+    throw error;
   }
 }
 
@@ -211,7 +259,9 @@ export async function indexAcceptedMemory(
       `MindMemOS add failed: ${await describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content])}`
     );
   }
-  const cloudIds = idsFromPayload(await response.json());
+  const cloudIds = idsFromPayload(
+    await timeBodyRead("add", () => response.json())
+  );
   return {
     indexed: true,
     cloudIds:
@@ -302,6 +352,12 @@ export async function searchMemoryHits(
   if (!config.enabled || !config.baseUrl || !config.apiKey) return [];
 
   const fetchImpl = config.fetchImpl ?? fetch;
+  // A turn fires two searches at once: one on what the person said and one on
+  // the same words behind ORIEL's working-view prefix. When only one of them
+  // is slow, an unlabelled line cannot say which.
+  const searchLabel = query.startsWith(ORIEL_WORKING_VIEW_PREFIX)
+    ? "search_view"
+    : "search_user";
   const response = await fetchWithTimeout(
     fetchImpl,
     `${normalizeBaseUrl(config.baseUrl)}/v1/memory/search`,
@@ -315,10 +371,7 @@ export async function searchMemoryHits(
       }),
     },
     MINDMEMOS_TIMEOUT_MS,
-    // A turn fires two searches at once: one on what the person said and one
-    // on the same words behind ORIEL's working-view prefix. When only one of
-    // them is slow, an unlabelled line cannot say which.
-    query.startsWith(ORIEL_WORKING_VIEW_PREFIX) ? "search_view" : "search_user",
+    searchLabel,
     query.length
   );
 
@@ -328,7 +381,8 @@ export async function searchMemoryHits(
     );
   }
 
-  return memoryListFromPayload(await response.json())
+  const payload = await timeBodyRead(searchLabel, () => response.json());
+  return memoryListFromPayload(payload)
     .map(hitFromRaw)
     .filter((hit): hit is MindMemOSSearchHit => hit !== null)
     .slice(0, topK);

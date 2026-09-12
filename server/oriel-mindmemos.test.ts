@@ -206,9 +206,40 @@ describe("what the timing line says", () => {
     }
 
     const lines = log.timing();
-    expect(lines[0]).toContain("search_user");
-    expect(lines[1]).toContain("search_view");
+    expect(lines.some(l => l.includes("search_user"))).toBe(true);
+    expect(lines.some(l => l.includes("search_view"))).toBe(true);
     expect(lines.every(l => l.includes("elapsed_ms="))).toBe(true);
+  });
+
+  it("times the body separately, because the deadline does not cover it", async () => {
+    const log = captured();
+    try {
+      // Headers arrive at once and the body takes its time. Timing only the
+      // headers would file this away as a fast call, and the abort above
+      // cannot see it either: it fires on headers and nothing after.
+      const fetchImpl = vi.fn(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            json: async () => {
+              await new Promise(resolve => setTimeout(resolve, 40));
+              return [];
+            },
+          }) as unknown as Response
+      );
+      await searchMemoryHits(7, "anything", { ...enabled, fetchImpl });
+    } finally {
+      log.restore();
+    }
+
+    const lines = log.timing();
+    const headers = lines.find(l => l.includes("headers_http_200"));
+    const body = lines.find(l => l.includes("body_read"));
+    expect(headers).toBeDefined();
+    expect(body).toBeDefined();
+    const bodyMs = Number(/elapsed_ms=(\d+)/.exec(body ?? "")?.[1] ?? 0);
+    expect(bodyMs).toBeGreaterThanOrEqual(30);
   });
 
   it("separates our own deadline from the service refusing a connection", async () => {
@@ -225,8 +256,9 @@ describe("what the timing line says", () => {
       }).catch(() => {});
 
       const refused = vi.fn(async () => {
-        const error = new Error("connect ECONNREFUSED");
+        const error = new Error("fetch failed");
         error.name = "TypeError";
+        (error as { cause?: unknown }).cause = { code: "ECONNREFUSED" };
         throw error;
       });
       await searchMemoryHits(7, "anything", {
@@ -240,7 +272,9 @@ describe("what the timing line says", () => {
     const lines = log.timing();
     // Unreachable is not slow, and the two must not read the same.
     expect(lines[0]).toContain("timeout_at_");
-    expect(lines[1]).toContain("failed_TypeError");
+    // Node reports every transport failure as a TypeError, so the name alone
+    // would make a refused connection read like a bad certificate.
+    expect(lines[1]).toContain("failed_TypeError_ECONNREFUSED");
   });
 
   it("logs the size of a query and never the query", async () => {
