@@ -133,13 +133,12 @@ function logCall(
   label: string,
   startedAt: number,
   outcome: string,
-  queryChars?: number,
-  extra = ""
+  queryChars?: number
 ): void {
   const elapsed = Math.round(performance.now() - startedAt);
   const size = queryChars === undefined ? "" : ` query_chars=${queryChars}`;
   console.log(
-    `[MindMemOS][timing] ${label} ${outcome} elapsed_ms=${elapsed}${size}${extra}`
+    `[MindMemOS][timing] ${label} ${outcome} elapsed_ms=${elapsed}${size}`
   );
 }
 
@@ -208,15 +207,22 @@ async function fetchWithTimeout(
  */
 async function timeBodyRead<T>(
   label: string,
-  read: () => Promise<T>
+  read: () => Promise<T>,
+  outcome = "body_read",
+  queryChars?: number
 ): Promise<T> {
   const startedAt = performance.now();
   try {
     const value = await read();
-    logCall(label, startedAt, "body_read", undefined);
+    logCall(label, startedAt, outcome, queryChars);
     return value;
   } catch (error) {
-    logCall(label, startedAt, `body_failed_${failureDetail(error)}`, undefined);
+    logCall(
+      label,
+      startedAt,
+      `${outcome}_failed_${failureDetail(error)}`,
+      queryChars
+    );
     throw error;
   }
 }
@@ -256,7 +262,7 @@ export async function indexAcceptedMemory(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS add failed: ${await describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content])}`
+      `MindMemOS add failed: ${await timeBodyRead("add", () => describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content]), "error_body_read")}`
     );
   }
   const cloudIds = idsFromPayload(
@@ -377,11 +383,25 @@ export async function searchMemoryHits(
 
   if (!response.ok) {
     throw new Error(
-      `MindMemOS search failed: ${await describeFailure(response, [query])}`
+      // An error body is read too, and is no faster to arrive than a good
+      // one. Leaving it out would time only the calls that succeed.
+      `MindMemOS search failed: ${await timeBodyRead(
+        searchLabel,
+        () => describeFailure(response, [query]),
+        "error_body_read",
+        query.length
+      )}`
     );
   }
 
-  const payload = await timeBodyRead(searchLabel, () => response.json());
+  // The query size rides along, or the body timing cannot be set beside the
+  // header line that records it, and a long query stops being a suspect.
+  const payload = await timeBodyRead(
+    searchLabel,
+    () => response.json(),
+    "body_read",
+    query.length
+  );
   return memoryListFromPayload(payload)
     .map(hitFromRaw)
     .filter((hit): hit is MindMemOSSearchHit => hit !== null)

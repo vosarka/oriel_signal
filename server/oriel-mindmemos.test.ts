@@ -277,6 +277,29 @@ describe("what the timing line says", () => {
     expect(lines[1]).toContain("failed_TypeError_ECONNREFUSED");
   });
 
+  it("times an error body too, and keeps the query size on it", async () => {
+    const log = captured();
+    const asked = "what did I say about my brother";
+    try {
+      const fetchImpl = vi.fn(
+        async () =>
+          new Response('{"detail":"top_k must be positive"}', { status: 400 })
+      );
+      await searchMemoryHits(7, asked, { ...enabled, fetchImpl }).catch(
+        () => {}
+      );
+    } finally {
+      log.restore();
+    }
+
+    // A body that arrives with a 400 is no faster than one with a 200, and
+    // timing only the successes would hide exactly the slow failures.
+    const body = log.timing().find(l => l.includes("error_body_read"));
+    expect(body).toBeDefined();
+    expect(body).toContain(`query_chars=${asked.length}`);
+    expect(body).not.toContain("brother");
+  });
+
   it("logs the size of a query and never the query", async () => {
     const log = captured();
     const confided = "what did I say about leaving in March";
