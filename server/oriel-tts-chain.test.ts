@@ -216,7 +216,9 @@ describe("splitting a long reply for the synthesizer", () => {
       expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/);
     }
   });
+});
 
+describe("what the boot line says about the voices", () => {
   // Both of these set voice ids, so each one puts the environment back in a
   // finally rather than on the last line: a failing assertion would otherwise
   // leak its ids into whatever runs next, which is how a test starts lying.
