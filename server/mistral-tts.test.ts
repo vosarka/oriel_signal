@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generateMistralSpeech } from "./mistral-tts";
+import { generateMistralSpeech, mistralTtsVoiceFor } from "./mistral-tts";
 
 const originalFetch = global.fetch;
 const originalKey = process.env.MISTRAL_API_KEY;
@@ -66,7 +66,7 @@ describe("Voxtral speech", () => {
 
     const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     const sent = JSON.parse(init.body as string);
-    expect(sent.voice_id).toBe("4f381381-d79e-468c-9724-63edd0c5883a");
+    expect(sent.voice_id).toBe("1c568f5a-b040-459c-9c24-aca6eef4149b");
     expect(sent.model).toBe("voxtral-mini-tts-2603");
   });
 
@@ -78,6 +78,30 @@ describe("Voxtral speech", () => {
 
     const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string).voice_id).toBe("explicit");
+  });
+
+  it("gives each voice a different id with nothing configured", async () => {
+    // This is the bug that was live: one default id served both names, and
+    // the id it served was the deep voice, so sophianic - the voice nearly
+    // every reply uses - spoke as the wrong person and nothing said so.
+    delete process.env.MISTRAL_TTS_VOICE_ID;
+    delete process.env.MISTRAL_TTS_VOICE_DEEP_ID;
+    const fetchImpl = respondWith({ audio_data: "QUJD" });
+
+    await generateMistralSpeech("hello", mistralTtsVoiceFor("sophianic"));
+    await generateMistralSpeech("hello", mistralTtsVoiceFor("deep"));
+
+    const sent = (fetchImpl.mock.calls as [string, RequestInit][]).map(
+      ([, init]) => JSON.parse(init.body as string).voice_id
+    );
+    expect(sent[0]).toBeTruthy();
+    expect(sent[1]).toBeTruthy();
+    expect(sent[0]).not.toBe(sent[1]);
+  });
+
+  it("lets a re-cloned voice override the built-in id", async () => {
+    process.env.MISTRAL_TTS_VOICE_DEEP_ID = "recloned-deep";
+    expect(mistralTtsVoiceFor("deep")).toBe("recloned-deep");
   });
 
   it("says why the call was refused, not just the number", async () => {

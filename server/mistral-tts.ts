@@ -20,34 +20,33 @@
 import { redactEcho } from "./_core/redact-echo";
 
 const DEFAULT_MODEL = "voxtral-mini-tts-2603";
-const DEFAULT_VOICE_ID = "4f381381-d79e-468c-9724-63edd0c5883a";
 const TTS_TIMEOUT_MS = 30_000;
+
+/**
+ * ORIEL's two voices, cloned by Vos in Mistral rather than picked from the
+ * preset list, so they are the actual intended voices and not placeholders.
+ *
+ * These were the wrong way round until now. The id below for the deep voice
+ * was sitting in this file as the single default, which meant sophianic -
+ * the voice almost every reply uses - was speaking with the deep one. A
+ * default that is wrong is worse than no default, because nothing complains.
+ */
+const DEFAULT_VOICE_ID = "1c568f5a-b040-459c-9c24-aca6eef4149b";
+const DEFAULT_DEEP_VOICE_ID = "4f381381-d79e-468c-9724-63edd0c5883a";
 
 /** How much of a failed response body reaches the error. */
 const ERROR_BODY_CHARS = 300;
 
-let warnedAboutDeep = false;
-
 /**
  * Map ORIEL's voice name to a Voxtral id.
  *
- * Returning nothing means "use the configured default", which for the deep
- * voice is a silent downgrade: the person picked a second voice and hears the
- * first. That is a configuration gap rather than a code path, so it says so
- * once per process instead of every reply.
+ * Both names now resolve to a real, distinct voice with nothing configured,
+ * so the deployment cannot silently collapse the two into one. The
+ * environment variables stay as overrides for when a voice is re-cloned.
  */
 export function mistralTtsVoiceFor(voice?: string): string | undefined {
   if (voice !== "deep") return undefined;
-  const configured = process.env.MISTRAL_TTS_VOICE_DEEP_ID;
-  if (configured) return configured;
-  if (!warnedAboutDeep) {
-    warnedAboutDeep = true;
-    console.warn(
-      "[Mistral TTS] MISTRAL_TTS_VOICE_DEEP_ID is unset; the deep voice will " +
-        "sound identical to the default one"
-    );
-  }
-  return undefined;
+  return process.env.MISTRAL_TTS_VOICE_DEEP_ID || DEFAULT_DEEP_VOICE_ID;
 }
 
 /**
