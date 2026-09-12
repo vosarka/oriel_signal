@@ -10,6 +10,7 @@
 
 import { ENV } from "./_core/env";
 import { redactEcho } from "./_core/redact-echo";
+import { ORIEL_WORKING_VIEW_PREFIX } from "./oriel-memory-retrieval";
 import type { MemoryRecommendedAction } from "./oriel-memory-consecration";
 import {
   encodeOfficialMemoryRef,
@@ -110,20 +111,62 @@ async function describeFailure(
 // so a slow-but-not-erroring endpoint must not be allowed to hang a whole chat turn.
 const MINDMEMOS_TIMEOUT_MS = 5_000;
 
+/**
+ * Every call, its outcome, and how long it took.
+ *
+ * Production was falling back to TiDB on the timeout above, which told us the
+ * service was too slow and nothing else. "Too slow" hides two very different
+ * problems with two different fixes: a service answering just past our
+ * deadline needs a longer deadline, and a service that never answers needs
+ * looking at. A bare timeout message cannot tell them apart, because it
+ * reports our own limit rather than anything the service did.
+ *
+ * The query length is here and the query is not. A search query is what
+ * somebody just said to ORIEL (AGENTS.md rule 3), but its size is a fair
+ * suspect for the slowness and carries nothing private.
+ */
+function logCall(
+  label: string,
+  startedAt: number,
+  outcome: string,
+  queryChars?: number
+): void {
+  const elapsed = Date.now() - startedAt;
+  const size = queryChars === undefined ? "" : ` query_chars=${queryChars}`;
+  console.log(
+    `[MindMemOS][timing] ${label} ${outcome} elapsed_ms=${elapsed}${size}`
+  );
+}
+
 async function fetchWithTimeout(
   fetchImpl: typeof fetch,
   url: string,
   init: RequestInit,
-  timeoutMs: number
+  timeoutMs: number,
+  label = "request",
+  queryChars?: number
 ): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = Date.now();
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal });
+    const response = await fetchImpl(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    logCall(label, startedAt, `http_${response.status}`, queryChars);
+    return response;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
+      // Reaching the deadline is the one outcome that says nothing about the
+      // service: it is our own clock firing, so it is named as such.
+      logCall(label, startedAt, `timeout_at_${timeoutMs}ms`, queryChars);
       throw new Error(`MindMemOS request timed out after ${timeoutMs}ms`);
     }
+    // A refused connection or a DNS failure lands here rather than above, and
+    // the distinction is the whole point: unreachable is not slow.
+    const reason = error instanceof Error ? error.name : "unknown";
+    logCall(label, startedAt, `failed_${reason}`, queryChars);
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -159,7 +202,8 @@ export async function indexAcceptedMemory(
         mode: "fine",
       }),
     },
-    MINDMEMOS_TIMEOUT_MS
+    MINDMEMOS_TIMEOUT_MS,
+    "add"
   );
 
   if (!response.ok) {
@@ -270,7 +314,12 @@ export async function searchMemoryHits(
         top_k: topK,
       }),
     },
-    MINDMEMOS_TIMEOUT_MS
+    MINDMEMOS_TIMEOUT_MS,
+    // A turn fires two searches at once: one on what the person said and one
+    // on the same words behind ORIEL's working-view prefix. When only one of
+    // them is slow, an unlabelled line cannot say which.
+    query.startsWith(ORIEL_WORKING_VIEW_PREFIX) ? "search_view" : "search_user",
+    query.length
   );
 
   if (!response.ok) {
