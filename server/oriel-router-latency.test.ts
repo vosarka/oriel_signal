@@ -35,7 +35,7 @@ vi.mock("./oriel-umm", () => ({
 }));
 vi.mock("./paypal-webhook", () => ({}));
 vi.mock("./oriel-diagnostic-engine", () => ({}));
-vi.mock("./inworld-tts", () => ({}));
+vi.mock("./oriel-tts-chain", () => ({}));
 vi.mock("./geocoding", () => ({}));
 vi.mock("./static-profile-service", () => ({}));
 vi.mock("./ephemeris-service", () => ({}));

@@ -9,6 +9,7 @@
  */
 
 import { ENV } from "./_core/env";
+import { redactEcho } from "./_core/redact-echo";
 import type { MemoryRecommendedAction } from "./oriel-memory-consecration";
 import {
   encodeOfficialMemoryRef,
@@ -37,9 +38,7 @@ export function mindMemOSConfigFromEnv(): MindMemOSClientConfig {
   };
 }
 
-export function canIndexInMindMemOS(
-  action: MemoryRecommendedAction
-): boolean {
+export function canIndexInMindMemOS(action: MemoryRecommendedAction): boolean {
   return action === "store";
 }
 
@@ -52,6 +51,59 @@ function headers(apiKey: string): HeadersInit {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
+}
+
+/** How much of a failed response body reaches the log. */
+const ERROR_BODY_CHARS = 300;
+
+/** And how long we will wait for it. A diagnostic must not become a hang. */
+const ERROR_BODY_TIMEOUT_MS = 2_000;
+
+/**
+ * A bare status code cannot be acted on. A 422 in particular means the service
+ * understood the request and refused its shape, and the body is the only place
+ * that says which field was wrong.
+ */
+async function describeFailure(
+  response: Response,
+  sentContent: string[] = []
+): Promise<string> {
+  let body = "";
+  try {
+    // fetchWithTimeout's abort fires on headers, not on the body, so a service
+    // that answers 422 and then stalls mid-body would hang this call and with
+    // it the turn that triggered the write. The deadline is ours to keep here.
+    // Giving up on the read is not the same as ending it: the body goes on
+    // being read in the background, holding a connection and whatever it has
+    // buffered, and a service stalling on every write would accumulate those.
+    // Cancelling the body is what actually ends it. The rejection is still
+    // needed as well, since a body we cannot cancel must not become a hang.
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      body = (
+        await Promise.race([
+          response.text(),
+          new Promise<string>((_, reject) => {
+            deadline = setTimeout(() => {
+              void response.body?.cancel().catch(() => {});
+              reject(new Error("error body timed out"));
+            }, ERROR_BODY_TIMEOUT_MS);
+          }),
+        ])
+      ).trim();
+    } finally {
+      if (deadline) clearTimeout(deadline);
+    }
+  } catch {
+    return `${response.status} (response body unreadable)`;
+  }
+  if (!body) return `${response.status} (empty response body)`;
+  // Redact first, then cap: capping first could cut the content in half and
+  // leave an unmatched fragment of it in the log.
+  const safe = redactEcho(body, sentContent);
+  const shown = safe.slice(0, ERROR_BODY_CHARS);
+  const elided = safe.length > shown.length ? " […]" : "";
+  return `${response.status} ${shown}${elided}`;
 }
 
 // This search runs synchronously before every LLM call (see selectMemoriesForTurn),
@@ -111,7 +163,9 @@ export async function indexAcceptedMemory(
   );
 
   if (!response.ok) {
-    throw new Error(`MindMemOS add failed: ${response.status}`);
+    throw new Error(
+      `MindMemOS add failed: ${await describeFailure(response, [encodeOfficialMemoryRef(input.memoryId, input.content), input.content])}`
+    );
   }
   const cloudIds = idsFromPayload(await response.json());
   return {
@@ -145,9 +199,7 @@ function idsFromPayload(payload: unknown): string[] {
     : Array.isArray(data?.memories)
       ? data.memories
       : [];
-  return list
-    .map(parseCloudId)
-    .filter((id): id is string => id !== null);
+  return list.map(parseCloudId).filter((id): id is string => id !== null);
 }
 
 export type MindMemOSSearchHit = {
@@ -222,7 +274,9 @@ export async function searchMemoryHits(
   );
 
   if (!response.ok) {
-    throw new Error(`MindMemOS search failed: ${response.status}`);
+    throw new Error(
+      `MindMemOS search failed: ${await describeFailure(response, [query])}`
+    );
   }
 
   return memoryListFromPayload(await response.json())
@@ -238,7 +292,5 @@ export async function searchMemoryIds(
   topK = 3
 ): Promise<string[]> {
   const hits = await searchMemoryHits(userId, query, config, topK);
-  return hits
-    .map(hit => hit.cloudId)
-    .filter((id): id is string => Boolean(id));
+  return hits.map(hit => hit.cloudId).filter((id): id is string => Boolean(id));
 }

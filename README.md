@@ -17,7 +17,7 @@ A spiritual intelligence platform built around ORIEL (Omniscient Resonant Intell
 | AI / LLM  | Mistral / Groq / Gemini fallback chain (`LLM_PROVIDER`)   |
 | Auth      | Email + Password (bcrypt) · Google OAuth 2.0 · JWT (jose) |
 | Ephemeris | `swisseph-wasm` — Swiss Ephemeris planetary calculations  |
-| Voice     | ElevenLabs TTS                                            |
+| Voice     | Mistral Voxtral TTS, falling back to ElevenLabs           |
 | Payments  | PayPal subscriptions + webhooks                           |
 | Storage   | AWS S3                                                    |
 

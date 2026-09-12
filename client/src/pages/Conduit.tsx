@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import {
-  Mic,
   Trash2,
   X,
   Pause,
@@ -11,10 +10,14 @@ import {
   Plus,
   MessageSquare,
   Menu,
-  Phone,
   Radio,
   Image as ImageIcon,
 } from "lucide-react";
+import { MicIcon, MicOffIcon } from "@/components/icons/mic";
+import {
+  startMistralDictation,
+  type DictationHandle,
+} from "@/lib/mistral-dictation";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Orb } from "@/components/ui/orb";
@@ -398,7 +401,8 @@ function TransmissionModeCard({
         className="font-mono text-[9px] tracking-[0.22em] mb-2"
         style={{ color: "rgba(232,228,220,0.72)" }}
       >
-        The field and receiver aligned. The conversation became the transmission.
+        The field and receiver aligned. The conversation became the
+        transmission.
       </div>
 
       <p
@@ -618,6 +622,13 @@ export default function Conduit() {
       localStorage.getItem("oriel_image_mode") === "true"
   );
   const recognitionRef = useRef<any>(null);
+  const dictationRef = useRef<DictationHandle | null>(null);
+  const dictationAbortRef = useRef<AbortController | null>(null);
+  // Which dictation session a callback belongs to. The socket of a stopped
+  // session stays open for a moment to deliver its last words, so a user who
+  // stops and immediately starts again has two live sessions for a second,
+  // and the older one must not write into the newer one's transcript.
+  const dictationGenerationRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesViewportDebugRef = useRef<HTMLDivElement>(null);
   const previousActiveConversationIdRef = useRef<number | null>(null);
@@ -712,7 +723,12 @@ export default function Conduit() {
       messagesViewportDebugRef.current
     );
     previousMessageLengthRef.current = message.length;
-  }, [message.length, activeConversationId, isNewConversation, localMessages.length]);
+  }, [
+    message.length,
+    activeConversationId,
+    isNewConversation,
+    localMessages.length,
+  ]);
 
   useEffect(() => {
     if (!conduitDiagnosticsEnabled()) return;
@@ -816,8 +832,9 @@ export default function Conduit() {
   const ensureAudioAnalyser = () => {
     if (!audioRef.current) return;
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      audioCtxRef.current = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
     }
     const audioCtx = audioCtxRef.current;
     if (!analyserRef.current) {
@@ -1099,8 +1116,9 @@ export default function Conduit() {
       });
       speechInputStreamRef.current = stream;
 
-      const ctx = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const ctx = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -1157,11 +1175,28 @@ export default function Conduit() {
   useEffect(() => {
     return () => {
       stopSpeechSilenceMonitor();
+      // Navigating away while dictating used to leave the microphone track and
+      // the metered socket running until the server's ten-minute cap. The page
+      // was gone; the meter was not.
+      dictationAbortRef.current?.abort();
+      dictationAbortRef.current = null;
+      if (dictationRef.current) {
+        dictationRef.current.stop();
+        dictationRef.current = null;
+      }
+      // Order matters: the recognizer's onend handler restarts it whenever
+      // this ref is still true, so stopping first would hand the unmounted
+      // page a fresh recognition session and an open microphone.
+      isListeningRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
     };
   }, []);
 
   const startSpeechListening = async () => {
-    if (!recognitionRef.current) return;
     setIsListening(true);
     isListeningRef.current = true;
     lastSpeechSoundRef.current = Date.now();
@@ -1170,6 +1205,70 @@ export default function Conduit() {
     // This lets the mic append to manually typed text or previous voice.
     finalTranscriptRef.current = message.trim();
     hasSpeechRef.current = false; // will become true on first sound / first transcript
+
+    // Mistral first: the browser's own recognizer is free but mangles ORIEL,
+    // Vossari and the rest of the canon. It stays as the fallback, which is
+    // what a signed-out visitor and an unsupported browser get. Anything that
+    // stops the paid path returns null rather than throwing, so the mic never
+    // becomes a dead button.
+    // A start takes seconds: a socket handshake, then a permission prompt. If
+    // the user presses stop inside that window there is no handle to cancel
+    // yet, and the session used to open anyway with the button already off.
+    const abort = new AbortController();
+    dictationAbortRef.current = abort;
+    const generation = ++dictationGenerationRef.current;
+    const current = () => generation === dictationGenerationRef.current;
+
+    const dictation = await startMistralDictation({
+      signal: abort.signal,
+      onDelta: text => {
+        if (!current()) return;
+        const base = finalTranscriptRef.current;
+        const next = base ? base + text : text;
+        finalTranscriptRef.current = next;
+        // The last words spoken arrive a second or two after the button goes
+        // off, which is the whole reason the socket lingers. By then the box
+        // may have been sent and emptied, and writing into it would resurrect
+        // a message the user has already let go of. While the mic is on the
+        // box is ours; after that, only if it still holds what we last wrote.
+        setMessage(prev =>
+          isListeningRef.current || prev.trim() === base.trim()
+            ? next.trim()
+            : prev
+        );
+        lastSpeechSoundRef.current = Date.now();
+        hasSpeechRef.current = true;
+      },
+      onEnd: reason => {
+        console.log("[Dictation] Mistral session ended:", reason);
+        // A previous session finishing its flush must not take down the one
+        // the user has just started.
+        if (!current()) return;
+        dictationRef.current = null;
+        if (isListeningRef.current) stopSpeechListening();
+      },
+    });
+
+    if (dictation) {
+      if (abort.signal.aborted) {
+        // Stopped while we were starting. Close what just opened.
+        dictation.stop();
+        return;
+      }
+      dictationRef.current = dictation;
+      await startSpeechSilenceMonitor();
+      return;
+    }
+
+    if (abort.signal.aborted) return;
+
+    if (!recognitionRef.current) {
+      // Neither path is available. Say so rather than leaving the button lit.
+      setIsListening(false);
+      isListeningRef.current = false;
+      alert("Speech recognition is not available in this browser");
+      return;
+    }
 
     try {
       recognitionRef.current.start();
@@ -1183,22 +1282,32 @@ export default function Conduit() {
   const stopSpeechListening = () => {
     setIsListening(false);
     isListeningRef.current = false;
+    // Abort first: a start still waiting on the socket or on permission has no
+    // handle yet, and only the signal can reach it.
+    dictationAbortRef.current?.abort();
+    dictationAbortRef.current = null;
+    if (dictationRef.current) {
+      dictationRef.current.stop();
+      dictationRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch {}
     }
     stopSpeechSilenceMonitor();
-    // Clear so the next fresh mic activation starts clean from the (now finalized) input value.
-    finalTranscriptRef.current = "";
+    // The accumulator is deliberately left alone. Clearing it here wiped the
+    // dictation: the socket stays open for a moment to collect the last words,
+    // and a delta landing on an empty accumulator replaced everything the
+    // person had said with its final fragment. The next activation seeds it
+    // from the input box anyway, so there is nothing stale to clear.
     hasSpeechRef.current = false;
   };
 
   const handleVoiceInput = async () => {
-    if (!recognitionRef.current) {
-      alert("Speech recognition not supported in this browser");
-      return;
-    }
+    // No support check here any more: the Mistral path works in browsers the
+    // webkit recognizer never existed in, so refusing on its absence would
+    // turn the mic off for Firefox users who can in fact dictate.
     if (isListening) {
       stopSpeechListening();
     } else {
@@ -1816,877 +1925,878 @@ export default function Conduit() {
           className="oriel-chamber-shell oriel-chamber-stage relative z-10 flex"
           style={{ height: "calc(100vh - 96px)" }}
         >
-        {/* ===== LEFT SIDEBAR ===== */}
-        <aside
-          className={`
+          {/* ===== LEFT SIDEBAR ===== */}
+          <aside
+            className={`
             fixed md:relative z-30 md:z-auto
             w-72 flex-shrink-0 flex flex-col
             transform transition-transform duration-200 md:translate-x-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
-          style={{
-            height: "calc(100vh - 64px)",
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(12px)",
-            borderRight: "1px solid rgba(189,163,107,0.1)",
-          }}
-        >
-          {/* Sidebar header */}
-          <div
-            className="flex-shrink-0 p-3"
-            style={{ borderBottom: "1px solid rgba(189,163,107,0.1)" }}
+            style={{
+              height: "calc(100vh - 64px)",
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(12px)",
+              borderRight: "1px solid rgba(189,163,107,0.1)",
+            }}
           >
-            <button
-              onClick={() => {
-                handleNewConversation();
-                setSidebarOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-[10px] tracking-[0.2em] uppercase transition-all"
-              style={{
-                background: "rgba(189,163,107,0.06)",
-                border: "1px solid rgba(189,163,107,0.2)",
-                color: "rgba(246,176,94,0.8)",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = "rgba(189,163,107,0.12)";
-                e.currentTarget.style.borderColor = "rgba(246,176,94,0.4)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = "rgba(189,163,107,0.06)";
-                e.currentTarget.style.borderColor = "rgba(189,163,107,0.2)";
-              }}
+            {/* Sidebar header */}
+            <div
+              className="flex-shrink-0 p-3"
+              style={{ borderBottom: "1px solid rgba(189,163,107,0.1)" }}
             >
-              <Plus size={14} />
-              New Transmission
-            </button>
-          </div>
-
-          {/* Conversation list */}
-          <div
-            className="flex-1 overflow-y-auto p-3 space-y-1"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(189,163,107,0.2) transparent",
-            }}
-          >
-            {!isAuthenticated ? (
-              <p
-                className="font-mono text-[9px] text-center py-4"
-                style={{ color: "rgba(189,163,107,0.3)" }}
-              >
-                Receiver node required to preserve transmissions
-              </p>
-            ) : !conversationsList || conversationsList.length === 0 ? (
-              <p
-                className="font-mono text-[9px] text-center py-4"
-                style={{ color: "rgba(189,163,107,0.3)" }}
-              >
-                No transmissions recovered yet...
-              </p>
-            ) : (
-              conversationsList.map(conv => (
-                <div
-                  key={conv.id}
-                  role="button"
-                  tabIndex={0}
-                  className="group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all"
-                  style={{
-                    background:
-                      activeConversationId === conv.id
-                        ? "rgba(189,163,107,0.1)"
-                        : "transparent",
-                    border:
-                      activeConversationId === conv.id
-                        ? "1px solid rgba(189,163,107,0.2)"
-                        : "1px solid transparent",
-                  }}
-                  onClick={() => {
-                    setLocalMessages([]);
-                    setActiveConversationId(conv.id);
-                    setIsNewConversation(false);
-                    setSidebarOpen(false);
-                  }}
-                  onKeyDown={e => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setLocalMessages([]);
-                      setActiveConversationId(conv.id);
-                      setIsNewConversation(false);
-                      setSidebarOpen(false);
-                    }
-                  }}
-                  onMouseEnter={e => {
-                    if (activeConversationId !== conv.id) {
-                      e.currentTarget.style.background =
-                        "rgba(189,163,107,0.05)";
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (activeConversationId !== conv.id) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  <MessageSquare
-                    size={12}
-                    style={{ color: "rgba(189,163,107,0.4)", flexShrink: 0 }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="font-mono text-[10px] truncate"
-                      style={{
-                        color:
-                          activeConversationId === conv.id
-                            ? "rgba(246,176,94,0.85)"
-                            : "rgba(232,228,220,0.6)",
-                      }}
-                    >
-                      {conv.title}
-                    </p>
-                    <p
-                      className="font-mono text-[8px] mt-0.5"
-                      style={{ color: "rgba(189,163,107,0.3)" }}
-                    >
-                      {new Date(conv.updatedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}{" "}
-                      {new Date(conv.updatedAt).toLocaleTimeString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      if (confirm("Delete this conversation?")) {
-                        deleteConversationMutation.mutate({ id: conv.id });
-                        if (activeConversationId === conv.id) {
-                          handleNewConversation();
-                        }
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
-                    style={{ color: "rgba(255,80,80,0.5)" }}
-                    onMouseEnter={e =>
-                      (e.currentTarget.style.color = "rgba(255,80,80,0.8)")
-                    }
-                    onMouseLeave={e =>
-                      (e.currentTarget.style.color = "rgba(255,80,80,0.5)")
-                    }
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-
-        </aside>
-
-        {/* ===== MAIN CHAT AREA ===== */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Top bar */}
-          <div
-            className="flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-3"
-            style={{
-              borderBottom: "1px solid rgba(189,163,107,0.1)",
-              background: "rgba(0,0,0,0.3)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <div className="flex items-center gap-3">
-              {/* Mobile hamburger */}
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="md:hidden p-1.5 rounded transition-all"
-                style={{ color: "rgba(189,163,107,0.5)" }}
-                onMouseEnter={e =>
-                  (e.currentTarget.style.color = "rgba(246,176,94,0.8)")
-                }
-                onMouseLeave={e =>
-                  (e.currentTarget.style.color = "rgba(189,163,107,0.5)")
-                }
-              >
-                <Menu size={18} />
-              </button>
-
-              <p className="fi-chamber-title">
-                {activeConversationId && activeConvData
-                  ? activeConvData.title
-                  : "ORIEL TRANSMISSION CHAMBER"}
-              </p>
-
-              {/* Persistent visual indicator for the image generation mode (always visible in the chat UI when active) */}
-              {isImageMode && (
-                <span
-                  className="font-mono text-[9px] px-2 py-0.5 rounded tracking-[0.2em]"
-                  style={{
-                    background: "rgba(0,188,212,0.1)",
-                    border: "1px solid rgba(0,188,212,0.3)",
-                    color: "rgba(0,229,255,0.75)",
-                  }}
-                >
-                  IMAGE MODE
-                </span>
-              )}
-
-              {displayMessages.length > 0 && (
-                <span
-                  className="font-mono text-[9px] px-2 py-0.5 rounded"
-                  style={{
-                    background: "rgba(189,163,107,0.08)",
-                    border: "1px solid rgba(189,163,107,0.2)",
-                    color: "rgba(189,163,107,0.6)",
-                  }}
-                >
-                  {displayMessages.length} transmissions
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Voice controls when speaking */}
-              {isSpeaking && voicePreference !== "none" && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handlePauseVoice}
-                    title={isPaused ? "Resume" : "Pause"}
-                    className="p-1.5 rounded transition-all"
-                    style={{ color: "rgba(255,200,50,0.8)" }}
-                  >
-                    {isPaused ? <Play size={14} /> : <Pause size={14} />}
-                  </button>
-                  <button
-                    onClick={handleStopVoice}
-                    title="Stop"
-                    className="p-1.5 rounded transition-all"
-                    style={{ color: "rgba(255,80,80,0.7)" }}
-                  >
-                    <Square size={14} />
-                  </button>
-                </div>
-              )}
-
-              {/* New conversation (desktop) */}
-              {isAuthenticated && (
-                <button
-                  onClick={handleNewConversation}
-                  title="New conversation"
-                  className="hidden md:block p-1.5 rounded transition-all"
-                  style={{ color: "rgba(189,163,107,0.4)" }}
-                  onMouseEnter={e =>
-                    (e.currentTarget.style.color = "rgba(246,176,94,0.8)")
-                  }
-                  onMouseLeave={e =>
-                    (e.currentTarget.style.color = "rgba(189,163,107,0.4)")
-                  }
-                >
-                  <Plus size={15} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Messages area */}
-          <div
-            ref={messagesViewportDebugRef}
-            className="flex-1 overflow-y-auto px-4 md:px-6 py-6"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(189,163,107,0.2) transparent",
-            }}
-          >
-            {displayMessages.length === 0 ? (
-              /* Empty state */
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div
-                  className="w-36 h-36 md:w-44 md:h-44"
-                  style={{
-                    borderRadius: "50%",
-                    border: "1px solid rgba(246,176,94,0.28)",
-                    background:
-                      "radial-gradient(circle, rgba(246,176,94,0.12), rgba(12,8,5,0.36) 62%, transparent)",
-                    boxShadow:
-                      "0 0 44px rgba(246,176,94,0.16), inset 0 0 28px rgba(246,176,94,0.08)",
-                    padding: 3,
-                  }}
-                >
-                  <div className="w-full h-full rounded-full overflow-hidden">
-                    <Orb
-                      colors={["#ffe6a6", "#2a1709"]}
-                      agentState={null}
-                      seed={42}
-                      speed={1.5}
-                    />
-                  </div>
-                </div>
-                <p
-                  className="text-center max-w-sm"
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "clamp(18px, 3vw, 24px)",
-                    color: "rgba(189,163,107,0.4)",
-                    fontWeight: 300,
-                  }}
-                >
-                  The chamber is silent.
-                </p>
-                <p
-                  className="font-mono text-[9px] text-center"
-                  style={{ color: "rgba(189,163,107,0.25)" }}
-                >
-                  Enter a signal to begin. ORIEL listens for pattern, pressure,
-                  contradiction, memory, and resonance.
-                </p>
-                {!isAuthenticated && (
-                  <div className="oriel-chamber-access-panel max-w-md text-center">
-                    <p
-                      className="font-mono text-[9px] tracking-[0.24em] uppercase mb-2"
-                      style={{ color: "rgba(246,176,94,0.72)" }}
-                    >
-                      // receiver node required
-                    </p>
-                    <p
-                      className="font-mono text-[10px] leading-relaxed"
-                      style={{ color: "rgba(232,228,220,0.62)" }}
-                    >
-                      Enter the archive to preserve Oriel history, Codex
-                      records, and transmission traces inside your node.
-                    </p>
-                    <Link href="/auth">
-                      <span
-                        className="inline-block mt-3 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] cursor-pointer"
-                        style={{
-                          border: "1px solid rgba(189,163,107,0.35)",
-                          color: "rgba(246,176,94,0.82)",
-                        }}
-                      >
-                        ◇ Enter Archive
-                      </span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Message list */
-              <div className="space-y-6">
-                {displayMessages.map((msg, idx) =>
-                  msg.role === "system" ? (
-                    // Ephemeral UI notice (mode switches, etc.). Centered, subtle, does not look like a normal transmission.
-                    <div key={idx} className="flex justify-center my-2 px-4">
-                      <div
-                        className="font-mono text-[9px] tracking-[0.1em] px-3 py-1 rounded max-w-md text-center"
-                        style={{
-                          background: "rgba(189,163,107,0.05)",
-                          border: "1px solid rgba(189,163,107,0.15)",
-                          color: "rgba(246,176,94,0.65)",
-                        }}
-                      >
-                        {msg.content}
-                      </div>
-                    </div>
-                  ) : msg.role === "user" ? (
-                    <div key={idx} className="flex justify-end">
-                      <div
-                        className="max-w-md px-5 py-4 rounded-lg"
-                        style={{
-                          background: "rgba(189,163,107,0.06)",
-                          border: "1px solid rgba(189,163,107,0.2)",
-                        }}
-                      >
-                        <p
-                          className="font-mono text-[9px] mb-2 tracking-[0.3em] uppercase"
-                          style={{ color: "rgba(189,163,107,0.5)" }}
-                        >
-                          Receiver Node
-                          {msg.timestamp && (
-                            <span
-                              className="ml-2 normal-case tracking-normal"
-                              style={{ color: "rgba(189,163,107,0.35)" }}
-                            >
-                              // {new Date(msg.timestamp).toLocaleTimeString()}
-                            </span>
-                          )}
-                        </p>
-                        <p
-                          className="text-sm leading-relaxed"
-                          style={{ color: "rgba(246,176,94,0.85)" }}
-                        >
-                          {msg.content}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <AssistantMessageView key={idx} msg={msg} />
-                  )
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-
-          {/* Input area */}
-          <div
-            className="flex-shrink-0 px-4 md:px-6 py-4"
-            style={{
-              borderTop: "1px solid rgba(189,163,107,0.1)",
-              background: "rgba(0,0,0,0.4)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            {/* Voice volume control when speaking */}
-            {isSpeaking && voicePreference !== "none" && (
-              <div className="flex items-center gap-3 mb-3">
-                <span
-                  className="font-mono text-[9px] tracking-widest"
-                  style={{ color: "rgba(189,163,107,0.5)" }}
-                >
-                  VOL
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={voiceVolume}
-                  onChange={e => {
-                    setVoiceVolume(parseFloat(e.target.value));
-                    if (audioRef.current) {
-                      audioRef.current.volume = parseFloat(e.target.value);
-                    }
-                  }}
-                  className="flex-1 h-1 rounded cursor-pointer"
-                  style={{ accentColor: "#f6b05e" }}
-                />
-                <span
-                  className="font-mono text-[9px] w-8"
-                  style={{ color: "rgba(246,176,94,0.6)" }}
-                >
-                  {Math.round(voiceVolume * 100)}%
-                </span>
-              </div>
-            )}
-
-            {/* File chips */}
-            {attachedFiles.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                {attachedFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded font-mono text-[10px]"
-                    style={{
-                      background: "rgba(189,163,107,0.08)",
-                      border: "1px solid rgba(189,163,107,0.25)",
-                      color: "rgba(246,176,94,0.8)",
-                    }}
-                  >
-                    {isImageAttachment(file) ? (
-                      <ImageIcon size={10} />
-                    ) : (
-                      <Paperclip size={10} />
-                    )}
-                    <span className="max-w-[110px] truncate">{file.name}</span>
-                    {(file as any).size && (
-                      <span className="opacity-50 text-[9px] ml-0.5">
-                        {formatFileSize((file as any).size)}
-                      </span>
-                    )}
-                    <button
-                      onClick={() =>
-                        setAttachedFiles(prev =>
-                          prev.filter((_, i) => i !== idx)
-                        )
-                      }
-                      className="ml-1 hover:opacity-100 opacity-60 transition-opacity"
-                      style={{ color: "rgba(246,176,94,0.7)" }}
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                ))}
-
-                {attachedFiles.length > 1 && (
-                  <button
-                    onClick={() => setAttachedFiles([])}
-                    className="text-[10px] px-2 py-1 rounded font-mono opacity-60 hover:opacity-100 transition-opacity"
-                    style={{ color: "rgba(246,176,94,0.7)" }}
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* File reading indicator */}
-            {isReadingFiles && (
-              <div
-                className="text-[10px] font-mono mb-1"
-                style={{ color: "rgba(246,176,94,0.6)" }}
-              >
-                Reading file(s)...
-              </div>
-            )}
-
-            {/* Voice selector */}
-            <div className="flex items-center gap-2 mb-2">
-              <label
-                className="font-mono text-[9px] tracking-widest"
-                style={{ color: "rgba(189,163,107,0.5)" }}
-              >
-                VOICE
-              </label>
-              <select
-                value={voicePreference}
-                onChange={e => {
-                  const newVoice = e.target.value as
-                    | "sophianic"
-                    | "deep"
-                    | "none";
-                  setVoicePreference(newVoice);
-                  if (isAuthenticated) {
-                    setVoicePreferenceMutation.mutate({
-                      voicePreference: newVoice,
-                    });
-                  } else {
-                    localStorage.setItem("voicePreference", newVoice);
-                  }
+                onClick={() => {
+                  handleNewConversation();
+                  setSidebarOpen(false);
                 }}
-                className="px-2 py-1 rounded font-mono text-[10px] outline-none transition-all"
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-[10px] tracking-[0.2em] uppercase transition-all"
                 style={{
                   background: "rgba(189,163,107,0.06)",
                   border: "1px solid rgba(189,163,107,0.2)",
                   color: "rgba(246,176,94,0.8)",
                 }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(189,163,107,0.12)";
+                  e.currentTarget.style.borderColor = "rgba(246,176,94,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(189,163,107,0.06)";
+                  e.currentTarget.style.borderColor = "rgba(189,163,107,0.2)";
+                }}
               >
-                <option value="sophianic">Sophianic Voice</option>
-                <option value="deep">Deep Voice</option>
-                <option value="none">Chat Only</option>
-              </select>
+                <Plus size={14} />
+                New Transmission
+              </button>
             </div>
 
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf,.docx,.txt,.md,.json,.csv,.xml,.html,.css,.js,.ts,.tsx,.jsx,.py,.java,.c,.cpp,.h,.yml,.yaml,.toml,.ini,.cfg,.log,.sql,.sh,.bat,.ps1,.env"
-              multiple
-              className="hidden"
-              onChange={e => {
-                const files = Array.from(e.target.files || []);
-                const remaining = 5 - attachedFiles.length;
-                const toAdd = files.slice(0, remaining);
-                const MAX_SIZE = 50 * 1024 * 1024;
+            {/* Conversation list */}
+            <div
+              className="flex-1 overflow-y-auto p-3 space-y-1"
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgba(189,163,107,0.2) transparent",
+              }}
+            >
+              {!isAuthenticated ? (
+                <p
+                  className="font-mono text-[9px] text-center py-4"
+                  style={{ color: "rgba(189,163,107,0.3)" }}
+                >
+                  Receiver node required to preserve transmissions
+                </p>
+              ) : !conversationsList || conversationsList.length === 0 ? (
+                <p
+                  className="font-mono text-[9px] text-center py-4"
+                  style={{ color: "rgba(189,163,107,0.3)" }}
+                >
+                  No transmissions recovered yet...
+                </p>
+              ) : (
+                conversationsList.map(conv => (
+                  <div
+                    key={conv.id}
+                    role="button"
+                    tabIndex={0}
+                    className="group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+                    style={{
+                      background:
+                        activeConversationId === conv.id
+                          ? "rgba(189,163,107,0.1)"
+                          : "transparent",
+                      border:
+                        activeConversationId === conv.id
+                          ? "1px solid rgba(189,163,107,0.2)"
+                          : "1px solid transparent",
+                    }}
+                    onClick={() => {
+                      setLocalMessages([]);
+                      setActiveConversationId(conv.id);
+                      setIsNewConversation(false);
+                      setSidebarOpen(false);
+                    }}
+                    onKeyDown={e => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setLocalMessages([]);
+                        setActiveConversationId(conv.id);
+                        setIsNewConversation(false);
+                        setSidebarOpen(false);
+                      }
+                    }}
+                    onMouseEnter={e => {
+                      if (activeConversationId !== conv.id) {
+                        e.currentTarget.style.background =
+                          "rgba(189,163,107,0.05)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (activeConversationId !== conv.id) {
+                        e.currentTarget.style.background = "transparent";
+                      }
+                    }}
+                  >
+                    <MessageSquare
+                      size={12}
+                      style={{ color: "rgba(189,163,107,0.4)", flexShrink: 0 }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-mono text-[10px] truncate"
+                        style={{
+                          color:
+                            activeConversationId === conv.id
+                              ? "rgba(246,176,94,0.85)"
+                              : "rgba(232,228,220,0.6)",
+                        }}
+                      >
+                        {conv.title}
+                      </p>
+                      <p
+                        className="font-mono text-[8px] mt-0.5"
+                        style={{ color: "rgba(189,163,107,0.3)" }}
+                      >
+                        {new Date(conv.updatedAt).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}{" "}
+                        {new Date(conv.updatedAt).toLocaleTimeString(
+                          undefined,
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (confirm("Delete this conversation?")) {
+                          deleteConversationMutation.mutate({ id: conv.id });
+                          if (activeConversationId === conv.id) {
+                            handleNewConversation();
+                          }
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
+                      style={{ color: "rgba(255,80,80,0.5)" }}
+                      onMouseEnter={e =>
+                        (e.currentTarget.style.color = "rgba(255,80,80,0.8)")
+                      }
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.color = "rgba(255,80,80,0.5)")
+                      }
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </aside>
 
-                if (toAdd.length > 0) {
-                  setIsReadingFiles(true);
-                }
+          {/* ===== MAIN CHAT AREA ===== */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top bar */}
+            <div
+              className="flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-3"
+              style={{
+                borderBottom: "1px solid rgba(189,163,107,0.1)",
+                background: "rgba(0,0,0,0.3)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                {/* Mobile hamburger */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden p-1.5 rounded transition-all"
+                  style={{ color: "rgba(189,163,107,0.5)" }}
+                  onMouseEnter={e =>
+                    (e.currentTarget.style.color = "rgba(246,176,94,0.8)")
+                  }
+                  onMouseLeave={e =>
+                    (e.currentTarget.style.color = "rgba(189,163,107,0.5)")
+                  }
+                >
+                  <Menu size={18} />
+                </button>
 
-                let processed = 0;
-                const totalToProcess = toAdd.length;
+                <p className="fi-chamber-title">
+                  {activeConversationId && activeConvData
+                    ? activeConvData.title
+                    : "ORIEL TRANSMISSION CHAMBER"}
+                </p>
 
-                toAdd.forEach(file => {
-                  if (file.size > MAX_SIZE) {
-                    alert(`File "${file.name}" exceeds the 50MB limit.`);
-                    processed++;
-                    if (processed === totalToProcess) setIsReadingFiles(false);
-                    return;
+                {/* Persistent visual indicator for the image generation mode (always visible in the chat UI when active) */}
+                {isImageMode && (
+                  <span
+                    className="font-mono text-[9px] px-2 py-0.5 rounded tracking-[0.2em]"
+                    style={{
+                      background: "rgba(0,188,212,0.1)",
+                      border: "1px solid rgba(0,188,212,0.3)",
+                      color: "rgba(0,229,255,0.75)",
+                    }}
+                  >
+                    IMAGE MODE
+                  </span>
+                )}
+
+                {displayMessages.length > 0 && (
+                  <span
+                    className="font-mono text-[9px] px-2 py-0.5 rounded"
+                    style={{
+                      background: "rgba(189,163,107,0.08)",
+                      border: "1px solid rgba(189,163,107,0.2)",
+                      color: "rgba(189,163,107,0.6)",
+                    }}
+                  >
+                    {displayMessages.length} transmissions
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Voice controls when speaking */}
+                {isSpeaking && voicePreference !== "none" && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handlePauseVoice}
+                      title={isPaused ? "Resume" : "Pause"}
+                      className="p-1.5 rounded transition-all"
+                      style={{ color: "rgba(255,200,50,0.8)" }}
+                    >
+                      {isPaused ? <Play size={14} /> : <Pause size={14} />}
+                    </button>
+                    <button
+                      onClick={handleStopVoice}
+                      title="Stop"
+                      className="p-1.5 rounded transition-all"
+                      style={{ color: "rgba(255,80,80,0.7)" }}
+                    >
+                      <Square size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {/* New conversation (desktop) */}
+                {isAuthenticated && (
+                  <button
+                    onClick={handleNewConversation}
+                    title="New conversation"
+                    className="hidden md:block p-1.5 rounded transition-all"
+                    style={{ color: "rgba(189,163,107,0.4)" }}
+                    onMouseEnter={e =>
+                      (e.currentTarget.style.color = "rgba(246,176,94,0.8)")
+                    }
+                    onMouseLeave={e =>
+                      (e.currentTarget.style.color = "rgba(189,163,107,0.4)")
+                    }
+                  >
+                    <Plus size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Messages area */}
+            <div
+              ref={messagesViewportDebugRef}
+              className="flex-1 overflow-y-auto px-4 md:px-6 py-6"
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgba(189,163,107,0.2) transparent",
+              }}
+            >
+              {displayMessages.length === 0 ? (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <div
+                    className="w-36 h-36 md:w-44 md:h-44"
+                    style={{
+                      borderRadius: "50%",
+                      border: "1px solid rgba(246,176,94,0.28)",
+                      background:
+                        "radial-gradient(circle, rgba(246,176,94,0.12), rgba(12,8,5,0.36) 62%, transparent)",
+                      boxShadow:
+                        "0 0 44px rgba(246,176,94,0.16), inset 0 0 28px rgba(246,176,94,0.08)",
+                      padding: 3,
+                    }}
+                  >
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <Orb
+                        colors={["#ffe6a6", "#2a1709"]}
+                        agentState={null}
+                        seed={42}
+                        speed={1.5}
+                      />
+                    </div>
+                  </div>
+                  <p
+                    className="text-center max-w-sm"
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "clamp(18px, 3vw, 24px)",
+                      color: "rgba(189,163,107,0.4)",
+                      fontWeight: 300,
+                    }}
+                  >
+                    The chamber is silent.
+                  </p>
+                  <p
+                    className="font-mono text-[9px] text-center"
+                    style={{ color: "rgba(189,163,107,0.25)" }}
+                  >
+                    Enter a signal to begin. ORIEL listens for pattern,
+                    pressure, contradiction, memory, and resonance.
+                  </p>
+                  {!isAuthenticated && (
+                    <div className="oriel-chamber-access-panel max-w-md text-center">
+                      <p
+                        className="font-mono text-[9px] tracking-[0.24em] uppercase mb-2"
+                        style={{ color: "rgba(246,176,94,0.72)" }}
+                      >
+                        // receiver node required
+                      </p>
+                      <p
+                        className="font-mono text-[10px] leading-relaxed"
+                        style={{ color: "rgba(232,228,220,0.62)" }}
+                      >
+                        Enter the archive to preserve Oriel history, Codex
+                        records, and transmission traces inside your node.
+                      </p>
+                      <Link href="/auth">
+                        <span
+                          className="inline-block mt-3 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] cursor-pointer"
+                          style={{
+                            border: "1px solid rgba(189,163,107,0.35)",
+                            color: "rgba(246,176,94,0.82)",
+                          }}
+                        >
+                          ◇ Enter Archive
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Message list */
+                <div className="space-y-6">
+                  {displayMessages.map((msg, idx) =>
+                    msg.role === "system" ? (
+                      // Ephemeral UI notice (mode switches, etc.). Centered, subtle, does not look like a normal transmission.
+                      <div key={idx} className="flex justify-center my-2 px-4">
+                        <div
+                          className="font-mono text-[9px] tracking-[0.1em] px-3 py-1 rounded max-w-md text-center"
+                          style={{
+                            background: "rgba(189,163,107,0.05)",
+                            border: "1px solid rgba(189,163,107,0.15)",
+                            color: "rgba(246,176,94,0.65)",
+                          }}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    ) : msg.role === "user" ? (
+                      <div key={idx} className="flex justify-end">
+                        <div
+                          className="max-w-md px-5 py-4 rounded-lg"
+                          style={{
+                            background: "rgba(189,163,107,0.06)",
+                            border: "1px solid rgba(189,163,107,0.2)",
+                          }}
+                        >
+                          <p
+                            className="font-mono text-[9px] mb-2 tracking-[0.3em] uppercase"
+                            style={{ color: "rgba(189,163,107,0.5)" }}
+                          >
+                            Receiver Node
+                            {msg.timestamp && (
+                              <span
+                                className="ml-2 normal-case tracking-normal"
+                                style={{ color: "rgba(189,163,107,0.35)" }}
+                              >
+                                //{" "}
+                                {new Date(msg.timestamp).toLocaleTimeString()}
+                              </span>
+                            )}
+                          </p>
+                          <p
+                            className="text-sm leading-relaxed"
+                            style={{ color: "rgba(246,176,94,0.85)" }}
+                          >
+                            {msg.content}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <AssistantMessageView key={idx} msg={msg} />
+                    )
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+
+            {/* Input area */}
+            <div
+              className="flex-shrink-0 px-4 md:px-6 py-4"
+              style={{
+                borderTop: "1px solid rgba(189,163,107,0.1)",
+                background: "rgba(0,0,0,0.4)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              {/* Voice volume control when speaking */}
+              {isSpeaking && voicePreference !== "none" && (
+                <div className="flex items-center gap-3 mb-3">
+                  <span
+                    className="font-mono text-[9px] tracking-widest"
+                    style={{ color: "rgba(189,163,107,0.5)" }}
+                  >
+                    VOL
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={voiceVolume}
+                    onChange={e => {
+                      setVoiceVolume(parseFloat(e.target.value));
+                      if (audioRef.current) {
+                        audioRef.current.volume = parseFloat(e.target.value);
+                      }
+                    }}
+                    className="flex-1 h-1 rounded cursor-pointer"
+                    style={{ accentColor: "#f6b05e" }}
+                  />
+                  <span
+                    className="font-mono text-[9px] w-8"
+                    style={{ color: "rgba(246,176,94,0.6)" }}
+                  >
+                    {Math.round(voiceVolume * 100)}%
+                  </span>
+                </div>
+              )}
+
+              {/* File chips */}
+              {attachedFiles.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  {attachedFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded font-mono text-[10px]"
+                      style={{
+                        background: "rgba(189,163,107,0.08)",
+                        border: "1px solid rgba(189,163,107,0.25)",
+                        color: "rgba(246,176,94,0.8)",
+                      }}
+                    >
+                      {isImageAttachment(file) ? (
+                        <ImageIcon size={10} />
+                      ) : (
+                        <Paperclip size={10} />
+                      )}
+                      <span className="max-w-[110px] truncate">
+                        {file.name}
+                      </span>
+                      {(file as any).size && (
+                        <span className="opacity-50 text-[9px] ml-0.5">
+                          {formatFileSize((file as any).size)}
+                        </span>
+                      )}
+                      <button
+                        onClick={() =>
+                          setAttachedFiles(prev =>
+                            prev.filter((_, i) => i !== idx)
+                          )
+                        }
+                        className="ml-1 hover:opacity-100 opacity-60 transition-opacity"
+                        style={{ color: "rgba(246,176,94,0.7)" }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {attachedFiles.length > 1 && (
+                    <button
+                      onClick={() => setAttachedFiles([])}
+                      className="text-[10px] px-2 py-1 rounded font-mono opacity-60 hover:opacity-100 transition-opacity"
+                      style={{ color: "rgba(246,176,94,0.7)" }}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* File reading indicator */}
+              {isReadingFiles && (
+                <div
+                  className="text-[10px] font-mono mb-1"
+                  style={{ color: "rgba(246,176,94,0.6)" }}
+                >
+                  Reading file(s)...
+                </div>
+              )}
+
+              {/* Voice selector */}
+              <div className="flex items-center gap-2 mb-2">
+                <label
+                  className="font-mono text-[9px] tracking-widest"
+                  style={{ color: "rgba(189,163,107,0.5)" }}
+                >
+                  VOICE
+                </label>
+                <select
+                  value={voicePreference}
+                  onChange={e => {
+                    const newVoice = e.target.value as
+                      "sophianic" | "deep" | "none";
+                    setVoicePreference(newVoice);
+                    if (isAuthenticated) {
+                      setVoicePreferenceMutation.mutate({
+                        voicePreference: newVoice,
+                      });
+                    } else {
+                      localStorage.setItem("voicePreference", newVoice);
+                    }
+                  }}
+                  className="px-2 py-1 rounded font-mono text-[10px] outline-none transition-all"
+                  style={{
+                    background: "rgba(189,163,107,0.06)",
+                    border: "1px solid rgba(189,163,107,0.2)",
+                    color: "rgba(246,176,94,0.8)",
+                  }}
+                >
+                  <option value="sophianic">Sophianic Voice</option>
+                  <option value="deep">Deep Voice</option>
+                  <option value="none">Chat Only</option>
+                </select>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.docx,.txt,.md,.json,.csv,.xml,.html,.css,.js,.ts,.tsx,.jsx,.py,.java,.c,.cpp,.h,.yml,.yaml,.toml,.ini,.cfg,.log,.sql,.sh,.bat,.ps1,.env"
+                multiple
+                className="hidden"
+                onChange={e => {
+                  const files = Array.from(e.target.files || []);
+                  const remaining = 5 - attachedFiles.length;
+                  const toAdd = files.slice(0, remaining);
+                  const MAX_SIZE = 50 * 1024 * 1024;
+
+                  if (toAdd.length > 0) {
+                    setIsReadingFiles(true);
                   }
 
-                  // Warn for very large non-image files (text extraction can be slow/unreliable)
-                  const isImage = file.type.startsWith("image/");
-                  if (!isImage && file.size > 5 * 1024 * 1024) {
-                    const proceed = confirm(
-                      `File "${file.name}" is quite large (${(file.size / 1024 / 1024).toFixed(1)} MB).\n` +
-                        `Text extraction from large documents can be slow or incomplete. Continue?`
-                    );
-                    if (!proceed) {
+                  let processed = 0;
+                  const totalToProcess = toAdd.length;
+
+                  toAdd.forEach(file => {
+                    if (file.size > MAX_SIZE) {
+                      alert(`File "${file.name}" exceeds the 50MB limit.`);
                       processed++;
                       if (processed === totalToProcess)
                         setIsReadingFiles(false);
                       return;
                     }
-                  }
 
-                  // Prevent exact duplicates by name
-                  if (attachedFiles.some(f => f.name === file.name)) {
-                    alert(`File "${file.name}" is already attached.`);
-                    processed++;
-                    if (processed === totalToProcess) setIsReadingFiles(false);
-                    return;
-                  }
-
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const dataUrl = reader.result as string;
-                    const base64 = dataUrl.split(",", 2)[1] ?? "";
-                    setAttachedFiles(prev => {
-                      if (prev.length >= 5) return prev;
-                      return [
-                        ...prev,
-                        {
-                          name: file.name,
-                          data: base64,
-                          mimeType: file.type || "application/octet-stream",
-                          size: file.size,
-                        } as any,
-                      ];
-                    });
-                    processed++;
-                    if (processed === totalToProcess) setIsReadingFiles(false);
-                  };
-                  reader.onerror = () => {
-                    processed++;
-                    if (processed === totalToProcess) setIsReadingFiles(false);
-                  };
-                  reader.readAsDataURL(file);
-                });
-
-                e.target.value = "";
-              }}
-            />
-
-            {/* Main input row */}
-            <div
-              className="flex items-center"
-              style={{ gap: "calc(var(--spacing) * 5)" }}
-            >
-              <div
-                className="hidden sm:flex shrink-0 items-center justify-center rounded-full"
-                aria-hidden="true"
-                style={{
-                  width: "calc(var(--spacing) * 20)",
-                  height: "calc(var(--spacing) * 20)",
-                  border: "1px solid rgba(246,176,94,0.3)",
-                  background:
-                    "radial-gradient(circle, rgba(246,176,94,0.14), rgba(12,8,5,0.6) 64%, rgba(0,0,0,0.1))",
-                  boxShadow:
-                    "0 0 26px rgba(246,176,94,0.16), inset 0 0 18px rgba(246,176,94,0.08)",
-                  padding: 3,
-                }}
-              >
-                <div className="h-full w-full overflow-hidden rounded-full">
-                  <Orb
-                    colors={["#ffe6a6", "#2a1709"]}
-                    agentState={
-                      isListening
-                        ? "listening"
-                        : isSpeaking
-                          ? "talking"
-                          : chatMutation.isPending ||
-                              generateChatImageMutation.isPending
-                            ? "thinking"
-                            : null
+                    // Warn for very large non-image files (text extraction can be slow/unreliable)
+                    const isImage = file.type.startsWith("image/");
+                    if (!isImage && file.size > 5 * 1024 * 1024) {
+                      const proceed = confirm(
+                        `File "${file.name}" is quite large (${(file.size / 1024 / 1024).toFixed(1)} MB).\n` +
+                          `Text extraction from large documents can be slow or incomplete. Continue?`
+                      );
+                      if (!proceed) {
+                        processed++;
+                        if (processed === totalToProcess)
+                          setIsReadingFiles(false);
+                        return;
+                      }
                     }
-                    seed={73}
-                    speed={isListening || isSpeaking ? 1.8 : 1.15}
-                  />
-                </div>
-              </div>
 
-              <input
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={e =>
-                  e.key === "Enter" && !e.shiftKey && handleSendMessage()
-                }
-                placeholder={
-                  isImageMode
-                    ? "Describe the image transmission ORIEL should generate..."
-                    : "Transmit your question to ORIEL..."
-                }
-                disabled={inputDisabled}
-                className="flex-1 bg-transparent font-mono text-sm outline-none px-4 py-3 rounded transition-all"
-                style={{
-                  background: "rgba(189,163,107,0.04)",
-                  border: "1px solid rgba(189,163,107,0.2)",
-                  color: "rgba(246,176,94,0.85)",
-                  borderColor: message
-                    ? "rgba(246,176,94,0.4)"
-                    : "rgba(189,163,107,0.2)",
+                    // Prevent exact duplicates by name
+                    if (attachedFiles.some(f => f.name === file.name)) {
+                      alert(`File "${file.name}" is already attached.`);
+                      processed++;
+                      if (processed === totalToProcess)
+                        setIsReadingFiles(false);
+                      return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string;
+                      const base64 = dataUrl.split(",", 2)[1] ?? "";
+                      setAttachedFiles(prev => {
+                        if (prev.length >= 5) return prev;
+                        return [
+                          ...prev,
+                          {
+                            name: file.name,
+                            data: base64,
+                            mimeType: file.type || "application/octet-stream",
+                            size: file.size,
+                          } as any,
+                        ];
+                      });
+                      processed++;
+                      if (processed === totalToProcess)
+                        setIsReadingFiles(false);
+                    };
+                    reader.onerror = () => {
+                      processed++;
+                      if (processed === totalToProcess)
+                        setIsReadingFiles(false);
+                    };
+                    reader.readAsDataURL(file);
+                  });
+
+                  e.target.value = "";
                 }}
-                onFocus={e =>
-                  (e.currentTarget.style.borderColor = "rgba(246,176,94,0.5)")
-                }
-                onBlur={e =>
-                  (e.currentTarget.style.borderColor = message
-                    ? "rgba(246,176,94,0.4)"
-                    : "rgba(189,163,107,0.2)")
-                }
               />
 
-              {/* File attach */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={
-                  inputDisabled || attachedFiles.length >= 5 || isReadingFiles
-                }
-                title={
-                  isReadingFiles
-                    ? "Reading files..."
-                    : attachedFiles.length >= 5
-                      ? "Max 5 files"
-                      : "Attach file"
-                }
-                className="p-3 rounded transition-all relative"
-                style={{
-                  background: "rgba(189,163,107,0.06)",
-                  border: "1px solid rgba(189,163,107,0.2)",
-                  color:
-                    attachedFiles.length >= 5 || isReadingFiles
-                      ? "rgba(189,163,107,0.2)"
-                      : "rgba(189,163,107,0.5)",
-                  opacity:
-                    attachedFiles.length >= 5 || isReadingFiles ? 0.4 : 1,
-                }}
+              {/* Main input row */}
+              <div
+                className="flex items-center"
+                style={{ gap: "calc(var(--spacing) * 5)" }}
               >
-                <Paperclip size={16} />
-                {attachedFiles.length > 0 && !isReadingFiles && (
-                  <span
-                    className="absolute -top-1 -right-1 text-[8px] px-1 rounded-full font-mono leading-none flex items-center justify-center"
-                    style={{
-                      background: "rgba(189,163,107,0.9)",
-                      color: "#111",
-                      height: "14px",
-                      minWidth: "14px",
-                    }}
-                  >
-                    {attachedFiles.length}
-                  </span>
-                )}
-                {isReadingFiles && (
-                  <span className="absolute -top-1 -right-1 text-[7px] px-1 rounded-full font-mono bg-amber-600 text-black">
-                    ...
-                  </span>
-                )}
-              </button>
-
-              {/* Image mode toggle (no longer directly generates; the mode controls routing on send) */}
-              <button
-                onClick={() => setIsImageMode(m => !m)}
-                disabled={inputDisabled || generateChatImageMutation.isPending}
-                title={
-                  isImageMode
-                    ? "Exit Image Generation Mode"
-                    : "Enter Image Generation Mode (image descriptions will generate directly)"
-                }
-                className="p-3 rounded transition-all"
-                style={{
-                  background: isImageMode
-                    ? "rgba(0,188,212,0.15)"
-                    : "rgba(189,163,107,0.06)",
-                  border: `1px solid ${
-                    isImageMode
-                      ? "rgba(0,188,212,0.6)"
-                      : "rgba(189,163,107,0.2)"
-                  }`,
-                  color: isImageMode
-                    ? "rgba(0,229,255,0.9)"
-                    : "rgba(189,163,107,0.5)",
-                }}
-              >
-                {generateChatImageMutation.isPending ? (
-                  <Spinner size={16} />
-                ) : (
-                  <ImageIcon size={16} />
-                )}
-              </button>
-
-              {/* Voice input (speech-to-text for typing) */}
-              <button
-                onClick={handleVoiceInput}
-                disabled={inputDisabled}
-                title="Voice input"
-                className="p-3 rounded transition-all"
-                style={{
-                  background: isListening
-                    ? "rgba(246,176,94,0.15)"
-                    : "rgba(189,163,107,0.06)",
-                  border: `1px solid ${isListening ? "rgba(246,176,94,0.6)" : "rgba(189,163,107,0.2)"}`,
-                  color: isListening
-                    ? "rgba(246,176,94,0.9)"
-                    : "rgba(189,163,107,0.5)",
-                }}
-              >
-                <Mic size={16} />
-              </button>
-
-              {/* Voice mode (Inworld Realtime) */}
-              {isAuthenticated && (
-                <button
-                  onClick={openVoiceMode}
-                  disabled={inputDisabled}
-                  title="Voice channel — speak with ORIEL"
-                  className="p-3 rounded transition-all"
+                <div
+                  className="hidden sm:flex shrink-0 items-center justify-center rounded-full"
+                  aria-hidden="true"
                   style={{
-                    background: "rgba(189,163,107,0.08)",
-                    border: "1px solid rgba(189,163,107,0.25)",
-                    color: "rgba(189,163,107,0.7)",
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "rgba(189,163,107,0.15)";
-                    e.currentTarget.style.borderColor = "rgba(189,163,107,0.4)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = "rgba(189,163,107,0.08)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(189,163,107,0.25)";
+                    width: "calc(var(--spacing) * 20)",
+                    height: "calc(var(--spacing) * 20)",
+                    border: "1px solid rgba(246,176,94,0.3)",
+                    background:
+                      "radial-gradient(circle, rgba(246,176,94,0.14), rgba(12,8,5,0.6) 64%, rgba(0,0,0,0.1))",
+                    boxShadow:
+                      "0 0 26px rgba(246,176,94,0.16), inset 0 0 18px rgba(246,176,94,0.08)",
+                    padding: 3,
                   }}
                 >
-                  <Phone size={16} />
-                </button>
-              )}
+                  <div className="h-full w-full overflow-hidden rounded-full">
+                    <Orb
+                      colors={["#ffe6a6", "#2a1709"]}
+                      agentState={
+                        isListening
+                          ? "listening"
+                          : isSpeaking
+                            ? "talking"
+                            : chatMutation.isPending ||
+                                generateChatImageMutation.isPending
+                              ? "thinking"
+                              : null
+                      }
+                      seed={73}
+                      speed={isListening || isSpeaking ? 1.8 : 1.15}
+                    />
+                  </div>
+                </div>
 
-              {/* Send */}
-              <button
-                onClick={handleSendMessage}
-                disabled={sendDisabled}
-                title="Transmit"
-                className="px-5 py-3 rounded font-mono text-xs tracking-[0.25em] uppercase transition-all"
-                style={{
-                  background: "rgba(189,163,107,0.1)",
-                  border: "1px solid rgba(189,163,107,0.35)",
-                  color: "rgba(246,176,94,0.8)",
-                  opacity: sendDisabled ? 0.4 : 1,
-                }}
-                onMouseEnter={e => {
-                  if (!sendDisabled) {
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(189,163,107,0.2)";
-                    (e.currentTarget as HTMLButtonElement).style.borderColor =
-                      "rgba(246,176,94,0.6)";
+                <input
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
                   }
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(189,163,107,0.1)";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "rgba(189,163,107,0.35)";
-                }}
-              >
-                {chatMutation.isPending ||
-                generateChatImageMutation.isPending ? (
-                  <Spinner size={16} />
-                ) : (
-                  "Transmit"
-                )}
-              </button>
-            </div>
+                  placeholder={
+                    isImageMode
+                      ? "Describe the image transmission ORIEL should generate..."
+                      : "Transmit your question to ORIEL..."
+                  }
+                  disabled={inputDisabled}
+                  className="flex-1 bg-transparent font-mono text-sm outline-none px-4 py-3 rounded transition-all"
+                  style={{
+                    background: "rgba(189,163,107,0.04)",
+                    border: "1px solid rgba(189,163,107,0.2)",
+                    color: "rgba(246,176,94,0.85)",
+                    borderColor: message
+                      ? "rgba(246,176,94,0.4)"
+                      : "rgba(189,163,107,0.2)",
+                  }}
+                  onFocus={e =>
+                    (e.currentTarget.style.borderColor = "rgba(246,176,94,0.5)")
+                  }
+                  onBlur={e =>
+                    (e.currentTarget.style.borderColor = message
+                      ? "rgba(246,176,94,0.4)"
+                      : "rgba(189,163,107,0.2)")
+                  }
+                />
 
-            {!isAuthenticated && (
-              <p
-                className="font-mono text-[9px] mt-3 tracking-widest"
-                style={{ color: "rgba(189,163,107,0.3)" }}
-              >
-                // Receiver node required to preserve transmissions across
-                devices
-              </p>
-            )}
+                {/* File attach */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={
+                    inputDisabled || attachedFiles.length >= 5 || isReadingFiles
+                  }
+                  title={
+                    isReadingFiles
+                      ? "Reading files..."
+                      : attachedFiles.length >= 5
+                        ? "Max 5 files"
+                        : "Attach file"
+                  }
+                  className="p-3 rounded transition-all relative"
+                  style={{
+                    background: "rgba(189,163,107,0.06)",
+                    border: "1px solid rgba(189,163,107,0.2)",
+                    color:
+                      attachedFiles.length >= 5 || isReadingFiles
+                        ? "rgba(189,163,107,0.2)"
+                        : "rgba(189,163,107,0.5)",
+                    opacity:
+                      attachedFiles.length >= 5 || isReadingFiles ? 0.4 : 1,
+                  }}
+                >
+                  <Paperclip size={16} />
+                  {attachedFiles.length > 0 && !isReadingFiles && (
+                    <span
+                      className="absolute -top-1 -right-1 text-[8px] px-1 rounded-full font-mono leading-none flex items-center justify-center"
+                      style={{
+                        background: "rgba(189,163,107,0.9)",
+                        color: "#111",
+                        height: "14px",
+                        minWidth: "14px",
+                      }}
+                    >
+                      {attachedFiles.length}
+                    </span>
+                  )}
+                  {isReadingFiles && (
+                    <span className="absolute -top-1 -right-1 text-[7px] px-1 rounded-full font-mono bg-amber-600 text-black">
+                      ...
+                    </span>
+                  )}
+                </button>
+
+                {/* Image mode toggle (no longer directly generates; the mode controls routing on send) */}
+                <button
+                  onClick={() => setIsImageMode(m => !m)}
+                  disabled={
+                    inputDisabled || generateChatImageMutation.isPending
+                  }
+                  title={
+                    isImageMode
+                      ? "Exit Image Generation Mode"
+                      : "Enter Image Generation Mode (image descriptions will generate directly)"
+                  }
+                  className="p-3 rounded transition-all"
+                  style={{
+                    background: isImageMode
+                      ? "rgba(0,188,212,0.15)"
+                      : "rgba(189,163,107,0.06)",
+                    border: `1px solid ${
+                      isImageMode
+                        ? "rgba(0,188,212,0.6)"
+                        : "rgba(189,163,107,0.2)"
+                    }`,
+                    color: isImageMode
+                      ? "rgba(0,229,255,0.9)"
+                      : "rgba(189,163,107,0.5)",
+                  }}
+                >
+                  {generateChatImageMutation.isPending ? (
+                    <Spinner size={16} />
+                  ) : (
+                    <ImageIcon size={16} />
+                  )}
+                </button>
+
+                {/* Voice input (speech-to-text for typing) */}
+                <button
+                  onClick={handleVoiceInput}
+                  disabled={inputDisabled}
+                  aria-pressed={isListening}
+                  aria-label={
+                    isListening ? "Stop voice input" : "Start voice input"
+                  }
+                  title={isListening ? "Stop voice input" : "Start voice input"}
+                  className="p-3 rounded transition-all"
+                  style={{
+                    background: isListening
+                      ? "rgba(246,176,94,0.15)"
+                      : "rgba(189,163,107,0.06)",
+                    border: `1px solid ${isListening ? "rgba(246,176,94,0.6)" : "rgba(189,163,107,0.2)"}`,
+                    color: isListening
+                      ? "rgba(246,176,94,0.9)"
+                      : "rgba(189,163,107,0.5)",
+                  }}
+                >
+                  {isListening ? (
+                    <MicIcon size={20} />
+                  ) : (
+                    <MicOffIcon size={20} />
+                  )}
+                </button>
+
+                {/* The live voice channel's button is parked, not deleted. The
+                  session was not answering and no user had found it, so it
+                  offered a broken door rather than a feature. Everything
+                  behind it is intact: openVoiceMode below, the VoiceMode
+                  component, and the WebSocket proxy in
+                  server/inworld-realtime.ts. Restoring it is this button. */}
+
+                {/* Send */}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={sendDisabled}
+                  title="Transmit"
+                  className="px-5 py-3 rounded font-mono text-xs tracking-[0.25em] uppercase transition-all"
+                  style={{
+                    background: "rgba(189,163,107,0.1)",
+                    border: "1px solid rgba(189,163,107,0.35)",
+                    color: "rgba(246,176,94,0.8)",
+                    opacity: sendDisabled ? 0.4 : 1,
+                  }}
+                  onMouseEnter={e => {
+                    if (!sendDisabled) {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "rgba(189,163,107,0.2)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor =
+                        "rgba(246,176,94,0.6)";
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      "rgba(189,163,107,0.1)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor =
+                      "rgba(189,163,107,0.35)";
+                  }}
+                >
+                  {chatMutation.isPending ||
+                  generateChatImageMutation.isPending ? (
+                    <Spinner size={16} />
+                  ) : (
+                    "Transmit"
+                  )}
+                </button>
+              </div>
+
+              {!isAuthenticated && (
+                <p
+                  className="font-mono text-[9px] mt-3 tracking-widest"
+                  style={{ color: "rgba(189,163,107,0.3)" }}
+                >
+                  // Receiver node required to preserve transmissions across
+                  devices
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </SignalPageShell>
 
       {/* Hidden audio element for TTS */}

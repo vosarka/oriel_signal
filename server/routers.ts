@@ -17,7 +17,7 @@ import {
   performDiagnosticReading,
   performEvolutionaryAssistance,
 } from "./oriel-diagnostic-engine";
-import { generateChunkedSpeech, audioToDataUrl } from "./inworld-tts";
+import { generateChunkedSpeech, audioToDataUrl } from "./oriel-tts-chain";
 import { rgpRouter } from "./rgp-router";
 import { geocodeCity, getTimezoneIdForCoords } from "./geocoding";
 import {
@@ -1500,13 +1500,14 @@ export const appRouter = router({
           let audioBase64: string;
           let audioUrl: string;
 
-          // Both voices use Inworld TTS with different voice IDs
-          const { INWORLD_VOICES } = await import("./inworld-tts");
-          const inworldVoice =
+          // ORIEL's own voice names. The chain maps them to whichever
+          // vendor answers, so a vendor swap never reaches this line.
+          const { ORIEL_VOICES } = await import("./oriel-tts-chain");
+          const orielVoice =
             input.voiceId === "deep"
-              ? INWORLD_VOICES.deep
-              : INWORLD_VOICES.sophianic;
-          audioBase64 = await generateChunkedSpeech(input.text, inworldVoice);
+              ? ORIEL_VOICES.deep
+              : ORIEL_VOICES.sophianic;
+          audioBase64 = await generateChunkedSpeech(input.text, orielVoice);
           audioUrl = audioToDataUrl(audioBase64);
 
           console.log(

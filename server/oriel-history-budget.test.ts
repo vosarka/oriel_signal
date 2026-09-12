@@ -53,10 +53,10 @@ vi.mock("./_core/imageGeneration", () => ({
   generateImage: mocks.generateImage,
 }));
 
-vi.mock("./inworld-tts", () => ({
+vi.mock("./oriel-tts-chain", () => ({
   generateChunkedSpeech: mocks.generateChunkedSpeech,
   audioToDataUrl: mocks.audioToDataUrl,
-  INWORLD_VOICES: {
+  ORIEL_VOICES: {
     sophianic: "test-sophianic-voice",
     deep: "test-deep-voice",
   },
