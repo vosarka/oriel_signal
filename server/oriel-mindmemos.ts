@@ -260,8 +260,13 @@ export async function indexAcceptedMemory(
             content: encodeOfficialMemoryRef(input.memoryId, input.content),
           },
         ],
-        async_mode: "sync",
-        mode: "fine",
+        // One field, not two. The service renamed async_mode to mode and
+        // production answered every write with a 422 saying the request "does
+        // not match the current API schema" - fast, so never a slowness
+        // problem, just a refusal nobody could read until the body was logged.
+        // The vendor's own SDK is the source: client.memory.add(..., mode="sync").
+        // "fine" was a value from the older field's vocabulary entirely.
+        mode: "sync",
       }),
     },
     MINDMEMOS_TIMEOUT_MS,
