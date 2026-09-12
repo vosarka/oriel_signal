@@ -172,6 +172,94 @@ describe("searchMemoryIds", () => {
   });
 });
 
+describe("what the timing line says", () => {
+  // Production fell back to TiDB on "timed out after 5000ms" and that was the
+  // whole story: a number we chose ourselves. These lines exist to tell a
+  // service answering just past the deadline from one that never answers.
+  const captured = () => {
+    const lines: string[] = [];
+    const spy = vi
+      .spyOn(console, "log")
+      .mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(" "));
+      });
+    return {
+      timing: () => lines.filter(l => l.includes("[MindMemOS][timing]")),
+      restore: () => spy.mockRestore(),
+    };
+  };
+
+  it("names which of a turn's two searches was slow", async () => {
+    const log = captured();
+    try {
+      const fetchImpl = vi.fn(async () => new Response("[]", { status: 200 }));
+      await searchMemoryHits(7, "what did I say about March", {
+        ...enabled,
+        fetchImpl,
+      });
+      await searchMemoryHits(7, "ORIEL working view: what did I say", {
+        ...enabled,
+        fetchImpl,
+      });
+    } finally {
+      log.restore();
+    }
+
+    const lines = log.timing();
+    expect(lines[0]).toContain("search_user");
+    expect(lines[1]).toContain("search_view");
+    expect(lines.every(l => l.includes("elapsed_ms="))).toBe(true);
+  });
+
+  it("separates our own deadline from the service refusing a connection", async () => {
+    const log = captured();
+    try {
+      const aborted = vi.fn(async () => {
+        const error = new Error("aborted");
+        error.name = "AbortError";
+        throw error;
+      });
+      await searchMemoryHits(7, "anything", {
+        ...enabled,
+        fetchImpl: aborted,
+      }).catch(() => {});
+
+      const refused = vi.fn(async () => {
+        const error = new Error("connect ECONNREFUSED");
+        error.name = "TypeError";
+        throw error;
+      });
+      await searchMemoryHits(7, "anything", {
+        ...enabled,
+        fetchImpl: refused,
+      }).catch(() => {});
+    } finally {
+      log.restore();
+    }
+
+    const lines = log.timing();
+    // Unreachable is not slow, and the two must not read the same.
+    expect(lines[0]).toContain("timeout_at_");
+    expect(lines[1]).toContain("failed_TypeError");
+  });
+
+  it("logs the size of a query and never the query", async () => {
+    const log = captured();
+    const confided = "what did I say about leaving in March";
+    try {
+      const fetchImpl = vi.fn(async () => new Response("[]", { status: 200 }));
+      await searchMemoryHits(7, confided, { ...enabled, fetchImpl });
+    } finally {
+      log.restore();
+    }
+
+    const line = log.timing()[0];
+    expect(line).toContain(`query_chars=${confided.length}`);
+    expect(line).not.toContain("March");
+    expect(line).not.toContain(confided);
+  });
+});
+
 describe("what a failed call says", () => {
   // Production spent a day emitting "MindMemOS add failed: 422" on every
   // memory write. A 422 means the service understood the request and refused
