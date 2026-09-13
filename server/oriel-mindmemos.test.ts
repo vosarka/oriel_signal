@@ -69,8 +69,10 @@ describe("indexAcceptedMemory", () => {
     expect(body.messages[0].content).toBe(
       "[orielMemories:42] prefers short replies"
     );
-    expect(body.async_mode).toBe("sync");
-    expect(body.mode).toBe("fine");
+    // The shape the service actually accepts. Sending the old async_mode, or
+    // "fine" in mode, is what produced a 422 on every memory write.
+    expect(body.mode).toBe("sync");
+    expect(body.async_mode).toBeUndefined();
     expect(JSON.stringify(body)).not.toContain('role":"assistant');
   });
 
