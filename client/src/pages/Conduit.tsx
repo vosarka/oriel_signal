@@ -613,9 +613,12 @@ export default function Conduit() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceVolume, setVoiceVolume] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
+  // Silence until asked for. A reply that starts speaking on its own decides
+  // for the person whether the room they are in is one they can be spoken to
+  // in. The selector beside the input is how they say yes.
   const [voicePreference, setVoicePreference] = useState<
     "sophianic" | "deep" | "none"
-  >("sophianic");
+  >("none");
   const [isImageMode, setIsImageMode] = useState<boolean>(
     () =>
       typeof window !== "undefined" &&
@@ -1328,7 +1331,7 @@ export default function Conduit() {
       setVoicePreference(
         mapped === "sophianic" || mapped === "deep" || mapped === "none"
           ? mapped
-          : "sophianic"
+          : "none"
       );
     }
   }, [isAuthenticated, user]);

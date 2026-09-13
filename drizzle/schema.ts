@@ -55,9 +55,15 @@ export const users = mysqlTable("users", {
   subscribed: boolean("subscribed").default(false).notNull(),
   /** Cumulative total donated (USD). Updated on each successful PayPal event. */
   donated: double("donated").default(0).notNull(),
-  /** Voice preference for TTS: 'sophianic' (Inworld fema), 'deep' (Inworld serii), 'none' (text only) */
+  /**
+   * Voice preference for TTS: 'sophianic', 'deep', or 'none' for text only.
+   *
+   * Silence is the default on purpose. A voice that starts speaking before
+   * anybody asked for one is a decision made on the person's behalf, in a
+   * room they may not be alone in. Choosing to be spoken to is theirs.
+   */
   voicePreference: mysqlEnum("voicePreference", ["sophianic", "deep", "none"])
-    .default("sophianic")
+    .default("none")
     .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -172,23 +178,20 @@ export type InsertOrielMemory = typeof orielMemories.$inferInsert;
 export const orielMindMemosIndex = mysqlTable(
   "orielMindMemosIndex",
   {
-    mindMemosMemoryId: varchar("mindMemosMemoryId", { length: 255 })
-      .primaryKey(),
+    mindMemosMemoryId: varchar("mindMemosMemoryId", {
+      length: 255,
+    }).primaryKey(),
     orielMemoryId: int("orielMemoryId").notNull(),
     userId: int("userId").notNull(),
     indexedAt: timestamp("indexedAt").defaultNow().notNull(),
   },
   table => [
-    index("idx_oriel_mindmemos_official").on(
-      table.userId,
-      table.orielMemoryId
-    ),
+    index("idx_oriel_mindmemos_official").on(table.userId, table.orielMemoryId),
   ]
 );
 
 export type OrielMindMemosIndex = typeof orielMindMemosIndex.$inferSelect;
-export type InsertOrielMindMemosIndex =
-  typeof orielMindMemosIndex.$inferInsert;
+export type InsertOrielMindMemosIndex = typeof orielMindMemosIndex.$inferInsert;
 
 /**
  * ORIEL Pending Memory Candidates
@@ -892,9 +895,7 @@ export const signatureOrders = mysqlTable(
       table.stripeCheckoutSessionId
     ),
     uniqueIndex("uq_signature_orders_paypal_order").on(table.paypalOrderId),
-    uniqueIndex("uq_signature_orders_paypal_capture").on(
-      table.paypalCaptureId
-    ),
+    uniqueIndex("uq_signature_orders_paypal_capture").on(table.paypalCaptureId),
   ]
 );
 

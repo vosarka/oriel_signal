@@ -95,9 +95,7 @@ export async function getDb(): Promise<DrizzleDb | null> {
 
 function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
   const err = error as { message?: string; cause?: { message?: string } };
-  const message = [err?.message, err?.cause?.message]
-    .filter(Boolean)
-    .join(" ");
+  const message = [err?.message, err?.cause?.message].filter(Boolean).join(" ");
   const searchable = message || String(error ?? "");
   return fragments.some(fragment => searchable.includes(fragment));
 }
@@ -164,12 +162,12 @@ export async function runMigrations() {
     successMessage?: string;
   }> = [
     {
-      sql: `ALTER TABLE \`users\` ADD COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` ADD COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       ignorableFragments: ["Duplicate column"],
       successMessage: "[Migrations] Added users.voicePreference column",
     },
     {
-      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('fast', 'nostalgic', 'sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('fast', 'nostalgic', 'sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       successMessage:
         "[Migrations] Widened users.voicePreference enum for compatibility",
     },
@@ -180,10 +178,12 @@ export async function runMigrations() {
       sql: `UPDATE \`users\` SET \`voicePreference\` = 'deep' WHERE \`voicePreference\` = 'nostalgic'`,
     },
     {
-      sql: `UPDATE \`users\` SET \`voicePreference\` = 'sophianic' WHERE \`voicePreference\` NOT IN ('sophianic', 'deep', 'none')`,
+      // A value we cannot recognise becomes silence rather than a voice:
+      // guessing wrong toward speech is the louder mistake.
+      sql: `UPDATE \`users\` SET \`voicePreference\` = 'none' WHERE \`voicePreference\` NOT IN ('sophianic', 'deep', 'none')`,
     },
     {
-      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       successMessage: "[Migrations] Normalized users.voicePreference enum",
     },
   ];
@@ -548,25 +548,29 @@ export async function runMigrations() {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paymentProvider\` enum('stripe', 'paypal') NOT NULL DEFAULT 'stripe'`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added signature_orders.paymentProvider column",
+      successMessage:
+        "[Migrations] Added signature_orders.paymentProvider column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added signature_orders.paypalOrderId column",
+      successMessage:
+        "[Migrations] Added signature_orders.paypalOrderId column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added signature_orders.paypalCaptureId column",
+      successMessage:
+        "[Migrations] Added signature_orders.paypalCaptureId column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage: "[Migrations] Added signature_orders.deliveryDueAt column",
+      successMessage:
+        "[Migrations] Added signature_orders.deliveryDueAt column",
     },
     {
       sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\`
@@ -1601,17 +1605,9 @@ export async function getOrielAutonomyHealthStats() {
 
 export type GeneratedTransmissionEventType = "tx" | "oracle";
 export type GeneratedTransmissionRarity =
-  | "common"
-  | "uncommon"
-  | "rare"
-  | "mythic"
-  | "void";
+  "common" | "uncommon" | "rare" | "mythic" | "void";
 export type GeneratedTransmissionStatus =
-  | "generated"
-  | "revealed"
-  | "saved"
-  | "promoted"
-  | "discarded";
+  "generated" | "revealed" | "saved" | "promoted" | "discarded";
 
 const READ_TRANSMISSION_STATUSES: GeneratedTransmissionStatus[] = [
   "revealed",
@@ -3157,9 +3153,8 @@ export async function getUserReadingHistory(userId: number) {
   if (!db) return [];
 
   try {
-    const { codonReadings, carrierlockStates } = await import(
-      "../drizzle/schema"
-    );
+    const { codonReadings, carrierlockStates } =
+      await import("../drizzle/schema");
     const results = await db
       .select()
       .from(codonReadings)
@@ -3203,9 +3198,8 @@ export async function getCodonReadingById(id: number) {
   const db = await getDb();
   if (!db) return null;
   try {
-    const { codonReadings, carrierlockStates } = await import(
-      "../drizzle/schema"
-    );
+    const { codonReadings, carrierlockStates } =
+      await import("../drizzle/schema");
     const result = await db
       .select()
       .from(codonReadings)
