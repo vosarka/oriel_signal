@@ -69,23 +69,42 @@ describe("the one-off reset runs once and never again", () => {
   });
 
   it("never resets a voice outside that gate", () => {
-    // Which call an UPDATE belongs to is decided by the nearest call opened
-    // before it — position in the file is not enough, because moving the same
-    // statement out of the gate would leave its position unchanged.
-    const callFor = (index: number) => {
-      const preceding = DB_SQL.slice(Math.max(0, index - 500), index);
-      const calls = [
-        "applyOneOffMigration(",
-        "executeMigrationStep(",
-        "db.execute(",
-      ];
-      return calls.reduce(
-        (nearest, call) =>
-          preceding.lastIndexOf(call) > preceding.lastIndexOf(nearest)
-            ? call
-            : nearest,
-        calls[0]
-      );
+    // Positive classification, not a heuristic. There is exactly one blanket
+    // reset the code is allowed to contain, and it is the argument to the
+    // gate call — so find that call's span and require every blanket reset to
+    // sit inside it. A nearest-marker guess would have to decide what to do
+    // when it recognises nothing, and "assume it is the gated one" is the
+    // wrong way to be wrong: a reset dropped into the ordinary steps array
+    // has no marker near it and would have been waved through.
+    const spanOf = (source: string, callee: string) => {
+      const open = source.indexOf(callee);
+      if (open === -1) return null;
+      let depth = 0;
+      for (let i = open + callee.length - 1; i < source.length; i += 1) {
+        if (source[i] === "(") depth += 1;
+        else if (source[i] === ")") {
+          depth -= 1;
+          if (depth === 0) return { from: open, to: i + 1 };
+        }
+      }
+      return null;
+    };
+
+    const gate = spanOf(DB_SQL, "await applyOneOffMigration(");
+    expect(gate).not.toBeNull();
+    // If the scan ever walked off, say so here rather than let every reset
+    // below fall outside a nonsense span or inside an enormous one.
+    expect(DB_SQL.slice(gate!.from, gate!.to)).toContain(RESET);
+
+    // Whether a reset is the allowed catch-all is a property of its own
+    // statement, so ask its own line. A fixed lookahead reads into whatever
+    // follows, and the step right after the catch-all is close enough that a
+    // reset inserted between them would borrow its neighbour's `NOT IN` and
+    // be excused.
+    const lineAt = (index: number) => {
+      const from = DB_SQL.lastIndexOf("\n", index) + 1;
+      const to = DB_SQL.indexOf("\n", index);
+      return DB_SQL.slice(from, to === -1 ? DB_SQL.length : to);
     };
 
     const blanketResets = [
@@ -93,12 +112,12 @@ describe("the one-off reset runs once and never again", () => {
     ]
       .map(match => match.index ?? -1)
       // The catch-all that rescues an unrecognisable stored value is allowed.
-      .filter(index => !DB_SQL.slice(index, index + 200).includes("NOT IN"))
-      .filter(index => callFor(index) !== "applyOneOffMigration(")
-      .map(index => DB_SQL.slice(index, index + 80));
+      .filter(index => !lineAt(index).includes("NOT IN"))
+      .filter(index => index < gate!.from || index >= gate!.to)
+      .map(index => lineAt(index).trim());
 
-    // A blanket reset reached any other way would run on every migration pass
-    // and silence everybody who had chosen a voice since the last one.
+    // Anything reaching the column any other way would run on every migration
+    // pass and silence everybody who had chosen a voice since the last one.
     expect(blanketResets).toEqual([]);
   });
 });
