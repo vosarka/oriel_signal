@@ -880,24 +880,6 @@ export default function Conduit() {
     setVoiceMode(true);
   };
 
-  // Load voice preference from localStorage on mount.
-  useEffect(() => {
-    const savedVoice = localStorage.getItem("voicePreference");
-    if (savedVoice) {
-      const mapped =
-        savedVoice === "fast"
-          ? "sophianic"
-          : savedVoice === "nostalgic"
-            ? "deep"
-            : savedVoice;
-      if (mapped === "sophianic" || mapped === "deep" || mapped === "none") {
-        setVoicePreference(mapped);
-        if (mapped !== savedVoice)
-          localStorage.setItem("voicePreference", mapped);
-      }
-    }
-  }, []);
-
   // Anonymous chats use local history. Authenticated chats use server history.
   useEffect(() => {
     if (authLoading) return;
@@ -1322,19 +1304,43 @@ export default function Conduit() {
   const setVoicePreferenceMutation =
     trpc.oriel.setVoicePreference.useMutation();
 
-  // Load user's voice preference on mount
+  // One effect decides which voice is in play, and it waits for auth to settle
+  // before it decides anything. Until then the answer stays silence: a
+  // mount-time read of localStorage used to be able to switch the voice on for
+  // a message sent while the account's own preference was still in flight.
+  //
+  // Where it reads from follows where the selector writes to — signed in, the
+  // account holds the preference; signed out, this browser does.
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const raw = (user as any).voicePreference;
-      const mapped =
-        raw === "fast" ? "sophianic" : raw === "nostalgic" ? "deep" : raw;
-      setVoicePreference(
-        mapped === "sophianic" || mapped === "deep" || mapped === "none"
-          ? mapped
-          : "none"
-      );
+    if (authLoading) return;
+
+    let stored: unknown;
+    if (isAuthenticated) {
+      // Signed in but the account has not answered yet. Stay quiet.
+      if (!user) return;
+      stored = (user as any).voicePreference;
+    } else {
+      stored = localStorage.getItem("voicePreference");
     }
-  }, [isAuthenticated, user]);
+
+    const mapped =
+      stored === "fast"
+        ? "sophianic"
+        : stored === "nostalgic"
+          ? "deep"
+          : stored;
+    const resolved =
+      mapped === "sophianic" || mapped === "deep" || mapped === "none"
+        ? mapped
+        : "none";
+
+    setVoicePreference(resolved);
+
+    // Retire the old names so this browser stops carrying them around.
+    if (!isAuthenticated && (stored === "fast" || stored === "nostalgic")) {
+      localStorage.setItem("voicePreference", resolved);
+    }
+  }, [authLoading, isAuthenticated, user]);
 
   const speakText = async (text: string) => {
     if (voicePreference === "none") {

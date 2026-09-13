@@ -1,4 +1,4 @@
-﻿import { eq, desc, and, count, isNull } from "drizzle-orm";
+﻿import { eq, desc, and, count, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { inArray } from "drizzle-orm";
 import {
@@ -95,7 +95,9 @@ export async function getDb(): Promise<DrizzleDb | null> {
 
 function hasMigrationErrorFragment(error: unknown, fragments: string[]) {
   const err = error as { message?: string; cause?: { message?: string } };
-  const message = [err?.message, err?.cause?.message].filter(Boolean).join(" ");
+  const message = [err?.message, err?.cause?.message]
+    .filter(Boolean)
+    .join(" ");
   const searchable = message || String(error ?? "");
   return fragments.some(fragment => searchable.includes(fragment));
 }
@@ -122,48 +124,6 @@ function isMissingTableError(error: unknown, tableName: string) {
   return tableMissingPatterns.some(fragment => message.includes(fragment));
 }
 
-/**
- * Run a data change once in the lifetime of a database, never again.
- *
- * The schema steps above are written to be harmless on every boot: adding a
- * column that exists, widening an enum already wide. A data change has no
- * such property. "Set every voice preference to silence" is right the first
- * time and destructive the second, because by then people have chosen.
- *
- * The ledger row is the gate. Inserting it is what claims the work, and only
- * the boot that wins that insert performs it; every later boot finds the name
- * taken and does nothing. A failure between the two leaves the row present
- * and the change unmade, which for this change is the safe way to be wrong:
- * nobody loses a voice they picked.
- */
-async function applyOneOffMigration(
-  db: DrizzleDb,
-  name: string,
-  sql: string,
-  successMessage: string
-) {
-  try {
-    const result = await db.execute(
-      `INSERT IGNORE INTO \`appliedOneOffMigrations\` (\`name\`) VALUES (${JSON.stringify(name)})`
-    );
-    const affected = affectedRowsOf(result);
-    if (affected === 0) return;
-    await db.execute(sql);
-    console.log(successMessage);
-  } catch (error) {
-    console.error(`[Migrations] One-off "${name}" failed:`, error);
-  }
-}
-
-/** Drivers disagree on where the row count lives; this reads either shape. */
-function affectedRowsOf(result: unknown): number {
-  const direct = (result as { affectedRows?: unknown })?.affectedRows;
-  if (typeof direct === "number") return direct;
-  const first = Array.isArray(result) ? result[0] : undefined;
-  const nested = (first as { affectedRows?: unknown })?.affectedRows;
-  return typeof nested === "number" ? nested : 0;
-}
-
 async function executeMigrationStep(
   db: DrizzleDb,
   sql: string,
@@ -178,6 +138,73 @@ async function executeMigrationStep(
   } catch (error) {
     if (!hasMigrationErrorFragment(error, ignorableFragments)) {
       console.error("[Migrations] Error:", error);
+    }
+  }
+}
+
+function affectedRowsOf(result: unknown): number {
+  const header = Array.isArray(result) ? result[0] : result;
+  const affected = (header as { affectedRows?: unknown })?.affectedRows;
+  return typeof affected === "number" ? affected : 0;
+}
+
+/**
+ * Run a statement that must happen exactly once in a database's lifetime, and
+ * never again.
+ *
+ * Ordinary migration steps here are idempotent, so re-running them is free. A
+ * one-off is different: this one silences every stored voice preference, and a
+ * second run would silence the people who have since chosen to be spoken to
+ * again. So the ledger row is claimed *before* the statement runs, and released
+ * only if the statement demonstrably failed. A crash between the two leaves the
+ * migration marked as done rather than repeating it — the safer side to fail on
+ * when the alternative is overriding somebody's explicit choice.
+ */
+async function applyOneOffMigration(
+  db: DrizzleDb,
+  name: string,
+  statement: string,
+  successMessage: string
+) {
+  await executeMigrationStep(
+    db,
+    `CREATE TABLE IF NOT EXISTS \`appliedOneOffMigrations\` (
+      \`name\` varchar(191) NOT NULL,
+      \`appliedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(\`name\`)
+    )`
+  );
+
+  let claimed = false;
+  try {
+    const claim = await db.execute(
+      sql`INSERT IGNORE INTO \`appliedOneOffMigrations\` (\`name\`) VALUES (${name})`
+    );
+    claimed = affectedRowsOf(claim) > 0;
+  } catch (error) {
+    console.error(`[Migrations] Could not claim one-off "${name}":`, error);
+    return;
+  }
+
+  if (!claimed) {
+    console.log(`[Migrations] One-off "${name}" already applied — skipping`);
+    return;
+  }
+
+  try {
+    await db.execute(statement);
+    console.log(successMessage);
+  } catch (error) {
+    console.error(`[Migrations] One-off "${name}" failed:`, error);
+    try {
+      await db.execute(
+        sql`DELETE FROM \`appliedOneOffMigrations\` WHERE \`name\` = ${name}`
+      );
+    } catch (releaseError) {
+      console.error(
+        `[Migrations] Could not release the claim on one-off "${name}" — it will not be retried:`,
+        releaseError
+      );
     }
   }
 }
@@ -220,8 +247,6 @@ export async function runMigrations() {
       sql: `UPDATE \`users\` SET \`voicePreference\` = 'deep' WHERE \`voicePreference\` = 'nostalgic'`,
     },
     {
-      // A value we cannot recognise becomes silence rather than a voice:
-      // guessing wrong toward speech is the louder mistake.
       sql: `UPDATE \`users\` SET \`voicePreference\` = 'none' WHERE \`voicePreference\` NOT IN ('sophianic', 'deep', 'none')`,
     },
     {
@@ -239,30 +264,12 @@ export async function runMigrations() {
     );
   }
 
-  // Everyone who was never asked is switched to silence, exactly once.
-  //
-  // The column defaulted to a voice from the day it existed, so a person who
-  // never touched the selector is indistinguishable in the data from one who
-  // chose. Vos decided to reset all of them and let people pick again.
-  //
-  // Exactly once is the whole difficulty. These steps run on every boot by
-  // design, and a bare UPDATE here would take the voice back from anybody who
-  // chose it, on every deploy, forever. So the ledger below records that this
-  // ran; the insert only succeeds the first time, and only that first success
-  // lets the update through.
-  await executeMigrationStep(
-    db,
-    `CREATE TABLE IF NOT EXISTS \`appliedOneOffMigrations\` (
-      \`name\` varchar(190) NOT NULL,
-      \`appliedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY(\`name\`)
-    )`,
-    ["already exists"]
-  );
   await applyOneOffMigration(
     db,
-    "voice-preference-reset-to-silence",
-    `UPDATE \`users\` SET \`voicePreference\` = 'none'`,
+    "2026-09-voice-preference-silence-by-default",
+    // WHERE-filtered on purpose: it touches only rows that would still speak,
+    // and it is the whole of the change — no DELETE, no DROP, no schema edit.
+    `UPDATE \`users\` SET \`voicePreference\` = 'none' WHERE \`voicePreference\` <> 'none'`,
     "[Migrations] Reset every voice preference to silence (one-off)"
   );
 
@@ -617,29 +624,25 @@ export async function runMigrations() {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paymentProvider\` enum('stripe', 'paypal') NOT NULL DEFAULT 'stripe'`,
       ignorableFragments: ["Duplicate column"],
-      successMessage:
-        "[Migrations] Added signature_orders.paymentProvider column",
+      successMessage: "[Migrations] Added signature_orders.paymentProvider column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paypalOrderId\` varchar(255) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage:
-        "[Migrations] Added signature_orders.paypalOrderId column",
+      successMessage: "[Migrations] Added signature_orders.paypalOrderId column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`paypalCaptureId\` varchar(255) NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage:
-        "[Migrations] Added signature_orders.paypalCaptureId column",
+      successMessage: "[Migrations] Added signature_orders.paypalCaptureId column",
     },
     {
       sql: `ALTER TABLE \`signature_orders\`
         ADD COLUMN \`deliveryDueAt\` timestamp NULL`,
       ignorableFragments: ["Duplicate column"],
-      successMessage:
-        "[Migrations] Added signature_orders.deliveryDueAt column",
+      successMessage: "[Migrations] Added signature_orders.deliveryDueAt column",
     },
     {
       sql: `CREATE UNIQUE INDEX \`uq_signature_orders_paypal_order\`
@@ -1674,9 +1677,17 @@ export async function getOrielAutonomyHealthStats() {
 
 export type GeneratedTransmissionEventType = "tx" | "oracle";
 export type GeneratedTransmissionRarity =
-  "common" | "uncommon" | "rare" | "mythic" | "void";
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "mythic"
+  | "void";
 export type GeneratedTransmissionStatus =
-  "generated" | "revealed" | "saved" | "promoted" | "discarded";
+  | "generated"
+  | "revealed"
+  | "saved"
+  | "promoted"
+  | "discarded";
 
 const READ_TRANSMISSION_STATUSES: GeneratedTransmissionStatus[] = [
   "revealed",
@@ -3222,8 +3233,9 @@ export async function getUserReadingHistory(userId: number) {
   if (!db) return [];
 
   try {
-    const { codonReadings, carrierlockStates } =
-      await import("../drizzle/schema");
+    const { codonReadings, carrierlockStates } = await import(
+      "../drizzle/schema"
+    );
     const results = await db
       .select()
       .from(codonReadings)
@@ -3267,8 +3279,9 @@ export async function getCodonReadingById(id: number) {
   const db = await getDb();
   if (!db) return null;
   try {
-    const { codonReadings, carrierlockStates } =
-      await import("../drizzle/schema");
+    const { codonReadings, carrierlockStates } = await import(
+      "../drizzle/schema"
+    );
     const result = await db
       .select()
       .from(codonReadings)

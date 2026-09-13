@@ -178,20 +178,23 @@ export type InsertOrielMemory = typeof orielMemories.$inferInsert;
 export const orielMindMemosIndex = mysqlTable(
   "orielMindMemosIndex",
   {
-    mindMemosMemoryId: varchar("mindMemosMemoryId", {
-      length: 255,
-    }).primaryKey(),
+    mindMemosMemoryId: varchar("mindMemosMemoryId", { length: 255 })
+      .primaryKey(),
     orielMemoryId: int("orielMemoryId").notNull(),
     userId: int("userId").notNull(),
     indexedAt: timestamp("indexedAt").defaultNow().notNull(),
   },
   table => [
-    index("idx_oriel_mindmemos_official").on(table.userId, table.orielMemoryId),
+    index("idx_oriel_mindmemos_official").on(
+      table.userId,
+      table.orielMemoryId
+    ),
   ]
 );
 
 export type OrielMindMemosIndex = typeof orielMindMemosIndex.$inferSelect;
-export type InsertOrielMindMemosIndex = typeof orielMindMemosIndex.$inferInsert;
+export type InsertOrielMindMemosIndex =
+  typeof orielMindMemosIndex.$inferInsert;
 
 /**
  * ORIEL Pending Memory Candidates
@@ -895,7 +898,9 @@ export const signatureOrders = mysqlTable(
       table.stripeCheckoutSessionId
     ),
     uniqueIndex("uq_signature_orders_paypal_order").on(table.paypalOrderId),
-    uniqueIndex("uq_signature_orders_paypal_capture").on(table.paypalCaptureId),
+    uniqueIndex("uq_signature_orders_paypal_capture").on(
+      table.paypalCaptureId
+    ),
   ]
 );
 
