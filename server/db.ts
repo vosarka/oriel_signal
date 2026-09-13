@@ -1,4 +1,4 @@
-﻿import { eq, desc, and, count, isNull } from "drizzle-orm";
+﻿import { eq, desc, and, count, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { inArray } from "drizzle-orm";
 import {
@@ -142,6 +142,73 @@ async function executeMigrationStep(
   }
 }
 
+function affectedRowsOf(result: unknown): number {
+  const header = Array.isArray(result) ? result[0] : result;
+  const affected = (header as { affectedRows?: unknown })?.affectedRows;
+  return typeof affected === "number" ? affected : 0;
+}
+
+/**
+ * Run a statement that must happen exactly once in a database's lifetime, and
+ * never again.
+ *
+ * Ordinary migration steps here are idempotent, so re-running them is free. A
+ * one-off is different: this one silences every stored voice preference, and a
+ * second run would silence the people who have since chosen to be spoken to
+ * again. So the ledger row is claimed *before* the statement runs, and released
+ * only if the statement demonstrably failed. A crash between the two leaves the
+ * migration marked as done rather than repeating it — the safer side to fail on
+ * when the alternative is overriding somebody's explicit choice.
+ */
+async function applyOneOffMigration(
+  db: DrizzleDb,
+  name: string,
+  statement: string,
+  successMessage: string
+) {
+  await executeMigrationStep(
+    db,
+    `CREATE TABLE IF NOT EXISTS \`appliedOneOffMigrations\` (
+      \`name\` varchar(191) NOT NULL,
+      \`appliedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(\`name\`)
+    )`
+  );
+
+  let claimed = false;
+  try {
+    const claim = await db.execute(
+      sql`INSERT IGNORE INTO \`appliedOneOffMigrations\` (\`name\`) VALUES (${name})`
+    );
+    claimed = affectedRowsOf(claim) > 0;
+  } catch (error) {
+    console.error(`[Migrations] Could not claim one-off "${name}":`, error);
+    return;
+  }
+
+  if (!claimed) {
+    console.log(`[Migrations] One-off "${name}" already applied — skipping`);
+    return;
+  }
+
+  try {
+    await db.execute(statement);
+    console.log(successMessage);
+  } catch (error) {
+    console.error(`[Migrations] One-off "${name}" failed:`, error);
+    try {
+      await db.execute(
+        sql`DELETE FROM \`appliedOneOffMigrations\` WHERE \`name\` = ${name}`
+      );
+    } catch (releaseError) {
+      console.error(
+        `[Migrations] Could not release the claim on one-off "${name}" — it will not be retried:`,
+        releaseError
+      );
+    }
+  }
+}
+
 /**
  * Run pending schema migrations on startup.
  * Uses IF NOT EXISTS / IF NOT so it's safe to call every boot.
@@ -164,12 +231,12 @@ export async function runMigrations() {
     successMessage?: string;
   }> = [
     {
-      sql: `ALTER TABLE \`users\` ADD COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` ADD COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       ignorableFragments: ["Duplicate column"],
       successMessage: "[Migrations] Added users.voicePreference column",
     },
     {
-      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('fast', 'nostalgic', 'sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('fast', 'nostalgic', 'sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       successMessage:
         "[Migrations] Widened users.voicePreference enum for compatibility",
     },
@@ -180,10 +247,10 @@ export async function runMigrations() {
       sql: `UPDATE \`users\` SET \`voicePreference\` = 'deep' WHERE \`voicePreference\` = 'nostalgic'`,
     },
     {
-      sql: `UPDATE \`users\` SET \`voicePreference\` = 'sophianic' WHERE \`voicePreference\` NOT IN ('sophianic', 'deep', 'none')`,
+      sql: `UPDATE \`users\` SET \`voicePreference\` = 'none' WHERE \`voicePreference\` NOT IN ('sophianic', 'deep', 'none')`,
     },
     {
-      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'sophianic'`,
+      sql: `ALTER TABLE \`users\` MODIFY COLUMN \`voicePreference\` ENUM('sophianic', 'deep', 'none') NOT NULL DEFAULT 'none'`,
       successMessage: "[Migrations] Normalized users.voicePreference enum",
     },
   ];
@@ -196,6 +263,15 @@ export async function runMigrations() {
       step.successMessage
     );
   }
+
+  await applyOneOffMigration(
+    db,
+    "2026-09-voice-preference-silence-by-default",
+    // WHERE-filtered on purpose: it touches only rows that would still speak,
+    // and it is the whole of the change — no DELETE, no DROP, no schema edit.
+    `UPDATE \`users\` SET \`voicePreference\` = 'none' WHERE \`voicePreference\` <> 'none'`,
+    "[Migrations] Reset every voice preference to silence (one-off)"
+  );
 
   await executeMigrationStep(
     db,

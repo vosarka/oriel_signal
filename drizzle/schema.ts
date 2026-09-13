@@ -55,9 +55,15 @@ export const users = mysqlTable("users", {
   subscribed: boolean("subscribed").default(false).notNull(),
   /** Cumulative total donated (USD). Updated on each successful PayPal event. */
   donated: double("donated").default(0).notNull(),
-  /** Voice preference for TTS: 'sophianic' (Inworld fema), 'deep' (Inworld serii), 'none' (text only) */
+  /**
+   * Voice preference for TTS: 'sophianic', 'deep', or 'none' for text only.
+   *
+   * Silence is the default on purpose. A voice that starts speaking before
+   * anybody asked for one is a decision made on the person's behalf, in a
+   * room they may not be alone in. Choosing to be spoken to is theirs.
+   */
   voicePreference: mysqlEnum("voicePreference", ["sophianic", "deep", "none"])
-    .default("sophianic")
+    .default("none")
     .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
