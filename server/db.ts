@@ -122,6 +122,48 @@ function isMissingTableError(error: unknown, tableName: string) {
   return tableMissingPatterns.some(fragment => message.includes(fragment));
 }
 
+/**
+ * Run a data change once in the lifetime of a database, never again.
+ *
+ * The schema steps above are written to be harmless on every boot: adding a
+ * column that exists, widening an enum already wide. A data change has no
+ * such property. "Set every voice preference to silence" is right the first
+ * time and destructive the second, because by then people have chosen.
+ *
+ * The ledger row is the gate. Inserting it is what claims the work, and only
+ * the boot that wins that insert performs it; every later boot finds the name
+ * taken and does nothing. A failure between the two leaves the row present
+ * and the change unmade, which for this change is the safe way to be wrong:
+ * nobody loses a voice they picked.
+ */
+async function applyOneOffMigration(
+  db: DrizzleDb,
+  name: string,
+  sql: string,
+  successMessage: string
+) {
+  try {
+    const result = await db.execute(
+      `INSERT IGNORE INTO \`appliedOneOffMigrations\` (\`name\`) VALUES (${JSON.stringify(name)})`
+    );
+    const affected = affectedRowsOf(result);
+    if (affected === 0) return;
+    await db.execute(sql);
+    console.log(successMessage);
+  } catch (error) {
+    console.error(`[Migrations] One-off "${name}" failed:`, error);
+  }
+}
+
+/** Drivers disagree on where the row count lives; this reads either shape. */
+function affectedRowsOf(result: unknown): number {
+  const direct = (result as { affectedRows?: unknown })?.affectedRows;
+  if (typeof direct === "number") return direct;
+  const first = Array.isArray(result) ? result[0] : undefined;
+  const nested = (first as { affectedRows?: unknown })?.affectedRows;
+  return typeof nested === "number" ? nested : 0;
+}
+
 async function executeMigrationStep(
   db: DrizzleDb,
   sql: string,
@@ -196,6 +238,33 @@ export async function runMigrations() {
       step.successMessage
     );
   }
+
+  // Everyone who was never asked is switched to silence, exactly once.
+  //
+  // The column defaulted to a voice from the day it existed, so a person who
+  // never touched the selector is indistinguishable in the data from one who
+  // chose. Vos decided to reset all of them and let people pick again.
+  //
+  // Exactly once is the whole difficulty. These steps run on every boot by
+  // design, and a bare UPDATE here would take the voice back from anybody who
+  // chose it, on every deploy, forever. So the ledger below records that this
+  // ran; the insert only succeeds the first time, and only that first success
+  // lets the update through.
+  await executeMigrationStep(
+    db,
+    `CREATE TABLE IF NOT EXISTS \`appliedOneOffMigrations\` (
+      \`name\` varchar(190) NOT NULL,
+      \`appliedAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(\`name\`)
+    )`,
+    ["already exists"]
+  );
+  await applyOneOffMigration(
+    db,
+    "voice-preference-reset-to-silence",
+    `UPDATE \`users\` SET \`voicePreference\` = 'none'`,
+    "[Migrations] Reset every voice preference to silence (one-off)"
+  );
 
   await executeMigrationStep(
     db,
