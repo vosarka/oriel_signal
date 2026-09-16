@@ -1,0 +1,25 @@
+client/src/pages/Conduit.tsx
+  s_20710e4bc72e8a::t_47372c70b0c85f 2708-2712,2714-2716
+  s_20710e4bc72e8a::t_a58600cadc6ce7 2713
+  s_20710e4bc72e8a::t_f5bc3cc2587788 637,641-651
+  s_20710e4bc72e8a::t_d4c0d8ce7c117c 19
+client/src/components/oriel-signal/oriel-signal.css
+  s_20710e4bc72e8a::t_d6e42b06ec3419 1532-1533,1535-1550
+  s_20710e4bc72e8a::t_3cfb8c5827f540 1534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e5791db9887b415f94d2f72a23e9b847d1377639",
+  "prompts": {},
+  "sessions": {
+    "s_20710e4bc72e8a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "24cabe1c-bb61-4edb-a3ef-516b77255ba7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
