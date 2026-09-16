@@ -1,0 +1,19 @@
+AGENTS.md
+  s_20710e4bc72e8a::t_c0be1f64085a73 40-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4caebe849bd9351b311a14cb23e762b9c6becd9b",
+  "prompts": {},
+  "sessions": {
+    "s_20710e4bc72e8a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "24cabe1c-bb61-4edb-a3ef-516b77255ba7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
