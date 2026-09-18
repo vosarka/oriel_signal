@@ -66,7 +66,8 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
   const sealedText = rest || archetype || tx.field || "";
   const bodyText = useDecrypt(sealedText, open);
 
-  const txLabel = tx.id || `TX-${String(tx.txNumber).padStart(3, "0")}`;
+  // `id` is the numeric row key; `txId` is the canon label (TX-001).
+  const txLabel = tx.txId || `TX-${String(tx.txNumber).padStart(3, "0")}`;
 
   return (
     <section className="tx-carrier">
@@ -144,6 +145,11 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
             <p className={`tx-body ${open ? "" : "tx-body--sealed"}`}>
               {bodyText}
             </p>
+            {open && rest && (
+              <p className="tx-channel" style={{ marginTop: 10, fontSize: 13 }}>
+                Continues in the fragment.
+              </p>
+            )}
 
             {rest && archetype && open && (
               <p className="tx-archetype">

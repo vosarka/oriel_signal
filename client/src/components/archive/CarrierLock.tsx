@@ -170,7 +170,8 @@ export function CarrierLock({
           r={R_OUTER}
           strokeDasharray={CIRC}
           strokeDashoffset={CIRC * (1 - shown)}
-          style={{ opacity: shown === 0 ? 0 : 1 }}
+          // Bright while seating, then it settles back into the instrument.
+          style={{ opacity: open ? 0.42 : shown === 0 ? 0 : 1 }}
         />
       </svg>
 

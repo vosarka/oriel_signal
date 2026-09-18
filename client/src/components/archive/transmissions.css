@@ -167,8 +167,8 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(30px, 4.1vw, 60px);
-  line-height: 1.14;
+  font-size: clamp(28px, 3.5vw, 50px);
+  line-height: 1.1;
   letter-spacing: 0.004em;
   color: var(--tx-ivory);
   text-wrap: balance;
@@ -196,13 +196,13 @@
 .tx-telemetry {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 3px 10px;
-  margin: clamp(20px, 3vh, 34px) 0 0;
+  gap: 1px 10px;
+  margin: clamp(16px, 2.2vh, 26px) 0 0;
   padding-left: 26px;
   position: relative;
   font-family: var(--font-ritual);
   font-size: 12px;
-  line-height: 1.75;
+  line-height: 1.62;
   letter-spacing: 0.03em;
 }
 .tx-telemetry__bullet {
@@ -240,7 +240,7 @@
 
 /* ── Protocol markers ───────────────────────────────────────────── */
 .tx-protocol {
-  margin-top: clamp(20px, 3vh, 34px);
+  margin-top: clamp(16px, 2.2vh, 26px);
   padding-left: 26px;
   position: relative;
 }
@@ -269,6 +269,12 @@
   font-size: clamp(16px, 1.25vw, 19px);
   line-height: 1.78;
   color: rgba(255, 247, 230, 0.8);
+  /* The carrier holds one screen. The rest is read in the fragment. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
 }
 .tx-body + .tx-body {
   margin-top: 0.9em;
@@ -315,7 +321,7 @@
 /* ── Vertical archive whisper ───────────────────────────────────── */
 .tx-whisper {
   position: absolute;
-  right: calc(var(--tx-rail) * -1 + 4px);
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
