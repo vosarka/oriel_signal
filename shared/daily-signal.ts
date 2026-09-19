@@ -123,14 +123,28 @@ function cycle(n: number, len: number): number {
  * field that rises and falls — and it is what makes a 99% day land at
  * all, because the community has just lived through the 40% days.
  *
- * Two carriers: the synodic month (29.53d) sets the tide, a 7-day
- * ripple keeps consecutive days from feeling identical.
+ * Four carriers with no common divisor. The synodic month still sets
+ * the slow arc, but three shorter waves ride on it, so the sequence
+ * never repeats visibly and no weekday owns a value.
+ *
+ * A single short period would be worse than the long one, not better:
+ * a 3.5-day tide closes exactly on the week and hands the community a
+ * seven-number loop to memorise. Unpredictable to an observer is what
+ * is wanted here, not fast.
  */
+const CARRIERS: ReadonlyArray<readonly [period: number, amp: number]> = [
+  [29.53, 18], // the tide — still the thing you live through
+  [9.7, 9],
+  [4.3, 6],
+  [2.6, 4],
+];
+
 export function clarityFor(date: Date): number {
   const d = daysSinceAnchor(date);
-  const tide = Math.sin((2 * Math.PI * d) / 29.53);
-  const ripple = Math.sin((2 * Math.PI * d) / 7);
-  const raw = 70 + 26 * tide + 3.9 * ripple;
+  const raw = CARRIERS.reduce(
+    (sum, [period, amp]) => sum + amp * Math.sin((2 * Math.PI * d) / period),
+    70
+  );
   return Math.round(Math.min(99.9, Math.max(40, raw)) * 10) / 10;
 }
 
