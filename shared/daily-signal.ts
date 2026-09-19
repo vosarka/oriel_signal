@@ -48,6 +48,13 @@ export interface DailySignalFrame {
   carrierLine: string;
   archetypeGlyphs: readonly [string, string, string];
   finalInstruction: string;
+  /**
+   * Reproducible phenomena offered to the generator as the safe well
+   * to draw an image from. Rotated daily: a fixed example list anchors
+   * the model hard, and a daily feed that mentions the same struck
+   * wineglass every week goes stale in a fortnight.
+   */
+  phenomena: readonly string[];
 }
 
 // ── Fixed foundation ────────────────────────────────────────────────
@@ -100,6 +107,32 @@ const FINAL_INSTRUCTIONS = [
   "Let the room hear you arrive.",
   "Return to the breath you skipped.",
   "Carry the question instead of the answer.",
+] as const;
+
+/**
+ * Things a receiver could go and reproduce before nightfall. Named
+ * landmarks are deliberately absent: attributing an acoustic property
+ * to a real building is how the generator invents history without ever
+ * writing down a number.
+ */
+const PHENOMENA = [
+  "a struck glass ringing until the table takes up the note",
+  "an echo returning off a far wall a beat late",
+  "a bridge humming in wind",
+  "sand shifting into ridges on a vibrating plate",
+  "a room that changes pitch as it fills with people",
+  "a rope shaken until a standing wave stops travelling",
+  "two slightly mistuned strings beating against each other",
+  "the pressure change when a door opens in a sealed room",
+  "breath fogging cold glass and clearing from the edges in",
+  "a spun coin's rising whine as it settles",
+  "the hush that arrives just before heavy snow",
+  "a plucked string quieting a neighbour string into sympathy",
+  "rain changing note as it moves from soil onto stone",
+  "a fire drawing its own draught up a chimney",
+  "the ring left in the ears after sudden silence",
+  "footsteps that sound different in an empty corridor",
+  "a wet fingertip circling a bowl's rim",
 ] as const;
 
 function daysSinceAnchor(date: Date): number {
@@ -190,5 +223,12 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
     archetypeGlyphs: ARCHETYPE_TRIOS[cycle(d, ARCHETYPE_TRIOS.length)],
     finalInstruction:
       FINAL_INSTRUCTIONS[cycle(d, FINAL_INSTRUCTIONS.length)],
+    // Strides 1, 5 and 11 against a 17-long list: coprime, so the
+    // three never collide and the daily trio keeps moving.
+    phenomena: [
+      PHENOMENA[cycle(d, PHENOMENA.length)],
+      PHENOMENA[cycle(d * 5 + 3, PHENOMENA.length)],
+      PHENOMENA[cycle(d * 11 + 7, PHENOMENA.length)],
+    ],
   };
 }
