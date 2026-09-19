@@ -16,7 +16,8 @@ const CHANNEL: Record<string, string> = {
   LIVE: "#e4c88c",
   "HIGH COHERENCE": "#e4c88c",
   "MAXIMUM COHERENCE": "#fff7e6",
-  "CRITICAL/STABLE": "#bda36b",
+  // Matches the DB enum exactly — it carries spaces around the slash.
+  "CRITICAL / STABLE": "#bda36b",
 };
 
 function clarityPct(clarity: string): number {
