@@ -17,6 +17,7 @@ import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { setupTranscribeWebSocket } from "../mistral-transcribe-ws";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
+import { getOrCreateTodaysSignal } from "../daily-signal-service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +38,23 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+const DAILY_SIGNAL_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+// ponytail: no cron dependency exists in this project, so this polls
+// instead of firing once at 00:05 UTC. getOrCreateTodaysSignal() is a
+// no-op once today's row exists, so the extra checks are cheap, and
+// polling self-heals if the process was down at midnight — a real
+// scheduler is the upgrade path if that ever matters.
+function scheduleDailySignalGeneration() {
+  const tick = () => {
+    getOrCreateTodaysSignal().catch(error =>
+      console.error("[daily-signal] scheduled generation failed:", error)
+    );
+  };
+  tick();
+  setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
+}
+
 async function startServer() {
   // Print the resolved LLM chain first: env vars live outside the repo, so
   // this is the only place a deployment reveals which models it will call.
@@ -46,6 +64,7 @@ async function startServer() {
 
   // Ensure DB schema is up to date before accepting requests
   await runMigrations();
+  scheduleDailySignalGeneration();
 
   const app = express();
   const server = createServer(app);

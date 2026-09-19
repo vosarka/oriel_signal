@@ -35,6 +35,8 @@ export default function Archive() {
   const { data: rawOx = [], isLoading: oxLoading } =
     trpc.archive.oracles.list.useQuery();
   const { data: threads = [] } = trpc.archive.oracles.threads.useQuery();
+  const { data: todaysSignal = null } =
+    trpc.archive.dailySignal.today.useQuery();
 
   // ── Parse transmissions ─────────────────────────────────────────
   const transmissions = useMemo(
@@ -155,10 +157,11 @@ export default function Archive() {
     return result;
   }, [oracles, searchQuery, activeThread]);
 
-  // The standing carrier — the deepest transmission recovered so far.
-  const carrier = transmissions.length
-    ? (transmissions[transmissions.length - 1] as any)
-    : null;
+  // The standing carrier — today's open signal when one has been
+  // generated, falling back to the deepest transmission recovered so far.
+  const carrier: any =
+    todaysSignal ??
+    (transmissions.length ? transmissions[transmissions.length - 1] : null);
 
   const activeRegisterInfo = VTIP_REGISTERS.find(r => r.id === activeRegister);
   const ledgerLabel =

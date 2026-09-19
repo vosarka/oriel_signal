@@ -46,6 +46,22 @@ function vlsOpcode(field: string) {
     .slice(0, 22);
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/** bodyLines is stored as a JSON string of lines (see assembleBody). */
+function parseBodyLines(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter(isNonEmptyString);
+  if (typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isNonEmptyString) : [];
+  } catch {
+    return [];
+  }
+}
+
 interface TransmissionCarrierProps {
   tx: any;
   total: number;
@@ -54,9 +70,15 @@ interface TransmissionCarrierProps {
 export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
   const [open, setOpen] = useState(false);
 
-  const register = registerFor(tx.txNumber);
-  const { lead, rest } = splitVoice(tx.coreMessage);
-  const tags: string[] = Array.isArray(tx.tags) ? tx.tags : [];
+  // The daily signal (bodyLines) and an archive transmission (coreMessage,
+  // tags, txNumber) are different shapes filling the same carrier slots.
+  const isSignal = "bodyLines" in tx;
+
+  const register = isSignal ? undefined : registerFor(tx.txNumber);
+  const { lead, rest } = isSignal
+    ? { lead: tx.title as string, rest: parseBodyLines(tx.bodyLines).join("\n") }
+    : splitVoice(tx.coreMessage);
+  const tags: string[] = !isSignal && Array.isArray(tx.tags) ? tx.tags : [];
 
   const archetype = tags
     .slice(0, 3)
@@ -65,9 +87,26 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
 
   const sealedText = rest || archetype || tx.field || "";
   const bodyText = useDecrypt(sealedText, open);
+  // The signal's body is several lines (carrier line, voice, archetype,
+  // falsifier, final instruction) — one <p> per line, matching the stacked
+  // .tx-body + .tx-body rule. An archive transmission stays one paragraph;
+  // mask() preserves "\n" verbatim, so splitting the ciphered text back on
+  // it reproduces the original line breaks under either state.
+  const bodyParagraphs = isSignal
+    ? bodyText.split("\n").filter(Boolean)
+    : [bodyText];
 
-  // `id` is the numeric row key; `txId` is the canon label (TX-001).
-  const txLabel = tx.txId || `TX-${String(tx.txNumber).padStart(3, "0")}`;
+  const registerLabel = isSignal
+    ? tx.clarityRegister
+    : register
+      ? `${register.vtip} · ${register.name}`
+      : "UNFILED";
+  const signalClarity = isSignal ? `${tx.clarity}%` : tx.signalClarity;
+
+  // `id` is the numeric row key; `txId`/`txGenId` is the canon label.
+  const txLabel = isSignal
+    ? tx.txGenId
+    : tx.txId || `TX-${String(tx.txNumber).padStart(3, "0")}`;
 
   return (
     <section className="tx-carrier">
@@ -103,7 +142,7 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
             <span className="tx-attribution__sep">//</span>
             {tx.channelStatus}
             <span className="tx-attribution__sep">//</span>
-            {tx.signalClarity}
+            {signalClarity}
           </p>
 
           <dl className="tx-telemetry">
@@ -119,11 +158,9 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
             <dt>Carrier:</dt>
             <dd>{CARRIER}</dd>
             <dt>Register:</dt>
-            <dd>
-              {register ? `${register.vtip} · ${register.name}` : "UNFILED"}
-            </dd>
+            <dd>{registerLabel}</dd>
             <dt>Signal Clarity:</dt>
-            <dd>{tx.signalClarity}</dd>
+            <dd>{signalClarity}</dd>
             <dt>Transmission Protocol:</dt>
             <dd className="is-key">{open ? "Activated" : "Sealed"}</dd>
           </dl>
@@ -142,10 +179,12 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
               Protocol begin
             </p>
 
-            <p className={`tx-body ${open ? "" : "tx-body--sealed"}`}>
-              {bodyText}
-            </p>
-            {open && rest && (
+            {bodyParagraphs.map((line, i) => (
+              <p key={i} className={`tx-body ${open ? "" : "tx-body--sealed"}`}>
+                {line}
+              </p>
+            ))}
+            {!isSignal && open && rest && (
               <p className="tx-channel" style={{ marginTop: 10, fontSize: 13 }}>
                 Continues in the fragment.
               </p>
@@ -171,7 +210,7 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
               <span className="tx-channel__value">{tx.channelStatus}</span>
             </p>
 
-            {open && (
+            {!isSignal && open && (
               <p className="tx-channel" style={{ marginTop: 16 }}>
                 <Link href={`/transmission/${tx.id}`} className="tx-channel__value">
                   Enter fragment →
