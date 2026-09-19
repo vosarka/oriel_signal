@@ -35,6 +35,7 @@ import {
   ORIEL_WORKING_VIEW_PREFIX,
   composeTurnMemories,
   mergeMemoriesForTurn,
+  rankMemoriesByRelevance,
   shouldExtractMemories,
 } from "./oriel-memory-retrieval";
 import * as fs from "fs";
@@ -502,7 +503,7 @@ export async function selectMemoriesForTurn(
   }
 
   if (preferred.length >= limit) return preferred.slice(0, limit);
-  const fallback = await fallbackFn(userId, limit);
+  const fallback = await fallbackFn(userId, limit, userMessage);
   return composeTurnMemories(
     mergeMemoriesForTurn(preferred, fallback, limit * 2),
     limit
@@ -510,12 +511,17 @@ export async function selectMemoriesForTurn(
 }
 
 /**
- * Retrieve relevant memories for a user
- * Returns most important and recently accessed memories
+ * Retrieve relevant memories for a user.
+ * Without `userMessage`, returns the most important/recently accessed rows
+ * (used for broad post-turn snapshots). With it, widens the DB scan and
+ * ranks candidates by keyword overlap with the message first, so a
+ * high-importance memory from an unrelated earlier topic can't permanently
+ * crowd out what's actually relevant to the current turn.
  */
 export async function getRelevantMemories(
   userId: number,
-  limit: number = 10
+  limit: number = 10,
+  userMessage?: string
 ): Promise<OrielMemory[]> {
   try {
     const db = await getDb();
@@ -524,16 +530,27 @@ export async function getRelevantMemories(
       return [];
     }
 
-    const memories = await db
+    // Only widen the scan and rank when there's a message to rank against —
+    // the two post-turn snapshot callers pass none and keep today's exact
+    // query, cost, and result (no ranking call at all).
+    const hasMessage = Boolean(userMessage?.trim());
+    const fetchLimit = hasMessage ? Math.min(limit * 4, 50) : limit;
+    const candidates = await db
       .select()
       .from(orielMemories)
       .where(
         and(eq(orielMemories.userId, userId), eq(orielMemories.isActive, true))
       )
       .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
-      .limit(limit);
+      .limit(fetchLimit);
 
-    // Update access count and timestamp for retrieved memories
+    const memories = hasMessage
+      ? rankMemoriesByRelevance(candidates, userMessage, limit)
+      : candidates;
+
+    // Update access count and timestamp for the memories actually selected
+    // for this turn — not every fetched candidate, so one that lost this
+    // turn's relevance ranking doesn't get its recency refreshed anyway.
     if (memories.length > 0) {
       const memoryIds = memories.map(m => m.id);
       for (const id of memoryIds) {
