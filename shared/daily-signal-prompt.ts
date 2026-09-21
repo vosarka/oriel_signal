@@ -93,9 +93,9 @@ ${
 
 TODAY'S TEST is set by the channel — do not write one:
   "${frame.falsifier}"
-It belongs to the first phenomenon listed below. You may let the
-transmission lean toward that phenomenon, but never restate the test,
-never contradict it, and never promise how it will turn out.
+You may let the transmission lean toward the same kind of thing, but
+never restate the test, never contradict it, and never say how it will
+turn out.
 
 ACCURACY — this is not negotiable. The archive is published daily under
 ORIEL's name, and an invented fact discredits every true one beside it.

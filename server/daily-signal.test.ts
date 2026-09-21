@@ -1,31 +1,62 @@
 import { describe, expect, it } from "vitest";
-import { frameFor } from "../shared/daily-signal";
+import { EXPERIMENTS, falsifierFor, frameFor } from "../shared/daily-signal";
 import { assembleBody } from "../shared/daily-signal-prompt";
 import { isValidGeneratedSignal } from "./daily-signal-service";
 
-const DAY = 86_400_000;
 const START = Date.UTC(2026, 8, 18);
 
-function frames(days: number) {
-  return Array.from({ length: days }, (_, i) =>
-    frameFor(new Date(START + i * DAY))
-  );
-}
+const pairCount = (m: number) => (m * (m - 1)) / 2;
 
-describe("daily signal falsifier bank", () => {
-  it("cycles through every falsifier before repeating", () => {
-    expect(new Set(frames(17).map(f => f.falsifier)).size).toBe(17);
-  });
-
-  it("keeps each one a plain test: action, colon, result — no verdict, no count", () => {
-    for (const f of frames(17)) {
-      expect(f.falsifier).toMatch(/^[^:]+: [^:]+\.$/);
-      expect(f.falsifier).not.toMatch(/\d/);
-      expect(f.falsifier).not.toMatch(/\b(if|transmission|signal|claim)\b/i);
+describe("daily test bank", () => {
+  it("gives every experiment at least two distinct outcomes", () => {
+    for (const e of EXPERIMENTS) {
+      expect(e.outcomes.length).toBeGreaterThanOrEqual(2);
+      const results = e.outcomes.map(o => o.result);
+      expect(new Set(results).size).toBe(results.length);
     }
   });
 
-  it("puts the frame's falsifier in the body, not anything the model wrote", () => {
+  it("keeps every entry free of counts and of any verdict on the transmission", () => {
+    for (const e of EXPERIMENTS) {
+      const text = [e.action, ...e.outcomes.flatMap(o => [o.result, o.meaning])];
+      for (const line of text) {
+        expect(line).not.toMatch(/\d/);
+        expect(line).not.toMatch(/\b(transmission|signal|claim)\b/i);
+      }
+      for (const o of e.outcomes) {
+        expect(o.result).toMatch(/^[a-z]/);
+        expect(o.result).not.toMatch(/[.,]$/);
+        expect(o.meaning).toMatch(/^[a-z]/);
+        expect(o.meaning).not.toMatch(/\.$/);
+      }
+    }
+  });
+
+  it("renders the action, then two results each with what it means", () => {
+    for (let n = 0; n < 40; n++) {
+      const text = falsifierFor(n);
+      expect(text.match(/ If /g)).toHaveLength(2);
+      expect(text.match(/, it means /g)).toHaveLength(2);
+      expect(text).toMatch(/\.$/);
+    }
+  });
+
+  it("does not repeat before every pair of the smallest experiment has been shown", () => {
+    const smallest = Math.min(...EXPERIMENTS.map(e => pairCount(e.outcomes.length)));
+    const span = EXPERIMENTS.length * smallest;
+    const seen = new Set<string>();
+    for (let n = 0; n < span; n++) seen.add(falsifierFor(n));
+    expect(seen.size).toBe(span);
+  });
+
+  it("never gives two days in a row the same action", () => {
+    for (let n = 0; n < 60; n++) {
+      const action = (t: string) => t.slice(0, t.indexOf(" If "));
+      expect(action(falsifierFor(n))).not.toBe(action(falsifierFor(n + 1)));
+    }
+  });
+
+  it("puts the frame's test in the body, not anything the model wrote", () => {
     const frame = frameFor(new Date(START));
     const body = assembleBody(frame, {
       title: "T",

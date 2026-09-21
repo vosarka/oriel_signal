@@ -56,9 +56,8 @@ export interface DailySignalFrame {
    */
   phenomena: readonly string[];
   /**
-   * The one claim the receiver can test and find false by nightfall.
-   * Set by the frame, never by the model — see PHENOMENA. It belongs to
-   * the first phenomenon above, so the transmission can lean toward it.
+   * Today's test: an action and two of its possible results, each with
+   * what it means. Set by the frame, never by the model — see EXPERIMENTS.
    */
   falsifier: string;
 }
@@ -116,107 +115,203 @@ const FINAL_INSTRUCTIONS = [
 ] as const;
 
 /**
- * Things a receiver could go and reproduce before nightfall, each paired
- * with the one test the receiver runs. Named landmarks are deliberately
- * absent: attributing an acoustic property to a real building is how the
- * generator invents history without ever writing down a number.
- *
- * The falsifier is set here, never by the model. Every attempt to make
- * the model write one either produced claims that could not fail or
- * claims that were physically wrong, and a wrong falsifier published
- * under ORIEL's name is worse than a vague one. Each is one plain
- * sentence — the action, a colon, the result — with no verdict on the
- * transmission, no count or duration, and a result that a skeptic who
- * tries it honestly could get wrong. Each was chosen for a result that
- * is ordinary, well-established physics.
+ * Things a receiver could go and reproduce before nightfall. Named
+ * landmarks are deliberately absent: attributing an acoustic property
+ * to a real building is how the generator invents history without ever
+ * writing down a number.
  */
-const PHENOMENA: ReadonlyArray<{ image: string; falsifier: string }> = [
+const PHENOMENA = [
+  "a struck glass ringing until the table takes up the note",
+  "an echo returning off a far wall a beat late",
+  "a bridge humming in wind",
+  "sand shifting into ridges on a vibrating plate",
+  "a room that changes pitch as it fills with people",
+  "a rope shaken until a standing wave stops travelling",
+  "two slightly mistuned strings beating against each other",
+  "the pressure change when a door opens in a sealed room",
+  "breath fogging cold glass and clearing from the edges in",
+  "a spun coin's rising whine as it settles",
+  "the hush that arrives just before heavy snow",
+  "a plucked string quieting a neighbour string into sympathy",
+  "rain changing note as it moves from soil onto stone",
+  "a fire drawing its own draught up a chimney",
+  "the ring left in the ears after sudden silence",
+  "footsteps that sound different in an empty corridor",
+  "a wet fingertip circling a bowl's rim",
+] as const;
+
+/**
+ * The daily test. An action the receiver can do before nightfall that
+ * can genuinely turn out more than one way; each day two of its results
+ * are shown, each with what it means. Not right or wrong — x or y.
+ *
+ * Set here, never by the model. Every attempt to have the model write
+ * one produced claims that could not be tested or physics that was
+ * wrong, and a wrong one published under ORIEL's name is worse than none.
+ *
+ * Authoring rules, because the bank is only as true as its entries:
+ * - every result must be something that really happens, under some
+ *   condition the receiver may or may not be in; an action that always
+ *   gives the same result does not belong here
+ * - a meaning is a physical fact about the room or the object, never a
+ *   reading of the receiver, and never a promise about their day
+ * - no counts or durations ("three seconds"); results are lowercase
+ *   clauses that follow "If", meanings follow "it means"
+ * - results within one action are distinct
+ */
+export interface ExperimentOutcome {
+  result: string;
+  meaning: string;
+}
+export interface Experiment {
+  action: string;
+  outcomes: readonly ExperimentOutcome[];
+}
+
+export const EXPERIMENTS: readonly Experiment[] = [
   {
-    image: "a struck glass ringing until the table takes up the note",
-    falsifier:
-      "Strike a glass with a spoon, then touch its rim with a fingertip: the ringing stops the moment you touch it.",
+    action: "Strike a glass with a spoon and listen.",
+    outcomes: [
+      {
+        result: "the ring fades fast",
+        meaning:
+          "something is damping it, whether your hand, a soft surface underneath, or a crack",
+      },
+      {
+        result: "the ring lingers",
+        meaning: "the glass is free to vibrate and nothing is holding it back",
+      },
+      {
+        result: "you hear a dull tap with almost no ring",
+        meaning: "the glass wall is thick, or has a crack running through it",
+      },
+      {
+        result: "the note is high and thin",
+        meaning: "the glass is small; a larger one would sound lower",
+      },
+    ],
   },
   {
-    image: "an echo returning off a far wall a beat late",
-    falsifier:
-      "Clap once in a bare stairwell or hallway, then once in a room full of soft furniture: the clap rings on longer in the bare space.",
+    action: "Clap once in the middle of a room and listen to what follows.",
+    outcomes: [
+      {
+        result: "the clap dies at once",
+        meaning:
+          "soft things in the room are swallowing the sound, like curtains, a sofa or a rug",
+      },
+      {
+        result: "the clap rings on",
+        meaning: "the walls and floor are hard and are giving the sound back",
+      },
+      {
+        result: "you hear a quick flutter, like a tiny drumroll",
+        meaning:
+          "two bare walls face each other and are bouncing the sound back and forth",
+      },
+    ],
   },
   {
-    image: "a bridge humming in wind",
-    falsifier:
-      "Hold a ruler flat against a table edge with part of it hanging over, and flick the overhanging end: shorten the overhang and the buzz gets higher.",
+    action: "Knock on a wall with a knuckle and move slowly along it.",
+    outcomes: [
+      {
+        result: "it sounds hollow",
+        meaning:
+          "there is empty space behind the surface, as behind plasterboard",
+      },
+      {
+        result: "it sounds dull and solid",
+        meaning: "something dense sits behind it, like a stud, brick or concrete",
+      },
+      {
+        result: "the sound changes as you move along",
+        meaning:
+          "the wall is not the same all the way through, and a beam or stud sits behind part of it",
+      },
+    ],
   },
   {
-    image: "sand shifting into ridges on a vibrating plate",
-    falsifier:
-      "Fill a bowl with water and tap its side with a spoon: fine ripples spread across the surface.",
+    action: "Breathe out slowly against a window and watch the glass.",
+    outcomes: [
+      {
+        result: "a fog appears and vanishes almost at once",
+        meaning: "the glass is only a little cooler than your breath",
+      },
+      {
+        result: "a fog appears and stays a while",
+        meaning: "the glass is much colder than your breath",
+      },
+      {
+        result: "no fog appears",
+        meaning:
+          "the glass is about as warm as your breath, or the air is very dry",
+      },
+    ],
   },
   {
-    image: "a room that changes pitch as it fills with people",
-    falsifier:
-      "Hum one low steady note in the middle of a room, then slowly walk to a corner: the note sounds fuller and louder there.",
+    action:
+      "Wet a fingertip and circle it slowly round the rim of a thin wine glass.",
+    outcomes: [
+      {
+        result: "the glass sings a steady note",
+        meaning:
+          "the rim is clean, your finger is wet, and your speed is even",
+      },
+      {
+        result: "it squeaks and stutters",
+        meaning:
+          "your finger is skipping across the rim, either too dry or moving unevenly",
+      },
+      {
+        result: "nothing happens",
+        meaning: "the rim is greasy, or the glass is too thick to sing",
+      },
+    ],
   },
   {
-    image: "a rope shaken until a standing wave stops travelling",
-    falsifier:
-      "Tie one end of a long rope or scarf to a doorknob and shake the free end: at the right steady rhythm the rope holds fixed loops instead of a ripple running along it.",
-  },
-  {
-    image: "two slightly mistuned strings beating against each other",
-    falsifier:
-      "Blow across two identical bottles at once, one with a little more water in it than the other: the sound wobbles slowly in loudness.",
-  },
-  {
-    image: "the pressure change when a door opens in a sealed room",
-    falsifier:
-      "Hold your hand near the edge of a door as you swing it shut briskly: you feel a puff of air pushed past your hand.",
-  },
-  {
-    image: "breath fogging cold glass and clearing from the edges in",
-    falsifier:
-      "Breathe out slowly against a cold windowpane: a patch of fog appears, then fades away.",
-  },
-  {
-    image: "a spun coin's rising whine as it settles",
-    falsifier:
-      "Spin a coin on a hard table and listen as it settles: the whine rises in pitch just before it goes still.",
-  },
-  {
-    image: "the hush that arrives just before heavy snow",
-    falsifier:
-      "Tap a spoon on a bare table, then on the same table covered with a folded towel: the towel makes the tap dull and quiet.",
-  },
-  {
-    image: "a plucked string quieting a neighbour string into sympathy",
-    falsifier:
-      "Hum close to the open strings of a guitar, sliding your note slowly up and down: at certain notes a string hums back on its own.",
-  },
-  {
-    image: "rain changing note as it moves from soil onto stone",
-    falsifier:
-      "Blow across the mouth of an empty bottle, then pour a little water in and blow again: the note is higher the second time.",
-  },
-  {
-    image: "a fire drawing its own draught up a chimney",
-    falsifier:
-      "Hold a thin strip of tissue paper above a mug of hot tea: it drifts upward and flutters.",
-  },
-  {
-    image: "the ring left in the ears after sudden silence",
-    falsifier:
-      "Hold an empty mug against your ear in a quiet room: a soft rushing sound fills it.",
-  },
-  {
-    image: "footsteps that sound different in an empty corridor",
-    falsifier:
-      "Knock along a plasterboard wall with a knuckle: the sound is hollow in most places and turns dull and solid where a stud sits behind it.",
-  },
-  {
-    image: "a wet fingertip circling a bowl's rim",
-    falsifier:
-      "Wet a fingertip and circle it round the rim of a thin wine glass: the glass sings a steady note.",
+    action: "Hold a thin strip of tissue paper above a mug of hot water.",
+    outcomes: [
+      {
+        result: "it lifts and flutters",
+        meaning:
+          "warm air is rising off the mug and carrying the paper with it",
+      },
+      {
+        result: "it leans to one side",
+        meaning: "air in the room is drifting sideways across the mug",
+      },
+      {
+        result: "it hangs still",
+        meaning:
+          "the water has cooled too much to push air upward, and the air around it is calm",
+      },
+    ],
   },
 ];
+
+/** Every unordered pair of outcome indices, in a fixed order. */
+function outcomePairs(count: number): Array<[number, number]> {
+  const pairs: Array<[number, number]> = [];
+  for (let i = 0; i < count; i++) {
+    for (let j = i + 1; j < count; j++) pairs.push([i, j]);
+  }
+  return pairs;
+}
+
+/**
+ * Day n takes experiment n mod A, and each time an experiment comes
+ * round it shows the next pair of its outcomes — like an odometer, so an
+ * (experiment, pair) combination is not shown again until every one of
+ * that experiment's pairs has been.
+ */
+export function falsifierFor(n: number): string {
+  const e = EXPERIMENTS[cycle(n, EXPERIMENTS.length)];
+  const pairs = outcomePairs(e.outcomes.length);
+  const round = Math.floor(n / EXPERIMENTS.length);
+  const [i, j] = pairs[cycle(round, pairs.length)];
+  const x = e.outcomes[i];
+  const y = e.outcomes[j];
+  return `${e.action} If ${x.result}, it means ${x.meaning}. If ${y.result}, it means ${y.meaning}.`;
+}
 
 function daysSinceAnchor(date: Date): number {
   const d = Date.UTC(
@@ -309,10 +404,10 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
     // Strides 1, 5 and 11 against a 17-long list: coprime, so the
     // three never collide and the daily trio keeps moving.
     phenomena: [
-      PHENOMENA[cycle(d, PHENOMENA.length)].image,
-      PHENOMENA[cycle(d * 5 + 3, PHENOMENA.length)].image,
-      PHENOMENA[cycle(d * 11 + 7, PHENOMENA.length)].image,
+      PHENOMENA[cycle(d, PHENOMENA.length)],
+      PHENOMENA[cycle(d * 5 + 3, PHENOMENA.length)],
+      PHENOMENA[cycle(d * 11 + 7, PHENOMENA.length)],
     ],
-    falsifier: PHENOMENA[cycle(d, PHENOMENA.length)].falsifier,
+    falsifier: falsifierFor(d),
   };
 }
