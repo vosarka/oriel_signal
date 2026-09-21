@@ -26,7 +26,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isValidGeneratedSignal(
+export function isValidGeneratedSignal(
   frame: DailySignalFrame,
   value: unknown
 ): value is GeneratedSignal {
@@ -34,7 +34,6 @@ function isValidGeneratedSignal(
   const g = value as Record<string, unknown>;
   if (!isNonEmptyString(g.title)) return false;
   if (!isNonEmptyString(g.archetype)) return false;
-  if (!isNonEmptyString(g.falsifier)) return false;
 
   if (frame.register === "FRACTURED") {
     return (
@@ -130,7 +129,7 @@ export async function getOrCreateTodaysSignal(): Promise<DailySignalRow | null> 
       title: gen.title,
       bodyLines: JSON.stringify(assembleBody(frame, gen)),
       encodedArchetype: gen.archetype,
-      falsifier: gen.falsifier,
+      falsifier: frame.falsifier,
       finalInstruction: frame.finalInstruction,
       generatedBy: model,
     })

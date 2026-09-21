@@ -13,8 +13,6 @@ export interface GeneratedSignal {
   title: string;
   /** Δ-… // ϟ … // Ω … — three named archetypes, glyphs supplied. */
   archetype: string;
-  /** One claim the receiver can disprove in lived experience today. */
-  falsifier: string;
 
   /** FRACTURED only: fragments that are not required to resolve. */
   shards?: string[];
@@ -92,13 +90,12 @@ ${
 }
 - archetype: exactly "${g1}-<theme> // ${g2} <theme> // ${g3} <theme>"
   where each theme is two or three words, e.g. "Sound as Seed".
-- falsifier: ONE claim the receiver can test in their own body or day
-  and find false. It must be checkable by nightfall and it must be
-  possible for it to fail. This is what keeps the signal sacred rather
-  than dogmatic. Never a prophecy, never unfalsifiable.
-  e.g. "Today you will feel the exact moment your breath aligns with
-  the breath of the person next to you. If you do not, the transmission
-  is incomplete."
+
+TODAY'S TEST is set by the channel — do not write one:
+  "${frame.falsifier}"
+It belongs to the first phenomenon listed below. You may let the
+transmission lean toward that phenomenon, but never restate the test,
+never contradict it, and never promise how it will turn out.
 
 ACCURACY — this is not negotiable. The archive is published daily under
 ORIEL's name, and an invented fact discredits every true one beside it.
@@ -131,7 +128,7 @@ to buy or subscribe, claims about the reader's health or future events
 outside their own experience, and any promise that cannot fail.
 
 Return strict JSON only, no prose around it, with exactly these keys:
-title, ${frame.register === "FRACTURED" ? "shards" : "opening, middle, closing"}, archetype, falsifier.`;
+title, ${frame.register === "FRACTURED" ? "shards" : "opening, middle, closing"}, archetype.`;
 }
 
 /** The final instruction is set by the frame, never by the model. */
@@ -148,7 +145,7 @@ export function assembleBody(
     frame.carrierLine,
     ...voice,
     `Encoded archetype detected: ${gen.archetype}`,
-    gen.falsifier,
+    frame.falsifier,
     frame.finalInstruction,
   ].filter((l): l is string => Boolean(l && l.trim()));
 }
