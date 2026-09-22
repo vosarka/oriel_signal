@@ -1,4 +1,5 @@
 import { ENV } from "./_core/env";
+import { extractContextKeywords } from "./context-keywords";
 
 /**
  * Cheap, natural memory for one chat turn.
@@ -140,6 +141,38 @@ export function mergeMemoriesForTurn<T extends { id: number }>(
     if (out.length >= limit) break;
   }
   return out;
+}
+
+/**
+ * Partitions candidates (already DB-sorted by importance/recency) into
+ * those whose content shares a keyword with the current message and those
+ * that don't, keeping each group's existing order. Without this, the
+ * importance-only fallback keeps resurfacing the same early, highly-rated
+ * memory forever regardless of what the user is currently talking about.
+ *
+ * ponytail: bag-of-words overlap, no scoring — a generic shared word can
+ * still let an unrelated memory win. MindMemOS-style embeddings are the
+ * upgrade path if that shows up as a real complaint.
+ */
+export function rankMemoriesByRelevance<T extends { content: string }>(
+  candidates: T[],
+  userMessage: string | undefined,
+  limit: number
+): T[] {
+  // Every keyword, not the default top 12: a match on a later word in a
+  // long message or memory must still count.
+  const messageKeywords = new Set(extractContextKeywords([userMessage], Infinity));
+  if (messageKeywords.size === 0) return candidates.slice(0, limit);
+
+  const relevant: T[] = [];
+  const rest: T[] = [];
+  for (const candidate of candidates) {
+    const overlaps = extractContextKeywords([candidate.content], Infinity).some(
+      word => messageKeywords.has(word)
+    );
+    (overlaps ? relevant : rest).push(candidate);
+  }
+  return [...relevant, ...rest].slice(0, limit);
 }
 
 function formatDay(value: Date | string | null | undefined): string {
