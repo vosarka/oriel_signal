@@ -133,6 +133,18 @@ describe("rankMemoriesByRelevance", () => {
     );
     expect(ranked.map(row => row.id)).toEqual([2, 1]);
   });
+
+  it("matches on a keyword past the first twelve in a long message", () => {
+    const ranked = rankMemoriesByRelevance(
+      [
+        { id: 1, content: "unrelated notes about gardening" },
+        { id: 2, content: "saw a zebra at the park" },
+      ],
+      "alpha bravo charlie delta echoes foxtrot golfs hotel india juliet kilos limas zebra",
+      2
+    );
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+  });
 });
 
 describe("parseExtractedMemories", () => {
@@ -228,6 +240,29 @@ describe("selectMemoriesForTurn", () => {
       },
     });
     expect(receivedMessage).toBe("tell me about my sleep patterns");
+  });
+
+  it("marks accessed only the fallback rows that reach the turn", async () => {
+    const hit = { id: 91, content: "prefers short replies" };
+    const fallbackRows = [7, 8, 9, 10].map(id => ({ id, content: `fact ${id}` }));
+    const marked: number[][] = [];
+
+    const selected = await selectMemoriesForTurn(12, "how do I like replies?", 4, {
+      config: { enabled: true, baseUrl: "http://127.0.0.1:8000", apiKey: "k" },
+      searchHits: async () => [
+        { cloudId: "c91", content: hit.content, officialMemoryId: 91 },
+      ],
+      lookupCloudIds: async () => [],
+      getByIds: async () => [hit] as never,
+      fallback: async () => fallbackRows as never,
+      markAccessed: async ids => {
+        marked.push(ids);
+      },
+    });
+
+    expect(selected.map(m => m.id)).toEqual([91, 7, 8, 9]);
+    // 10 was dropped by composition and 91 came from search: neither marked.
+    expect(marked).toEqual([[7, 8, 9]]);
   });
 });
 

@@ -457,6 +457,7 @@ export async function selectMemoriesForTurn(
     ) => Promise<number[]>;
     getByIds?: typeof getMemoriesByIds;
     fallback?: typeof getRelevantMemories;
+    markAccessed?: (ids: number[]) => Promise<void>;
     config?: MindMemOSClientConfig;
   } = {}
 ): Promise<OrielMemory[]> {
@@ -504,19 +505,50 @@ export async function selectMemoriesForTurn(
 
   if (preferred.length >= limit) return preferred.slice(0, limit);
   const fallback = await fallbackFn(userId, limit, userMessage);
-  return composeTurnMemories(
+  const selected = composeTurnMemories(
     mergeMemoriesForTurn(preferred, fallback, limit * 2),
     limit
   );
+
+  // Mark only the fallback rows that survived composition and reach the
+  // model. Marking every fallback row refreshed the recency of memories
+  // that were dropped — the self-reinforcing loop this path exists to break.
+  // An injected fallback (tests) never marks real rows unless asked to.
+  const markAccessed =
+    deps.markAccessed ?? (deps.fallback ? async () => {} : markMemoriesAccessed);
+  const fallbackIds = new Set(fallback.map(m => m.id));
+  const reached = selected.filter(m => fallbackIds.has(m.id)).map(m => m.id);
+  if (reached.length > 0) {
+    try {
+      await markAccessed(reached);
+    } catch (error) {
+      console.warn("[Memory] Failed to mark memories accessed:", error);
+    }
+  }
+  return selected;
+}
+
+async function markMemoriesAccessed(ids: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  for (const id of ids) {
+    await db
+      .update(orielMemories)
+      .set({
+        accessCount: sql`${orielMemories.accessCount} + 1`,
+        lastAccessed: new Date(),
+      })
+      .where(eq(orielMemories.id, id));
+  }
 }
 
 /**
  * Retrieve relevant memories for a user.
- * Without `userMessage`, returns the most important/recently accessed rows
- * (used for broad post-turn snapshots). With it, widens the DB scan and
- * ranks candidates by keyword overlap with the message first, so a
- * high-importance memory from an unrelated earlier topic can't permanently
- * crowd out what's actually relevant to the current turn.
+ * Without `userMessage`: the most important/recently accessed rows, used
+ * for broad post-turn snapshots, and marks them accessed as it always has.
+ * With it: a candidate provider for one chat turn. Scans wider, ranks by
+ * keyword overlap with the message, and does NOT mark anything —
+ * selectMemoriesForTurn marks only what survives into the turn.
  */
 export async function getRelevantMemories(
   userId: number,
@@ -530,11 +562,11 @@ export async function getRelevantMemories(
       return [];
     }
 
-    // Only widen the scan and rank when there's a message to rank against —
-    // the two post-turn snapshot callers pass none and keep today's exact
-    // query, cost, and result (no ranking call at all).
     const hasMessage = Boolean(userMessage?.trim());
-    const fetchLimit = hasMessage ? Math.min(limit * 4, 50) : limit;
+    // ponytail: a user with more than this many active memories can still
+    // have an on-topic row fall outside the importance-ordered scan. One
+    // query, cheap to rank; a content-aware query is the upgrade path.
+    const fetchLimit = hasMessage ? Math.max(limit, 200) : limit;
     const candidates = await db
       .select()
       .from(orielMemories)
@@ -544,27 +576,12 @@ export async function getRelevantMemories(
       .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
       .limit(fetchLimit);
 
-    const memories = hasMessage
-      ? rankMemoriesByRelevance(candidates, userMessage, limit)
-      : candidates;
-
-    // Update access count and timestamp for the memories actually selected
-    // for this turn — not every fetched candidate, so one that lost this
-    // turn's relevance ranking doesn't get its recency refreshed anyway.
-    if (memories.length > 0) {
-      const memoryIds = memories.map(m => m.id);
-      for (const id of memoryIds) {
-        await db
-          .update(orielMemories)
-          .set({
-            accessCount: sql`${orielMemories.accessCount} + 1`,
-            lastAccessed: new Date(),
-          })
-          .where(eq(orielMemories.id, id));
-      }
+    if (hasMessage) {
+      return rankMemoriesByRelevance(candidates, userMessage, limit);
     }
 
-    return memories;
+    await markMemoriesAccessed(candidates.map(m => m.id));
+    return candidates;
   } catch (error) {
     console.error("[Memory] Failed to retrieve memories:", error);
     return [];

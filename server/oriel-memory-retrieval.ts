@@ -1,5 +1,5 @@
 import { ENV } from "./_core/env";
-import { extractContextKeywords } from "./oriel-transmission-mode";
+import { extractContextKeywords } from "./context-keywords";
 
 /**
  * Cheap, natural memory for one chat turn.
@@ -159,14 +159,16 @@ export function rankMemoriesByRelevance<T extends { content: string }>(
   userMessage: string | undefined,
   limit: number
 ): T[] {
-  const messageKeywords = new Set(extractContextKeywords([userMessage]));
+  // Every keyword, not the default top 12: a match on a later word in a
+  // long message or memory must still count.
+  const messageKeywords = new Set(extractContextKeywords([userMessage], Infinity));
   if (messageKeywords.size === 0) return candidates.slice(0, limit);
 
   const relevant: T[] = [];
   const rest: T[] = [];
   for (const candidate of candidates) {
-    const overlaps = extractContextKeywords([candidate.content]).some(word =>
-      messageKeywords.has(word)
+    const overlaps = extractContextKeywords([candidate.content], Infinity).some(
+      word => messageKeywords.has(word)
     );
     (overlaps ? relevant : rest).push(candidate);
   }
