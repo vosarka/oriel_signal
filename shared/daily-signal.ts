@@ -192,7 +192,7 @@ export const EXPERIMENTS: readonly Experiment[] = [
     ],
   },
   {
-    action: "Clap once in the middle of a room and listen to what follows.",
+    action: "Clap your hands in the middle of a room and listen to what follows.",
     outcomes: [
       {
         result: "the clap dies at once",

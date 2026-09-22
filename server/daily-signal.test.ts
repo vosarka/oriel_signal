@@ -23,6 +23,8 @@ describe("daily test bank", () => {
         expect(line).not.toMatch(/\d/);
         expect(line).not.toMatch(/\b(transmission|signal|claim)\b/i);
       }
+      // Actions only: "at once" in a result means "immediately", not a count.
+      expect(e.action).not.toMatch(/\b(once|twice|thrice|times)\b/i);
       for (const o of e.outcomes) {
         expect(o.result).toMatch(/^[a-z]/);
         expect(o.result).not.toMatch(/[.,]$/);
@@ -78,6 +80,9 @@ describe("isValidGeneratedSignal", () => {
   it("accepts three or four shards when fractured, with no falsifier from the model", () => {
     expect(
       isValidGeneratedSignal(fractured, { ...head, shards: ["a", "b", "c"] })
+    ).toBe(true);
+    expect(
+      isValidGeneratedSignal(fractured, { ...head, shards: ["a", "b", "c", "d"] })
     ).toBe(true);
   });
 

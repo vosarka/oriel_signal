@@ -35,8 +35,12 @@ export default function Archive() {
   const { data: rawOx = [], isLoading: oxLoading } =
     trpc.archive.oracles.list.useQuery();
   const { data: threads = [] } = trpc.archive.oracles.threads.useQuery();
+  // Refetched so a page left open across UTC midnight, or opened before
+  // the day's signal was generated, picks it up without a reload.
   const { data: todaysSignal = null } =
-    trpc.archive.dailySignal.today.useQuery();
+    trpc.archive.dailySignal.today.useQuery(undefined, {
+      refetchInterval: 5 * 60 * 1000,
+    });
 
   // ── Parse transmissions ─────────────────────────────────────────
   const transmissions = useMemo(
@@ -186,7 +190,11 @@ export default function Archive() {
       <div className="tx">
         {/* ── The standing carrier ──────────────────────────────── */}
         {carrier && (
-          <TransmissionCarrier tx={carrier} total={transmissions.length} />
+          <TransmissionCarrier
+            key={carrier.txGenId ?? carrier.txId ?? carrier.id}
+            tx={carrier}
+            total={transmissions.length}
+          />
         )}
 
         {/* ── Register spectrum ─────────────────────────────────── */}
