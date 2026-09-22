@@ -544,11 +544,13 @@ async function markMemoriesAccessed(ids: number[]): Promise<void> {
 
 /**
  * Retrieve relevant memories for a user.
- * Without `userMessage`: the most important/recently accessed rows, used
- * for broad post-turn snapshots, and marks them accessed as it always has.
- * With it: a candidate provider for one chat turn. Scans wider, ranks by
- * keyword overlap with the message, and does NOT mark anything —
- * selectMemoriesForTurn marks only what survives into the turn.
+ * Without `userMessage` (undefined): the most important/recently accessed
+ * rows, used for broad post-turn snapshots, and marks them accessed as it
+ * always has.
+ * With it — even an empty string: a candidate provider for one chat turn.
+ * Never marks anything; selectMemoriesForTurn marks only what survives
+ * into the turn. A non-blank message also widens the scan and ranks by
+ * keyword overlap.
  */
 export async function getRelevantMemories(
   userId: number,
@@ -562,6 +564,10 @@ export async function getRelevantMemories(
       return [];
     }
 
+    // Keyed on presence, not content: a blank turn message used to fall
+    // into the snapshot branch and be marked here, then marked again by
+    // selectMemoriesForTurn.
+    const forTurn = userMessage !== undefined;
     const hasMessage = Boolean(userMessage?.trim());
     // ponytail: a user with more than this many active memories can still
     // have an on-topic row fall outside the importance-ordered scan. One
@@ -576,8 +582,10 @@ export async function getRelevantMemories(
       .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
       .limit(fetchLimit);
 
-    if (hasMessage) {
-      return rankMemoriesByRelevance(candidates, userMessage, limit);
+    if (forTurn) {
+      return hasMessage
+        ? rankMemoriesByRelevance(candidates, userMessage, limit)
+        : candidates;
     }
 
     await markMemoriesAccessed(candidates.map(m => m.id));
