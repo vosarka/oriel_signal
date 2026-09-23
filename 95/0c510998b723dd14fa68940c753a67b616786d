@@ -1,0 +1,29 @@
+client/src/components/archive/transmissions.css
+  s_c39201d9b0bd21::t_99c88eb0129009 288-301
+wiki/log.md
+  ai_agent 1992-1997
+client/src/components/archive/TransmissionCarrier.tsx
+  s_c39201d9b0bd21::t_505158ce8dab19 68-69,72-76
+  s_c39201d9b0bd21::t_a7fd3a3de2341d 104-110
+  s_c39201d9b0bd21::t_4e53a3ab849b71 94
+  s_c39201d9b0bd21::t_08cff78eaed49f 138-141
+  s_c39201d9b0bd21::t_bc850284e2bf6c 197,199-202
+client/src/pages/Archive.tsx
+  s_c39201d9b0bd21::t_7972de631ea747 242-246
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "950c510998b723dd14fa68940c753a67b616786d",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
