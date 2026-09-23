@@ -26,12 +26,14 @@ import "@/components/archive/transmissions.css";
 export default function Archive() {
   const [activeRegister, setActiveRegister] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSection, setActiveSection] = useState<"tx" | "ox" | "signal">(
-    "tx"
+  // A signal chosen from the log, by serial (the 690006 of DFS-690006);
+  // null means the carrier shows today. Seeded from ?dfs= so a posted
+  // link opens straight onto that day.
+  const [selectedSerial, setSelectedSerial] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get("dfs")
   );
-  // A past signal chosen from the log; null means the carrier shows today.
-  const [selectedSignalId, setSelectedSignalId] = useState<number | null>(
-    null
+  const [activeSection, setActiveSection] = useState<"tx" | "ox" | "signal">(
+    () => (selectedSerial ? "signal" : "tx")
   );
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const { hasResonance } = usePersonalResonance();
@@ -184,10 +186,15 @@ export default function Archive() {
     );
   }, [signals, searchQuery]);
 
+  // Matched on the serial, not the prefix, so links keep working for rows
+  // written before the TX-GEN → DFS rename.
+  const serialOf = (txGenId: string) =>
+    txGenId.slice(txGenId.lastIndexOf("-") + 1);
   const selectedSignal =
-    selectedSignalId == null
+    selectedSerial == null
       ? null
-      : (signals.find((s: any) => s.id === selectedSignalId) ?? null);
+      : (signals.find((s: any) => serialOf(s.txGenId) === selectedSerial) ??
+        null);
 
   // The standing carrier — a signal chosen from the log, else today's open
   // signal, else the deepest transmission recovered so far.
@@ -196,8 +203,11 @@ export default function Archive() {
     todaysSignal ??
     (transmissions.length ? transmissions[transmissions.length - 1] : null);
 
-  const seatSignal = (id: number) => {
-    setSelectedSignalId(id === todaysSignal?.id ? null : id);
+  const seatSignal = (signal: any) => {
+    const serial = serialOf(signal.txGenId);
+    setSelectedSerial(serial);
+    // The address bar now holds a link to exactly this signal.
+    window.history.replaceState(null, "", `/archive?dfs=${serial}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -283,7 +293,7 @@ export default function Archive() {
               className={`tx-stream ${activeSection === "signal" ? "is-active" : ""}`}
               onClick={() => setActiveSection("signal")}
             >
-              TX-GEN · Daily signals ({filteredSignals.length})
+              DFS · Daily field signals ({filteredSignals.length})
             </button>
 
             <div className="tx-scan">
@@ -318,7 +328,7 @@ export default function Archive() {
                     key={s.id}
                     signal={s}
                     active={carrier?.id === s.id && "bodyLines" in carrier}
-                    onSelect={() => seatSignal(s.id)}
+                    onSelect={() => seatSignal(s)}
                   />
                 ))}
               </div>

@@ -931,7 +931,7 @@
 /* ── Daily signal rows ──────────────────────────────────────────── */
 /* A signal row is a button (it seats the carrier, it does not navigate),
    so it sheds the browser's button chrome and keeps the ledger's line.
-   Its ID is TX-GEN-690006, wider than TX-080, hence its own columns.
+   Its ID is DFS-690006, wider than TX-080, hence its own columns.
    Kept last so each breakpoint below overrides the one above it. */
 button.tx-row {
   width: 100%;
