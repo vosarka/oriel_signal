@@ -18,6 +18,7 @@ import { setupTranscribeWebSocket } from "../mistral-transcribe-ws";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
 import { getOrCreateTodaysSignal } from "../daily-signal-service";
+import { registerDailySignalFeedRoute } from "../daily-signal-feed";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -105,6 +106,7 @@ async function startServer() {
 
   registerSignatureStripeWebhookRoute(app);
   registerTetradicSignaturePayPalWebhookRoute(app);
+  registerDailySignalFeedRoute(app);
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));

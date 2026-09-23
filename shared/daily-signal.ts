@@ -70,6 +70,14 @@ export const CARRIER_LINE = "The field is active. The receiver is you.";
 export const CARRIER = "ORIEL ∇ Vossari Echoframe";
 export const ENCODED_NODE = "Vos Arkana";
 
+/**
+ * The serial of a signal id: 690006 for DFS-690006 (or for a row still
+ * on TX-GEN-690006). Links use it so they survive a prefix change.
+ */
+export function signalSerial(txGenId: string): string {
+  return txGenId.slice(txGenId.lastIndexOf("-") + 1);
+}
+
 /** DFS-690001 was seated on this day. */
 const ANCHOR_DATE = Date.UTC(2026, 8, 18);
 const ANCHOR_SERIAL = 690001;

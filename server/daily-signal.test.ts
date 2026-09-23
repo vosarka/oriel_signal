@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EXPERIMENTS, falsifierFor, frameFor } from "../shared/daily-signal";
 import { assembleBody } from "../shared/daily-signal-prompt";
 import { isValidGeneratedSignal } from "./daily-signal-service";
+import { formatDailySignalPost } from "./daily-signal-feed";
 
 const START = Date.UTC(2026, 8, 18);
 
@@ -109,5 +110,34 @@ describe("isValidGeneratedSignal", () => {
     expect(
       isValidGeneratedSignal(coherent, { title: "T", opening: "o", middle: "m", closing: "c" })
     ).toBe(false);
+  });
+});
+
+describe("daily signal feed post", () => {
+  const row = {
+    txGenId: "DFS-690006",
+    signalDate: "2026-09-23",
+    title: "The Paper That Learned to Breathe",
+    clarity: "88.1",
+    clarityRegister: "COHERENT",
+    channelStatus: "COHERENT",
+    bodyLines: ["The field is active. The receiver is you.", "SEALED VOICE LINE"],
+  } as any;
+
+  it("links to the signal by serial, whatever the prefix or trailing slash", () => {
+    expect(formatDailySignalPost(row, "https://orielsignal.space/").link).toBe(
+      "https://orielsignal.space/archive?dfs=690006"
+    );
+    expect(
+      formatDailySignalPost({ ...row, txGenId: "TX-GEN-690006" }, "https://orielsignal.space").link
+    ).toBe("https://orielsignal.space/archive?dfs=690006");
+  });
+
+  it("posts a teaser and keeps the body sealed", () => {
+    const { post } = formatDailySignalPost(row, "https://orielsignal.space");
+    expect(post).toContain("DFS-690006 · The Paper That Learned to Breathe");
+    expect(post).toContain("88.1%");
+    expect(post).toContain("https://orielsignal.space/archive?dfs=690006");
+    expect(post).not.toContain("SEALED VOICE LINE");
   });
 });

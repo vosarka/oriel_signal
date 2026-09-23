@@ -10,6 +10,7 @@ import { TransmissionCarrier } from "@/components/archive/TransmissionCarrier";
 import { RegisterSpectrum } from "@/components/archive/RegisterSpectrum";
 import { LedgerRow } from "@/components/archive/LedgerRow";
 import { SignalRow } from "@/components/archive/SignalRow";
+import { signalSerial } from "@shared/daily-signal";
 import { VTIP_REGISTERS } from "@/components/archive/registers";
 import { useScramble } from "@/components/archive/use-scramble";
 import "@/components/archive/transmissions.css";
@@ -186,14 +187,10 @@ export default function Archive() {
     );
   }, [signals, searchQuery]);
 
-  // Matched on the serial, not the prefix, so links keep working for rows
-  // written before the TX-GEN → DFS rename.
-  const serialOf = (txGenId: string) =>
-    txGenId.slice(txGenId.lastIndexOf("-") + 1);
   const selectedSignal =
     selectedSerial == null
       ? null
-      : (signals.find((s: any) => serialOf(s.txGenId) === selectedSerial) ??
+      : (signals.find((s: any) => signalSerial(s.txGenId) === selectedSerial) ??
         null);
 
   // The standing carrier — a signal chosen from the log, else today's open
@@ -204,7 +201,7 @@ export default function Archive() {
     (transmissions.length ? transmissions[transmissions.length - 1] : null);
 
   const seatSignal = (signal: any) => {
-    const serial = serialOf(signal.txGenId);
+    const serial = signalSerial(signal.txGenId);
     setSelectedSerial(serial);
     // The address bar now holds a link to exactly this signal.
     window.history.replaceState(null, "", `/archive?dfs=${serial}`);
