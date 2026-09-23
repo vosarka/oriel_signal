@@ -1,0 +1,38 @@
+wiki/log.md
+  s_c39201d9b0bd21::t_e8d36c70b48be4 1981-1987
+server/routers.ts
+  s_c39201d9b0bd21::t_93c6b7c16a4167 2681-2684
+  s_c39201d9b0bd21::t_17557895505566 30
+server/daily-signal-service.ts
+  s_c39201d9b0bd21::t_3e8ec4a77a30d4 100-109
+  s_c39201d9b0bd21::t_cfe742ab407c2f 8
+client/src/pages/Archive.tsx
+  s_c39201d9b0bd21::t_bdedb218367f97 281-287
+  s_c39201d9b0bd21::t_56d1f7a3cbeac9 12
+  s_c39201d9b0bd21::t_6b0c36182c57a7 51-54
+  s_c39201d9b0bd21::t_55a2a02878861b 29-35
+  s_c39201d9b0bd21::t_4de3a41dd9026a 175-193,195,199-203,206-210
+  s_c39201d9b0bd21::t_33226200a33694 258-260
+  s_c39201d9b0bd21::t_1813eef2d0d8be 301-327
+client/src/components/archive/SignalRow.tsx
+  s_c39201d9b0bd21::t_35fdd390d31637 1-33,35-70
+  s_c39201d9b0bd21::t_c0351179799993 34
+client/src/components/archive/transmissions.css
+  s_c39201d9b0bd21::t_5ccc3cda2426e2 930-966
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "797feea65c2b8a3da638c55a30df63f1fc695812",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
