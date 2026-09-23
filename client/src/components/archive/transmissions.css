@@ -285,6 +285,20 @@
   user-select: none;
 }
 
+/* The plain line sets the paragraph's size; the cipher is drawn over it
+   and can never push the layout, whatever its glyphs measure. */
+.tx-body {
+  position: relative;
+}
+.tx-body__hold {
+  visibility: hidden;
+}
+.tx-body__cipher {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 .tx-archetype {
   margin: 1.2em 0 0;
   max-width: 56ch;
