@@ -1,0 +1,23 @@
+client/src/pages/Archive.tsx
+  s_c39201d9b0bd21::t_5e099440946296 207-209
+server/daily-signal-feed.ts
+  s_c39201d9b0bd21::t_5e099440946296 19,41
+client/src/components/archive/transmissions.css
+  s_c39201d9b0bd21::t_5e099440946296 937-939,956-960
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d7bdcda0ab95d9ba31949fb47d54d3d308541b07",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
