@@ -34,6 +34,8 @@ export function isValidGeneratedSignal(
   const g = value as Record<string, unknown>;
   if (!isNonEmptyString(g.title)) return false;
   if (!isNonEmptyString(g.archetype)) return false;
+  if (!isNonEmptyString(g.key)) return false;
+  if (g.key.trim().split(/\s+/).length > 7) return false;
 
   if (frame.register === "FRACTURED") {
     return (

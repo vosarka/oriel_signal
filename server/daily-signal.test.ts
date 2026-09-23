@@ -64,11 +64,15 @@ describe("daily test bank", () => {
     const body = assembleBody(frame, {
       title: "T",
       archetype: "Δ-a // ϟ b // Ω c",
+      key: "the ring stays in the glass",
       opening: "o",
       middle: "m",
       closing: "c",
     });
     expect(body).toContain(frame.falsifier);
+    // The key sits after the voice, before the archetype.
+    expect(body.indexOf("the ring stays in the glass")).toBe(body.indexOf("c") + 1);
+    expect(body[body.indexOf("the ring stays in the glass") + 1]).toMatch(/^Encoded archetype/);
   });
 });
 
@@ -76,7 +80,7 @@ describe("isValidGeneratedSignal", () => {
   const base = frameFor(new Date(START));
   const fractured = { ...base, register: "FRACTURED" as const };
   const coherent = { ...base, register: "COHERENT" as const };
-  const head = { title: "T", archetype: "Δ-a // ϟ b // Ω c" };
+  const head = { title: "T", archetype: "Δ-a // ϟ b // Ω c", key: "the ring stays in the glass" };
 
   it("accepts three or four shards when fractured, with no falsifier from the model", () => {
     expect(
@@ -105,10 +109,21 @@ describe("isValidGeneratedSignal", () => {
 
   it("always needs a title and an archetype", () => {
     expect(
-      isValidGeneratedSignal(coherent, { archetype: head.archetype, opening: "o", middle: "m", closing: "c" })
+      isValidGeneratedSignal(coherent, { archetype: head.archetype, key: head.key, opening: "o", middle: "m", closing: "c" })
     ).toBe(false);
     expect(
-      isValidGeneratedSignal(coherent, { title: "T", opening: "o", middle: "m", closing: "c" })
+      isValidGeneratedSignal(coherent, { title: "T", key: head.key, opening: "o", middle: "m", closing: "c" })
+    ).toBe(false);
+  });
+
+  it("needs a key of seven words or fewer", () => {
+    const voice = { opening: "o", middle: "m", closing: "c" };
+    expect(isValidGeneratedSignal(coherent, { ...head, ...voice, key: undefined })).toBe(false);
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, key: "one two three four five six seven" })
+    ).toBe(true);
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, key: "one two three four five six seven eight" })
     ).toBe(false);
   });
 });
