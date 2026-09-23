@@ -5,7 +5,7 @@
  * See shared/daily-signal.ts and shared/daily-signal-prompt.ts for the
  * frame and the generation contract this reads.
  */
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { dailySignals } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
@@ -34,6 +34,8 @@ export function isValidGeneratedSignal(
   const g = value as Record<string, unknown>;
   if (!isNonEmptyString(g.title)) return false;
   if (!isNonEmptyString(g.archetype)) return false;
+  if (!isNonEmptyString(g.key)) return false;
+  if (g.key.trim().split(/\s+/).length > 7) return false;
 
   if (frame.register === "FRACTURED") {
     return (
@@ -94,6 +96,17 @@ export async function getTodaysSignal(): Promise<DailySignalRow | null> {
     .where(eq(dailySignals.signalDate, todayIso()))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * Every signal received so far, newest first. Plain read.
+ * ponytail: unpaginated — one row a day is ~365 a year; page it when
+ * the log is long enough to feel it.
+ */
+export async function listDailySignals(): Promise<DailySignalRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(dailySignals).orderBy(desc(dailySignals.signalDate));
 }
 
 /**

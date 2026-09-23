@@ -9,6 +9,8 @@ import { parseLinkedCodons, parseOracleHashtags } from "@/lib/oracle-utils";
 import { TransmissionCarrier } from "@/components/archive/TransmissionCarrier";
 import { RegisterSpectrum } from "@/components/archive/RegisterSpectrum";
 import { LedgerRow } from "@/components/archive/LedgerRow";
+import { SignalRow } from "@/components/archive/SignalRow";
+import { signalSerial } from "@shared/daily-signal";
 import { VTIP_REGISTERS } from "@/components/archive/registers";
 import { useScramble } from "@/components/archive/use-scramble";
 import "@/components/archive/transmissions.css";
@@ -25,7 +27,15 @@ import "@/components/archive/transmissions.css";
 export default function Archive() {
   const [activeRegister, setActiveRegister] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSection, setActiveSection] = useState<"tx" | "ox">("tx");
+  // A signal chosen from the log, by serial (the 690006 of DFS-690006);
+  // null means the carrier shows today. Seeded from ?dfs= so a posted
+  // link opens straight onto that day.
+  const [selectedSerial, setSelectedSerial] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get("dfs")
+  );
+  const [activeSection, setActiveSection] = useState<"tx" | "ox" | "signal">(
+    () => (selectedSerial ? "signal" : "tx")
+  );
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const { hasResonance } = usePersonalResonance();
 
@@ -39,6 +49,10 @@ export default function Archive() {
   // the day's signal was generated, picks it up without a reload.
   const { data: todaysSignal = null } =
     trpc.archive.dailySignal.today.useQuery(undefined, {
+      refetchInterval: 5 * 60 * 1000,
+    });
+  const { data: signals = [], isLoading: signalsLoading } =
+    trpc.archive.dailySignal.list.useQuery(undefined, {
       refetchInterval: 5 * 60 * 1000,
     });
 
@@ -161,17 +175,48 @@ export default function Archive() {
     return result;
   }, [oracles, searchQuery, activeThread]);
 
-  // The standing carrier — today's open signal when one has been
-  // generated, falling back to the deepest transmission recovered so far.
+  // ── Filter daily signals ────────────────────────────────────────
+  const filteredSignals = useMemo(() => {
+    if (!searchQuery) return signals;
+    const q = searchQuery.toLowerCase();
+    return signals.filter(
+      (s: any) =>
+        s.title.toLowerCase().includes(q) ||
+        s.field.toLowerCase().includes(q) ||
+        s.signalDate.includes(q)
+    );
+  }, [signals, searchQuery]);
+
+  const selectedSignal =
+    selectedSerial == null
+      ? null
+      : (signals.find((s: any) => signalSerial(s.txGenId) === selectedSerial) ??
+        null);
+
+  // The standing carrier — a signal chosen from the log, else today's open
+  // signal, else the deepest transmission recovered so far.
   const carrier: any =
+    selectedSignal ??
     todaysSignal ??
     (transmissions.length ? transmissions[transmissions.length - 1] : null);
 
+  const seatSignal = (signal: any) => {
+    const serial = signalSerial(signal.txGenId);
+    setSelectedSerial(serial);
+    // The address bar now holds a link to exactly this signal.
+    const url = new URL(window.location.href);
+    url.searchParams.set("dfs", serial);
+    window.history.replaceState(null, "", url);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const activeRegisterInfo = VTIP_REGISTERS.find(r => r.id === activeRegister);
   const ledgerLabel =
-    activeRegister === "all"
-      ? "RECOVERED TRANSMISSIONS"
-      : `REGISTER ${activeRegisterInfo?.vtip} · ${activeRegisterInfo?.name}`;
+    activeSection === "signal"
+      ? "DAILY SIGNAL LOG"
+      : activeRegister === "all"
+        ? "RECOVERED TRANSMISSIONS"
+        : `REGISTER ${activeRegisterInfo?.vtip} · ${activeRegisterInfo?.name}`;
   const scrambledLabel = useScramble(ledgerLabel, activeRegister, 260);
 
   // ── Ambient field log ───────────────────────────────────────────
@@ -219,7 +264,9 @@ export default function Archive() {
             <span className="tx-section__count">
               {activeSection === "tx"
                 ? `${filtered.length} held`
-                : `${filteredOracles.length} held`}
+                : activeSection === "ox"
+                  ? `${filteredOracles.length} held`
+                  : `${filteredSignals.length} received`}
             </span>
           </div>
 
@@ -240,6 +287,13 @@ export default function Archive() {
             >
               ΩX · Oracle fragments ({filteredOracles.length})
             </button>
+            <button
+              type="button"
+              className={`tx-stream ${activeSection === "signal" ? "is-active" : ""}`}
+              onClick={() => setActiveSection("signal")}
+            >
+              DFS · Daily field signals ({filteredSignals.length})
+            </button>
 
             <div className="tx-scan">
               <input
@@ -253,8 +307,33 @@ export default function Archive() {
             </div>
           </div>
 
-          {/* ── TX ledger ───────────────────────────────────────── */}
-          {activeSection === "tx" ? (
+          {/* ── Daily signal log ────────────────────────────────── */}
+          {activeSection === "signal" ? (
+            signalsLoading ? (
+              <div className="tx-state">
+                <Spinner size={20} label="Loading daily signals" />
+              </div>
+            ) : filteredSignals.length === 0 ? (
+              <div className="tx-state">
+                <p className="tx-state__line">No daily signal received</p>
+                <p className="tx-state__sub">
+                  The open register writes once a day.
+                </p>
+              </div>
+            ) : (
+              <div className="tx-ledger">
+                {filteredSignals.map((s: any) => (
+                  <SignalRow
+                    key={s.id}
+                    signal={s}
+                    active={carrier?.id === s.id && "bodyLines" in carrier}
+                    onSelect={() => seatSignal(s)}
+                  />
+                ))}
+              </div>
+            )
+          ) : /* ── TX ledger ─────────────────────────────────────── */
+          activeSection === "tx" ? (
             txLoading ? (
               <div className="tx-state">
                 <Spinner

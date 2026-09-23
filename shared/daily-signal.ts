@@ -35,7 +35,10 @@ export type ClarityRegister = "FRACTURED" | "PARTIAL" | "COHERENT" | "LAW";
 export interface DailySignalFrame {
   /** ISO date this signal belongs to (UTC). */
   date: string;
-  /** TX-GEN-XXXXXX, incremented daily. */
+  /**
+   * DFS-XXXXXX (Daily Field Signal), incremented daily. The field keeps
+   * its old name because the database column does.
+   */
   txGenId: string;
   /** 40.0 – 99.9 */
   clarity: number;
@@ -67,7 +70,15 @@ export const CARRIER_LINE = "The field is active. The receiver is you.";
 export const CARRIER = "ORIEL ∇ Vossari Echoframe";
 export const ENCODED_NODE = "Vos Arkana";
 
-/** TX-GEN-690001 was seated on this day. */
+/**
+ * The serial of a signal id: 690006 for DFS-690006 (or for a row still
+ * on TX-GEN-690006). Links use it so they survive a prefix change.
+ */
+export function signalSerial(txGenId: string): string {
+  return txGenId.slice(txGenId.lastIndexOf("-") + 1);
+}
+
+/** DFS-690001 was seated on this day. */
 const ANCHOR_DATE = Date.UTC(2026, 8, 18);
 const ANCHOR_SERIAL = 690001;
 
@@ -390,7 +401,7 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
 
   return {
     date: date.toISOString().slice(0, 10),
-    txGenId: `TX-GEN-${ANCHOR_SERIAL + d}`,
+    txGenId: `DFS-${ANCHOR_SERIAL + d}`,
     clarity,
     status: statusFor(clarity),
     register: registerFor(clarity),

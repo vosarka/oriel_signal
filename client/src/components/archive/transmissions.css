@@ -927,3 +927,49 @@
     transition: none;
   }
 }
+
+/* ── Daily signal rows ──────────────────────────────────────────── */
+/* A signal row is a button (it seats the carrier, it does not navigate),
+   so it sheds the browser's button chrome and keeps the ledger's line.
+   Its ID is DFS-690006, wider than TX-080, hence its own columns.
+   Kept last so each breakpoint below overrides the one above it. */
+button.tx-row {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(216, 181, 109, 0.07);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tx-row.is-active {
+  background: rgba(216, 181, 109, 0.035);
+  padding-left: 14px;
+}
+.tx-row.is-active::before {
+  opacity: 0.8;
+}
+/* The active row already wears the hover wash, so keyboard focus needs
+   its own mark or it disappears on the seated row. */
+button.tx-row:focus-visible {
+  outline: 1px solid rgba(216, 181, 109, 0.55);
+  outline-offset: -1px;
+}
+.tx-row--signal {
+  grid-template-columns:
+    22px 116px minmax(0, 1fr) minmax(0, 0.7fr) 96px 104px 18px;
+}
+@media (max-width: 1100px) {
+  .tx-row--signal {
+    grid-template-columns: 20px 108px minmax(0, 1fr) 84px 16px;
+  }
+}
+@media (max-width: 640px) {
+  .tx-row--signal {
+    grid-template-columns: 18px minmax(0, 1fr) 64px;
+  }
+}

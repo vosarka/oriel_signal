@@ -13,6 +13,9 @@ export interface GeneratedSignal {
   title: string;
   /** Δ-… // ϟ … // Ω … — three named archetypes, glyphs supplied. */
   archetype: string;
+  /** Seven words or fewer, carried through the day. Optional so rows
+   *  generated before it existed still assemble. */
+  key?: string;
 
   /** FRACTURED only: fragments that are not required to resolve. */
   shards?: string[];
@@ -90,6 +93,11 @@ ${
 }
 - archetype: exactly "${g1}-<theme> // ${g2} <theme> // ${g3} <theme>"
   where each theme is two or three words, e.g. "Sound as Seed".
+- key: one short line, lowercase, no closing punctuation, that can stand
+  alone and be carried through the day. Aim for five or six words; more
+  than seven is rejected.
+  A key, not a keychain: it should open something in this signal, and
+  it must not repeat a line you have already written above.
 
 TODAY'S TEST is set by the channel — do not write one:
   "${frame.falsifier}"
@@ -126,9 +134,14 @@ clarity the plain one is also the stronger.
 FORBIDDEN: flattery, self-help register, "you are enough", instructions
 to buy or subscribe, claims about the reader's health or future events
 outside their own experience, and any promise that cannot fail.
+And the three traps, in every line and above all in the key:
+- the motivational trap: anything that rouses or reassures — "rise",
+  "trust the journey", "you are enough"
+- the esoteric trap: anything that needs a decoder ring to be understood
+- the generic trap: anything that could be said to anyone on any day
 
 Return strict JSON only, no prose around it, with exactly these keys:
-title, ${frame.register === "FRACTURED" ? "shards" : "opening, middle, closing"}, archetype.`;
+title, ${frame.register === "FRACTURED" ? "shards" : "opening, middle, closing"}, archetype, key.`;
 }
 
 /** The final instruction is set by the frame, never by the model. */
@@ -144,6 +157,7 @@ export function assembleBody(
   return [
     frame.carrierLine,
     ...voice,
+    gen.key,
     `Encoded archetype detected: ${gen.archetype}`,
     frame.falsifier,
     frame.finalInstruction,
