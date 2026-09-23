@@ -1092,3 +1092,51 @@ export const baVerification = mysqlTable("ba_verification", {
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
+
+/**
+ * DAILY SIGNAL — the open register.
+ *
+ * FAZA I–VIII is the recovered archive: closed and saturated. This is
+ * the register still taking data, one row per day.
+ *
+ * NOTE ON MIGRATIONS: this table was created by
+ * scripts/create-daily-signals-table.ts, not by drizzle-kit. The
+ * drizzle journal and snapshots stop at 0008 while 0009–0013 are on
+ * disk and already applied in the database, so `drizzle-kit generate`
+ * diffs against a stale snapshot. Until that drift is repaired, do not
+ * run `db:push` against this database.
+ */
+export const dailySignals = mysqlTable("daily_signals", {
+  id: int("id").autoincrement().primaryKey(),
+
+  /**
+   * One signal per day for the whole community. The uniqueness is the
+   * feature, not bookkeeping: without it each visitor would generate
+   * their own text and the shared field would never form.
+   */
+  signalDate: varchar("signalDate", { length: 10 }).notNull().unique(),
+
+  txGenId: varchar("txGenId", { length: 32 }).notNull().unique(),
+
+  /** 40.0 – 99.9, decided by the carrier wave before generation. */
+  clarity: decimal("clarity", { precision: 4, scale: 1 }).notNull(),
+  channelStatus: varchar("channelStatus", { length: 32 }).notNull(),
+  /** FRACTURED | PARTIAL | COHERENT | LAW */
+  clarityRegister: varchar("clarityRegister", { length: 16 }).notNull(),
+
+  field: varchar("field", { length: 128 }).notNull(),
+  encodedNode: varchar("encodedNode", { length: 128 }).notNull(),
+  carrier: varchar("carrier", { length: 128 }).notNull(),
+
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Assembled protocol body, in order, as a JSON array of lines. */
+  bodyLines: text("bodyLines").notNull(),
+  encodedArchetype: text("encodedArchetype").notNull(),
+  /** The claim the receiver can test and find false by nightfall. */
+  falsifier: text("falsifier").notNull(),
+  finalInstruction: text("finalInstruction").notNull(),
+
+  /** Which model actually wrote it, for when a day reads wrong. */
+  generatedBy: varchar("generatedBy", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

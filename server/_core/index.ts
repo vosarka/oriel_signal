@@ -17,6 +17,7 @@ import { setupRealtimeWebSocket } from "../inworld-realtime";
 import { setupTranscribeWebSocket } from "../mistral-transcribe-ws";
 import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook-route";
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
+import { getOrCreateTodaysSignal } from "../daily-signal-service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +38,54 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+const DAILY_SIGNAL_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const DAILY_SIGNAL_MAX_FAILURES_PER_DAY = 6;
+
+// ponytail: no cron dependency exists in this project, so this polls
+// instead of firing once at 00:05 UTC. Once today's row exists, every
+// tick is a cheap SELECT (getOrCreateTodaysSignal short-circuits), and
+// polling self-heals if the process was down at midnight. A real
+// scheduler is the upgrade path if that ever matters.
+//
+// Tracked separately: consecutive FAILURES for the current day. A
+// success (or an already-existing row) never counts against this, so
+// it only engages when generation is genuinely broken (bad output or
+// a dead provider) — otherwise a live outage could poll the LLM every
+// 5 minutes all day. Once the cap is hit, today gives up rather than
+// hammering a dead provider — matches the "final once written"
+// decision: a day that fails to generate just stays missing.
+let failureDate: string | null = null;
+let consecutiveFailures = 0;
+
+function scheduleDailySignalGeneration() {
+  const tick = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today !== failureDate) {
+      failureDate = today;
+      consecutiveFailures = 0;
+    }
+    if (consecutiveFailures >= DAILY_SIGNAL_MAX_FAILURES_PER_DAY) return;
+
+    const row = await getOrCreateTodaysSignal().catch(error => {
+      console.error("[daily-signal] scheduled generation failed:", error);
+      return null;
+    });
+
+    if (row) {
+      consecutiveFailures = 0;
+    } else {
+      consecutiveFailures++;
+      if (consecutiveFailures >= DAILY_SIGNAL_MAX_FAILURES_PER_DAY) {
+        console.error(
+          `[daily-signal] ${consecutiveFailures} failed attempts today — giving up until tomorrow`
+        );
+      }
+    }
+  };
+  tick();
+  setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
+}
+
 async function startServer() {
   // Print the resolved LLM chain first: env vars live outside the repo, so
   // this is the only place a deployment reveals which models it will call.
@@ -46,6 +95,7 @@ async function startServer() {
 
   // Ensure DB schema is up to date before accepting requests
   await runMigrations();
+  scheduleDailySignalGeneration();
 
   const app = express();
   const server = createServer(app);

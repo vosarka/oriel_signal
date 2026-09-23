@@ -135,5 +135,8 @@
       "Bash(echo \"started pid $!\")"
     ]
   },
-  "prefersReducedMotion": false
+  "prefersReducedMotion": false,
+  "enabledMcpjsonServers": [
+    "graft"
+  ]
 }

@@ -1,0 +1,929 @@
+/* ═══════════════════════════════════════════════════════════════════
+   TRANSMISSIONS — instrument panel + ancient archive
+   Palette locked to VISUAL_LAW. Gold-on-void. No brown, no certificate
+   framing, no generated ornament. Geometry is drawn, never illustrated.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tx {
+  --tx-void: #050505;
+  --tx-gold: #d8b56d;
+  --tx-gold-bright: #e4c88c;
+  --tx-gold-deep: #bda36b;
+  --tx-ivory: #fff7e6;
+  --tx-teal: #5ba4a4;
+
+  --tx-line: rgba(216, 181, 109, 0.12);
+  --tx-line-strong: rgba(216, 181, 109, 0.26);
+  --tx-text: rgba(255, 247, 230, 0.86);
+  --tx-text-soft: rgba(255, 247, 230, 0.46);
+  --tx-text-dim: rgba(255, 247, 230, 0.26);
+
+  --tx-rail: clamp(16px, 3.4vw, 54px);
+
+  position: relative;
+  isolation: isolate;
+  color: var(--tx-text);
+}
+
+/* ── Registration ticks (drawn, not drawn-on) ───────────────────── */
+.tx-tick {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+.tx-tick::before,
+.tx-tick::after {
+  content: "";
+  position: absolute;
+  background: var(--tx-gold);
+  opacity: 0.55;
+}
+.tx-tick::before {
+  left: 0;
+  top: 4px;
+  width: 9px;
+  height: 1px;
+}
+.tx-tick::after {
+  top: 0;
+  left: 4px;
+  width: 1px;
+  height: 9px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARRIER — the standing transmission, full bleed
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tx-carrier {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(96px, 11vh, 132px) var(--tx-rail) clamp(28px, 4vh, 44px);
+  overflow: hidden;
+}
+
+/* A single warm bloom overhead. Nothing else. */
+.tx-carrier::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 52% 34% at 50% -4%,
+    rgba(216, 181, 109, 0.11),
+    transparent 70%
+  );
+}
+
+.tx-carrier__frame {
+  position: absolute;
+  inset: clamp(10px, 1.6vw, 22px);
+  pointer-events: none;
+  border: 1px solid rgba(216, 181, 109, 0.07);
+}
+.tx-carrier__frame .tx-tick {
+  position: absolute;
+}
+.tx-carrier__frame .tx-tick:nth-child(1) { left: -5px;  top: -5px; }
+.tx-carrier__frame .tx-tick:nth-child(2) { right: -5px; top: -5px; }
+.tx-carrier__frame .tx-tick:nth-child(3) { left: -5px;  bottom: -5px; }
+.tx-carrier__frame .tx-tick:nth-child(4) { right: -5px; bottom: -5px; }
+
+/* ── Rails ──────────────────────────────────────────────────────── */
+.tx-rail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--tx-text-dim);
+}
+.tx-rail--bottom {
+  align-items: flex-end;
+  margin-top: auto;
+  padding-top: 32px;
+}
+.tx-rail__label {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(255, 247, 230, 0.2);
+}
+.tx-rail__value {
+  display: block;
+  color: var(--tx-gold);
+  letter-spacing: 0.2em;
+}
+.tx-rail__cell--right {
+  text-align: right;
+}
+
+.tx-rail__dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--tx-gold);
+  box-shadow: 0 0 8px rgba(216, 181, 109, 0.7);
+  vertical-align: middle;
+}
+.tx-rail__dot--live {
+  animation: tx-pulse 3.2s ease-in-out infinite;
+}
+@keyframes tx-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* ── Carrier body: voice left, geometry right ───────────────────── */
+.tx-carrier__body {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 34vw, 520px);
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+  flex: 1;
+  padding: clamp(20px, 4vh, 48px) 0;
+}
+
+.tx-carrier__voice {
+  max-width: 62ch;
+}
+
+/* ── The spoken line ────────────────────────────────────────────── */
+.tx-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(28px, 3.5vw, 50px);
+  line-height: 1.1;
+  letter-spacing: 0.004em;
+  color: var(--tx-ivory);
+  text-wrap: balance;
+}
+
+.tx-headline__mark {
+  color: rgba(216, 181, 109, 0.5);
+}
+
+/* ── Title // status // clarity ─────────────────────────────────── */
+.tx-attribution {
+  margin: clamp(14px, 1.8vh, 22px) 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.35vw, 20px);
+  letter-spacing: 0.15em;
+  color: var(--tx-gold);
+  text-transform: uppercase;
+}
+.tx-attribution__sep {
+  margin: 0 0.5em;
+  color: rgba(216, 181, 109, 0.42);
+}
+
+/* ── Telemetry block ────────────────────────────────────────────── */
+.tx-telemetry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1px 10px;
+  margin: clamp(16px, 2.2vh, 26px) 0 0;
+  padding-left: 26px;
+  position: relative;
+  font-family: var(--font-ritual);
+  font-size: 12px;
+  line-height: 1.62;
+  letter-spacing: 0.03em;
+}
+.tx-telemetry__bullet {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  font-size: 12px;
+  color: var(--tx-gold);
+}
+.tx-telemetry dt {
+  color: var(--tx-text-soft);
+  white-space: nowrap;
+}
+.tx-telemetry dd {
+  margin: 0;
+  color: rgba(255, 247, 230, 0.74);
+  overflow-wrap: anywhere;
+}
+.tx-telemetry dd.is-key {
+  color: var(--tx-gold-bright);
+}
+
+/* ── VLS opcode line ────────────────────────────────────────────── */
+.tx-vls {
+  margin: clamp(16px, 2.2vh, 26px) 0 0;
+  padding-left: 26px;
+  font-family: var(--font-ritual);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(91, 164, 164, 0.62);
+}
+.tx-vls__slash {
+  color: rgba(216, 181, 109, 0.35);
+}
+
+/* ── Protocol markers ───────────────────────────────────────────── */
+.tx-protocol {
+  margin-top: clamp(16px, 2.2vh, 26px);
+  padding-left: 26px;
+  position: relative;
+}
+.tx-marker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-ritual);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--tx-gold);
+}
+.tx-marker__bullet {
+  margin-left: -26px;
+  width: 14px;
+  text-align: left;
+}
+
+/* ── Transmission voice copy ────────────────────────────────────── */
+.tx-body {
+  margin: 16px 0 0;
+  max-width: 56ch;
+  font-family: var(--font-voice);
+  font-size: clamp(16px, 1.25vw, 19px);
+  line-height: 1.78;
+  color: rgba(255, 247, 230, 0.8);
+  /* The carrier holds one screen. The rest is read in the fragment. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+.tx-body + .tx-body {
+  margin-top: 0.9em;
+}
+
+.tx-body--sealed {
+  color: rgba(255, 247, 230, 0.2);
+  user-select: none;
+}
+
+.tx-archetype {
+  margin: 1.2em 0 0;
+  max-width: 56ch;
+  font-family: var(--font-voice);
+  font-size: clamp(15px, 1.15vw, 18px);
+  line-height: 1.8;
+  color: rgba(255, 247, 230, 0.66);
+}
+.tx-archetype__glyph {
+  color: var(--tx-gold);
+  margin-right: 0.25em;
+}
+
+.tx-signoff {
+  margin: 14px 0 0;
+  font-family: var(--font-voice);
+  font-size: 16px;
+  font-style: italic;
+  color: rgba(255, 247, 230, 0.58);
+}
+.tx-channel {
+  margin: 4px 0 0;
+  font-family: var(--font-voice);
+  font-size: 15px;
+  color: rgba(255, 247, 230, 0.6);
+}
+.tx-channel__value {
+  font-family: var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tx-gold);
+}
+
+/* ── Vertical archive whisper ───────────────────────────────────── */
+.tx-whisper {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.2);
+  pointer-events: none;
+}
+.tx-whisper__rule {
+  width: 14px;
+  height: 1px;
+  margin-top: 6px;
+  background: rgba(216, 181, 109, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARRIERLOCK — hold to open the register
+   The orbital rings are drawn geometry (SVG strokes), not artwork.
+   The emblem at centre is the existing recovered mark.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tx-lock {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tx-lock:focus-visible {
+  outline: 1px solid rgba(216, 181, 109, 0.55);
+  outline-offset: 12px;
+}
+.tx-lock[aria-disabled="true"] {
+  cursor: default;
+}
+
+.tx-lock__orbits {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tx-lock__ring {
+  fill: none;
+  stroke: rgba(216, 181, 109, 0.19);
+  stroke-width: 0.6;
+}
+.tx-lock__ring--faint {
+  stroke: rgba(216, 181, 109, 0.1);
+}
+.tx-lock__ring--dashed {
+  stroke: rgba(216, 181, 109, 0.16);
+  stroke-dasharray: 0.8 5;
+  stroke-linecap: round;
+}
+.tx-lock__axis {
+  stroke: rgba(216, 181, 109, 0.14);
+  stroke-width: 0.5;
+}
+.tx-lock__node {
+  fill: rgba(216, 181, 109, 0.85);
+}
+.tx-lock__node--hollow {
+  fill: #050505;
+  stroke: rgba(216, 181, 109, 0.7);
+  stroke-width: 0.7;
+}
+
+.tx-lock__spin {
+  transform-origin: 50% 50%;
+  animation: tx-orbit 148s linear infinite;
+}
+.tx-lock__spin--counter {
+  animation-duration: 214s;
+  animation-direction: reverse;
+}
+@keyframes tx-orbit {
+  to { transform: rotate(360deg); }
+}
+
+/* The lock arc: fills while held, seats when the register opens */
+.tx-lock__arc {
+  fill: none;
+  stroke: var(--tx-gold-bright);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 0 4px rgba(228, 200, 140, 0.55));
+  transition: opacity 400ms ease;
+}
+
+.tx-lock__emblem {
+  position: relative;
+  width: 34%;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity 700ms ease,
+    filter 700ms ease;
+  opacity: 0.58;
+}
+.tx-lock.is-holding .tx-lock__emblem {
+  opacity: 0.85;
+}
+.tx-lock.is-open .tx-lock__emblem {
+  opacity: 1;
+  filter: drop-shadow(0 0 22px rgba(216, 181, 109, 0.4));
+}
+.tx-lock__emblem .fi-sigil,
+.tx-lock__emblem img {
+  width: 100%;
+  height: auto;
+}
+
+/* Instruction under the emblem */
+.tx-lock__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.34);
+  transition: color 300ms ease, opacity 500ms ease;
+}
+.tx-lock.is-holding .tx-lock__hint {
+  color: var(--tx-gold-bright);
+}
+.tx-lock.is-open .tx-lock__hint {
+  color: rgba(91, 164, 164, 0.66);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REGISTER SPECTRUM — VTIP saturation, not a filter bar
+   A register holds four bits. Four bits is saturation. The prime (')
+   marks the overflow into the next layer. SYS-DOC-01.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tx-section {
+  position: relative;
+  padding: clamp(56px, 9vh, 104px) var(--tx-rail) 0;
+}
+.tx-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--tx-line);
+}
+.tx-section__title {
+  margin: 0;
+  font-family: var(--font-ritual);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--tx-gold);
+}
+.tx-section__count {
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tx-text-dim);
+}
+
+.tx-registers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 1px;
+  margin-top: 1px;
+  background: var(--tx-line);
+  border: 1px solid var(--tx-line);
+}
+
+.tx-register {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 16px 14px 14px;
+  text-align: left;
+  background: rgba(5, 5, 5, 0.86);
+  border: 0;
+  cursor: pointer;
+  transition: background 260ms ease;
+}
+.tx-register:hover {
+  background: rgba(216, 181, 109, 0.035);
+}
+.tx-register.is-active {
+  background: rgba(216, 181, 109, 0.07);
+}
+.tx-register.is-empty {
+  cursor: default;
+}
+.tx-register:focus-visible {
+  outline: 1px solid rgba(216, 181, 109, 0.5);
+  outline-offset: -2px;
+}
+
+.tx-register__syntax {
+  font-family: var(--font-ritual);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: rgba(216, 181, 109, 0.4);
+  transition: color 260ms ease;
+}
+.tx-register.is-active .tx-register__syntax,
+.tx-register:hover .tx-register__syntax {
+  color: var(--tx-gold-bright);
+}
+.tx-register__prime {
+  color: var(--tx-teal);
+}
+
+.tx-register__name {
+  margin-top: 8px;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.56);
+}
+.tx-register__state {
+  margin-top: 3px;
+  font-family: var(--font-ritual);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.22);
+}
+
+/* Four bits. Filled bits are held data. */
+.tx-register__bits {
+  display: flex;
+  gap: 3px;
+  margin-top: 12px;
+}
+.tx-register__bit {
+  height: 2px;
+  flex: 1;
+  background: rgba(216, 181, 109, 0.12);
+  transition: background 300ms ease, box-shadow 300ms ease;
+}
+.tx-register__bit.is-set {
+  background: rgba(216, 181, 109, 0.55);
+}
+.tx-register.is-saturated .tx-register__bit.is-set {
+  background: var(--tx-gold-bright);
+  box-shadow: 0 0 6px rgba(228, 200, 140, 0.4);
+}
+
+.tx-register__load {
+  margin-top: 8px;
+  font-family: var(--font-ritual);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(216, 181, 109, 0.4);
+}
+.tx-register.is-empty .tx-register__load {
+  color: rgba(255, 247, 230, 0.14);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LEDGER — dense archival rows. The archive is a record, not a feed.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tx-ledger {
+  border-top: 1px solid var(--tx-line);
+}
+
+.tx-row {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    22px 62px minmax(0, 1fr) minmax(0, 0.7fr) 96px 104px 18px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 10px 14px 4px;
+  border-bottom: 1px solid rgba(216, 181, 109, 0.07);
+  text-decoration: none;
+  transition: background 220ms ease, padding-left 220ms ease;
+}
+.tx-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--tx-gold);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.tx-row:hover,
+.tx-row:focus-visible {
+  background: rgba(216, 181, 109, 0.035);
+  padding-left: 14px;
+  outline: none;
+}
+.tx-row:hover::before,
+.tx-row:focus-visible::before {
+  opacity: 0.8;
+}
+
+.tx-row__sigil {
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(216, 181, 109, 0.5);
+  transition: color 220ms ease, filter 220ms ease;
+}
+.tx-row:hover .tx-row__sigil {
+  color: var(--tx-gold-bright);
+  filter: drop-shadow(0 0 5px rgba(228, 200, 140, 0.45));
+}
+
+.tx-row__id {
+  font-family: var(--font-ritual);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(216, 181, 109, 0.42);
+}
+
+.tx-row__title {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.2vw, 18px);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  color: rgba(255, 247, 230, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 220ms ease;
+}
+.tx-row:hover .tx-row__title {
+  color: var(--tx-ivory);
+}
+
+.tx-row__field {
+  min-width: 0;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.26);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-row__clarity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tx-row__meter {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: rgba(216, 181, 109, 0.1);
+}
+.tx-row__meter span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(216, 181, 109, 0.5);
+  transition: background 220ms ease;
+}
+.tx-row:hover .tx-row__meter span {
+  background: var(--tx-gold-bright);
+}
+.tx-row__pct {
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(216, 181, 109, 0.44);
+}
+
+.tx-row__status {
+  justify-self: start;
+  padding: 3px 7px;
+  font-family: var(--font-ritual);
+  font-size: 7px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.tx-row__enter {
+  font-family: var(--font-ritual);
+  font-size: 11px;
+  color: rgba(216, 181, 109, 0.22);
+  transition: color 220ms ease, transform 220ms ease;
+}
+.tx-row:hover .tx-row__enter {
+  color: var(--tx-gold);
+  transform: translateX(3px);
+}
+
+/* ── Stream selector + scan ─────────────────────────────────────── */
+.tx-streams {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 18px 0 0;
+}
+.tx-stream {
+  padding: 0 0 10px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  font-family: var(--font-ritual);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.28);
+  cursor: pointer;
+  transition: color 220ms ease, border-color 220ms ease;
+}
+.tx-stream:hover {
+  color: rgba(255, 247, 230, 0.6);
+}
+.tx-stream.is-active {
+  color: var(--tx-gold);
+  border-bottom-color: var(--tx-gold);
+}
+.tx-stream--oracle.is-active {
+  color: var(--tx-teal);
+  border-bottom-color: var(--tx-teal);
+}
+
+.tx-scan {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+.tx-scan__input {
+  width: clamp(140px, 22vw, 260px);
+  padding: 4px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(216, 181, 109, 0.2);
+  outline: none;
+  font-family: var(--font-ritual);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--tx-gold-bright);
+  transition: border-color 220ms ease;
+}
+.tx-scan__input:focus {
+  border-bottom-color: rgba(216, 181, 109, 0.55);
+}
+.tx-scan__input::placeholder {
+  color: rgba(255, 247, 230, 0.2);
+}
+
+/* ── States ─────────────────────────────────────────────────────── */
+.tx-state {
+  padding: clamp(60px, 14vh, 130px) 0;
+  text-align: center;
+}
+.tx-state__line {
+  font-family: var(--font-ritual);
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(216, 181, 109, 0.4);
+}
+.tx-state__sub {
+  margin-top: 8px;
+  font-family: var(--font-ritual);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.16);
+}
+
+/* ── Field log footer ───────────────────────────────────────────── */
+.tx-fieldlog {
+  margin-top: clamp(48px, 8vh, 92px);
+  padding: 28px var(--tx-rail) clamp(52px, 8vh, 88px);
+  border-top: 1px solid rgba(216, 181, 109, 0.06);
+}
+.tx-fieldlog__label {
+  font-family: var(--font-ritual);
+  font-size: 8px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 230, 0.14);
+}
+.tx-fieldlog__quote {
+  margin: 8px 0 0;
+  font-family: var(--font-voice);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(216, 181, 109, 0.28);
+}
+.tx-fieldlog__seal {
+  margin-top: 30px;
+  text-align: center;
+  font-family: var(--font-ritual);
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(216, 181, 109, 0.18);
+}
+
+/* ── Oracle grid keeps its existing card component ──────────────── */
+.tx-oracle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 22px;
+  padding-top: 26px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NARROW FIELD
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1100px) {
+  .tx-carrier__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+  .tx-carrier__geometry {
+    order: -1;
+    justify-self: center;
+    width: min(320px, 68vw);
+  }
+  .tx-whisper {
+    display: none;
+  }
+  .tx-row {
+    grid-template-columns: 20px 54px minmax(0, 1fr) 84px 16px;
+  }
+  .tx-row__field,
+  .tx-row__status {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .tx-carrier {
+    padding-top: clamp(84px, 13vh, 112px);
+  }
+  .tx-telemetry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 0;
+  }
+  .tx-telemetry dt {
+    margin-top: 8px;
+    font-size: 10px;
+  }
+  .tx-streams {
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .tx-scan {
+    margin-left: 0;
+    width: 100%;
+  }
+  .tx-scan__input {
+    width: 100%;
+  }
+  .tx-row {
+    grid-template-columns: 18px minmax(0, 1fr) 64px;
+    gap: 12px;
+  }
+  .tx-row__id,
+  .tx-row__enter {
+    display: none;
+  }
+}
+
+/* ── Stillness ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tx-lock__spin,
+  .tx-rail__dot--live {
+    animation: none;
+  }
+  .tx-row,
+  .tx-row__enter,
+  .tx-lock__emblem {
+    transition: none;
+  }
+}
