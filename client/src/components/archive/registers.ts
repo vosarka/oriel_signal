@@ -49,9 +49,12 @@ export function tetradBits(held: number, capacity: number): number {
   return Math.min(4, Math.ceil((held / capacity) * 4));
 }
 
-/** Split the syntax so the prime marker can be coloured on its own. */
-export function splitPrime(vtip: string): [string, string] {
+/**
+ * Split the syntax so the prime marker can be coloured on its own:
+ * IIII′II → ["IIII", "′", "II"]. Only the marker takes the prime colour.
+ */
+export function splitPrime(vtip: string): [string, string, string] {
   const i = vtip.indexOf("′");
-  if (i === -1) return [vtip, ""];
-  return [vtip.slice(0, i), vtip.slice(i)];
+  if (i === -1) return [vtip, "", ""];
+  return [vtip.slice(0, i), "′", vtip.slice(i + 1)];
 }
