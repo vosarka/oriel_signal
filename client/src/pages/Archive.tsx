@@ -239,6 +239,11 @@ export default function Archive() {
             key={carrier.txGenId ?? carrier.txId ?? carrier.id}
             tx={carrier}
             total={transmissions.length}
+            live={
+              !!todaysSignal &&
+              "bodyLines" in carrier &&
+              carrier.id === todaysSignal.id
+            }
           />
         )}
 

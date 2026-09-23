@@ -65,9 +65,15 @@ function parseBodyLines(raw: unknown): string[] {
 interface TransmissionCarrierProps {
   tx: any;
   total: number;
+  /** Only today's signal is live; a past day or a recovered TX is not. */
+  live?: boolean;
 }
 
-export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
+export function TransmissionCarrier({
+  tx,
+  total,
+  live = false,
+}: TransmissionCarrierProps) {
   const [open, setOpen] = useState(false);
 
   // The daily signal (bodyLines) and an archive transmission (coreMessage,
@@ -85,7 +91,7 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
     .map((t, i) => `${ARCHETYPE_GLYPHS[i] ?? "◈"} ${t}`)
     .join("  //  ");
 
-  const sealedText = rest || archetype || tx.field || "";
+  const sealedText: string = rest || archetype || tx.field || "";
   const bodyText = useDecrypt(sealedText, open);
   // The signal's body is several lines (carrier line, voice, archetype,
   // falsifier, final instruction) — one <p> per line, matching the stacked
@@ -95,6 +101,13 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
   const bodyParagraphs = isSignal
     ? bodyText.split("\n").filter(Boolean)
     : [bodyText];
+  // The plain text, line for line, holds each paragraph's size while the
+  // cipher runs on top of it. Cipher glyphs are wider and taller than the
+  // letters they replace, so laid out directly they reflowed every tick
+  // and the whole page jumped under the pointer.
+  const plainParagraphs = isSignal
+    ? sealedText.split("\n").filter(Boolean)
+    : [sealedText];
 
   const registerLabel = isSignal
     ? tx.clarityRegister
@@ -122,8 +135,10 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
         <div className="tx-rail__cell">
           <span className="tx-rail__label">Signal stream</span>
           <span className="tx-rail__value">
-            <span className="tx-rail__dot tx-rail__dot--live" />
-            Live
+            <span
+              className={`tx-rail__dot ${live ? "tx-rail__dot--live" : ""}`}
+            />
+            {live ? "Live" : "Recorded"}
           </span>
         </div>
         <div className="tx-rail__cell tx-rail__cell--right">
@@ -179,9 +194,12 @@ export function TransmissionCarrier({ tx, total }: TransmissionCarrierProps) {
               Protocol begin
             </p>
 
-            {bodyParagraphs.map((line, i) => (
+            {plainParagraphs.map((plain, i) => (
               <p key={i} className={`tx-body ${open ? "" : "tx-body--sealed"}`}>
-                {line}
+                <span className="tx-body__hold" aria-hidden="true">
+                  {plain}
+                </span>
+                <span className="tx-body__cipher">{bodyParagraphs[i] ?? ""}</span>
               </p>
             ))}
             {!isSignal && open && rest && (
