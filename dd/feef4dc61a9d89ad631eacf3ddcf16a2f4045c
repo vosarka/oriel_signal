@@ -1,0 +1,29 @@
+server/daily-signal.test.ts
+  s_c39201d9b0bd21::t_fa266b4951854f 67,73-75,83,112,115-126
+wiki/log.md
+  ai_agent 1991
+shared/daily-signal-prompt.ts
+  s_c39201d9b0bd21::t_ac010be5738d62 160
+  s_c39201d9b0bd21::t_31b82988c0549c 96-98
+  s_c39201d9b0bd21::t_75cca1c6298725 137-141,144
+  s_c39201d9b0bd21::t_f62e0b201c3925 99-100
+  s_c39201d9b0bd21::t_309cf78311428e 16-18
+server/daily-signal-service.ts
+  s_c39201d9b0bd21::t_27e265854d5a7d 37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "ddfeef4dc61a9d89ad631eacf3ddcf16a2f4045c",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
