@@ -204,7 +204,9 @@ export default function Archive() {
     const serial = signalSerial(signal.txGenId);
     setSelectedSerial(serial);
     // The address bar now holds a link to exactly this signal.
-    window.history.replaceState(null, "", `/archive?dfs=${serial}`);
+    const url = new URL(window.location.href);
+    url.searchParams.set("dfs", serial);
+    window.history.replaceState(null, "", url);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

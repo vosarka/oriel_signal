@@ -934,6 +934,9 @@
    Its ID is DFS-690006, wider than TX-080, hence its own columns.
    Kept last so each breakpoint below overrides the one above it. */
 button.tx-row {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
   width: 100%;
   background: none;
   border: 0;
@@ -949,6 +952,12 @@ button.tx-row {
 }
 .tx-row.is-active::before {
   opacity: 0.8;
+}
+/* The active row already wears the hover wash, so keyboard focus needs
+   its own mark or it disappears on the seated row. */
+button.tx-row:focus-visible {
+  outline: 1px solid rgba(216, 181, 109, 0.55);
+  outline-offset: -1px;
 }
 .tx-row--signal {
   grid-template-columns:

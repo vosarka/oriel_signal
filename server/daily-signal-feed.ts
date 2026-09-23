@@ -16,7 +16,7 @@ const FALLBACK_BASE_URL = "https://orielsignal.space";
 export function formatDailySignalPost(row: DailySignalRow, baseUrl: string) {
   const link = `${baseUrl.replace(/\/+$/, "")}/archive?dfs=${signalSerial(row.txGenId)}`;
   const post = [
-    `⦿ ${row.txGenId} · ${row.title}`,
+    `⦿ ${row.txGenId} · ${row.title.replace(/\s+/g, " ").trim()}`,
     `Signal Clarity ${row.clarity}% · ${row.channelStatus}`,
     "",
     CARRIER_LINE,
@@ -38,9 +38,9 @@ export function formatDailySignalPost(row: DailySignalRow, baseUrl: string) {
 
 export function registerDailySignalFeedRoute(app: Express) {
   app.get("/api/daily-signal/today", async (_req, res) => {
+    res.set("Cache-Control", "no-store");
     try {
       const row = await getTodaysSignal();
-      res.set("Cache-Control", "no-store");
       if (!row) {
         // Generation runs within minutes of 00:00 UTC; a caller that
         // arrives first should simply try again later.
