@@ -1,0 +1,34 @@
+shared/daily-signal.ts
+  s_c39201d9b0bd21::t_759441a9504c9a 73-80
+client/src/pages/Archive.tsx
+  s_c39201d9b0bd21::t_2c3cdb68c5e4ef 193
+  s_c39201d9b0bd21::t_8becbf3840e2f6 13
+  s_c39201d9b0bd21::t_ed6bbdfec31f3a 204
+server/daily-signal.test.ts
+  s_c39201d9b0bd21::t_65ee3f44344d21 5,115-141
+server/daily-signal-feed.ts
+  s_c39201d9b0bd21::t_bf01af30c2319e 1-2,4-16,18-56
+  s_c39201d9b0bd21::t_a2408e377cad91 3
+  s_c39201d9b0bd21::t_d6beedbf9dbfec 17
+wiki/log.md
+  ai_agent 1990
+server/_core/index.ts
+  s_c39201d9b0bd21::t_afa5222944d6a9 109
+  s_c39201d9b0bd21::t_60a27d983d9179 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6c5b75f202c658fe867ccf1ece854a08cfc74d83",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
