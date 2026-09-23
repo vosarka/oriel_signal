@@ -1978,3 +1978,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - **This entry was missing**, as AGENTS.md requires. (Codex)
 - **Second round: a blank message was marked twice.** A turn with an empty message fell into the snapshot branch, was marked there, then marked again after composition. Turn mode is now keyed on the message being passed at all, not on it being non-blank. (cubic)
 - Verification: 44 passed across the memory, consent, extraction-window, budget and transmission-mode suites. `tsc` reports only the pre-existing `routers.ts` error. Not yet observed on live traffic: the fallback engages only when MindMemOS underfills a turn, so it needs a real conversation after deploy.
+
+## [2026-09-23] feat | Past daily signals get their own tab in the archive
+- Once the daily signal went live, only today's could be seen: yesterday's rows existed in `daily_signals` with nowhere to read them. Vos asked for a place, and chose a third tab on `/archive` next to TX and ΩX over a separate page, with past signals staying sealed like today's.
+- `archive.dailySignal.list` (public, read-only) returns every signal newest first; `listDailySignals()` is one unpaginated SELECT, fine at one row a day (`ponytail:` note on when to page it).
+- `SignalRow` reuses the ledger's `.tx-row` line but is a button: a daily signal has no detail page, so choosing one seats it in the carrier above, sealed, and scrolls up to it. `TX-GEN-690006` is wider than `TX-080`, so signal rows carry their own column widths at each breakpoint. Choosing today's row returns the carrier to today.
+- Verified against the running app with production data: the tab lists the four signals received so far (19, 20, 22, 23 September; 21 has none, no server ran that day), today's row starts active, and choosing 22 September reseats the carrier sealed with its own telemetry and no fragment link. The smooth scroll to the carrier could not be watched from the automation tab, which Chrome keeps hidden and so never animates; an instant scroll to the same point works.
+- Not changed: the carrier's upper rail still reads "Signal stream · Live" even when a past day is seated.

@@ -27,7 +27,7 @@ import {
   generateFalsifierMessage,
 } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
-import { getTodaysSignal } from "./daily-signal-service";
+import { getTodaysSignal, listDailySignals } from "./daily-signal-service";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
 import {
@@ -2677,6 +2677,10 @@ export const appRouter = router({
       /** Never generates — read-only, safe on a visitor's request path. */
       today: publicProcedure.query(async () => {
         return getTodaysSignal();
+      }),
+      /** The full log, newest first. Read-only. */
+      list: publicProcedure.query(async () => {
+        return listDailySignals();
       }),
     }),
     oracles: router({
