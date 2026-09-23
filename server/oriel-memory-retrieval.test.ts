@@ -6,6 +6,7 @@ import {
   formatRememberedNow,
   mergeMemoriesForTurn,
   parseOfficialMemoryId,
+  rankMemoriesByRelevance,
   shouldExtractMemories,
 } from "./oriel-memory-retrieval";
 import {
@@ -82,6 +83,67 @@ describe("memory retrieval helpers", () => {
     expect(block).toContain("prefers short replies");
     expect(block).toContain("Your own prior working views");
     expect(block).toContain("channeling is permission");
+  });
+});
+
+describe("rankMemoriesByRelevance", () => {
+  const pyramidAcoustics = {
+    id: 1,
+    content: "fascinated by pyramid acoustics and resonance physics",
+  };
+  const weekendPlans = {
+    id: 2,
+    content: "planning a weekend hiking trip with friends",
+  };
+
+  it("ranks a keyword-overlapping memory ahead of a higher-importance one that doesn't match", () => {
+    const ranked = rankMemoriesByRelevance(
+      [pyramidAcoustics, weekendPlans],
+      "excited about the weekend hiking trip",
+      2
+    );
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+  });
+
+  it("keeps DB order unchanged when there is no user message", () => {
+    const candidates = [pyramidAcoustics, weekendPlans];
+    expect(
+      rankMemoriesByRelevance(candidates, undefined, 2).map(row => row.id)
+    ).toEqual([1, 2]);
+    expect(
+      rankMemoriesByRelevance(candidates, "   ", 2).map(row => row.id)
+    ).toEqual([1, 2]);
+  });
+
+  it("keeps DB order unchanged when nothing in the message overlaps", () => {
+    const ranked = rankMemoriesByRelevance(
+      [pyramidAcoustics, weekendPlans],
+      "completely unrelated topic zzzz",
+      2
+    );
+    expect(ranked.map(row => row.id)).toEqual([1, 2]);
+  });
+
+  it("tops up from the remaining candidates in their original order once relevant ones are exhausted", () => {
+    const slowQuery = { id: 3, content: "debugging a slow database query" };
+    const ranked = rankMemoriesByRelevance(
+      [pyramidAcoustics, weekendPlans, slowQuery],
+      "excited about the weekend hiking trip",
+      2
+    );
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+  });
+
+  it("matches on a keyword past the first twelve in a long message", () => {
+    const ranked = rankMemoriesByRelevance(
+      [
+        { id: 1, content: "unrelated notes about gardening" },
+        { id: 2, content: "saw a zebra at the park" },
+      ],
+      "alpha bravo charlie delta echoes foxtrot golfs hotel india juliet kilos limas zebra",
+      2
+    );
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
   });
 });
 
@@ -166,6 +228,41 @@ describe("selectMemoriesForTurn", () => {
       fallback: async () => [{ id: 1 }, { id: 2 }, { id: 3 }] as never,
     });
     expect(selected.map(memory => memory.id)).toEqual([1, 2, 3]);
+  });
+
+  it("passes the user's message to the TiDB fallback so it can rank by relevance", async () => {
+    let receivedMessage: string | undefined;
+    await selectMemoriesForTurn(12, "tell me about my sleep patterns", 3, {
+      config: { enabled: false, baseUrl: "", apiKey: "" },
+      fallback: async (_userId, _limit, userMessage) => {
+        receivedMessage = userMessage;
+        return [];
+      },
+    });
+    expect(receivedMessage).toBe("tell me about my sleep patterns");
+  });
+
+  it("marks accessed only the fallback rows that reach the turn", async () => {
+    const hit = { id: 91, content: "prefers short replies" };
+    const fallbackRows = [7, 8, 9, 10].map(id => ({ id, content: `fact ${id}` }));
+    const marked: number[][] = [];
+
+    const selected = await selectMemoriesForTurn(12, "how do I like replies?", 4, {
+      config: { enabled: true, baseUrl: "http://127.0.0.1:8000", apiKey: "k" },
+      searchHits: async () => [
+        { cloudId: "c91", content: hit.content, officialMemoryId: 91 },
+      ],
+      lookupCloudIds: async () => [],
+      getByIds: async () => [hit] as never,
+      fallback: async () => fallbackRows as never,
+      markAccessed: async ids => {
+        marked.push(ids);
+      },
+    });
+
+    expect(selected.map(m => m.id)).toEqual([91, 7, 8, 9]);
+    // 10 was dropped by composition and 91 came from search: neither marked.
+    expect(marked).toEqual([[7, 8, 9]]);
   });
 });
 

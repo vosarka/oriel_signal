@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildGenerationPrompt,
-  extractContextKeywords,
   normalizeGeneratedTransmissionPayload,
   rollTransmissionMode,
   scoreClarityNeed,
 } from "./oriel-transmission-mode";
+import { extractContextKeywords } from "./context-keywords";
 
 function sequenceRandom(values: number[]) {
   let index = 0;
