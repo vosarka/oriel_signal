@@ -256,6 +256,15 @@ export function TetradicFounderEdition({
       aria-labelledby="tfe-title"
     >
       <header className="tfe__intro">
+        <figure className="tfe__hero-plate" data-tfe-intro-reveal>
+          <img
+            src={`${BOOK_ASSETS}/ch01-plate.webp`}
+            alt="Chapter one of the book, Two Moments: a solid gold disc above a ring broken into four arcs."
+            decoding="async"
+            fetchPriority="high"
+          />
+        </figure>
+        <div className="tfe__intro-main">
         <div className="tfe__intro-copy">
           <p className="tfe__eyebrow" data-tfe-intro-reveal>
             ORIEL Signal · Founder Archive
@@ -303,6 +312,13 @@ export function TetradicFounderEdition({
             <dd>Personally by email · within 5 calendar days</dd>
           </div>
         </dl>
+        <a
+          className="tfe__button tfe__button--primary tfe__hero-cta"
+          href="#tetradic-founder-intake"
+        >
+          Begin your reading · {PRICE}
+        </a>
+        </div>
       </header>
 
       <section
