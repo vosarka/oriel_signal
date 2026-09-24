@@ -1,0 +1,37 @@
+server/daily-signal.test.ts
+  s_c39201d9b0bd21::t_18e47820a1c5c1 2,9-23,32-35,37
+server/daily-signal-service.ts
+  s_c39201d9b0bd21::t_830a424bfa6bd2 12,124-126
+shared/daily-signal.ts
+  s_c39201d9b0bd21::t_7c8af0784efd42 47,63-64,66-67,71-85,229-232,242,258-259
+shared/daily-signal-prompt.ts
+  s_c39201d9b0bd21::t_6918e39fbac356 57-81,96,127,182-184
+server/daily-signal-feed.ts
+  s_c39201d9b0bd21::t_830a424bfa6bd2 21
+server/daily-codon.ts
+  s_c39201d9b0bd21::t_42837316d4e2ba 1-23,37-50,54-61
+  s_c39201d9b0bd21::t_140dd8c9d10192 24-32,34-36,51-53
+  s_c39201d9b0bd21::t_b3d38441e92fc5 33
+server/daily-codon.test.ts
+  s_c39201d9b0bd21::t_140dd8c9d10192 2,13-16,18-19
+  s_c39201d9b0bd21::t_b3d38441e92fc5 17
+  s_c39201d9b0bd21::t_f823d671514ccd 1,3-12,20-40
+server/ephemeris-service.ts
+  s_c39201d9b0bd21::t_42837316d4e2ba 160-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d82d9d9289999e3510191af877a6e4448ca57e4c",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
