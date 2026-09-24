@@ -50,28 +50,26 @@ const PAGE_COUNT = 64;
 const BOOK_ASSETS = "/assets/tetradic-signature/book-v2";
 
 /**
- * Part I, the manual. It holds no receiver data, so its plates are the
- * only pages shown publicly — Parts II and III are someone's record.
+ * Part I, the manual. It holds no receiver data, so it is the only part
+ * shown publicly — Parts II and III are someone's record. Each chapter is
+ * a spread: the obsidian plate, then the ivory page that explains it.
+ * Chapter one opens the page as the large spread; these follow it.
  */
-const MANUAL_CHAPTERS = [
-  { title: "Two Moments", line: "You were not born once. The sky was read twice." },
-  { title: "Eighty-Eight Degrees", line: "The second moment is not chosen. It is found." },
-  { title: "The Field of Sixty-Four", line: "The wheel does not describe you. It describes what is possible." },
-  { title: "Four Quarters", line: "Every position is divided again." },
-  { title: "Thirteen Bodies", line: "Thirteen positions at each moment. They do not count equally." },
-  { title: "Two Layers", line: "The same thirteen bodies, read twice, in different places." },
-  { title: "Eight Centres", line: "Positions are not scattered. They collect." },
-  { title: "What Closes a Circuit", line: "A position alone does nothing. Two positions can close a circuit." },
-  { title: "Pillar and Antenna", line: "A defined centre is a pillar. An open one is an antenna." },
-  { title: "What the System Does Not Say", line: "An instrument becomes credible when it names its limits." },
-].map((chapter, index) => {
-  const number = String(index + 1).padStart(2, "0");
-  const firstPage = 9 + index * 2;
+const SHOWN_CHAPTERS = [
+  { chapter: 2, title: "Eighty-Eight Degrees", line: "The second moment is not chosen. It is found." },
+  { chapter: 3, title: "The Field of Sixty-Four", line: "The wheel does not describe you. It describes what is possible." },
+  { chapter: 7, title: "Eight Centres", line: "Positions are not scattered. They collect." },
+  { chapter: 8, title: "What Closes a Circuit", line: "A position alone does nothing. Two positions can close a circuit." },
+  { chapter: 10, title: "What the System Does Not Say", line: "An instrument becomes credible when it names its limits." },
+].map(({ chapter, ...rest }) => {
+  const number = String(chapter).padStart(2, "0");
+  const firstPage = 7 + chapter * 2;
   return {
-    ...chapter,
+    ...rest,
     number,
     pages: `${String(firstPage).padStart(2, "0")}–${String(firstPage + 1).padStart(2, "0")}`,
     plate: `${BOOK_ASSETS}/ch${number}-plate.webp`,
+    page: `${BOOK_ASSETS}/ch${number}-page.webp`,
   };
 });
 
@@ -329,7 +327,7 @@ export function TetradicFounderEdition({
             <div className="tfe__book-leaf tfe__book-leaf--verso">
               <img
                 src={`${BOOK_ASSETS}/ch01-plate.webp`}
-                alt="Plate for chapter one: a solid sphere above an interrupted one on a single axis."
+                alt="Plate for chapter one, Two Moments: a solid gold disc above a ring broken into four arcs."
                 loading="lazy"
                 decoding="async"
               />
@@ -377,23 +375,19 @@ export function TetradicFounderEdition({
         <div
           className="tfe__tetrad-rail tfe__tetrad-rail--chapters"
           role="list"
-          aria-label="The ten chapters of the manual"
+          aria-label="Chapters from the manual"
         >
-          {MANUAL_CHAPTERS.map(chapter => (
+          {SHOWN_CHAPTERS.map(chapter => (
             <article
               className="tfe__tetrad-card tfe__tetrad-card--plate"
               key={chapter.number}
               role="listitem"
               data-tfe-tetrad-card
             >
-              <img
-                className="tfe__chapter-plate"
-                src={chapter.plate}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-              />
+              <div className="tfe__chapter-spread" aria-hidden="true">
+                <img src={chapter.plate} alt="" loading="lazy" decoding="async" />
+                <img src={chapter.page} alt="" loading="lazy" decoding="async" />
+              </div>
               <div className="tfe__tetrad-card-top">
                 <span>Chapter</span>
                 <strong>{chapter.number}</strong>
@@ -403,10 +397,26 @@ export function TetradicFounderEdition({
               <span className="tfe__tetrad-pages">Pages {chapter.pages}</span>
             </article>
           ))}
+          <article
+            className="tfe__tetrad-card tfe__tetrad-card--sealed"
+            role="listitem"
+            data-tfe-tetrad-card
+          >
+            <div className="tfe__tetrad-card-top">
+              <span>Parts</span>
+              <strong>II · III</strong>
+            </div>
+            <h4>Your record, sealed</h4>
+            <p>
+              Eleven chapters calculated from your birth, and four in my own
+              voice. Written for you, shown to no one else.
+            </p>
+            <span className="tfe__tetrad-pages">Pages 29–64</span>
+          </article>
         </div>
 
         <p className="tfe__mobile-rail-note" aria-hidden="true">
-          Swipe the ten chapters
+          Swipe the chapters
         </p>
       </section>
 

@@ -126,11 +126,11 @@ describe("Tetradic Founder Edition post-video page", () => {
     expect(markup).not.toContain("<textarea");
   });
 
-  it("renders the three-part, 64-page offer, the manual's ten chapters and precision register", () => {
+  it("renders the three-part, 64-page offer, the manual's chapters and precision register", () => {
     const markup = renderFounderEdition();
     const cards = markup.match(/\bdata-tfe-tetrad-card="true"/g) ?? [];
 
-    expect(cards).toHaveLength(10);
+    expect(cards).toHaveLength(6);
     ["Two Moments", "Eighty-Eight Degrees", "What the System Does Not Say"].forEach(
       title => expect(markup).toContain(title)
     );

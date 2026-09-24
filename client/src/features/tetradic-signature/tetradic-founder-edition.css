@@ -1285,31 +1285,36 @@
   grid-template-rows: auto auto auto 1fr auto;
 }
 
-/* The plate is the chapter's first page: centred art on obsidian, so a
-   centre crop keeps the whole figure. */
-.tfe__chapter-plate {
+/* Each card carries its chapter as a small open spread: obsidian plate,
+   ivory page. */
+.tfe__chapter-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  border: 1px solid var(--tfe-line);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.tfe__chapter-spread img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1100 / 1406;
   object-fit: cover;
-  object-position: center 45%;
-  border: 1px solid var(--tfe-line);
-  opacity: 0.88;
+  object-position: top center;
+  opacity: 0.9;
   transition: opacity 0.4s ease;
 }
 
-.tfe__tetrad-card--plate:hover .tfe__chapter-plate {
+.tfe__tetrad-card--plate:hover .tfe__chapter-spread img {
   opacity: 1;
 }
 
-/* Ten chapters fill two rows of five; three columns left two cells empty.
-   Below 721px the shared rail rule turns this into a swipe row. */
-@media (min-width: 1100px) {
-  .tfe__tetrad-rail--chapters {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
+.tfe__tetrad-card--sealed {
+  align-content: end;
 }
 
+/* Six cards: two rows of three is the shared rail's default. Below 721px
+   the shared rail rule turns this into a swipe row. */
 @media (min-width: 721px) and (max-width: 1099px) {
   .tfe__tetrad-rail--chapters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
