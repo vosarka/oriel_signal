@@ -44,7 +44,7 @@ export interface DailySignalFrame {
   clarity: number;
   status: ChannelStatus;
   register: ClarityRegister;
-  /** "RC38 · NAME · Somatic": the Codon of the day, read from the Moon. */
+  /** A rotating field, or on a Codon day "RC38 · NAME · Somatic". */
   field: string;
   encodedNode: string;
   carrier: string;
@@ -60,11 +60,15 @@ export interface DailySignalFrame {
    */
   phenomena: readonly string[];
   /**
-   * The Codon of the day (server/daily-codon.ts). Null only where no
-   * ephemeris ran, e.g. a frame built for a test or a preview.
+   * The Codon of the day (server/daily-codon.ts) on a Codon day, null on
+   * a classic day. See isCodonDay.
    */
   codon: DailyCodon | null;
-  /** "Correction: …", verbatim from the Codon library. Never the model's. */
+  /**
+   * Set by the frame, never by the model: on a Codon day "Correction: …"
+   * verbatim from the Codon library, otherwise today's physical test (see
+   * EXPERIMENTS).
+   */
   falsifier: string;
 }
 
@@ -99,6 +103,18 @@ export function signalSerial(txGenId: string): string {
 /** DFS-690001 was seated on this day. */
 const ANCHOR_DATE = Date.UTC(2026, 8, 18);
 const ANCHOR_SERIAL = 690001;
+
+// Rotated, not random — the archive repeats on a cycle the community
+// can learn to feel.
+const FIELDS = [
+  "Acoustic Architecture",
+  "Sacred Geometry",
+  "Resonance Mythology",
+  "Echoframe Physics",
+  "Vossari Memory",
+  "Threshold Geometry",
+  "Photonic Memory Fields",
+] as const;
 
 /**
  * Δ sound, vibration, seed · ϟ geometry, memory, blueprint
@@ -154,6 +170,179 @@ const PHENOMENA = [
   "footsteps that sound different in an empty corridor",
   "a wet fingertip circling a bowl's rim",
 ] as const;
+
+/**
+ * The daily test. An action the receiver can do before nightfall that
+ * can genuinely turn out more than one way; each day two of its results
+ * are shown, each with what it means. Not right or wrong — x or y.
+ *
+ * Set here, never by the model. Every attempt to have the model write
+ * one produced claims that could not be tested or physics that was
+ * wrong, and a wrong one published under ORIEL's name is worse than none.
+ *
+ * Authoring rules, because the bank is only as true as its entries:
+ * - every result must be something that really happens, under some
+ *   condition the receiver may or may not be in; an action that always
+ *   gives the same result does not belong here
+ * - a meaning is a physical fact about the room or the object, never a
+ *   reading of the receiver, and never a promise about their day
+ * - no counts or durations ("three seconds"); results are lowercase
+ *   clauses that follow "If", meanings follow "it means"
+ * - results within one action are distinct
+ */
+export interface ExperimentOutcome {
+  result: string;
+  meaning: string;
+}
+export interface Experiment {
+  action: string;
+  outcomes: readonly ExperimentOutcome[];
+}
+
+export const EXPERIMENTS: readonly Experiment[] = [
+  {
+    action: "Strike a glass with a spoon and listen.",
+    outcomes: [
+      {
+        result: "the ring fades fast",
+        meaning:
+          "something is damping it, whether your hand, a soft surface underneath, or a crack",
+      },
+      {
+        result: "the ring lingers",
+        meaning: "the glass is free to vibrate and nothing is holding it back",
+      },
+      {
+        result: "you hear a dull tap with almost no ring",
+        meaning: "the glass wall is thick, or has a crack running through it",
+      },
+      {
+        result: "the note is high and thin",
+        meaning: "the glass is small; a larger one would sound lower",
+      },
+    ],
+  },
+  {
+    action: "Clap your hands in the middle of a room and listen to what follows.",
+    outcomes: [
+      {
+        result: "the clap dies at once",
+        meaning:
+          "soft things in the room are swallowing the sound, like curtains, a sofa or a rug",
+      },
+      {
+        result: "the clap rings on",
+        meaning: "the walls and floor are hard and are giving the sound back",
+      },
+      {
+        result: "you hear a quick flutter, like a tiny drumroll",
+        meaning:
+          "two bare walls face each other and are bouncing the sound back and forth",
+      },
+    ],
+  },
+  {
+    action: "Knock on a wall with a knuckle and move slowly along it.",
+    outcomes: [
+      {
+        result: "it sounds hollow",
+        meaning:
+          "there is empty space behind the surface, as behind plasterboard",
+      },
+      {
+        result: "it sounds dull and solid",
+        meaning: "something dense sits behind it, like a stud, brick or concrete",
+      },
+      {
+        result: "the sound changes as you move along",
+        meaning:
+          "the wall is not the same all the way through, and a beam or stud sits behind part of it",
+      },
+    ],
+  },
+  {
+    action: "Breathe out slowly against a window and watch the glass.",
+    outcomes: [
+      {
+        result: "a fog appears and vanishes almost at once",
+        meaning: "the glass is only a little cooler than your breath",
+      },
+      {
+        result: "a fog appears and stays a while",
+        meaning: "the glass is much colder than your breath",
+      },
+      {
+        result: "no fog appears",
+        meaning:
+          "the glass is about as warm as your breath, or the air is very dry",
+      },
+    ],
+  },
+  {
+    action:
+      "Wet a fingertip and circle it slowly round the rim of a thin wine glass.",
+    outcomes: [
+      {
+        result: "the glass sings a steady note",
+        meaning:
+          "the rim is clean, your finger is wet, and your speed is even",
+      },
+      {
+        result: "it squeaks and stutters",
+        meaning:
+          "your finger is skipping across the rim, either too dry or moving unevenly",
+      },
+      {
+        result: "nothing happens",
+        meaning: "the rim is greasy, or the glass is too thick to sing",
+      },
+    ],
+  },
+  {
+    action: "Hold a thin strip of tissue paper above a mug of hot water.",
+    outcomes: [
+      {
+        result: "it lifts and flutters",
+        meaning:
+          "warm air is rising off the mug and carrying the paper with it",
+      },
+      {
+        result: "it leans to one side",
+        meaning: "air in the room is drifting sideways across the mug",
+      },
+      {
+        result: "it hangs still",
+        meaning:
+          "the water has cooled too much to push air upward, and the air around it is calm",
+      },
+    ],
+  },
+];
+
+/** Every unordered pair of outcome indices, in a fixed order. */
+function outcomePairs(count: number): Array<[number, number]> {
+  const pairs: Array<[number, number]> = [];
+  for (let i = 0; i < count; i++) {
+    for (let j = i + 1; j < count; j++) pairs.push([i, j]);
+  }
+  return pairs;
+}
+
+/**
+ * Day n takes experiment n mod A, and each time an experiment comes
+ * round it shows the next pair of its outcomes — like an odometer, so an
+ * (experiment, pair) combination is not shown again until every one of
+ * that experiment's pairs has been.
+ */
+export function falsifierFor(n: number): string {
+  const e = EXPERIMENTS[cycle(n, EXPERIMENTS.length)];
+  const pairs = outcomePairs(e.outcomes.length);
+  const round = Math.floor(n / EXPERIMENTS.length);
+  const [i, j] = pairs[cycle(round, pairs.length)];
+  const x = e.outcomes[i];
+  const y = e.outcomes[j];
+  return `${e.action} If ${x.result}, it means ${x.meaning}. If ${y.result}, it means ${y.meaning}.`;
+}
 
 function daysSinceAnchor(date: Date): number {
   const d = Date.UTC(
@@ -226,6 +415,19 @@ export function registerFor(clarity: number): ClarityRegister {
  * rather than by ORIEL. The words themselves are generated against
  * this frame — see buildSignalPrompt.
  */
+/**
+ * Each day is one of two kinds, fixed by the date so it is reproducible:
+ * a classic day (rotating field and a physical test) or a Codon day (the
+ * Moon's Codon and its micro-correction). Two kinds keep the archive
+ * varied and give ORIEL more to draw on than one would.
+ * A hash of the day number, not d % 2 — strict alternation is a pattern
+ * the community would learn in a week.
+ */
+export function isCodonDay(date: Date = new Date()): boolean {
+  const x = Math.sin(daysSinceAnchor(date) * 12.9898) * 43758.5453;
+  return x - Math.floor(x) < 0.5;
+}
+
 export function frameFor(
   date: Date = new Date(),
   codon: DailyCodon | null = null
@@ -239,7 +441,9 @@ export function frameFor(
     clarity,
     status: statusFor(clarity),
     register: registerFor(clarity),
-    field: codon ? `${codon.code} · ${codon.name} · ${codon.facet}` : "Open Field",
+    field: codon
+      ? `${codon.code} · ${codon.name} · ${codon.facet}`
+      : FIELDS[cycle(d, FIELDS.length)],
     encodedNode: ENCODED_NODE,
     carrier: CARRIER,
     carrierLine: CARRIER_LINE,
@@ -256,6 +460,6 @@ export function frameFor(
       PHENOMENA[cycle(d + 12, PHENOMENA.length)],
     ],
     codon,
-    falsifier: codon ? `Correction: ${codon.correction}` : "",
+    falsifier: codon ? `Correction: ${codon.correction}` : falsifierFor(d),
   };
 }

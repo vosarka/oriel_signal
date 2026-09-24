@@ -67,15 +67,24 @@ Do not print the Codon code or name; the channel shows them.`;
 
 function correctionBlock(frame: DailySignalFrame): string {
   const c = frame.codon;
-  if (!c) return "";
+  if (!c) {
+    return `TODAY'S TEST is set by the channel — do not write one:
+  "${frame.falsifier}"
+You may let the transmission lean toward the same kind of thing, but
+never restate the test, never contradict it, and never say how it will
+turn out.
+`;
+  }
   return `TODAY'S MICRO-CORRECTION is set by the channel and printed after your
 words, verbatim — do not write it:
-  When the shadow shows: "${c.shadowManifestation}"
   Correction: "${c.correction}"
+The shadow it answers, for your understanding only — it is never printed,
+and you must never name it or suggest the receiver has it:
+  "${c.shadowManifestation}"
 Today's transmission is its unpacking: why this correction answers this
 pattern, spoken in today's register and drawn from the facet above.
-Never restate the correction or the shadow, never diagnose the receiver,
-never promise the correction will work.
+Never restate the correction, never diagnose the receiver, never promise
+the correction will work.
 `;
 }
 
@@ -179,9 +188,10 @@ export function assembleBody(
     ...voice,
     gen.key,
     `Encoded archetype detected: ${gen.archetype}`,
-    ...(frame.codon
-      ? [`Shadow: ${frame.codon.shadowManifestation}`, frame.falsifier]
-      : []),
+    // The correction or the day's test. The shadow is never printed: in
+    // 38 of 512 entries it names depression, eating, trauma or death, and
+    // printed to everyone it reads as a diagnosis.
+    frame.falsifier,
     frame.finalInstruction,
   ].filter((l): l is string => Boolean(l && l.trim()));
 }
