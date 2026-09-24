@@ -324,7 +324,7 @@ export function falsifierFor(n: number): string {
   return `${e.action} If ${x.result}, it means ${x.meaning}. If ${y.result}, it means ${y.meaning}.`;
 }
 
-function daysSinceAnchor(date: Date): number {
+export function daysSinceAnchor(date: Date): number {
   const d = Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth(),
@@ -334,7 +334,7 @@ function daysSinceAnchor(date: Date): number {
 }
 
 /** Positive modulo — the archive never counts backwards. */
-function cycle(n: number, len: number): number {
+export function cycle(n: number, len: number): number {
   return ((n % len) + len) % len;
 }
 

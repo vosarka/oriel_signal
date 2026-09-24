@@ -360,9 +360,10 @@ export default function OracleDetail() {
                 className="leading-relaxed"
                 style={{
                   color: `${colors.light}dd`,
-                  fontStyle: "italic",
                   fontSize: 14,
                   lineHeight: 1.6,
+                  // Stream oracles carry the whole ΩX caption, line by line.
+                  whiteSpace: "pre-line",
                 }}
               >
                 {oracle.content}

@@ -28,6 +28,7 @@ import {
 } from "./oriel-system-prompt";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { getTodaysSignal, listDailySignals } from "./daily-signal-service";
+import { publishOracle } from "./oracle-stream-service";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
 import {
@@ -3559,8 +3560,19 @@ export const appRouter = router({
 
     oracles: router({
       list: adminProcedure.query(async () => {
-        return db.getAllOracles();
+        return db.getAllOraclesForAdmin();
       }),
+
+      /** Approve a drafted oracle: Past goes public now, the rest daily. */
+      publish: adminProcedure
+        .input(z.object({ oracleId: z.string().min(1) }))
+        .mutation(async ({ input }) => {
+          const published = await publishOracle(input.oracleId);
+          if (!published) {
+            throw new Error("Oracle is not a draft awaiting approval.");
+          }
+          return { success: true };
+        }),
 
       create: adminProcedure
         .input(
