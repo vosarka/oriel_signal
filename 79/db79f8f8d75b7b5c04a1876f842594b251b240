@@ -1,0 +1,21 @@
+client/src/components/canvasui/DecryptReveal.tsx
+  s_c39201d9b0bd21::t_a7e5a692c40fc0 531-533,1152-1156
+wiki/log.md
+  ai_agent 2005
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "79db79f8f8d75b7b5c04a1876f842594b251b240",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
