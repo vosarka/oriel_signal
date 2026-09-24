@@ -1,0 +1,28 @@
+server/tetradic-founder-edition-checkout-page.test.ts
+  s_c39201d9b0bd21::t_f3cae628dfde8f 53
+client/src/pages/TetradicSignatureSacredExperience.tsx
+  s_c39201d9b0bd21::t_080789101d5711 1,6-8,12-16,18,74-81
+client/src/features/tetradic-signature/TetradicFounderEdition.tsx
+  s_c39201d9b0bd21::t_a4459c929b1ca1 259-267,315-321
+client/src/features/tetradic-signature/tetradic-founder-edition.css
+  s_c39201d9b0bd21::t_a4459c929b1ca1 1323-1375
+  s_c39201d9b0bd21::t_dc516c5c32e40f 1376-1394
+wiki/log.md
+  ai_agent 2005-2007
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "cbd569c368356f37d8e379c6b495ffd97311b731",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
