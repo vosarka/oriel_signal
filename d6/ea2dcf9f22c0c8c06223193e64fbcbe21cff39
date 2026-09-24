@@ -1,0 +1,28 @@
+client/src/components/rect-cache.ts
+  s_c39201d9b0bd21::t_75dda7804f421a 2-9,14,16
+  s_c39201d9b0bd21::t_7f7c62a55f8192 1,10-13,15,17-18
+client/src/components/archive/TransmissionCarrier.tsx
+  s_c39201d9b0bd21::t_c318f31e27ee25 230
+  s_c39201d9b0bd21::t_6c499e5add3921 125-127,210,212-213
+  s_c39201d9b0bd21::t_4c05fa8db15207 5,128-136,211,214-229,231-241
+client/src/components/canvasui/DecryptReveal.tsx
+  s_c39201d9b0bd21::t_a93233e2fdad4b 538-1210
+components.json
+  s_c39201d9b0bd21::t_29b3b210509fb8 18-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d6ea2dcf9f22c0c8c06223193e64fbcbe21cff39",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
