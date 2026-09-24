@@ -9,6 +9,7 @@ import { sql, eq, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { dailySignals } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
+import { codonOfDay } from "./daily-codon";
 import { frameFor, type DailySignalFrame } from "../shared/daily-signal";
 import {
   buildSignalPrompt,
@@ -120,7 +121,9 @@ export async function getOrCreateTodaysSignal(): Promise<DailySignalRow | null> 
   const db = await getDb();
   if (!db) return null;
 
-  const frame = frameFor();
+  // Throws if the ephemeris or the Codon library fails; the scheduler
+  // counts that as a failed attempt and tries again on its next tick.
+  const frame = frameFor(new Date(), await codonOfDay());
   const result = await generateSignal(frame);
   if (!result) return null;
   const { gen, model } = result;
