@@ -1,0 +1,45 @@
+shared/oracle-stream.ts
+  s_c39201d9b0bd21::t_de2e1e7a349afb 282-304,328
+  s_c39201d9b0bd21::t_a1f78ea11fe3c1 130
+  s_c39201d9b0bd21::t_b7f116aee610e4 156
+  s_c39201d9b0bd21::t_406cdc6b18d4dd 1-129,131-155,157-281,305-327,329-469
+server/_core/index.ts
+  s_c39201d9b0bd21::t_b7be1ff056a3bd 22-25,94-113,115-122,133
+  s_c39201d9b0bd21::t_99b9ff28268375 114
+scripts/generate-oracle-draft.ts
+  s_c39201d9b0bd21::t_86935b20e30d68 1-66
+server/oracle-stream-service.ts
+  s_c39201d9b0bd21::t_de2e1e7a349afb 18,59-61
+  s_c39201d9b0bd21::t_7cf9a50b5444aa 63-65,67
+  s_c39201d9b0bd21::t_99b9ff28268375 175,177-180,183,187,190
+  s_c39201d9b0bd21::t_9f8ac53f24e986 1-17,19-58,62,66,68-174,176,181-182,184-186,188-189,191
+client/src/pages/OracleDetail.tsx
+  s_c39201d9b0bd21::t_0856070e16aea1 365-366
+server/db.ts
+  s_c39201d9b0bd21::t_f5db7370e90aeb 2082-2088,2090-2105,2123,3040,3055
+shared/daily-signal.ts
+  s_c39201d9b0bd21::t_018aa863dde930 327,337
+server/routers.ts
+  s_c39201d9b0bd21::t_af088bb9dc25eb 3572
+  s_c39201d9b0bd21::t_a1f78ea11fe3c1 31,3563,3566-3571,3573-3575
+client/src/pages/Admin.tsx
+  s_c39201d9b0bd21::t_d40faf2917cc75 919-924,1577-1606
+server/oracle-stream.test.ts
+  s_c39201d9b0bd21::t_c6de40ea1be08d 1-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8a167bc167cc5a1b19bb2434cfc3d112eb860ad4",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
