@@ -9,7 +9,6 @@ import {
   TetradicFounderEdition,
   type TetradicFounderEditionProps,
 } from "../client/src/features/tetradic-signature/TetradicFounderEdition";
-import { TETRADIC_BOOK_TETRADS } from "../client/src/features/tetradic-signature/tetradic-book-flatplan";
 
 const ROOT = process.cwd();
 const COMPONENT =
@@ -127,20 +126,24 @@ describe("Tetradic Founder Edition post-video page", () => {
     expect(markup).not.toContain("<textarea");
   });
 
-  it("renders the complete 12-tetrad, 48-page offer and precision register", () => {
+  it("renders the three-part, 64-page offer, the manual's ten chapters and precision register", () => {
     const markup = renderFounderEdition();
     const cards = markup.match(/\bdata-tfe-tetrad-card="true"/g) ?? [];
 
-    expect(cards).toHaveLength(12);
-    expect(TETRADIC_BOOK_TETRADS).toHaveLength(12);
-    TETRADIC_BOOK_TETRADS.forEach(tetrad => {
-      expect(markup).toContain(tetrad.title);
-    });
+    expect(cards).toHaveLength(10);
+    ["Two Moments", "Eighty-Eight Degrees", "What the System Does Not Say"].forEach(
+      title => expect(markup).toContain(title)
+    );
+    ["The System", "The Record", "What I Saw"].forEach(part =>
+      expect(markup).toContain(part)
+    );
+    // Only Part I, which holds no receiver data, is ever shown publicly.
+    expect(markup).not.toMatch(/Gail|1961/i);
 
     expect(markup).toContain("THE TETRADIC SIGNATURE");
     expect(markup).toContain("FOUNDER EDITION");
     expect(markup).toContain("Your Resonance Architecture");
-    expect(markup).toContain("12 tetrads · 48 pages");
+    expect(markup).toContain("3 parts · 64 pages");
     expect(markup).toContain("64");
     expect(markup).toContain("5.625°");
     expect(markup).toContain("1.40625°");

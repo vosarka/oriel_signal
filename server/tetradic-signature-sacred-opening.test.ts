@@ -148,9 +148,9 @@ describe("Tetradic Signature sacred scroll opening", () => {
     expect(markup).toContain("THE TETRADIC SIGNATURE");
     expect(markup).toContain("FOUNDER EDITION");
     expect(markup).toContain("Your Resonance Architecture");
-    expect(markup).toContain("12 tetrads · 48 pages");
-    expect(markup).toContain("The Threshold");
-    expect(markup).toContain("Integration and Archive");
+    expect(markup).toContain("3 parts · 64 pages");
+    expect(markup).toContain("Two Moments");
+    expect(markup).toContain("What the System Does Not Say");
     expect(markup).toContain("Sign in before entering personal details.");
     expect(markup).toContain('class="tfe"');
     expect(markup).not.toContain("tetradic-book");
@@ -287,7 +287,7 @@ describe("Tetradic Signature sacred scroll opening", () => {
     expect(markup).toContain("Signature");
     expect(markup).toContain("FOUNDER EDITION");
     expect(markup).toContain("Your Resonance Architecture");
-    expect(markup).toContain("12 tetrads · 48 pages");
+    expect(markup).toContain("3 parts · 64 pages");
     expect(markup).toContain("Sign in to continue");
     expect(readSource(PAGE)).toContain("if (reducedMotion)");
   });

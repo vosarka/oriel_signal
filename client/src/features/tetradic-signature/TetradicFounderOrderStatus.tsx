@@ -38,7 +38,7 @@ const PHASE_COPY: Record<
   confirmed: {
     register: "Payment confirmed",
     title: "Your Founder Edition is now in the archive.",
-    body: "The receiver record and payment are confirmed. The 48-page edition will be authored personally and sent to your account email.",
+    body: "The receiver record and payment are confirmed. The 64-page edition will be authored personally and sent to your account email.",
     glyph: "✓",
   },
   cancelled: {
@@ -123,7 +123,7 @@ export function TetradicFounderOrderStatus({
             ) : null}
             <div>
               <dt>Edition</dt>
-              <dd>48 pages · Founder curated</dd>
+              <dd>64 pages · Founder curated</dd>
             </div>
             <div>
               <dt>Delivery</dt>

@@ -1271,3 +1271,47 @@
     order: -1;
   }
 }
+
+/* ── The book, v2: three parts, the manual's ten plates ─────────────── */
+.tfe__part-line {
+  display: block;
+}
+
+.tfe__part-line + .tfe__part-line {
+  margin-top: 0.6em;
+}
+
+.tfe__tetrad-card--plate {
+  grid-template-rows: auto auto auto 1fr auto;
+}
+
+/* The plate is the chapter's first page: centred art on obsidian, so a
+   centre crop keeps the whole figure. */
+.tfe__chapter-plate {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: center 45%;
+  border: 1px solid var(--tfe-line);
+  opacity: 0.88;
+  transition: opacity 0.4s ease;
+}
+
+.tfe__tetrad-card--plate:hover .tfe__chapter-plate {
+  opacity: 1;
+}
+
+/* Ten chapters fill two rows of five; three columns left two cells empty.
+   Below 721px the shared rail rule turns this into a swipe row. */
+@media (min-width: 1100px) {
+  .tfe__tetrad-rail--chapters {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1099px) {
+  .tfe__tetrad-rail--chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
