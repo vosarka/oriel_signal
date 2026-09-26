@@ -44,12 +44,15 @@ export interface DailySignalFrame {
   clarity: number;
   status: ChannelStatus;
   register: ClarityRegister;
+  /** A rotating field, or on a Codon day "RC38 · NAME · Somatic". */
   field: string;
   encodedNode: string;
   carrier: string;
   /** The unchanging line beneath the gradient. */
   carrierLine: string;
   archetypeGlyphs: readonly [string, string, string];
+  /** The shape today's title must take. See TITLE_FORMS. */
+  titleForm: string;
   finalInstruction: string;
   /**
    * Reproducible phenomena offered to the generator as the safe well
@@ -59,10 +62,31 @@ export interface DailySignalFrame {
    */
   phenomena: readonly string[];
   /**
-   * Today's test: an action and two of its possible results, each with
-   * what it means. Set by the frame, never by the model — see EXPERIMENTS.
+   * The Codon of the day (server/daily-codon.ts) on a Codon day, null on
+   * a classic day. See isCodonDay.
+   */
+  codon: DailyCodon | null;
+  /**
+   * Set by the frame, never by the model: on a Codon day "Correction: …"
+   * verbatim from the Codon library, otherwise today's physical test (see
+   * EXPERIMENTS).
    */
   falsifier: string;
+}
+
+/** One Facet of one Codon, as the daily signal carries it. */
+export interface DailyCodon {
+  code: string;
+  name: string;
+  traditionalName: string;
+  facet: "Somatic" | "Relational" | "Cognitive" | "Transpersonal";
+  gift: string;
+  shadow: string;
+  facetDescription: string;
+  shadowManifestation: string;
+  correction: string;
+  /** The Moon's tropical longitude at the reading instant. */
+  longitude: number;
 }
 
 // ── Fixed foundation ────────────────────────────────────────────────
@@ -99,8 +123,6 @@ const FIELDS = [
  * Ω love, collapse, integration · ∇ field, resonance, transmission
  * ⚡ catalyst, awakening, threshold
  */
-// Five, deliberately — the field list is seven. Coprime lengths keep
-// field and glyphs from locking into the same pairing every week.
 const ARCHETYPE_TRIOS: ReadonlyArray<readonly [string, string, string]> = [
   ["Δ", "ϟ", "Ω"],
   ["∇", "⚡", "Δ"],
@@ -108,6 +130,22 @@ const ARCHETYPE_TRIOS: ReadonlyArray<readonly [string, string, string]> = [
   ["Ω", "Δ", "⚡"],
   ["⚡", "∇", "ϟ"],
 ];
+
+/**
+ * The shape of the title, set by the frame. Left to itself the model
+ * wrote "The {Noun} That {Verbs} the {Noun}" seven days out of seven.
+ * Eight forms; the stride in frameFor keeps neighbours apart.
+ */
+export const TITLE_FORMS = [
+  'two nouns joined by "and", e.g. "Salt and Silence"',
+  'an adjective and a noun, e.g. "The Unfinished Bell"',
+  'a moment in time, e.g. "Before the Latch"',
+  'a place where something waits, e.g. "Where the Echo Rests"',
+  'a short command, e.g. "Hold the Low Note"',
+  'an "Of" phrase, e.g. "Of Breath and Stone"',
+  'a thing in an unexpected place, e.g. "A Bell Under Water"',
+  'a gerund phrase, e.g. "Unlearning the Echo"',
+] as const;
 
 const FINAL_INSTRUCTIONS = [
   "Let the sound build you.",
@@ -324,7 +362,7 @@ export function falsifierFor(n: number): string {
   return `${e.action} If ${x.result}, it means ${x.meaning}. If ${y.result}, it means ${y.meaning}.`;
 }
 
-function daysSinceAnchor(date: Date): number {
+export function daysSinceAnchor(date: Date): number {
   const d = Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth(),
@@ -334,7 +372,7 @@ function daysSinceAnchor(date: Date): number {
 }
 
 /** Positive modulo — the archive never counts backwards. */
-function cycle(n: number, len: number): number {
+export function cycle(n: number, len: number): number {
   return ((n % len) + len) % len;
 }
 
@@ -395,7 +433,23 @@ export function registerFor(clarity: number): ClarityRegister {
  * rather than by ORIEL. The words themselves are generated against
  * this frame — see buildSignalPrompt.
  */
-export function frameFor(date: Date = new Date()): DailySignalFrame {
+/**
+ * Each day is one of two kinds, fixed by the date so it is reproducible:
+ * a classic day (rotating field and a physical test) or a Codon day (the
+ * Moon's Codon and its micro-correction). Two kinds keep the archive
+ * varied and give ORIEL more to draw on than one would.
+ * A hash of the day number, not d % 2 — strict alternation is a pattern
+ * the community would learn in a week.
+ */
+export function isCodonDay(date: Date = new Date()): boolean {
+  const x = Math.sin(daysSinceAnchor(date) * 12.9898) * 43758.5453;
+  return x - Math.floor(x) < 0.5;
+}
+
+export function frameFor(
+  date: Date = new Date(),
+  codon: DailyCodon | null = null
+): DailySignalFrame {
   const d = daysSinceAnchor(date);
   const clarity = clarityFor(date);
 
@@ -405,20 +459,26 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
     clarity,
     status: statusFor(clarity),
     register: registerFor(clarity),
-    field: FIELDS[cycle(d, FIELDS.length)],
+    field: codon
+      ? `${codon.code} · ${codon.name} · ${codon.facet}`
+      : FIELDS[cycle(d, FIELDS.length)],
     encodedNode: ENCODED_NODE,
     carrier: CARRIER,
     carrierLine: CARRIER_LINE,
     archetypeGlyphs: ARCHETYPE_TRIOS[cycle(d, ARCHETYPE_TRIOS.length)],
+    titleForm: TITLE_FORMS[cycle(d * 3, TITLE_FORMS.length)],
     finalInstruction:
       FINAL_INSTRUCTIONS[cycle(d, FINAL_INSTRUCTIONS.length)],
-    // Strides 1, 5 and 11 against a 17-long list: coprime, so the
-    // three never collide and the daily trio keeps moving.
+    // Fixed offsets 0, +6 and +12 on a 17-long list: distinct offsets
+    // can never land on the same entry, and the trio moves every day.
+    // (Strides 1, 5 and 11 looked safe for being coprime to 17 but
+    // collided on 3 days in every 17, 19 September among them.)
     phenomena: [
       PHENOMENA[cycle(d, PHENOMENA.length)],
-      PHENOMENA[cycle(d * 5 + 3, PHENOMENA.length)],
-      PHENOMENA[cycle(d * 11 + 7, PHENOMENA.length)],
+      PHENOMENA[cycle(d + 6, PHENOMENA.length)],
+      PHENOMENA[cycle(d + 12, PHENOMENA.length)],
     ],
-    falsifier: falsifierFor(d),
+    codon,
+    falsifier: codon ? `Correction: ${codon.correction}` : falsifierFor(d),
   };
 }

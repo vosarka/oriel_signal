@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { EXPERIMENTS, falsifierFor, frameFor } from "../shared/daily-signal";
+import {
+  EXPERIMENTS,
+  falsifierFor,
+  frameFor,
+  isCodonDay,
+  type DailyCodon,
+} from "../shared/daily-signal";
 import { assembleBody } from "../shared/daily-signal-prompt";
 import { isValidGeneratedSignal } from "./daily-signal-service";
 import { formatDailySignalPost } from "./daily-signal-feed";
@@ -59,7 +65,7 @@ describe("daily test bank", () => {
     }
   });
 
-  it("puts the frame's test in the body, not anything the model wrote", () => {
+  it("puts the frame's test in the body on a classic day", () => {
     const frame = frameFor(new Date(START));
     const body = assembleBody(frame, {
       title: "T",
@@ -69,10 +75,53 @@ describe("daily test bank", () => {
       middle: "m",
       closing: "c",
     });
+    expect(frame.codon).toBeNull();
     expect(body).toContain(frame.falsifier);
+  });
+});
+
+describe("the day's kind", () => {
+  it("splits days roughly evenly between classic and Codon, without alternating", () => {
+    const kinds = Array.from({ length: 365 }, (_, n) =>
+      isCodonDay(new Date(START + n * 86_400_000))
+    );
+    const codon = kinds.filter(Boolean).length;
+    expect(codon).toBeGreaterThan(140);
+    expect(codon).toBeLessThan(225);
+    const alternating = kinds.every((k, i) => i === 0 || k !== kinds[i - 1]);
+    expect(alternating).toBe(false);
+  });
+});
+
+describe("daily signal body", () => {
+  it("prints the Codon's correction verbatim after the archetype, never its shadow", () => {
+    const codon: DailyCodon = {
+      code: "RC01",
+      name: "AURORA",
+      traditionalName: "The Creative",
+      facet: "Somatic",
+      gift: "Freshness",
+      shadow: "Entropy",
+      facetDescription: "The Body Electric.",
+      shadowManifestation: "Depressive Lethargy.",
+      correction: "Kinetic Discharge. Stand up.",
+      longitude: 200,
+    };
+    const frame = frameFor(new Date(START), codon);
+    const body = assembleBody(frame, {
+      title: "T",
+      archetype: "Δ-a // ϟ b // Ω c",
+      key: "the ring stays in the glass",
+      opening: "o",
+      middle: "m",
+      closing: "c",
+    });
+    expect(frame.field).toBe("RC01 · AURORA · Somatic");
+    const archetype = body.findIndex(l => l.startsWith("Encoded archetype"));
+    expect(body[archetype + 1]).toBe("Correction: Kinetic Discharge. Stand up.");
+    expect(body.join("\n")).not.toContain("Depressive Lethargy");
     // The key sits after the voice, before the archetype.
-    expect(body.indexOf("the ring stays in the glass")).toBe(body.indexOf("c") + 1);
-    expect(body[body.indexOf("the ring stays in the glass") + 1]).toMatch(/^Encoded archetype/);
+    expect(body.indexOf("the ring stays in the glass")).toBe(archetype - 1);
   });
 });
 
@@ -105,6 +154,24 @@ describe("isValidGeneratedSignal", () => {
     expect(
       isValidGeneratedSignal(coherent, { ...head, opening: "o", middle: "m" })
     ).toBe(false);
+  });
+
+  it('rejects the "The X That Y the Z" title the model defaults to', () => {
+    const voice = { opening: "o", middle: "m", closing: "c" };
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, title: "The Bowl That Holds the Sky" })
+    ).toBe(false);
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, title: "Salt and Silence" })
+    ).toBe(true);
+  });
+
+  it("never gives two days in a row the same title form", () => {
+    for (let n = 0; n < 40; n++) {
+      const a = frameFor(new Date(START + n * 86_400_000)).titleForm;
+      const b = frameFor(new Date(START + (n + 1) * 86_400_000)).titleForm;
+      expect(b).not.toBe(a);
+    }
   });
 
   it("always needs a title and an archetype", () => {
@@ -154,5 +221,14 @@ describe("daily signal feed post", () => {
     expect(post).toContain("88.1%");
     expect(post).toContain("https://orielsignal.space/archive?dfs=690006");
     expect(post).not.toContain("SEALED VOICE LINE");
+  });
+});
+
+describe("daily phenomena", () => {
+  it("never offers the same phenomenon twice on one day", () => {
+    for (let n = 0; n < 60; n++) {
+      const { phenomena } = frameFor(new Date(START + n * 86_400_000));
+      expect(new Set(phenomena).size).toBe(phenomena.length);
+    }
   });
 });

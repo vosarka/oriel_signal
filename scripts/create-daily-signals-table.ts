@@ -8,8 +8,17 @@
  * that already hold live rows. This script touches one new table and
  * nothing else.
  *
- * Safe to run more than once. To undo: DROP TABLE daily_signals —
- * nothing references it.
+ * Safe to run more than once. Already applied in production. No deploy
+ * step runs it: a fresh database needs it run once by hand before the
+ * app starts, or the scheduler and the archive find no table.
+ *
+ * Do not "undo" it with DROP TABLE: the scheduler, the archive tab and
+ * the bot feed all read this table, and every row is a published day
+ * that cannot be regenerated identically.
+ *
+ * Column types here (DATE, JSON) are what production has. drizzle/schema.ts
+ * declares signalDate as varchar and bodyLines as text on purpose; see the
+ * note there before "aligning" them.
  *
  *   npx tsx scripts/create-daily-signals-table.ts          (dry run)
  *   npx tsx scripts/create-daily-signals-table.ts --apply  (writes)

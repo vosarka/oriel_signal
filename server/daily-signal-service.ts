@@ -9,7 +9,8 @@ import { sql, eq, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { dailySignals } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
-import { frameFor, type DailySignalFrame } from "../shared/daily-signal";
+import { codonOfDay } from "./daily-codon";
+import { frameFor, isCodonDay, type DailySignalFrame } from "../shared/daily-signal";
 import {
   buildSignalPrompt,
   assembleBody,
@@ -33,6 +34,8 @@ export function isValidGeneratedSignal(
   if (!value || typeof value !== "object") return false;
   const g = value as Record<string, unknown>;
   if (!isNonEmptyString(g.title)) return false;
+  // The model's default shape; the frame asks for a different one each day.
+  if (/^the\s+\S+\s+that\s/i.test(g.title.trim())) return false;
   if (!isNonEmptyString(g.archetype)) return false;
   if (!isNonEmptyString(g.key)) return false;
   if (g.key.trim().split(/\s+/).length > 7) return false;
@@ -120,7 +123,10 @@ export async function getOrCreateTodaysSignal(): Promise<DailySignalRow | null> 
   const db = await getDb();
   if (!db) return null;
 
-  const frame = frameFor();
+  // Throws if the ephemeris or the Codon library fails; the scheduler
+  // counts that as a failed attempt and tries again on its next tick.
+  const today = new Date();
+  const frame = frameFor(today, isCodonDay(today) ? await codonOfDay(today) : null);
   const result = await generateSignal(frame);
   if (!result) return null;
   const { gen, model } = result;

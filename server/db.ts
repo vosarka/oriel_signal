@@ -2079,7 +2079,30 @@ export async function getNextTxNumber(): Promise<number> {
   return maxNum + 1;
 }
 
+/**
+ * Oracle rows the public may see. Drafts wait for owner approval, and the
+ * Present/Future parts of a published oracle stay Draft until their day
+ * (server/oracle-stream-service.ts) — so every public read goes through this.
+ */
+const PUBLIC_ORACLE = inArray(oracles.status, ["Confirmed", "Prophetic"]);
+
 export async function getAllOracles() {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return await db
+      .select()
+      .from(oracles)
+      .where(PUBLIC_ORACLE)
+      .orderBy(oracles.oracleNumber);
+  } catch (error) {
+    console.error("[Database] Failed to fetch oracles:", error);
+    return [];
+  }
+}
+
+/** Every oracle row, drafts included. Admin and the stream scheduler only. */
+export async function getAllOraclesForAdmin() {
   const db = await getDb();
   if (!db) return [];
   try {
@@ -2097,7 +2120,7 @@ export async function getOraclesByOracleId(oracleId: string) {
     return await db
       .select()
       .from(oracles)
-      .where(eq(oracles.oracleId, oracleId));
+      .where(and(eq(oracles.oracleId, oracleId), PUBLIC_ORACLE));
   } catch (error) {
     console.error("[Database] Failed to fetch oracle:", error);
     return [];
@@ -3014,7 +3037,7 @@ export async function getOraclesByThread(threadId: string) {
     return await db
       .select()
       .from(oracles)
-      .where(eq(oracles.threadId, threadId))
+      .where(and(eq(oracles.threadId, threadId), PUBLIC_ORACLE))
       .orderBy(oracles.threadOrder);
   } catch (error) {
     console.error("[Database] Failed to get oracles by thread:", error);
@@ -3029,7 +3052,7 @@ export async function getThreadsWithProgress() {
     const allOracles = await db
       .select()
       .from(oracles)
-      .where(eq(oracles.status, "Confirmed"));
+      .where(PUBLIC_ORACLE);
     // Group by threadId
     const threads: Record<
       string,

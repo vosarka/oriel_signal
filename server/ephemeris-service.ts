@@ -140,20 +140,50 @@ function getLongitudeToZodiac(longitude: number): {
   };
 }
 
-// Initialize Swiss Ephemeris instance
-let swissEph: SwissEph | null = null;
+// One shared, fully initialised instance. The promise is cached, not the
+// object: caching the object handed a second concurrent caller an instance
+// whose WASM module had not loaded yet ("reading 'ccall'").
+let swissEph: Promise<SwissEph> | null = null;
 
 /**
  * Initialize Swiss Ephemeris
  */
-async function initEphemeris(): Promise<SwissEph> {
-  if (swissEph) {
-    return swissEph;
-  }
-
-  swissEph = new SwissEph();
-  await swissEph.initSwissEph();
+function initEphemeris(): Promise<SwissEph> {
+  swissEph ??= (async () => {
+    const se = new SwissEph();
+    await se.initSwissEph();
+    return se;
+  })().catch(error => {
+    swissEph = null; // let the next call retry
+    throw error;
+  });
   return swissEph;
+}
+
+/**
+ * Tropical geocentric longitude of one body at a UTC instant.
+ * Used for sky-wide readings that belong to no birth chart.
+ */
+export async function bodyLongitudeAtUtc(
+  planetId: number,
+  instant: Date
+): Promise<number> {
+  const se = await initEphemeris();
+  const hour =
+    instant.getUTCHours() +
+    instant.getUTCMinutes() / 60 +
+    instant.getUTCSeconds() / 3600;
+  const jd = se.julday(
+    instant.getUTCFullYear(),
+    instant.getUTCMonth() + 1,
+    instant.getUTCDate(),
+    hour
+  );
+  const result = se.calc(jd, planetId, EPHEMERIS_CALC_FLAGS);
+  if (!result || !Number.isFinite(result.longitude)) {
+    throw new Error(`Ephemeris returned no longitude for body ${planetId}`);
+  }
+  return result.longitude;
 }
 
 /**

@@ -25,10 +25,11 @@ export function RegisterSpectrum({
         const held = counts[reg.id] || 0;
         const capacity =
           reg.id === "all" ? held : reg.range[1] - reg.range[0] + 1;
-        const bits = reg.id === "all" ? 4 : tetradBits(held, capacity);
+        const bits =
+          reg.id === "all" ? (held > 0 ? 4 : 0) : tetradBits(held, capacity);
         const saturated = reg.id !== "all" && held >= capacity;
         const empty = held === 0;
-        const [stem, prime] = splitPrime(reg.vtip);
+        const [stem, prime, overflow] = splitPrime(reg.vtip);
 
         const cls = [
           "tx-register",
@@ -50,6 +51,7 @@ export function RegisterSpectrum({
             <div className="tx-register__syntax">
               {stem}
               {prime && <span className="tx-register__prime">{prime}</span>}
+              {overflow}
             </div>
 
             <div className="tx-register__name">{reg.name}</div>

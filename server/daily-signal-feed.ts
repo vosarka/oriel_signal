@@ -18,6 +18,7 @@ export function formatDailySignalPost(row: DailySignalRow, baseUrl: string) {
   const post = [
     `⦿ ${row.txGenId} · ${row.title.replace(/\s+/g, " ").trim()}`,
     `Signal Clarity ${row.clarity}% · ${row.channelStatus}`,
+    `Codon of the day · ${row.field}`,
     "",
     CARRIER_LINE,
     "",
