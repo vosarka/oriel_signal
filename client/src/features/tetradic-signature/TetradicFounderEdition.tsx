@@ -258,8 +258,8 @@ export function TetradicFounderEdition({
       <header className="tfe__intro">
         <figure className="tfe__hero-plate" data-tfe-intro-reveal>
           <img
-            src={`${BOOK_ASSETS}/ch01-plate.webp`}
-            alt="Chapter one of the book, Two Moments: a solid gold disc above a ring broken into four arcs."
+            src={`${BOOK_ASSETS}/cover.webp`}
+            alt="The cover: The Tetradic Signature, Founder Edition, with the receiver's name set below a gold and ivory wheel."
             decoding="async"
             fetchPriority="high"
           />
