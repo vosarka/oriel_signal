@@ -19,6 +19,10 @@ import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
 import { getOrCreateTodaysSignal } from "../daily-signal-service";
 import { registerDailySignalFeedRoute } from "../daily-signal-feed";
+import {
+  maybeGenerateOracleDraft,
+  releaseDueOracleParts,
+} from "../oracle-stream-service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -87,6 +91,35 @@ function scheduleDailySignalGeneration() {
   setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
 }
 
+// Each generation attempt is up to three model calls. A provider outage on
+// an oracle day must not turn every 5-minute tick into three more.
+const ORACLE_MAX_ATTEMPTS_PER_DAY = 3;
+let oracleAttemptDate: string | null = null;
+let oracleAttempts = 0;
+
+function scheduleOracleStream() {
+  const tick = async () => {
+    try {
+      const released = await releaseDueOracleParts();
+      if (released.length) {
+        console.log(`[oracle-stream] released ${released.join(", ")}`);
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== oracleAttemptDate) {
+        oracleAttemptDate = today;
+        oracleAttempts = 0;
+      }
+      if (oracleAttempts >= ORACLE_MAX_ATTEMPTS_PER_DAY) return;
+      if ((await maybeGenerateOracleDraft()) === "failed") oracleAttempts++;
+    } catch (error) {
+      console.error("[oracle-stream] scheduled step failed:", error);
+    }
+  };
+  tick();
+  setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
+}
+
 async function startServer() {
   // Print the resolved LLM chain first: env vars live outside the repo, so
   // this is the only place a deployment reveals which models it will call.
@@ -97,6 +130,7 @@ async function startServer() {
   // Ensure DB schema is up to date before accepting requests
   await runMigrations();
   scheduleDailySignalGeneration();
+  scheduleOracleStream();
 
   const app = express();
   const server = createServer(app);

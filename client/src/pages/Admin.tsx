@@ -916,6 +916,12 @@ export default function Admin() {
       utils.admin.oracles.list.invalidate();
     },
   });
+  const publishOracleMut = trpc.admin.oracles.publish.useMutation({
+    onSuccess: () => {
+      utils.admin.oracles.list.invalidate();
+    },
+    onError: error => alert(error.message),
+  });
 
   if (authLoading) {
     return (
@@ -1568,6 +1574,36 @@ export default function Admin() {
                       {oracle.status}
                     </span>
                     <div className="flex gap-2 justify-end">
+                      {/* Approving the Past part releases the oracle:
+                          Present follows the next day, Future the day after. */}
+                      {oracle.part === "Past" && oracle.status === "Draft" && (
+                        <button
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `Publish ${oracle.oracleId}? Past goes public now, Present tomorrow, Future the day after.`
+                              )
+                            ) {
+                              publishOracleMut.mutate({
+                                oracleId: oracle.oracleId,
+                              });
+                            }
+                          }}
+                          disabled={publishOracleMut.isPending}
+                          style={{
+                            background: "none",
+                            border: `1px solid ${C.green}`,
+                            color: C.green,
+                            cursor: "pointer",
+                            padding: "2px 8px",
+                            fontSize: 11,
+                            fontFamily: "'Red Hat Mono', monospace",
+                          }}
+                          title="Publish"
+                        >
+                          PUBLISH
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEditOracle(oracle)}
                         style={{
