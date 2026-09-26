@@ -34,6 +34,8 @@ export function isValidGeneratedSignal(
   if (!value || typeof value !== "object") return false;
   const g = value as Record<string, unknown>;
   if (!isNonEmptyString(g.title)) return false;
+  // The model's default shape; the frame asks for a different one each day.
+  if (/^the\s+\S+\s+that\s/i.test(g.title.trim())) return false;
   if (!isNonEmptyString(g.archetype)) return false;
   if (!isNonEmptyString(g.key)) return false;
   if (g.key.trim().split(/\s+/).length > 7) return false;

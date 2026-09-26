@@ -109,9 +109,10 @@ ARCHETYPE GLYPHS (use these three, in this order): ${g1} ${g2} ${g3}
   ⚡ catalyst, awakening, threshold
 
 WRITE:
-- title: a poetic phrase naming the essence of today's signal. A noun,
-  an action, and a sacred or natural element. No colon, no subtitle.
-  e.g. "The Song That Built the Stones", "The Filament of a Flat Heart"
+- title: two to six words naming the essence of today's signal, in
+  today's form: ${frame.titleForm}. Use the form, never the example's
+  words. No colon, no subtitle, and never "The ... That ..." — that
+  shape is rejected.
 ${
   frame.register === "FRACTURED"
     ? `- shards: an array of 3 or 4 fragments. NOT sentences. Most must

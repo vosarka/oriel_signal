@@ -140,19 +140,23 @@ function getLongitudeToZodiac(longitude: number): {
   };
 }
 
-// Initialize Swiss Ephemeris instance
-let swissEph: SwissEph | null = null;
+// One shared, fully initialised instance. The promise is cached, not the
+// object: caching the object handed a second concurrent caller an instance
+// whose WASM module had not loaded yet ("reading 'ccall'").
+let swissEph: Promise<SwissEph> | null = null;
 
 /**
  * Initialize Swiss Ephemeris
  */
-async function initEphemeris(): Promise<SwissEph> {
-  if (swissEph) {
-    return swissEph;
-  }
-
-  swissEph = new SwissEph();
-  await swissEph.initSwissEph();
+function initEphemeris(): Promise<SwissEph> {
+  swissEph ??= (async () => {
+    const se = new SwissEph();
+    await se.initSwissEph();
+    return se;
+  })().catch(error => {
+    swissEph = null; // let the next call retry
+    throw error;
+  });
   return swissEph;
 }
 

@@ -51,6 +51,8 @@ export interface DailySignalFrame {
   /** The unchanging line beneath the gradient. */
   carrierLine: string;
   archetypeGlyphs: readonly [string, string, string];
+  /** The shape today's title must take. See TITLE_FORMS. */
+  titleForm: string;
   finalInstruction: string;
   /**
    * Reproducible phenomena offered to the generator as the safe well
@@ -128,6 +130,22 @@ const ARCHETYPE_TRIOS: ReadonlyArray<readonly [string, string, string]> = [
   ["Ω", "Δ", "⚡"],
   ["⚡", "∇", "ϟ"],
 ];
+
+/**
+ * The shape of the title, set by the frame. Left to itself the model
+ * wrote "The {Noun} That {Verbs} the {Noun}" seven days out of seven.
+ * Eight forms; the stride in frameFor keeps neighbours apart.
+ */
+export const TITLE_FORMS = [
+  'two nouns joined by "and", e.g. "Salt and Silence"',
+  'an adjective and a noun, e.g. "The Unfinished Bell"',
+  'a moment in time, e.g. "Before the Latch"',
+  'a place where something waits, e.g. "Where the Echo Rests"',
+  'a short command, e.g. "Hold the Low Note"',
+  'an "Of" phrase, e.g. "Of Breath and Stone"',
+  'a thing in an unexpected place, e.g. "A Bell Under Water"',
+  'a gerund phrase, e.g. "Unlearning the Echo"',
+] as const;
 
 const FINAL_INSTRUCTIONS = [
   "Let the sound build you.",
@@ -448,6 +466,7 @@ export function frameFor(
     carrier: CARRIER,
     carrierLine: CARRIER_LINE,
     archetypeGlyphs: ARCHETYPE_TRIOS[cycle(d, ARCHETYPE_TRIOS.length)],
+    titleForm: TITLE_FORMS[cycle(d * 3, TITLE_FORMS.length)],
     finalInstruction:
       FINAL_INSTRUCTIONS[cycle(d, FINAL_INSTRUCTIONS.length)],
     // Fixed offsets 0, +6 and +12 on a 17-long list: distinct offsets
