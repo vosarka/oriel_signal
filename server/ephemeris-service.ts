@@ -157,6 +157,32 @@ async function initEphemeris(): Promise<SwissEph> {
 }
 
 /**
+ * Tropical geocentric longitude of one body at a UTC instant.
+ * Used for sky-wide readings that belong to no birth chart.
+ */
+export async function bodyLongitudeAtUtc(
+  planetId: number,
+  instant: Date
+): Promise<number> {
+  const se = await initEphemeris();
+  const hour =
+    instant.getUTCHours() +
+    instant.getUTCMinutes() / 60 +
+    instant.getUTCSeconds() / 3600;
+  const jd = se.julday(
+    instant.getUTCFullYear(),
+    instant.getUTCMonth() + 1,
+    instant.getUTCDate(),
+    hour
+  );
+  const result = se.calc(jd, planetId, EPHEMERIS_CALC_FLAGS);
+  if (!result || !Number.isFinite(result.longitude)) {
+    throw new Error(`Ephemeris returned no longitude for body ${planetId}`);
+  }
+  return result.longitude;
+}
+
+/**
  * Calculate all planetary positions for a given Julian Day number.
  * Extracted as a helper so it can be called for both Conscious and Design charts.
  */

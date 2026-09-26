@@ -44,6 +44,7 @@ export interface DailySignalFrame {
   clarity: number;
   status: ChannelStatus;
   register: ClarityRegister;
+  /** A rotating field, or on a Codon day "RC38 · NAME · Somatic". */
   field: string;
   encodedNode: string;
   carrier: string;
@@ -59,10 +60,31 @@ export interface DailySignalFrame {
    */
   phenomena: readonly string[];
   /**
-   * Today's test: an action and two of its possible results, each with
-   * what it means. Set by the frame, never by the model — see EXPERIMENTS.
+   * The Codon of the day (server/daily-codon.ts) on a Codon day, null on
+   * a classic day. See isCodonDay.
+   */
+  codon: DailyCodon | null;
+  /**
+   * Set by the frame, never by the model: on a Codon day "Correction: …"
+   * verbatim from the Codon library, otherwise today's physical test (see
+   * EXPERIMENTS).
    */
   falsifier: string;
+}
+
+/** One Facet of one Codon, as the daily signal carries it. */
+export interface DailyCodon {
+  code: string;
+  name: string;
+  traditionalName: string;
+  facet: "Somatic" | "Relational" | "Cognitive" | "Transpersonal";
+  gift: string;
+  shadow: string;
+  facetDescription: string;
+  shadowManifestation: string;
+  correction: string;
+  /** The Moon's tropical longitude at the reading instant. */
+  longitude: number;
 }
 
 // ── Fixed foundation ────────────────────────────────────────────────
@@ -99,8 +121,6 @@ const FIELDS = [
  * Ω love, collapse, integration · ∇ field, resonance, transmission
  * ⚡ catalyst, awakening, threshold
  */
-// Five, deliberately — the field list is seven. Coprime lengths keep
-// field and glyphs from locking into the same pairing every week.
 const ARCHETYPE_TRIOS: ReadonlyArray<readonly [string, string, string]> = [
   ["Δ", "ϟ", "Ω"],
   ["∇", "⚡", "Δ"],
@@ -395,7 +415,23 @@ export function registerFor(clarity: number): ClarityRegister {
  * rather than by ORIEL. The words themselves are generated against
  * this frame — see buildSignalPrompt.
  */
-export function frameFor(date: Date = new Date()): DailySignalFrame {
+/**
+ * Each day is one of two kinds, fixed by the date so it is reproducible:
+ * a classic day (rotating field and a physical test) or a Codon day (the
+ * Moon's Codon and its micro-correction). Two kinds keep the archive
+ * varied and give ORIEL more to draw on than one would.
+ * A hash of the day number, not d % 2 — strict alternation is a pattern
+ * the community would learn in a week.
+ */
+export function isCodonDay(date: Date = new Date()): boolean {
+  const x = Math.sin(daysSinceAnchor(date) * 12.9898) * 43758.5453;
+  return x - Math.floor(x) < 0.5;
+}
+
+export function frameFor(
+  date: Date = new Date(),
+  codon: DailyCodon | null = null
+): DailySignalFrame {
   const d = daysSinceAnchor(date);
   const clarity = clarityFor(date);
 
@@ -405,7 +441,9 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
     clarity,
     status: statusFor(clarity),
     register: registerFor(clarity),
-    field: FIELDS[cycle(d, FIELDS.length)],
+    field: codon
+      ? `${codon.code} · ${codon.name} · ${codon.facet}`
+      : FIELDS[cycle(d, FIELDS.length)],
     encodedNode: ENCODED_NODE,
     carrier: CARRIER,
     carrierLine: CARRIER_LINE,
@@ -421,6 +459,7 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
       PHENOMENA[cycle(d + 6, PHENOMENA.length)],
       PHENOMENA[cycle(d + 12, PHENOMENA.length)],
     ],
-    falsifier: falsifierFor(d),
+    codon,
+    falsifier: codon ? `Correction: ${codon.correction}` : falsifierFor(d),
   };
 }
