@@ -3,6 +3,12 @@ import { codonAtLongitude, codonOfDay, publicText } from "./daily-codon";
 import { longitudeToCodonFacet } from "./vrc-mandala";
 
 describe("codon of the day", () => {
+  it("survives concurrent first calls into the ephemeris (runs first: cold start)", async () => {
+    const days = Array.from({ length: 4 }, (_, i) => new Date(Date.UTC(2027, 0, 1 + i)));
+    const codons = await Promise.all(days.map(d => codonOfDay(d)));
+    expect(codons.every(c => /^RC\d\d$/.test(c.code))).toBe(true);
+  });
+
   it("maps a longitude to its Mandala Codon and that Facet's canon text", () => {
     // 11.25° is the Mandala's first slot, Codon 51, first facet.
     const c = codonAtLongitude(11.3);

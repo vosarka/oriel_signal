@@ -156,6 +156,24 @@ describe("isValidGeneratedSignal", () => {
     ).toBe(false);
   });
 
+  it('rejects the "The X That Y the Z" title the model defaults to', () => {
+    const voice = { opening: "o", middle: "m", closing: "c" };
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, title: "The Bowl That Holds the Sky" })
+    ).toBe(false);
+    expect(
+      isValidGeneratedSignal(coherent, { ...head, ...voice, title: "Salt and Silence" })
+    ).toBe(true);
+  });
+
+  it("never gives two days in a row the same title form", () => {
+    for (let n = 0; n < 40; n++) {
+      const a = frameFor(new Date(START + n * 86_400_000)).titleForm;
+      const b = frameFor(new Date(START + (n + 1) * 86_400_000)).titleForm;
+      expect(b).not.toBe(a);
+    }
+  });
+
   it("always needs a title and an archetype", () => {
     expect(
       isValidGeneratedSignal(coherent, { archetype: head.archetype, key: head.key, opening: "o", middle: "m", closing: "c" })
