@@ -50,7 +50,7 @@ describe("Tetradic Founder Edition checkout pages", () => {
     );
 
     expect(markup).toContain("Payment confirmed");
-    expect(markup).toContain("48-page edition");
+    expect(markup).toContain("64-page edition");
     expect(markup).toContain("Personally by email");
     expect(markup).toContain("31 July 2026");
     expect(markup).toContain("€81,32");

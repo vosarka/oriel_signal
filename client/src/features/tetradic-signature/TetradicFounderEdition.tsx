@@ -7,7 +7,6 @@ import React, {
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { TETRADIC_BOOK_TETRADS } from "./tetradic-book-flatplan";
 import "./tetradic-founder-edition.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -47,10 +46,53 @@ export type TetradicFounderEditionProps = Readonly<{
 
 const PRICE = "€81,32";
 const DELIVERY_WINDOW = "Delivered personally by email within 5 calendar days.";
-const PAGE_COUNT = TETRADIC_BOOK_TETRADS.reduce(
-  (total, tetrad) => total + tetrad.pages.length,
-  0
-);
+const PAGE_COUNT = 64;
+const BOOK_ASSETS = "/assets/tetradic-signature/book-v2";
+
+/**
+ * Part I, the manual. It holds no receiver data, so it is the only part
+ * shown publicly — Parts II and III are someone's record. Each chapter is
+ * a spread: the obsidian plate, then the ivory page that explains it.
+ * Chapter one opens the page as the large spread; these follow it.
+ */
+const SHOWN_CHAPTERS = [
+  { chapter: 2, title: "Eighty-Eight Degrees", line: "The second moment is not chosen. It is found." },
+  { chapter: 3, title: "The Field of Sixty-Four", line: "The wheel does not describe you. It describes what is possible." },
+  { chapter: 7, title: "Eight Centres", line: "Positions are not scattered. They collect." },
+  { chapter: 8, title: "What Closes a Circuit", line: "A position alone does nothing. Two positions can close a circuit." },
+  { chapter: 10, title: "What the System Does Not Say", line: "An instrument becomes credible when it names its limits." },
+].map(({ chapter, ...rest }) => {
+  const number = String(chapter).padStart(2, "0");
+  const firstPage = 7 + chapter * 2;
+  return {
+    ...rest,
+    number,
+    pages: `${String(firstPage).padStart(2, "0")}–${String(firstPage + 1).padStart(2, "0")}`,
+    plate: `${BOOK_ASSETS}/ch${number}-plate.webp`,
+    page: `${BOOK_ASSETS}/ch${number}-page.webp`,
+  };
+});
+
+const BOOK_PARTS = [
+  {
+    numeral: "I",
+    title: "The System",
+    pages: "09–28",
+    body: "Ten chapters that teach the instrument. Nothing in this half is about you.",
+  },
+  {
+    numeral: "II",
+    title: "The Record",
+    pages: "31–52",
+    body: "The same ten chapters again, now with your numbers — plus one: the central contradiction.",
+  },
+  {
+    numeral: "III",
+    title: "What I Saw",
+    pages: "55–62",
+    body: "My voice, not the system's: what I noticed, what I would watch, what would prove me wrong.",
+  },
+] as const;
 
 const EMPTY_INTAKE: TetradicFounderEditionIntakeValues = {
   birthDate: "",
@@ -214,6 +256,15 @@ export function TetradicFounderEdition({
       aria-labelledby="tfe-title"
     >
       <header className="tfe__intro">
+        <figure className="tfe__hero-plate" data-tfe-intro-reveal>
+          <img
+            src={`${BOOK_ASSETS}/cover.webp`}
+            alt="The cover: The Tetradic Signature, Founder Edition, with the receiver's name set below a gold and ivory wheel."
+            decoding="async"
+            fetchPriority="high"
+          />
+        </figure>
+        <div className="tfe__intro-main">
         <div className="tfe__intro-copy">
           <p className="tfe__eyebrow" data-tfe-intro-reveal>
             ORIEL Signal · Founder Archive
@@ -253,7 +304,7 @@ export function TetradicFounderEdition({
           <div>
             <dt>Architecture</dt>
             <dd>
-              {TETRADIC_BOOK_TETRADS.length} tetrads · {PAGE_COUNT} pages
+              3 parts · {PAGE_COUNT} pages
             </dd>
           </div>
           <div>
@@ -261,6 +312,13 @@ export function TetradicFounderEdition({
             <dd>Personally by email · within 5 calendar days</dd>
           </div>
         </dl>
+        <a
+          className="tfe__button tfe__button--primary tfe__hero-cta"
+          href="#tetradic-founder-intake"
+        >
+          Begin your reading · {PRICE}
+        </a>
+        </div>
       </header>
 
       <section
@@ -272,9 +330,10 @@ export function TetradicFounderEdition({
           <p className="tfe__eyebrow">The object itself</p>
           <h3 id="tfe-opus-title">A book, set to your coordinates.</h3>
           <p>
-            Forty-eight pages bound in one architecture. Two are shown here,
-            exactly as they print — the rest stay sealed until your reading is
-            calculated.
+            Sixty-four pages in three parts. The spread below is from the
+            manual, exactly as it prints — the manual is the same for every
+            receiver. Your record is calculated after you order, and seen by
+            no one else.
           </p>
         </div>
 
@@ -283,8 +342,8 @@ export function TetradicFounderEdition({
           <div className="tfe__book-body" data-book-plate>
             <div className="tfe__book-leaf tfe__book-leaf--verso">
               <img
-                src="/assets/tetradic-signature/book-page-threshold.png"
-                alt="A page from the reading: “This book observes a structure. It does not prescribe an identity.”"
+                src={`${BOOK_ASSETS}/ch01-plate.webp`}
+                alt="Plate for chapter one, Two Moments: a solid gold disc above a ring broken into four arcs."
                 loading="lazy"
                 decoding="async"
               />
@@ -292,19 +351,19 @@ export function TetradicFounderEdition({
             <span className="tfe__book-gutter" aria-hidden="true" />
             <div className="tfe__book-leaf tfe__book-leaf--recto">
               <img
-                src="/assets/tetradic-signature/book-page-principle.png"
-                alt="A page from the reading: “Everything in this book turns on one relationship…”"
+                src={`${BOOK_ASSETS}/ch01-page.webp`}
+                alt="Chapter one, Two Moments: “You were not born once. The sky was read twice.”"
                 loading="lazy"
                 decoding="async"
               />
             </div>
           </div>
           <figcaption className="tfe__book-legend">
-            <span>Page 04 · Before Interpretation</span>
+            <span>Page 09 · Plate</span>
             <span className="tfe__book-legend-seal">
-              + 46 pages sealed until calculation
+              Parts II and III are calculated for you
             </span>
-            <span>Page 08 · The Governing Principle</span>
+            <span>Page 10 · Two Moments</span>
           </figcaption>
         </figure>
       </section>
@@ -315,53 +374,65 @@ export function TetradicFounderEdition({
         aria-describedby="tfe-tetrads-description"
       >
         <div className="tfe__section-heading" data-tfe-intro-reveal>
-          <p className="tfe__eyebrow">The complete field</p>
-          <h3 id="tfe-tetrads-title">
-            Twelve relationships. One architecture.
-          </h3>
+          <p className="tfe__eyebrow">The complete book</p>
+          <h3 id="tfe-tetrads-title">Learn the chapter. Then see it in you.</h3>
           <p id="tfe-tetrads-description">
-            The full reading is visible at once. Every tetrad governs four
-            authored pages: encounter, interpretation, evidence, and closing
-            insight.
+            {BOOK_PARTS.map(part => (
+              <span className="tfe__part-line" key={part.numeral}>
+                <strong>
+                  Part {part.numeral} · {part.title}
+                </strong>{" "}
+                · pages {part.pages} — {part.body}
+              </span>
+            ))}
           </p>
         </div>
 
         <div
-          className="tfe__tetrad-rail"
+          className="tfe__tetrad-rail tfe__tetrad-rail--chapters"
           role="list"
-          aria-label="Twelve Tetradic Signature chapters"
+          aria-label="Chapters from the manual"
         >
-          {TETRADIC_BOOK_TETRADS.map(tetrad => (
+          {SHOWN_CHAPTERS.map(chapter => (
             <article
-              className="tfe__tetrad-card"
-              key={tetrad.number}
+              className="tfe__tetrad-card tfe__tetrad-card--plate"
+              key={chapter.number}
               role="listitem"
               data-tfe-tetrad-card
             >
-              <img
-                className="tfe__tetrad-glyph"
-                src={`/assets/tetrads/${String(tetrad.number).padStart(2, "0")}.png`}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="tfe__tetrad-card-top">
-                <span>Tetrad</span>
-                <strong>{tetrad.numberLabel}</strong>
+              <div className="tfe__chapter-spread" aria-hidden="true">
+                <img src={chapter.plate} alt="" loading="lazy" decoding="async" />
+                <img src={chapter.page} alt="" loading="lazy" decoding="async" />
               </div>
-              <h4>{tetrad.title}</h4>
-              <p>{tetrad.purpose}</p>
-              <span className="tfe__tetrad-pages">
-                Pages {String(tetrad.pages[0].contentPage).padStart(2, "0")}–
-                {String(tetrad.pages.at(-1)?.contentPage ?? 0).padStart(2, "0")}
-              </span>
+              <div className="tfe__tetrad-card-top">
+                <span>Chapter</span>
+                <strong>{chapter.number}</strong>
+              </div>
+              <h4>{chapter.title}</h4>
+              <p>{chapter.line}</p>
+              <span className="tfe__tetrad-pages">Pages {chapter.pages}</span>
             </article>
           ))}
+          <article
+            className="tfe__tetrad-card tfe__tetrad-card--sealed"
+            role="listitem"
+            data-tfe-tetrad-card
+          >
+            <div className="tfe__tetrad-card-top">
+              <span>Parts</span>
+              <strong>II · III</strong>
+            </div>
+            <h4>Your record, sealed</h4>
+            <p>
+              Eleven chapters calculated from your birth, and four in my own
+              voice. Written for you, shown to no one else.
+            </p>
+            <span className="tfe__tetrad-pages">Pages 29–64</span>
+          </article>
         </div>
 
         <p className="tfe__mobile-rail-note" aria-hidden="true">
-          Swipe the twelve-part field
+          Swipe the chapters
         </p>
       </section>
 

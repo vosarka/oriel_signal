@@ -1,62 +1,21 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ReactLenis, useLenis } from "lenis/react";
-import "lenis/dist/lenis.css";
+import { useCallback, useEffect } from "react";
 
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import type { TetradicFounderEditionIntakeValues } from "@/features/tetradic-signature/TetradicFounderEdition";
 import {
-  TetradicSacredExperience,
-  type TetradicSacredExperienceProps,
-} from "@/features/tetradic-signature/TetradicSacredExperience";
-import { TETRADIC_SACRED_SCROLL } from "@/features/tetradic-signature/tetradic-sacred-scroll-config";
+  TetradicFounderEdition,
+  type TetradicFounderEditionIntakeValues,
+} from "@/features/tetradic-signature/TetradicFounderEdition";
 import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
 import { trpc } from "@/lib/trpc";
 
-gsap.registerPlugin(ScrollTrigger);
-
-function TetradicSacredLenisBridge() {
-  const lenis = useLenis();
-
-  useEffect(() => {
-    if (!lenis) return;
-
-    const updateScrollTrigger = () => ScrollTrigger.update();
-    const advanceLenis = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.lagSmoothing(500, 33);
-    lenis.on("scroll", updateScrollTrigger);
-    gsap.ticker.add(advanceLenis, false, true);
-
-    return () => {
-      lenis.off("scroll", updateScrollTrigger);
-      gsap.ticker.remove(advanceLenis);
-    };
-  }, [lenis]);
-
-  return null;
-}
-
-function SmoothTetradicSacredOpening({
-  compact,
-  founderEdition,
-}: Readonly<{
-  compact: boolean;
-  founderEdition: NonNullable<TetradicSacredExperienceProps["founderEdition"]>;
-}>) {
-  const lenis = useLenis();
-  return (
-    <TetradicSacredExperience
-      compact={compact}
-      lenis={lenis}
-      founderEdition={founderEdition}
-    />
-  );
-}
-
+/**
+ * The book page. The scroll-scrubbed film opening was removed: the book in
+ * the films was not the book people receive, and five videos stood between
+ * a visitor and the price. The page now opens on the real book.
+ */
 export default function TetradicSignatureSacredExperience() {
-  const { compact, reducedMotion } = useTetradicViewport();
+  const { reducedMotion } = useTetradicViewport();
   const { user, isAuthenticated } = useAuth();
   const checkpointMutation =
     trpc.signature.createFounderEditionCheckpoint.useMutation();
@@ -103,29 +62,6 @@ export default function TetradicSignatureSacredExperience() {
     [paypalMutation]
   );
 
-  const founderEdition = useMemo<
-    NonNullable<TetradicSacredExperienceProps["founderEdition"]>
-  >(
-    () => ({
-      isAuthenticated,
-      user:
-        user?.name && user.email
-          ? { name: user.name, email: user.email }
-          : null,
-      onRequireLogin: requireLogin,
-      onCreateCheckpoint: createCheckpoint,
-      onContinueToPayPal: continueToPayPal,
-    }),
-    [
-      continueToPayPal,
-      createCheckpoint,
-      isAuthenticated,
-      requireLogin,
-      user?.email,
-      user?.name,
-    ]
-  );
-
   useEffect(() => {
     const previousTitle = document.title;
     document.title = "The Tetradic Signature · Founder Edition · ORIEL";
@@ -134,32 +70,14 @@ export default function TetradicSignatureSacredExperience() {
     };
   }, []);
 
-  if (reducedMotion) {
-    return (
-      <TetradicSacredExperience
-        compact={compact}
-        reducedMotion
-        founderEdition={founderEdition}
-      />
-    );
-  }
-
   return (
-    <ReactLenis
-      root
-      options={{
-        autoRaf: false,
-        lerp: TETRADIC_SACRED_SCROLL.lenis.lerp,
-        wheelMultiplier: TETRADIC_SACRED_SCROLL.lenis.wheelMultiplier,
-        touchMultiplier: TETRADIC_SACRED_SCROLL.lenis.touchMultiplier,
-        smoothWheel: true,
-      }}
-    >
-      <TetradicSacredLenisBridge />
-      <SmoothTetradicSacredOpening
-        compact={compact}
-        founderEdition={founderEdition}
-      />
-    </ReactLenis>
+    <TetradicFounderEdition
+      isAuthenticated={isAuthenticated}
+      user={user?.name && user.email ? { name: user.name, email: user.email } : null}
+      reducedMotion={reducedMotion}
+      onRequireLogin={requireLogin}
+      onCreateCheckpoint={createCheckpoint}
+      onContinueToPayPal={continueToPayPal}
+    />
   );
 }

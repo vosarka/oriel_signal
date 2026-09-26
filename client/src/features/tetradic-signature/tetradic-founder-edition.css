@@ -1271,3 +1271,124 @@
     order: -1;
   }
 }
+
+/* ── The book, v2: three parts, the manual's ten plates ─────────────── */
+.tfe__part-line {
+  display: block;
+}
+
+.tfe__part-line + .tfe__part-line {
+  margin-top: 0.6em;
+}
+
+.tfe__tetrad-card--plate {
+  grid-template-rows: auto auto auto 1fr auto;
+}
+
+/* Each card carries its chapter as a small open spread: obsidian plate,
+   ivory page. */
+.tfe__chapter-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  border: 1px solid var(--tfe-line);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.tfe__chapter-spread img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1100 / 1406;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0.9;
+  transition: opacity 0.4s ease;
+}
+
+.tfe__tetrad-card--plate:hover .tfe__chapter-spread img {
+  opacity: 1;
+}
+
+.tfe__tetrad-card--sealed {
+  align-content: end;
+}
+
+/* Six cards: two rows of three is the shared rail's default. Below 721px
+   the shared rail rule turns this into a swipe row. */
+@media (min-width: 721px) and (max-width: 1099px) {
+  .tfe__tetrad-rail--chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── Opening: the real book, then the price, no film ────────────────── */
+.tfe__intro {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+}
+
+.tfe__hero-plate {
+  margin: 0;
+  border: 1px solid var(--tfe-line);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6);
+}
+
+.tfe__hero-plate img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tfe__intro-main {
+  display: grid;
+  gap: clamp(28px, 4vh, 44px);
+}
+
+.tfe__intro-main .tfe__edition-register {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 24px;
+}
+
+.tfe__hero-cta {
+  justify-self: start;
+  text-decoration: none;
+}
+
+@media (max-width: 960px) {
+  .tfe__intro {
+    grid-template-columns: 1fr;
+  }
+
+  .tfe__hero-plate {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 720px) {
+  .tfe__intro-main .tfe__edition-register {
+    grid-template-columns: 1fr;
+  }
+
+  .tfe__hero-cta {
+    justify-self: stretch;
+  }
+}
+
+/* Beside the plate the title shares the width, so it steps down a size and
+   the price and button stay on the first screen. */
+.tfe__intro {
+  min-height: 0;
+  padding-block: clamp(56px, 9vh, 104px);
+}
+
+.tfe__intro .tfe__title-product {
+  font-size: clamp(2.2rem, 4.2vw, 4.4rem);
+}
+
+.tfe__intro .tfe__title-edition {
+  font-size: clamp(1.1rem, 2vw, 2rem);
+}
+
+.tfe__intro .tfe__voice {
+  font-size: clamp(1.3rem, 2vw, 1.9rem);
+}
