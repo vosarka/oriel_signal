@@ -156,3 +156,12 @@ describe("daily signal feed post", () => {
     expect(post).not.toContain("SEALED VOICE LINE");
   });
 });
+
+describe("daily phenomena", () => {
+  it("never offers the same phenomenon twice on one day", () => {
+    for (let n = 0; n < 60; n++) {
+      const { phenomena } = frameFor(new Date(START + n * 86_400_000));
+      expect(new Set(phenomena).size).toBe(phenomena.length);
+    }
+  });
+});

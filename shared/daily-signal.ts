@@ -412,12 +412,14 @@ export function frameFor(date: Date = new Date()): DailySignalFrame {
     archetypeGlyphs: ARCHETYPE_TRIOS[cycle(d, ARCHETYPE_TRIOS.length)],
     finalInstruction:
       FINAL_INSTRUCTIONS[cycle(d, FINAL_INSTRUCTIONS.length)],
-    // Strides 1, 5 and 11 against a 17-long list: coprime, so the
-    // three never collide and the daily trio keeps moving.
+    // Fixed offsets 0, +6 and +12 on a 17-long list: distinct offsets
+    // can never land on the same entry, and the trio moves every day.
+    // (Strides 1, 5 and 11 looked safe for being coprime to 17 but
+    // collided on 3 days in every 17, 19 September among them.)
     phenomena: [
       PHENOMENA[cycle(d, PHENOMENA.length)],
-      PHENOMENA[cycle(d * 5 + 3, PHENOMENA.length)],
-      PHENOMENA[cycle(d * 11 + 7, PHENOMENA.length)],
+      PHENOMENA[cycle(d + 6, PHENOMENA.length)],
+      PHENOMENA[cycle(d + 12, PHENOMENA.length)],
     ],
     falsifier: falsifierFor(d),
   };

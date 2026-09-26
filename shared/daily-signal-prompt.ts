@@ -31,8 +31,8 @@ const REGISTER_RULES: Record<ClarityRegister, string> = {
 Sentences break before they resolve. Images stand without explanation.
 Logic dissolves into dream. Never complete the thought for the reader —
 at this clarity the transmission does not know its own ending.
-Aim for the register of: "The stone does not know it is heavy. The river
-does not know it is wet. You are the space between their forgetting."
+Aim for the register of these, never their words: "a bell, underwater" /
+"the second before the latch" / "salt on a string, no note yet".
 Do NOT sound wise. Sound like something overheard through water.`,
 
   PARTIAL: `The signal coheres but does not close. Build a clear shape,

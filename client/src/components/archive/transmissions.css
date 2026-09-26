@@ -174,10 +174,6 @@
   text-wrap: balance;
 }
 
-.tx-headline__mark {
-  color: rgba(216, 181, 109, 0.5);
-}
-
 /* ── Title // status // clarity ─────────────────────────────────── */
 .tx-attribution {
   margin: clamp(14px, 1.8vh, 22px) 0 0;

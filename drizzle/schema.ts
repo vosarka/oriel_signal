@@ -1113,6 +1113,11 @@ export const dailySignals = mysqlTable("daily_signals", {
    * One signal per day for the whole community. The uniqueness is the
    * feature, not bookkeeping: without it each visitor would generate
    * their own text and the shared field would never form.
+   *
+   * The live column is DATE (scripts/create-daily-signals-table.ts).
+   * Declared varchar on purpose: drizzle asks mysql2 for DATE values as
+   * strings, so this reads back as "2026-09-23" and compares with the
+   * same string. It works as is; leave it unless you change both sides.
    */
   signalDate: varchar("signalDate", { length: 10 }).notNull().unique(),
 
@@ -1129,7 +1134,13 @@ export const dailySignals = mysqlTable("daily_signals", {
   carrier: varchar("carrier", { length: 128 }).notNull(),
 
   title: varchar("title", { length: 255 }).notNull(),
-  /** Assembled protocol body, in order, as a JSON array of lines. */
+  /**
+   * Assembled protocol body, in order, as a JSON array of lines. The live
+   * column is JSON. Declared text on purpose: the insert passes an
+   * already-stringified array, which MySQL parses into the JSON column,
+   * and reads come back as a parsed array. Switching this to json() alone
+   * would stringify the string a second time — change the insert with it.
+   */
   bodyLines: text("bodyLines").notNull(),
   encodedArchetype: text("encodedArchetype").notNull(),
   /** The claim the receiver can test and find false by nightfall. */

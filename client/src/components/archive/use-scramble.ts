@@ -50,12 +50,13 @@ export function useScramble(text: string, trigger: unknown, duration = 600) {
  * Reduced motion gets the plain text immediately.
  */
 export function useDecrypt(text: string, open: boolean, duration = 1100) {
+  const reduced = useReducedMotion();
   const [display, setDisplay] = useState(() =>
-    open || prefersReducedMotion() ? text : mask(text, 0)
+    open || reduced ? text : mask(text, 0)
   );
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    if (reduced) {
       setDisplay(text);
       return;
     }
@@ -78,7 +79,23 @@ export function useDecrypt(text: string, open: boolean, duration = 1100) {
       }
     }, 30);
     return () => clearInterval(id);
-  }, [text, open, duration]);
+  }, [text, open, duration, reduced]);
 
   return display;
+}
+
+/**
+ * Follows the reduced-motion setting live. Sampled once, a user who turns
+ * it on while the carrier is sealed kept an endlessly animating cipher.
+ */
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(prefersReducedMotion);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(query.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return reduced;
 }
