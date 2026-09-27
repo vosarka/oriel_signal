@@ -140,6 +140,7 @@ export async function extractOversoulPattern(
 ): Promise<Omit<OrielOversoulPattern, "id"> | null> {
   try {
     const response = await invokeLLM({
+      tier: "background",
       messages: [
         {
           role: "system",

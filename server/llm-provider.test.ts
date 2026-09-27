@@ -16,6 +16,28 @@ afterEach(() => {
 });
 
 describe("LLM provider selection", () => {
+  it("runs background work on the cheaper Mistral model and replies on Large", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    process.env.MISTRAL_MODEL = "mistral-large-latest";
+    delete process.env.MISTRAL_BACKGROUND_MODEL;
+    const { invokeLLM } = await importFreshLlm();
+    const models: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        models.push(JSON.parse(String(init.body)).model);
+        return new Response(
+          JSON.stringify({ choices: [{ message: { role: "assistant", content: "ok" } }] })
+        );
+      })
+    );
+    const messages = [{ role: "user" as const, content: "hello" }];
+    await invokeLLM({ messages });
+    await invokeLLM({ messages, tier: "background" });
+    expect(models).toEqual(["mistral-large-latest", "mistral-small-latest"]);
+  });
+
   it.each([
     ["1", "", 1000],
     ["Sun, 06 Sep 2026 00:00:01 GMT", "", 1000],
