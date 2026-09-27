@@ -84,7 +84,7 @@ export default function ResonanceBodygraph({
       <defs>
         <radialGradient id="bodygraph-gold-grad" cx="35%" cy="35%" r="65%">
           <stop offset="0%" stopColor="#FFF1C2" />
-          <stop offset="60%" stopColor="#D4AF37" />
+          <stop offset="60%" stopColor="#d8b56d" />
           <stop offset="100%" stopColor="#bda36b" />
         </radialGradient>
         <filter id={glowFilterId} x="-20%" y="-20%" width="140%" height="140%">
@@ -111,7 +111,7 @@ export default function ResonanceBodygraph({
         y1={VTRS_SVG_LAYOUT.Origin.y}
         x2={VTRS_SVG_LAYOUT.Saturation.x}
         y2={VTRS_SVG_LAYOUT.Saturation.y}
-        stroke="rgba(212, 175, 55, 0.12)"
+        stroke="rgba(216,181,109, 0.12)"
         strokeWidth="0.5"
         strokeDasharray="1.2 1.8"
       />
@@ -133,7 +133,7 @@ export default function ResonanceBodygraph({
            C 56 19, 58.5 16, 58.5 12
            C 58.5 8, 56.5 3, 50 3 Z"
         fill="rgba(20, 20, 28, 0.2)"
-        stroke="rgba(212, 175, 55, 0.08)"
+        stroke="rgba(216,181,109, 0.08)"
         strokeWidth="0.8"
         strokeLinecap="round"
       />
@@ -150,7 +150,7 @@ export default function ResonanceBodygraph({
               key={`loop-${idx}`}
               d={`M ${fromPos.x - 2} ${fromPos.y - 3} A 3 3 0 1 1 ${fromPos.x + 2} ${fromPos.y - 3}`}
               fill="none"
-              stroke={active ? "#D4AF37" : "rgba(212, 175, 55, 0.14)"}
+              stroke={active ? "#d8b56d" : "rgba(216,181,109, 0.14)"}
               strokeWidth={active ? 0.9 : 0.6}
             />
           );
@@ -164,7 +164,7 @@ export default function ResonanceBodygraph({
               y1={fromPos.y}
               x2={toPos.x}
               y2={toPos.y}
-              stroke="rgba(212, 175, 55, 0.12)"
+              stroke="rgba(216,181,109, 0.12)"
               strokeWidth="1.4"
             />
             {active ? (
@@ -173,7 +173,7 @@ export default function ResonanceBodygraph({
                 y1={fromPos.y}
                 x2={toPos.x}
                 y2={toPos.y}
-                stroke="#D4AF37"
+                stroke="#d8b56d"
                 strokeWidth="0.85"
                 filter="url(#channel-glow)"
                 opacity="0.85"

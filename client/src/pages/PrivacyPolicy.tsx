@@ -7,10 +7,10 @@ export default function PrivacyPolicy() {
         <div className="max-w-3xl mx-auto px-6 py-16">
           {/* Header */}
           <div className="mb-12">
-            <div className="text-xs font-mono text-[#f6b05e]/60 tracking-[0.3em] uppercase mb-3">
+            <div className="text-xs font-mono text-[#e4c88c]/60 tracking-[0.3em] uppercase mb-3">
               VOSSARI CONDUIT HUB
             </div>
-            <h1 className="text-3xl font-mono text-[#f6b05e] tracking-wider uppercase mb-2">
+            <h1 className="text-3xl font-mono text-[#e4c88c] tracking-wider uppercase mb-2">
               Privacy Policy
             </h1>
             <p className="text-sm font-mono text-gray-500">
@@ -99,7 +99,7 @@ export default function PrivacyPolicy() {
                   "To improve platform stability and debug issues",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="text-[#f6b05e] shrink-0 font-mono">—</span>
+                    <span className="text-[#e4c88c] shrink-0 font-mono">—</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -141,9 +141,9 @@ export default function PrivacyPolicy() {
                 ].map(tp => (
                   <div
                     key={tp.name}
-                    className="border border-[#f6b05e]/10 rounded p-3 bg-black/30"
+                    className="border border-[#e4c88c]/10 rounded p-3 bg-black/30"
                   >
-                    <span className="text-[#f6b05e] font-mono text-xs uppercase tracking-wider">
+                    <span className="text-[#e4c88c] font-mono text-xs uppercase tracking-wider">
                       {tp.name}
                     </span>
                     <p className="mt-1 text-xs">{tp.use}</p>
@@ -173,7 +173,7 @@ export default function PrivacyPolicy() {
               <SectionTitle>5. Cookies & Sessions</SectionTitle>
               <p className="text-gray-400">
                 We use a single session cookie (
-                <span className="font-mono text-[#f6b05e]/80">
+                <span className="font-mono text-[#e4c88c]/80">
                   app_session_id
                 </span>
                 ) to keep you logged in. It is a signed JWT stored as an
@@ -196,7 +196,7 @@ export default function PrivacyPolicy() {
                   "Withdraw consent at any time by deleting your account",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="text-[#f6b05e] shrink-0 font-mono">—</span>
+                    <span className="text-[#e4c88c] shrink-0 font-mono">—</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -238,7 +238,7 @@ export default function PrivacyPolicy() {
                 For privacy-related requests or questions, contact us at:{" "}
                 <a
                   href="mailto:contact@orielsignal.space"
-                  className="text-[#f6b05e] hover:underline font-mono"
+                  className="text-[#e4c88c] hover:underline font-mono"
                 >
                   contact@orielsignal.space
                 </a>
@@ -247,7 +247,7 @@ export default function PrivacyPolicy() {
           </div>
 
           {/* Footer note */}
-          <div className="mt-16 pt-8 border-t border-[#f6b05e]/10 text-center">
+          <div className="mt-16 pt-8 border-t border-[#e4c88c]/10 text-center">
             <p className="text-xs font-mono text-gray-600">
               ORIEL RESONANCE CIRCLE · ARKIVA VOS · Become Signal.
             </p>
@@ -260,7 +260,7 @@ export default function PrivacyPolicy() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-sm font-mono text-[#f6b05e] uppercase tracking-widest mb-4">
+    <h2 className="text-sm font-mono text-[#e4c88c] uppercase tracking-widest mb-4">
       {children}
     </h2>
   );
@@ -268,12 +268,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function SubTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[#FFD700]/80 font-mono text-xs uppercase tracking-wider mt-4 mb-1">
+    <p className="text-[#d8b56d]/80 font-mono text-xs uppercase tracking-wider mt-4 mb-1">
       {children}
     </p>
   );
 }
 
 function Divider() {
-  return <div className="border-t border-[#f6b05e]/10" />;
+  return <div className="border-t border-[#e4c88c]/10" />;
 }
