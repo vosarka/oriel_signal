@@ -65,7 +65,7 @@ export default function Codex() {
           padding: clamp(22px, 3vw, 36px);
           border: 1px solid var(--voss-border);
           background:
-            radial-gradient(circle at 86% 14%, rgba(246, 176, 94, 0.08), transparent 32%),
+            radial-gradient(circle at 86% 14%, rgba(228,200,140, 0.08), transparent 32%),
             linear-gradient(135deg, rgba(15, 15, 21, 0.94), rgba(8, 8, 12, 0.76));
           box-shadow: 0 22px 80px rgba(0, 0, 0, 0.28);
           backdrop-filter: blur(18px);
@@ -112,8 +112,8 @@ export default function Codex() {
         .codex-reading-button {
           flex-shrink: 0;
           padding: 10px 18px;
-          border: 1px solid rgba(246, 176, 94, 0.34);
-          background: rgba(246, 176, 94, 0.045);
+          border: 1px solid rgba(228,200,140, 0.34);
+          background: rgba(228,200,140, 0.045);
           color: var(--voss-amber);
           font-family: var(--font-ritual);
           font-size: 10px;
@@ -123,8 +123,8 @@ export default function Codex() {
         }
 
         .codex-reading-button:hover {
-          border-color: rgba(246, 176, 94, 0.55);
-          box-shadow: 0 0 24px rgba(246, 176, 94, 0.12);
+          border-color: rgba(228,200,140, 0.55);
+          box-shadow: 0 0 24px rgba(228,200,140, 0.12);
           color: var(--voss-ivory);
         }
 
@@ -156,8 +156,8 @@ export default function Codex() {
         }
 
         .codex-search input:focus {
-          border-color: rgba(246, 176, 94, 0.42);
-          box-shadow: 0 0 24px rgba(246, 176, 94, 0.08);
+          border-color: rgba(228,200,140, 0.42);
+          box-shadow: 0 0 24px rgba(228,200,140, 0.08);
         }
 
         .codex-grid-wrap {
@@ -167,15 +167,15 @@ export default function Codex() {
         .codex-tile {
           border-color: rgba(189, 163, 107, 0.11) !important;
           background:
-            radial-gradient(circle at 50% 28%, rgba(246, 176, 94, 0.055), transparent 45%),
+            radial-gradient(circle at 50% 28%, rgba(228,200,140, 0.055), transparent 45%),
             rgba(10, 10, 14, 0.68) !important;
           backdrop-filter: blur(10px);
         }
 
         .codex-tile:hover {
-          border-color: rgba(246, 176, 94, 0.38) !important;
+          border-color: rgba(228,200,140, 0.38) !important;
           background:
-            radial-gradient(circle at 50% 28%, rgba(246, 176, 94, 0.08), transparent 45%),
+            radial-gradient(circle at 50% 28%, rgba(228,200,140, 0.08), transparent 45%),
             rgba(15, 15, 21, 0.82) !important;
           box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
         }
@@ -278,7 +278,7 @@ export default function Codex() {
                         isActive
                           ? {
                               boxShadow:
-                                "0 0 24px rgba(0,240,255,0.35), inset 0 0 12px rgba(0,240,255,0.08)",
+                                "0 0 24px rgba(91,164,164,0.35), inset 0 0 12px rgba(91,164,164,0.08)",
                             }
                           : undefined
                       }
@@ -293,8 +293,8 @@ export default function Codex() {
                         className="relative mt-3"
                         style={{
                           filter: isActive
-                            ? "drop-shadow(0 0 12px rgba(0,240,255,0.9))"
-                            : "drop-shadow(0 0 0px rgba(0,240,255,0))",
+                            ? "drop-shadow(0 0 12px rgba(91,164,164,0.9))"
+                            : "drop-shadow(0 0 0px rgba(91,164,164,0))",
                           transition: "filter 0.15s ease",
                         }}
                       >
@@ -320,7 +320,7 @@ export default function Codex() {
                                 position: "absolute",
                                 inset: 0,
                                 background:
-                                  "linear-gradient(180deg, transparent 20%, rgba(0,240,255,0.35) 50%, transparent 80%)",
+                                  "linear-gradient(180deg, transparent 20%, rgba(91,164,164,0.35) 50%, transparent 80%)",
                                 animation: `scanline ${ACTIVATION_MS}ms ease-out forwards`,
                               }}
                             />

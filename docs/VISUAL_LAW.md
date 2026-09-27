@@ -1,5 +1,7 @@
 # VISUAL LAW — Non-Negotiable Design Rules for Any Agent
 
+**Canon since 2026-09-27.** Where any other document gives a palette (Signal Cyan `#00F0FF`, Gold `#FFD700`, Alert Red `#FF2A2A`, the HUD specs, older plans and wiki sources), this file wins.
+
 *Append this to AGENTS.md and reference it in every UI task. It exists because agents keep generating mediocre graphics, muddy brown instead of gold, and certificate-style framing. None of that is the ORIEL design. These rules are absolute.*
 
 ## 1. NEVER generate graphics

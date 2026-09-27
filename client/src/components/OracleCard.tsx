@@ -29,19 +29,19 @@ const TEMPORAL_COLORS: Record<
   { glow: string; bg: string; light: string }
 > = {
   Past: {
-    glow: "rgba(146,112,42,0.35)",
-    bg: "rgba(146,112,42,0.03)",
-    light: "#92702a",
+    glow: "rgba(189,163,107,0.35)",
+    bg: "rgba(189,163,107,0.03)",
+    light: "#bda36b",
   },
   Present: {
-    glow: "rgba(246,176,94,0.35)",
-    bg: "rgba(246,176,94,0.03)",
-    light: "#f6b05e",
+    glow: "rgba(228,200,140,0.35)",
+    bg: "rgba(228,200,140,0.03)",
+    light: "#e4c88c",
   },
   Future: {
-    glow: "rgba(107,63,160,0.35)",
-    bg: "rgba(107,63,160,0.03)",
-    light: "#6b3fa0",
+    glow: "rgba(91,164,164,0.35)",
+    bg: "rgba(91,164,164,0.03)",
+    light: "#5ba4a4",
   },
 };
 
@@ -80,31 +80,31 @@ export function OracleCard({
       <div
         className="group relative cursor-pointer"
         style={{
-          borderLeft: hasPersonal ? "2px solid #D4AF37" : "none",
-          boxShadow: hasPersonal ? "0 0 12px rgba(212,175,55,0.16)" : "none",
+          borderLeft: hasPersonal ? "2px solid #d8b56d" : "none",
+          boxShadow: hasPersonal ? "0 0 12px rgba(216,181,109,0.16)" : "none",
         }}
       >
         <div
           className="p-5 rounded-sm transition-all duration-500 relative overflow-hidden"
           style={{
             background: `radial-gradient(ellipse at top left, ${colors.bg}, rgba(10,10,14,0.8))`,
-            border: `1px solid ${isFieldConfirmed ? "rgba(212,175,55,0.3)" : colors.glow}`,
+            border: `1px solid ${isFieldConfirmed ? "rgba(216,181,109,0.3)" : colors.glow}`,
             boxShadow: isFieldConfirmed
-              ? "0 0 20px rgba(212,175,55,0.1)"
+              ? "0 0 20px rgba(216,181,109,0.1)"
               : "none",
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = isFieldConfirmed
-              ? "rgba(212,175,55,0.5)"
+              ? "rgba(216,181,109,0.5)"
               : colors.light;
             e.currentTarget.style.boxShadow = `0 0 30px ${colors.glow}`;
           }}
           onMouseLeave={e => {
             e.currentTarget.style.borderColor = isFieldConfirmed
-              ? "rgba(212,175,55,0.3)"
+              ? "rgba(216,181,109,0.3)"
               : colors.glow;
             e.currentTarget.style.boxShadow = isFieldConfirmed
-              ? "0 0 20px rgba(212,175,55,0.1)"
+              ? "0 0 20px rgba(216,181,109,0.1)"
               : "none";
           }}
         >
@@ -113,7 +113,7 @@ export function OracleCard({
               className="mb-4 overflow-hidden rounded-sm border"
               style={{
                 borderColor: isFieldConfirmed
-                  ? "rgba(212,175,55,0.18)"
+                  ? "rgba(216,181,109,0.18)"
                   : `${colors.light}22`,
                 background: "#0b0b10",
               }}
@@ -186,7 +186,7 @@ export function OracleCard({
                 className="font-mono tracking-widest"
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 2.5, repeat: Infinity }}
-                style={{ fontSize: 8, color: "#D4AF37" }}
+                style={{ fontSize: 8, color: "#d8b56d" }}
               >
                 ⟡ PERSONAL
               </motion.span>
@@ -260,7 +260,7 @@ export function OracleCard({
               {threadId && (
                 <span
                   className="font-mono"
-                  style={{ fontSize: 8, color: "rgba(246,176,94,0.4)" }}
+                  style={{ fontSize: 8, color: "rgba(228,200,140,0.4)" }}
                 >
                   🔗 THREAD
                 </span>
