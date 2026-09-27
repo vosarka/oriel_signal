@@ -128,6 +128,7 @@ export async function extractMemoriesFromConversation(
 
     logToFile("[Memory] Calling invokeLLM for memory extraction...");
     const response = await invokeLLM({
+      tier: "background",
       messages: [
         {
           role: "system",
@@ -682,6 +683,7 @@ export async function generateProfileSummary(
       .join("\n");
 
     const response = await invokeLLM({
+      tier: "background",
       messages: [
         {
           role: "system",

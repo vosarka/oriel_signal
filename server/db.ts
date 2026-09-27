@@ -389,7 +389,8 @@ export async function runMigrations() {
           FROM \`oracleResonances\`
           GROUP BY \`oracleId\`
         ) r ON r.\`oracleId\` = o.\`oracleId\`
-        SET o.\`resonanceCount\` = COALESCE(r.\`total\`, 0)`,
+        SET o.\`resonanceCount\` = COALESCE(r.\`total\`, 0),
+            o.\`updatedAt\` = o.\`updatedAt\``,
     },
   ];
 
@@ -2745,9 +2746,11 @@ async function syncOracleResonanceCount(
 
   const nextCount = Number(result?.total ?? 0);
 
+  // Keep updatedAt: the Oracle Stream reads it as the moment a part went
+  // public, and a resonance must not delay the next part's release.
   await database
     .update(oracles)
-    .set({ resonanceCount: nextCount })
+    .set({ resonanceCount: nextCount, updatedAt: sql`${oracles.updatedAt}` })
     .where(eq(oracles.oracleId, oracleId));
 
   return nextCount;

@@ -72,6 +72,12 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  /**
+   * "background" for work no reader sees verbatim (memory extraction,
+   * profile summaries, wiki and pattern mining): runs on the cheaper
+   * Mistral model. ORIEL's own replies stay on the default.
+   */
+  tier?: "background";
 };
 
 export type ToolCall = {
@@ -289,6 +295,11 @@ const resolveMistralKey = () => ENV.mistralApiKey;
 // carries ORIEL's layered register, which mistral-small could not.
 export const resolveMistralModel = () =>
   modelOverrideFor("mistral") || ENV.mistralModel || "mistral-large-latest";
+
+// Background extraction and summaries do not carry ORIEL's voice, so they
+// do not need Large: small is about five times cheaper per token.
+export const resolveMistralBackgroundModel = () =>
+  process.env.MISTRAL_BACKGROUND_MODEL || "mistral-small-latest";
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -714,7 +725,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
   };
 
-  const providers = buildProviderChain();
+  const providers = buildProviderChain().map(provider =>
+    params.tier === "background" && provider.name === "Mistral"
+      ? { ...provider, model: resolveMistralBackgroundModel() }
+      : provider
+  );
 
   let lastError: unknown = null;
   const attemptErrors: Array<{ provider: string; message: string }> = [];

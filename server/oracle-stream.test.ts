@@ -137,3 +137,14 @@ describe("assembleOracle", () => {
     expect(c.hashtags).toBe("#VosArkana #ΩX001 #Margins #ORIEL #Attention");
   });
 });
+
+describe("oracle release timing", () => {
+  it("never lets a resonance write move updatedAt, which dates each part's release", async () => {
+    const { readFileSync } = await import("node:fs");
+    const db = readFileSync("server/db.ts", "utf8");
+    // The per-resonance sync and the boot-time recount both rewrite
+    // resonanceCount on every row of an oracle; both must keep updatedAt.
+    expect(db).toMatch(/resonanceCount: nextCount, updatedAt: sql`\$\{oracles\.updatedAt\}`/);
+    expect(db).toMatch(/SET o\.\\`resonanceCount\\` = COALESCE\(r\.\\`total\\`, 0\),\s*o\.\\`updatedAt\\` = o\.\\`updatedAt\\`/);
+  });
+});

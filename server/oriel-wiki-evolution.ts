@@ -29,6 +29,7 @@ async function analyzeExchangeForWiki(
 ): Promise<WikiEvolutionProposal | null> {
   try {
     const response = await invokeLLM({
+      tier: "background",
       messages: [
         {
           role: "system",
@@ -119,6 +120,7 @@ async function mergePageContents(
 ): Promise<string> {
   try {
     const response = await invokeLLM({
+      tier: "background",
       messages: [
         {
           role: "system",
