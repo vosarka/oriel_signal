@@ -1,18 +1,17 @@
 .tfe {
-  /* Neutral charcoal studio ground: a flat near-black with a whisper of warm
-     light lifting the centre and a fine film grain — matching the reference
-     backdrop. Deliberately neutral (no blue cast, no brown). */
-  --tfe-void: #0d0d0d; /* inset / input ground, button ink */
-  --tfe-void-soft: #151514; /* card / panel surface */
-  --tfe-void-warm: #1b1b19; /* raised surface */
+  /* VISUAL_LAW tokens only. Surfaces are ivory at low alpha over the void
+     rather than neutral greys, which the law does not contain. */
+  --tfe-void: #0a0907; /* ground, inset / input ground, button ink */
+  --tfe-void-soft: rgba(255, 247, 230, 0.035); /* card / panel surface */
+  --tfe-void-warm: rgba(255, 247, 230, 0.06); /* raised surface */
   --tfe-gold: #d8b56d;
   --tfe-gold-bright: #e4c88c;
-  --tfe-gold-deep: #c2a468;
-  --tfe-ivory: #ece6da;
-  --tfe-teal: #6bb0ac;
+  --tfe-gold-deep: #bda36b;
+  --tfe-ivory: #fff7e6;
+  --tfe-teal: #5ba4a4;
   --tfe-line: rgba(216, 181, 109, 0.18);
   --tfe-line-strong: rgba(216, 181, 109, 0.42);
-  --tfe-muted: rgba(236, 230, 218, 0.62);
+  --tfe-muted: rgba(255, 247, 230, 0.62);
 
   position: relative;
   z-index: 2;
@@ -26,7 +25,7 @@
       rgba(230, 196, 130, 0.05),
       rgba(230, 196, 130, 0) 72%
     ),
-    #0f0f0f;
+    #0a0907;
   font-family: "Cormorant Garamond", serif;
 }
 
@@ -968,7 +967,7 @@
   width: min(100%, 940px);
   aspect-ratio: 3 / 2;
   border: 1px solid var(--tfe-line-strong);
-  background: linear-gradient(180deg, #0d0a06, #060504);
+  background: linear-gradient(180deg, #0a0907, #050505);
   box-shadow:
     0 46px 96px -34px rgba(0, 0, 0, 0.86),
     0 0 0 1px rgba(0, 0, 0, 0.5),
@@ -987,8 +986,8 @@
   content: "";
   background: repeating-linear-gradient(
     180deg,
-    #1c150c 0 2px,
-    #0c0906 2px 4px
+    rgba(216, 181, 109, 0.1) 0 2px,
+    #050505 2px 4px
   );
   border: 1px solid var(--tfe-line);
 }
