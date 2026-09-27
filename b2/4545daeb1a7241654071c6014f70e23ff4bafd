@@ -1,0 +1,31 @@
+server/oracle-stream.test.ts
+  s_c39201d9b0bd21::t_25855a402089f5 140-150
+server/oriel-umm.ts
+  s_c39201d9b0bd21::t_59e6a8ed0027f8 143
+server/_core/llm.ts
+  s_c39201d9b0bd21::t_2bd3f0c48ffcfd 75-80,299-303,728-732
+server/oriel-memory.ts
+  s_c39201d9b0bd21::t_59e6a8ed0027f8 131,686
+wiki/log.md
+  ai_agent 2044-2048
+server/oriel-wiki-evolution.ts
+  s_c39201d9b0bd21::t_59e6a8ed0027f8 32,123
+server/db.ts
+  s_c39201d9b0bd21::t_ffa5c400a2bfe4 392-393,2749-2750,2753
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b24545daeb1a7241654071c6014f70e23ff4bafd",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
