@@ -1,0 +1,27 @@
+server/tetradic-signature-paypal-webhook-route.ts
+  s_c39201d9b0bd21::t_c471813dd0cab2 16-34,42,110-114
+wiki/log.md
+  ai_agent 2056-2064
+server/subscription.test.ts
+  s_c39201d9b0bd21::t_e83ef899fc5125 2
+server/db.ts
+  s_c39201d9b0bd21::t_e83ef899fc5125 2598
+server/tetradic-signature-paypal-webhook-route.test.ts
+  s_c39201d9b0bd21::t_aafa2eee2b502c 62-68,75,117-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a69ff638738f7d71d18a8b8357be46367034000c",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
