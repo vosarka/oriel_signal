@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { updateUserSubscription, updateUserConduitId } from "./db";
+import { updateUserConduitId } from "./db";
 import { db } from "./db";
 
 // Mock database
@@ -12,51 +12,6 @@ vi.mock("./db", async () => {
 });
 
 describe("Subscription Management", () => {
-  describe("updateUserSubscription", () => {
-    it("should update subscription status", async () => {
-      const userId = 1;
-      const updates = { subscriptionStatus: "active" };
-
-      // Test that the function accepts the correct parameters
-      expect(userId).toBe(1);
-      expect(updates.subscriptionStatus).toBe("active");
-    });
-
-    it("should update PayPal subscription ID", async () => {
-      const userId = 1;
-      const updates = { paypalSubscriptionId: "I-ABC123XYZ" };
-
-      expect(userId).toBe(1);
-      expect(updates.paypalSubscriptionId).toBe("I-ABC123XYZ");
-    });
-
-    it("should update subscription dates", async () => {
-      const userId = 1;
-      const startDate = new Date("2024-01-01");
-      const renewalDate = new Date("2024-02-01");
-      const updates = {
-        subscriptionStartDate: startDate,
-        subscriptionRenewalDate: renewalDate,
-      };
-
-      expect(updates.subscriptionStartDate).toEqual(startDate);
-      expect(updates.subscriptionRenewalDate).toEqual(renewalDate);
-    });
-
-    it("should handle multiple updates at once", async () => {
-      const userId = 1;
-      const updates = {
-        subscriptionStatus: "active",
-        paypalSubscriptionId: "I-ABC123XYZ",
-        subscriptionStartDate: new Date("2024-01-01"),
-        subscriptionRenewalDate: new Date("2024-02-01"),
-      };
-
-      expect(Object.keys(updates).length).toBe(4);
-      expect(updates.subscriptionStatus).toBe("active");
-    });
-  });
-
   describe("updateUserConduitId", () => {
     it("should generate and update Conduit ID", async () => {
       const userId = 1;

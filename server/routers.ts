@@ -12,7 +12,6 @@ import { createHash } from "crypto";
 import { verifyCredentialPassword } from "./_core/auth";
 import * as db from "./db";
 import * as gemini from "./gemini";
-import { handlePayPalWebhook, PayPalWebhookPayload } from "./paypal-webhook";
 import {
   performDiagnosticReading,
   performEvolutionaryAssistance,
@@ -2643,23 +2642,6 @@ export const appRouter = router({
         await db.updateUserConduitId(ctx.user.id, input.conduitId);
         return { success: true };
       }),
-
-    updateSubscription: protectedProcedure
-      .input(
-        z.object({
-          subscriptionStatus: z.string().optional(),
-          paypalSubscriptionId: z.string().optional(),
-          subscriptionStartDate: z.date().optional(),
-          subscriptionRenewalDate: z.date().optional(),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        if (!ctx.user) {
-          throw new Error("Authentication required");
-        }
-        await db.updateUserSubscription(ctx.user.id, input);
-        return { success: true };
-      }),
   }),
 
   // Archive - Transmissions and Oracles
@@ -3222,24 +3204,6 @@ export const appRouter = router({
         if (!reading) return null;
         if (reading.userId !== ctx.user.id) throw new Error("Unauthorized");
         return reading;
-      }),
-  }),
-
-  // PayPal webhook handler
-  paypal: router({
-    webhook: publicProcedure
-      .input(z.record(z.string(), z.unknown()))
-      .mutation(async ({ input }) => {
-        try {
-          // Validate webhook payload has required fields
-          if (input.id && input.event_type && input.resource) {
-            await handlePayPalWebhook(input as any);
-          }
-          return { success: true };
-        } catch (error) {
-          console.error("PayPal webhook error:", error);
-          return { success: false };
-        }
       }),
   }),
 
