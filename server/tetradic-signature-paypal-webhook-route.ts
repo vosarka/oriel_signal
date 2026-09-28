@@ -13,6 +13,25 @@ import {
 } from "./tetradic-signature-paypal";
 import { parseVerifiedTetradicSignaturePayPalWebhook } from "./tetradic-signature-paypal-webhook";
 import { recordValidatedTetradicFounderEditionCaptureFromWebhook } from "./signature-letter-service";
+import { handlePayPalWebhook, type PayPalWebhookPayload } from "./paypal-webhook";
+
+/**
+ * Subscription and donation events. They arrive on this same verified
+ * webhook — PayPal signs per webhook, and this is the one whose ID the
+ * server holds — and go to the account handler once the book parser has
+ * declined them. There is no other way in: the old unverified tRPC
+ * endpoint is gone.
+ */
+const ACCOUNT_EVENTS = new Set([
+  "BILLING.SUBSCRIPTION.CREATED",
+  "BILLING.SUBSCRIPTION.ACTIVATED",
+  "BILLING.SUBSCRIPTION.UPDATED",
+  "BILLING.SUBSCRIPTION.CANCELLED",
+  "BILLING.SUBSCRIPTION.EXPIRED",
+  "BILLING.SUBSCRIPTION.SUSPENDED",
+  "PAYMENT.CAPTURE.COMPLETED",
+  "PAYMENT.CAPTURE.REFUNDED",
+]);
 
 type TetradicSignaturePayPalWebhookDependencies = Readonly<{
   getAdapter: () => Pick<
@@ -20,6 +39,7 @@ type TetradicSignaturePayPalWebhookDependencies = Readonly<{
     "captureOrder" | "verifyWebhook"
   >;
   recordCapture: typeof recordValidatedTetradicFounderEditionCaptureFromWebhook;
+  handleAccountEvent?: (payload: PayPalWebhookPayload) => Promise<void>;
 }>;
 
 const runtimeDependencies: TetradicSignaturePayPalWebhookDependencies = {
@@ -87,6 +107,11 @@ export function createTetradicSignaturePayPalWebhookHandler(
       }
 
       const parsed = parseVerifiedTetradicSignaturePayPalWebhook(req.body);
+      if (parsed.kind === "ignored" && ACCOUNT_EVENTS.has(req.body?.event_type)) {
+        await (dependencies.handleAccountEvent ?? handlePayPalWebhook)(req.body);
+        res.status(200).json({ received: true });
+        return;
+      }
       if (parsed.kind === "ignored") {
         res.status(200).json({
           received: true,

@@ -59,12 +59,20 @@ const completedCapture = {
 const verifyWebhook = vi.fn();
 const captureOrder = vi.fn();
 const recordCapture = vi.fn();
+const handleAccountEvent = vi.fn();
+
+const subscriptionActivatedEvent = {
+  id: "WH6F562076HD293871E75F399086E414290U",
+  event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+  resource: { id: "I-BW452GLLEP1G", custom_id: "user-42", status: "ACTIVE" },
+};
 
 async function postWebhook(event: unknown) {
   const app = express();
   registerTetradicSignaturePayPalWebhookRoute(app, {
     getAdapter: () => ({ verifyWebhook, captureOrder }),
     recordCapture,
+    handleAccountEvent,
   });
   app.use(express.json());
 
@@ -106,6 +114,31 @@ describe("Tetradic Signature PayPal webhook route", () => {
     verifyWebhook.mockResolvedValue(true);
     captureOrder.mockResolvedValue(completedCapture);
     recordCapture.mockResolvedValue({ id: INTERNAL_ORDER_ID });
+    handleAccountEvent.mockResolvedValue(undefined);
+  });
+
+  it("hands a verified subscription event to the account handler", async () => {
+    const response = await postWebhook(subscriptionActivatedEvent);
+
+    expect(response.status).toBe(200);
+    expect(handleAccountEvent).toHaveBeenCalledWith(subscriptionActivatedEvent);
+    expect(recordCapture).not.toHaveBeenCalled();
+  });
+
+  it("never lets an unsigned subscription event change an account", async () => {
+    verifyWebhook.mockResolvedValue(false);
+
+    const response = await postWebhook(subscriptionActivatedEvent);
+
+    expect(response.status).toBe(400);
+    expect(handleAccountEvent).not.toHaveBeenCalled();
+  });
+
+  it("keeps book payments away from the account handler", async () => {
+    await postWebhook(captureEvent);
+
+    expect(recordCapture).toHaveBeenCalled();
+    expect(handleAccountEvent).not.toHaveBeenCalled();
   });
 
   it("captures an approved PayPal order server-side and records it", async () => {
