@@ -17,4 +17,15 @@ describe("admin access boundaries", () => {
       code: "FORBIDDEN",
     });
   });
+
+  it("blocks non-admin users from reading or changing patrons", async () => {
+    const caller = appRouter.createCaller({
+      user: { id: 42, role: "user" },
+    } as never);
+
+    await expect(caller.admin.patrons.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      caller.admin.patrons.mark({ userId: 42, until: null })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });

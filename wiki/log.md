@@ -2062,3 +2062,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - **For Vos, in PayPal (Developer → the live app → Webhooks):** the webhook pointing at `…/api/paypal/tetradic-signature/webhook` must also list the `BILLING.SUBSCRIPTION.*` events and `PAYMENT.CAPTURE.COMPLETED` / `REFUNDED`; any webhook pointing at `/api/trpc/paypal.webhook` can be deleted, since that address no longer exists.
 - Noted for Etapa 2b: a donation is only recorded when its PayPal `custom_id` is `user-N`; the footer's hosted Donate button likely sets none, so `donated` may not reflect real donations.
 - Audit: `node /home/vos/oriel-export/audit-sustinatori.cjs` (outside the repo, read-only) writes who the database currently counts as subscriber or donor to `~/oriel-audit-sustinatori.csv` and prints only counts.
+
+## [2026-09-30] feat | Patrons in /admin
+- The Etapa 0 audit found the database knew no supporter at all: 0 subscribed, 0 PayPal subscriptions, 0 recorded donations. Vos confirmed everyone gave through the site's Donate button; it is a hosted PayPal button, so nothing reached their accounts. Turning on the free limit (Etapa 1) now would have cut exactly the people who give. Patrons come first.
+- New tab **patrons** in `/admin` (`PatronsConsole`): find an account by email or name, **Mark patron** open-ended or until a date (a one-time donation's 30-day key), see every supporter, remove patron standing. Garden members (a PayPal subscription id) are listed but changed only in PayPal.
+- No schema change. `shared/supporter-access.ts` reads existing columns: Garden = `subscribed` with a PayPal subscription id; patron = `subscribed` without one, lapsing on its own once `subscriptionRenewalDate` passes. Etapa 1 will gate on the same function.
+- `admin.patrons.list / find / mark / unmark` are admin-only (test). Mark and remove never touch an account with a PayPal subscription.
+- Not verified in a browser: `/admin` needs Vos's admin session. Types and tests pass.
