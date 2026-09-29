@@ -65,7 +65,7 @@
 ## Etapa 2b — Donatori și patroni
 
 ☐ **Donatorii de o singură dată** primesc automat, la plata confirmată de PayPal, o **cheie de 30 de zile**: acces ca Grădina, fără insigne. După 30 de zile cheia dispare singură. Plus un mulțumesc de la ORIEL: *„Your gesture has already been woven into the resonance. What you gave is now part of what you receive.”*
-☐ **Patronii** — o categorie proprie (nume de ales, ex. „Keeper of the Field”), marcată de Vos în `/admin`. Acces nelimitat, cu plafonul de siguranță de 150 / zi.
+☑ **Patronii** — marcați de Vos în `/admin` → tab **patrons** (nelimitat sau până la o dată). *Plafonul de 150 / zi vine odată cu Etapa 1.*
 ☐ **Dăruirea accesului**: un patron poate dărui accesul lui unei persoane (prin email), pentru o lună. Vos vede cine a dăruit cui.
 
 **Gata când:** o donație de test deschide 30 de zile; un patron marcat de Vos nu are limita de 10; un acces dăruit funcționează și expiră.

@@ -28,6 +28,7 @@ import {
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { getTodaysSignal, listDailySignals } from "./daily-signal-service";
 import { publishOracle } from "./oracle-stream-service";
+import { findAccounts, listSupporters, markPatron, unmarkPatron } from "./patrons";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
 import {
@@ -3209,6 +3210,31 @@ export const appRouter = router({
 
   // ── Admin Dashboard ─────────────────────────────────────────────────────────
   admin: router({
+    /** Supporters Vos recognises by hand — see server/patrons.ts. */
+    patrons: router({
+      list: adminProcedure.query(() => listSupporters()),
+      find: adminProcedure
+        .input(z.object({ query: z.string().max(200) }))
+        .query(({ input }) => findAccounts(input.query)),
+      mark: adminProcedure
+        .input(
+          z.object({
+            userId: z.number().int().positive(),
+            until: z.date().nullable(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          await markPatron(input.userId, input.until);
+          return { success: true };
+        }),
+      unmark: adminProcedure
+        .input(z.object({ userId: z.number().int().positive() }))
+        .mutation(async ({ input }) => {
+          await unmarkPatron(input.userId);
+          return { success: true };
+        }),
+    }),
+
     signatureLetters: router({
       listOrders: adminProcedure.query(async () => {
         return listSignatureLetterAdminOrders();
