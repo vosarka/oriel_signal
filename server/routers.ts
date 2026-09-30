@@ -28,7 +28,7 @@ import {
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import { getTodaysSignal, listDailySignals } from "./daily-signal-service";
 import { publishOracle } from "./oracle-stream-service";
-import { findAccounts, listSupporters, markPatron, unmarkPatron } from "./patrons";
+import { findAccounts, listSupporters, markPatron, setDonated, unmarkPatron } from "./patrons";
 import { invokeLLM, LLM_LONGFORM_MAX_TOKENS } from "./_core/llm";
 import { stripOrielVoiceOpening } from "../shared/oriel/voice-intro";
 import {
@@ -3231,6 +3231,17 @@ export const appRouter = router({
         .input(z.object({ userId: z.number().int().positive() }))
         .mutation(async ({ input }) => {
           await unmarkPatron(input.userId);
+          return { success: true };
+        }),
+      setDonated: adminProcedure
+        .input(
+          z.object({
+            userId: z.number().int().positive(),
+            amount: z.number().min(0).max(1_000_000),
+          })
+        )
+        .mutation(async ({ input }) => {
+          await setDonated(input.userId, input.amount);
           return { success: true };
         }),
     }),

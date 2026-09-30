@@ -6,7 +6,7 @@
 import { and, desc, eq, isNull, like, or } from "drizzle-orm";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
-import { supporterKind } from "../shared/supporter-access";
+import { accessTier, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
 
 const FIELDS = {
   id: users.id,
@@ -15,10 +15,17 @@ const FIELDS = {
   subscribed: users.subscribed,
   paypalSubscriptionId: users.paypalSubscriptionId,
   subscriptionRenewalDate: users.subscriptionRenewalDate,
+  donated: users.donated,
 };
 
 function withKind<T extends Parameters<typeof supporterKind>[0]>(row: T) {
-  return { ...row, kind: supporterKind(row), lapsed: row.subscribed && !supporterKind(row) };
+  const kind = supporterKind(row);
+  return {
+    ...row,
+    kind,
+    lapsed: Boolean(row.subscribed && !kind),
+    tier: TIER_ACCESS[accessTier(row)].label,
+  };
 }
 
 async function requireDb() {
@@ -67,4 +74,14 @@ export async function unmarkPatron(userId: number) {
     .update(users)
     .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null })
     .where(and(eq(users.id, userId), isNull(users.paypalSubscriptionId)));
+}
+
+/**
+ * Set the total a person has donated, in euros. Donations through the old
+ * hosted button never reached accounts, so Vos enters them here; the
+ * patron level follows the total.
+ */
+export async function setDonated(userId: number, amount: number) {
+  const db = await requireDb();
+  await db.update(users).set({ donated: amount }).where(eq(users.id, userId));
 }

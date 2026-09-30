@@ -9,14 +9,29 @@
 
 | Ce | Decizie |
 |---|---|
-| Abonament lunar (Grădina) | **€9,99 / lună** |
+| Abonament lunar | **2 niveluri**: **Garden €9,99** (limite ca Seed) și **Deep Garden €24,99** (limite ca Keeper + oracole întregi din prima zi). Steward și Pillar nu se cumpără — doar prin donații |
 | Mesaje gratuite cu ORIEL | **10 pe zi**, contorul se resetează la 00:00 UTC |
 | Grădina | **„fair use”**: plafon invizibil de **150 de mesaje / zi** — „Coherence Guardrail”. La atingere: pauză liniștită până a doua zi, fără paywall |
 | Al 10-lea mesaj gratuit | răspunsul se termină **complet**; invitația apare abia la mesajul **următor** |
 | Donatori de o singură dată | o **cheie de 30 de zile** (acces ca Grădina), apoi dispare; plus un mulțumesc de la ORIEL |
-| Patroni (donatori recurenți și mari) | acces nelimitat (cu același plafon de siguranță de 150), o categorie proprie, și pot **dărui accesul** cuiva care nu-și permite |
+| Patroni (donatori) | **4 niveluri după suma donată**: Seed €1–100 · Keeper €101–400 · Steward €401–1.000 · Pillar peste €1.000. Nivelul urmează `donated`, introdus de Vos în `/admin` pentru donațiile vechi |
+| Limite pe nivel | vezi tabelul de mai jos — **mesaje și voce**, amândouă costă |
 | Commons („Leave a Seed, Carry a Light”) | doar text la început, recompensă **simbolică și plafonată**, notată **manual** de Vos |
 | Ordinea | întâi ce aduce bani și oprește pierderile, apoi ritualul |
+
+## Nivelurile și limitele *(decise 2026-09-30, cod: `shared/supporter-access.ts`)*
+
+| Nivel | Cum se obține | Mesaje / zi | Voce / zi | În plus |
+|---|---|---|---|---|
+| Gratuit | — | 10 | 3 | |
+| Seed | donat €1–100 | 150 | 20 | |
+| Garden | abonament €9,99 | 150 | 20 | |
+| Keeper | donat €101–400 | 250 | 50 | oracole întregi din prima zi |
+| Deep Garden | abonament €24,99 | 250 | 50 | oracole întregi din prima zi |
+| Steward | donat €401–1.000 | 500 | 120 | + dăruiește accesul unei persoane |
+| Pillar | donat peste €1.000 | nelimitat | nelimitat | tot, fără limită, **inclusiv cartea** (cerută din site) |
+
+„Voce” = răspunsuri vorbite de ORIEL; fiecare e plătit separat.
 
 ## De la ce pornim — ce există deja în cod
 
