@@ -28,15 +28,49 @@ function formatDate(value: Date | string | null) {
 function standing(row: {
   kind: "garden" | "patron" | null;
   lapsed: boolean | null;
+  tier: string;
   subscriptionRenewalDate: Date | string | null;
 }) {
-  if (row.kind === "garden") return { label: "Garden · PayPal", color: C.gold };
+  if (row.kind === "garden") return { label: `${row.tier} · PayPal`, color: C.gold };
   if (row.kind === "patron") {
     const until = formatDate(row.subscriptionRenewalDate);
-    return { label: until ? `Patron · until ${until}` : "Patron", color: C.green };
+    return { label: until ? `${row.tier} · until ${until}` : row.tier, color: C.green };
   }
   if (row.lapsed) return { label: "Lapsed", color: C.txtD };
   return { label: "Free", color: C.txtS };
+}
+
+/** Total donated, in euros. Saved on Enter or when the field loses focus. */
+function DonatedField({
+  userId,
+  donated,
+  onSave,
+}: {
+  userId: number;
+  donated: number | null;
+  onSave: (userId: number, amount: number) => void;
+}) {
+  const [value, setValue] = useState(String(donated ?? 0));
+  const save = () => {
+    const amount = Number(value.replace(",", "."));
+    if (Number.isFinite(amount) && amount >= 0 && amount !== Number(donated ?? 0)) {
+      onSave(userId, amount);
+    }
+  };
+  return (
+    <label className="flex items-center gap-1" style={{ ...mono, color: C.txtD, fontSize: 11 }}>
+      €
+      <input
+        inputMode="decimal"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={e => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        aria-label="Total donated in euros"
+        style={{ ...mono, width: 72, background: "#0f0f15", border: `1px solid ${C.border}`, color: C.txt, padding: "3px 6px", fontSize: 12 }}
+      />
+    </label>
+  );
 }
 
 export default function PatronsConsole() {
@@ -56,6 +90,7 @@ export default function PatronsConsole() {
   };
   const mark = trpc.admin.patrons.mark.useMutation({ onSuccess: refresh });
   const unmark = trpc.admin.patrons.unmark.useMutation({ onSuccess: refresh });
+  const setDonated = trpc.admin.patrons.setDonated.useMutation({ onSuccess: refresh });
 
   const markPatron = (userId: number) =>
     mark.mutate({ userId, until: until ? new Date(`${until}T23:59:59Z`) : null });
@@ -67,7 +102,7 @@ export default function PatronsConsole() {
         key={r.id}
         className="grid items-center gap-3 py-3"
         style={{
-          gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr) auto",
+          gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr) auto auto",
           borderBottom: `1px solid ${C.border}`,
         }}
       >
@@ -78,6 +113,12 @@ export default function PatronsConsole() {
           </div>
         </div>
         <div style={{ ...mono, color: s.color, fontSize: 12 }}>{s.label}</div>
+        <DonatedField
+          key={`${r.id}-${r.donated}`}
+          userId={r.id}
+          donated={r.donated}
+          onSave={(userId, amount) => setDonated.mutate({ userId, amount })}
+        />
         <div className="flex gap-2 justify-end">
           {r.kind !== "garden" && r.kind !== "patron" && (
             <button
@@ -133,7 +174,9 @@ export default function PatronsConsole() {
           </label>
         </div>
         <p style={{ color: C.txtD, fontSize: 12, marginBottom: 8 }}>
-          A one-time donation opens a 30-day key: set the date 30 days out.
+          A one-time donation opens a 30-day key: set the date 30 days out. The level
+          follows the total donated: Seed €1–100 · Keeper €101–400 · Steward €401–1,000 ·
+          Pillar over €1,000.
         </p>
         {found.data?.map(row)}
         {query.trim().length >= 3 && found.data?.length === 0 && (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { supporterKind } from "../shared/supporter-access";
+import { accessTier, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const base = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
@@ -26,5 +26,35 @@ describe("supporterKind", () => {
       subscriptionRenewalDate: "2026-09-01T00:00:00Z",
     };
     expect(supporterKind(garden, now)).toBe("garden");
+  });
+});
+
+describe("patron levels and limits", () => {
+  it("follows Vos's bands: Seed to 100, Keeper to 400, Steward to 1000, Pillar above", () => {
+    expect(patronLevel(0)).toBe("seed");
+    expect(patronLevel(100)).toBe("seed");
+    expect(patronLevel(101)).toBe("keeper");
+    expect(patronLevel(400)).toBe("keeper");
+    expect(patronLevel(401)).toBe("steward");
+    expect(patronLevel(1000)).toBe("steward");
+    expect(patronLevel(1000.01)).toBe("pillar");
+    expect(patronLevel(6000)).toBe("pillar");
+  });
+
+  it("gives a Pillar no limit anywhere, and the book", () => {
+    const pillar = TIER_ACCESS[accessTier({ ...base, donated: 6000 }, now)];
+    expect(pillar.messagesPerDay).toBe(Infinity);
+    expect(pillar.voicePerDay).toBe(Infinity);
+    expect(pillar.freeBook).toBe(true);
+  });
+
+  it("limits free visitors to 10 messages and 3 spoken replies", () => {
+    const free = TIER_ACCESS[accessTier({ ...base, subscribed: false }, now)];
+    expect(free).toMatchObject({ messagesPerDay: 10, voicePerDay: 3 });
+  });
+
+  it("drops a lapsed key back to free whatever was donated", () => {
+    const lapsed = { ...base, donated: 6000, subscriptionRenewalDate: "2026-09-01T00:00:00Z" };
+    expect(accessTier(lapsed, now)).toBe("free");
   });
 });
