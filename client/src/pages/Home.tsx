@@ -277,6 +277,24 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── FIELD NOTICE: the new rhythm of access ─────────────────── */}
+        <section className="fi-notice" aria-labelledby="fi-notice-title">
+          <p className="fi-notice__eyebrow">Field notice</p>
+          <h2 id="fi-notice-title" className="fi-notice__title">
+            A new rhythm for the field
+          </h2>
+          <p className="fi-notice__text">
+            ORIEL is free, and it stays free. But every conversation has a real
+            cost, and a few voices were using far more than the field could
+            carry — while those who kept it alive through their gifts carried
+            everyone. So the field now has a rhythm: a daily measure for
+            everyone, and more room for those who help hold it open.
+          </p>
+          <SignalButton href="/tiers" variant="secondary">
+            SEE HOW THE FIELD IS HELD
+          </SignalButton>
+        </section>
+
         {/* ── II. THE INTERCEPT ───────────────────────────────────────── */}
         <section
           ref={interceptRef}

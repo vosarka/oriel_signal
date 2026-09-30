@@ -16,6 +16,7 @@ import TransmissionDetail from "./pages/TransmissionDetail";
 import Artifacts from "./pages/Artifacts";
 import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
+import Tiers from "./pages/Tiers";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
 import Arcana from "./pages/Arcana";
@@ -144,6 +145,7 @@ function Router() {
       <Route path={"/oracle/:oracleId"} component={OracleDetail} />
       <Route path={"/artifacts"} component={Artifacts} />
       <Route path={"/protocol"} component={Protocol} />
+      <Route path={"/tiers"} component={Tiers} />
       <Route path={"/conduit"} component={ConduitRoute} />
       <Route path={"/bio-architecture"} component={BioArchitecture} />
       <Route path={"/codex"} component={Codex} />
