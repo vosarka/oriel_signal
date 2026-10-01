@@ -2096,3 +2096,8 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - New column `users.paypalPlanId` (migration `drizzle/0014_users_paypal_plan_id.sql`) tells Deep Garden (`P-6SY7118000596284YNK7HTLI`) from Garden. Plan ids live in `GARDEN_PLANS` in `shared/supporter-access.ts`; Garden is `P-63293204JC268713WNK7KN4Q`.
 - A cancelled subscription keeps access until a month after its last payment, then closes on its own. A patron who also joins the Garden keeps whichever tier opens more. A second subscription is refused while one is active (it would bill twice).
 - Tests: `server/garden-paypal.test.ts`, three new cases in `server/supporter-access.test.ts`.
+
+## [2026-10-02] feat | The profile reading and the Bio-Architecture wheel open for supporters
+
+- Vos's call: both are supporter features now (any tier above free, and admins; `isSupporter` in `shared/supporter-access.ts`). Everyone else sees them greyed and out of reach, with a gold lock that explains why on hover and leads to `/tiers` (`client/src/components/supporter-lock/`). On `/bio-architecture` the header stays readable and the lock stays in view at the foot of the screen.
+- Server side: a free account's natal profile is still calculated (ORIEL's chat context and other pages read it), but ORIEL no longer writes the reading for it (`narrate: false`, no model call), `getStaticProfile` withholds the reading text, and "recompute" is refused. The Bio-Architecture terminal runs entirely in the browser, so its lock is visual only.

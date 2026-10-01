@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessTier, GARDEN_PLANS, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
+import { accessTier, GARDEN_PLANS, isSupporter, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const base = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
@@ -81,5 +81,15 @@ describe("the Garden plans", () => {
   it("lets a patron who joins the Garden keep the larger of the two", () => {
     expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("pillar");
     expect(accessTier({ ...garden, donated: 50, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
+  });
+});
+
+describe("supporter features (profile reading, Bio-Architecture)", () => {
+  it("open for every tier above free and for admins, closed for free and signed-out", () => {
+    expect(isSupporter(null)).toBe(false);
+    expect(isSupporter({ ...base, subscribed: false }, now)).toBe(false);
+    expect(isSupporter({ ...base, subscribed: false, role: "admin" }, now)).toBe(true);
+    expect(isSupporter(base, now)).toBe(true); // a patron, Seed
+    expect(isSupporter({ ...base, paypalSubscriptionId: "I-X", subscriptionStatus: "active" }, now)).toBe(true);
   });
 });

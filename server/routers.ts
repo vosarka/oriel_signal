@@ -8,6 +8,7 @@ import {
 } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
+import { isSupporter } from "@shared/supporter-access";
 import { isBreathPrompt } from "@shared/breath-prompts";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -2580,7 +2581,13 @@ export const appRouter = router({
       if (!ctx.user) {
         throw new Error("Authentication required");
       }
-      return db.getUserStaticProfile(ctx.user.id);
+      const profile = await db.getUserStaticProfile(ctx.user.id);
+      // ORIEL's written reading is a supporter feature; the calculated
+      // data stays, since other pages and ORIEL's own context read it.
+      if (profile && !isSupporter(ctx.user)) {
+        return { ...profile, diagnosticTransmission: null };
+      }
+      return profile;
     }),
 
     getCurrentResonance: protectedProcedure.query(async ({ ctx }) => {
@@ -2685,7 +2692,8 @@ export const appRouter = router({
         }
         const profile = await buildUserStaticProfile(
           String(ctx.user.id),
-          input
+          input,
+          { narrate: isSupporter(ctx.user) }
         );
         return db.upsertUserStaticProfile(ctx.user.id, profile);
       }),
@@ -2698,7 +2706,8 @@ export const appRouter = router({
         }
         const profile = await buildUserStaticProfile(
           String(ctx.user.id),
-          input
+          input,
+          { narrate: isSupporter(ctx.user) }
         );
         return db.upsertUserStaticProfile(ctx.user.id, profile);
       }),
@@ -2707,6 +2716,12 @@ export const appRouter = router({
       if (!ctx.user) {
         throw new Error("Authentication required");
       }
+      if (!isSupporter(ctx.user)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "The Static Signature reading opens for those who support the field.",
+        });
+      }
       const existing = await db.getUserStaticProfile(ctx.user.id);
       if (!existing) {
         throw new Error("Natal profile not found");
@@ -2714,7 +2729,8 @@ export const appRouter = router({
       const natalInput = resolveStoredNatalInputForRecompute(existing);
       const profile = await buildUserStaticProfile(
         String(ctx.user.id),
-        natalInput
+        natalInput,
+        { narrate: true }
       );
       return db.upsertUserStaticProfile(ctx.user.id, profile);
     }),
