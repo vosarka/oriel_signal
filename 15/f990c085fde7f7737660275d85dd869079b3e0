@@ -1,0 +1,45 @@
+server/oriel-umm.ts
+  s_c39201d9b0bd21::t_9f64247c575246 222,225-230,244-245
+  s_c39201d9b0bd21::t_c33b65b2bf081a 11-13,21-22,257,272
+client/src/components/admin/EvolutionConsole.tsx
+  s_c39201d9b0bd21::t_672670a7813239 3-4,28-29
+  s_c39201d9b0bd21::t_f505493bd9b5a3 1-2,5-27,30-135
+drizzle/schema.ts
+  s_c39201d9b0bd21::t_7cd2965a75a8c8 1156-1176
+server/oriel-transmission-mode.ts
+  s_c39201d9b0bd21::t_9f64247c575246 351
+drizzle/0015_oriel_amendments.sql
+  s_c39201d9b0bd21::t_7cd2965a75a8c8 1-10
+client/src/pages/Admin.tsx
+  s_c39201d9b0bd21::t_878ef2e9a34f8e 16,856,1115,1677
+scripts/apply-0015-oriel-amendments.ts
+  ai_agent 1-18
+server/oriel-context-layers.ts
+  s_c39201d9b0bd21::t_9f64247c575246 113
+server/_core/index.ts
+  s_c39201d9b0bd21::t_46ea4dd7d1fd0e 123-133,145
+server/oriel-amendments.ts
+  s_c39201d9b0bd21::t_3fbe8c691a243b 1-298
+server/routers.ts
+  s_c39201d9b0bd21::t_22269a394452f6 3302-3328
+wiki/log.md
+  ai_agent 2099-2106
+server/oriel-amendments.test.ts
+  s_c39201d9b0bd21::t_2a9a18f5eaabaf 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "15f990c085fde7f7737660275d85dd869079b3e0",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
