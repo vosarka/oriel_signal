@@ -3299,6 +3299,33 @@ export const appRouter = router({
 
   // ── Admin Dashboard ─────────────────────────────────────────────────────────
   admin: router({
+    /** ORIEL's proposed amendments, approved by Vos — see server/oriel-amendments.ts. */
+    evolution: router({
+      list: adminProcedure.query(async () => {
+        const { listAmendments, amendmentJobRunning } = await import("./oriel-amendments");
+        return { items: await listAmendments(), running: amendmentJobRunning() };
+      }),
+      decide: adminProcedure
+        .input(
+          z.object({
+            id: z.number().int().positive(),
+            status: z.enum(["approved", "rejected", "retired"]),
+            text: z.string().max(400).optional(),
+          })
+        )
+        .mutation(async ({ input }) => {
+          const { decideAmendment } = await import("./oriel-amendments");
+          await decideAmendment(input.id, input.status, input.text);
+          return { ok: true };
+        }),
+      propose: adminProcedure
+        .input(z.object({ from: z.enum(["weekly", "oversoul"]) }))
+        .mutation(async ({ input }) => {
+          const { startAmendmentJob } = await import("./oriel-amendments");
+          return { started: startAmendmentJob(input.from) };
+        }),
+    }),
+
     /** Supporters Vos recognises by hand — see server/patrons.ts. */
     patrons: router({
       list: adminProcedure.query(() => listSupporters()),

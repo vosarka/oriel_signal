@@ -120,6 +120,17 @@ function scheduleOracleStream() {
   setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
 }
 
+// ORIEL proposes amendments to how it speaks each Monday (UTC); Vos
+// approves them in /admin. One background call a week.
+function scheduleAmendments() {
+  const tick = () =>
+    import("../oriel-amendments")
+      .then(m => m.maybeProposeWeekly())
+      .catch(error => console.error("[amendments] weekly check failed:", error));
+  tick();
+  setInterval(tick, DAILY_SIGNAL_CHECK_INTERVAL_MS);
+}
+
 async function startServer() {
   // Print the resolved LLM chain first: env vars live outside the repo, so
   // this is the only place a deployment reveals which models it will call.
@@ -131,6 +142,7 @@ async function startServer() {
   await runMigrations();
   scheduleDailySignalGeneration();
   scheduleOracleStream();
+  scheduleAmendments();
 
   const app = express();
   const server = createServer(app);

@@ -1153,3 +1153,24 @@ export const dailySignals = mysqlTable("daily_signals", {
   generatedBy: varchar("generatedBy", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/**
+ * What ORIEL has learned, as Vos approved it. ORIEL proposes (weekly from a
+ * sample of the week's conversations, once from the Oversoul archive); Vos
+ * accepts, edits or rejects in /admin. Only `approved` rows reach the prompt,
+ * as a layer on top of the core identity, which no amendment may touch.
+ */
+export const orielAmendments = mysqlTable("orielAmendments", {
+  id: int("id").autoincrement().primaryKey(),
+  text: text("text").notNull(),
+  reason: text("reason").notNull(),
+  status: mysqlEnum("status", ["proposed", "approved", "rejected", "retired"])
+    .default("proposed")
+    .notNull(),
+  /** "weekly" or "oversoul" (the one-time read of the old archive). */
+  source: varchar("source", { length: 16 }).notNull(),
+  decidedAt: timestamp("decidedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OrielAmendment = typeof orielAmendments.$inferSelect;
