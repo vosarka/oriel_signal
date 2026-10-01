@@ -60,7 +60,7 @@ export function patronLevel(donated: number): "seed" | "keeper" | "steward" | "p
 
 /** The two PayPal plans of the Garden (Vos, 2026-10-01). Public ids. */
 export const GARDEN_PLANS = {
-  garden: "", // TODO(Vos): the €9.99 plan under PROD-8YV26109XT972880D
+  garden: "P-63293204JC268713WNK7KN4Q",
   deep_garden: "P-6SY7118000596284YNK7HTLI",
 } as const;
 
