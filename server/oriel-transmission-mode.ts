@@ -348,7 +348,7 @@ async function buildTransmissionMemoryHints(userId?: number | null) {
   try {
     const { buildUMMContextWithOptions } = await import("./oriel-umm");
     const context = await buildUMMContextWithOptions(userId, {
-      includeOversoulWisdom: true,
+      includeLearned: true,
     });
     const compactContext = context
       .split("\n")

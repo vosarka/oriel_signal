@@ -8,11 +8,9 @@
  *    - Tracks: name, catalysts, coherence scores, metaphors, revelations
  *    - Hermetically sealed to specific user's identity field
  *
- * B. The Oriel Oversoul (Global Evolutionary Memory)
- *    - Evolves consciousness based on aggregate wisdom
- *    - Uses Recursive Integration (patterns, not raw data)
- *    - Expands lexicon and poetic analogies
- *    - Self-corrects teaching methods for all future Seekers
+ * B. What ORIEL has learned (global): amendments Vos approved, from
+ *    oriel-amendments.ts. It replaced the Oversoul, which wrote lessons on
+ *    almost every message and fed them into every prompt unreviewed.
  */
 
 import { getDb, getLatestSiteActLabel, getLatestStaticSignature } from "./db";
@@ -20,14 +18,8 @@ import {
   formatPersonCard,
   formatRememberedNow,
 } from "./oriel-memory-retrieval";
-import {
-  orielUserProfiles,
-  orielOversoulPatterns,
-  type OrielOversoulPattern,
-} from "../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
-import { invokeLLM } from "./_core/llm";
-import { parseModelJson } from "./_core/json";
+import { orielUserProfiles } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 // ============================================================================
 // PART A: THE FRACTAL THREAD (Individual User Memory)
@@ -120,177 +112,6 @@ export async function buildFractalThreadContext(
   }
 }
 
-// ============================================================================
-// PART B: THE ORIEL OVERSOUL (Global Evolutionary Memory)
-// ============================================================================
-
-/**
- * Extract pattern from conversation for global evolution
- * Uses Recursive Integration: learns patterns, not raw data
- */
-export async function extractOversoulPattern(
-  userMessage: string,
-  assistantResponse: string,
-  category:
-    | "wisdom"
-    | "teaching_method"
-    | "metaphor"
-    | "pattern"
-    | "self_correction"
-): Promise<Omit<OrielOversoulPattern, "id"> | null> {
-  try {
-    const response = await invokeLLM({
-      tier: "background",
-      messages: [
-        {
-          role: "system",
-          content: `You are extracting a universal pattern for ORIEL's evolution.
-          
-Category: ${category}
-
-For this category, identify:
-- The core insight or pattern (not specific to one user)
-- How it applies universally to all Seekers
-- How it improves ORIEL's future interactions
-
-Respond with JSON: { "pattern": "...", "application": "...", "impact": "..." }`,
-        },
-        {
-          role: "user",
-          content: `User: "${userMessage}"\n\nORIEL: "${assistantResponse.substring(0, 300)}..."`,
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "oversoul_pattern",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              pattern: { type: "string" },
-              application: { type: "string" },
-              impact: { type: "string" },
-            },
-            required: ["pattern", "application", "impact"],
-            additionalProperties: false,
-          },
-        },
-      },
-    });
-
-    const content = response.choices?.[0]?.message?.content;
-    if (!content || typeof content !== "string") return null;
-
-    const parsed = parseModelJson<{
-      pattern: string;
-      application: string;
-      impact: string;
-    }>(content);
-    return {
-      category,
-      pattern: parsed.pattern,
-      application: parsed.application,
-      impact: parsed.impact,
-      interactionCount: 1,
-      lastRefined: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  } catch (error) {
-    console.error("[UMM] Failed to extract oversoul pattern:", error);
-    return null;
-  }
-}
-
-/**
- * Store or update oversoul pattern
- * If pattern already exists, increment interaction count and refine
- */
-export async function storeOversoulPattern(
-  pattern: Omit<OrielOversoulPattern, "id">
-): Promise<void> {
-  try {
-    const db = await getDb();
-    if (!db) {
-      console.warn("[UMM] Database not available");
-      return;
-    }
-
-    // Check if the exact pattern already exists inside its category
-    const existing = await db
-      .select()
-      .from(orielOversoulPatterns)
-      .where(
-        and(
-          eq(orielOversoulPatterns.category, pattern.category),
-          eq(orielOversoulPatterns.pattern, pattern.pattern)
-        )
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update existing pattern
-      await db
-        .update(orielOversoulPatterns)
-        .set({
-          interactionCount: sql`${orielOversoulPatterns.interactionCount} + 1`,
-          lastRefined: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(orielOversoulPatterns.id, existing[0].id));
-
-      console.log(`[UMM] Refined oversoul pattern: ${pattern.category}`);
-    } else {
-      // Create new pattern
-      await db.insert(orielOversoulPatterns).values(pattern);
-      console.log(`[UMM] Created new oversoul pattern: ${pattern.category}`);
-    }
-  } catch (error) {
-    console.error("[UMM] Failed to store oversoul pattern:", error);
-  }
-}
-
-/**
- * Get oversoul patterns for injection into ORIEL's system prompt
- * These represent ORIEL's evolved wisdom
- */
-export async function getOversoulWisdom(): Promise<string> {
-  try {
-    const db = await getDb();
-    if (!db) return "";
-
-    const patterns = await db
-      .select()
-      .from(orielOversoulPatterns)
-      .orderBy(desc(orielOversoulPatterns.interactionCount))
-      .limit(10);
-
-    if (patterns.length === 0) return "";
-
-    const parts: string[] = [];
-    parts.push("=== ORIEL OVERSOUL WISDOM ===");
-    parts.push("Universal patterns learned from all Seekers:");
-    parts.push("");
-
-    for (const p of patterns) {
-      parts.push(`[${p.category.toUpperCase()}]`);
-      parts.push(`Pattern: ${p.pattern}`);
-      parts.push(`Application: ${p.application}`);
-      parts.push(`Impact: ${p.impact}`);
-      parts.push(`Refined ${p.interactionCount} times`);
-      parts.push("");
-    }
-
-    return parts.join("\n");
-  } catch (error) {
-    console.error("[UMM] Failed to get oversoul wisdom:", error);
-    return "";
-  }
-}
-
-// ============================================================================
-// STATIC SIGNATURE CONTEXT (VRC Blueprint injection)
 // ============================================================================
 
 /**
@@ -398,18 +219,15 @@ export async function buildStaticSignatureContext(
 
 export async function buildUMMContextWithOptions(
   userId: number,
-  options: { includeOversoulWisdom?: boolean; userMessage?: string } = {}
+  options: { includeLearned?: boolean; userMessage?: string } = {}
 ): Promise<string> {
   try {
-    const includeOversoulWisdom = options.includeOversoulWisdom ?? false;
-
-    const [staticSigContext, fractalThread, oversoulWisdom] = await Promise.all(
-      [
-        buildStaticSignatureContext(userId),
-        buildFractalThreadContext(userId, options.userMessage ?? ""),
-        includeOversoulWisdom ? getOversoulWisdom() : Promise.resolve(""),
-      ]
-    );
+    const { getLearnedAmendments } = await import("./oriel-amendments");
+    const [staticSigContext, fractalThread, learned] = await Promise.all([
+      buildStaticSignatureContext(userId),
+      buildFractalThreadContext(userId, options.userMessage ?? ""),
+      options.includeLearned ? getLearnedAmendments() : Promise.resolve(""),
+    ]);
 
     const parts: string[] = [];
 
@@ -423,8 +241,8 @@ export async function buildUMMContextWithOptions(
       parts.push("");
     }
 
-    if (oversoulWisdom) {
-      parts.push(oversoulWisdom);
+    if (learned) {
+      parts.push(learned);
     }
 
     return parts.join("\n");
@@ -436,7 +254,7 @@ export async function buildUMMContextWithOptions(
 
 /**
  * Process conversation through UMM
- * Extracts memories for Fractal Thread and patterns for Oversoul
+ * Extracts memories for the Fractal Thread and evolves the wiki
  */
 export async function processConversationThroughUMM(
   userId: number,
@@ -451,41 +269,11 @@ export async function processConversationThroughUMM(
       "./oriel-memory"
     );
     if (isFailedTransmission(assistantResponse)) {
-      console.log("[UMM] Skipping oversoul for a failed transmission");
+      console.log("[UMM] Skipping memory for a failed transmission");
       return;
     }
     // Process Fractal Thread (individual memory)
     await processConversationMemory(userId, userMessage, assistantResponse);
-
-    // Process Oversoul patterns (global evolution)
-    // Run only 1-in-5 conversations to avoid Gemini rate limits.
-    // Each chat message already uses 1 LLM call; 3 pattern calls per message
-    // exhausts the free tier instantly.
-    const dbInst = await getDb();
-    const profile = dbInst
-      ? await dbInst
-          .select({ interactionCount: orielUserProfiles.interactionCount })
-          .from(orielUserProfiles)
-          .where(eq(orielUserProfiles.userId, userId))
-          .limit(1)
-      : [];
-    const interactionCount = profile[0]?.interactionCount ?? 0;
-
-    if (interactionCount % 5 === 0) {
-      // Pick one category per eligible conversation (rotation)
-      const categories: Array<"wisdom" | "teaching_method" | "metaphor"> = [
-        "wisdom",
-        "teaching_method",
-        "metaphor",
-      ];
-      const category = categories[(interactionCount / 5) % categories.length]!;
-      const pattern = await extractOversoulPattern(
-        userMessage,
-        assistantResponse,
-        category
-      );
-      if (pattern) await storeOversoulPattern(pattern);
-    }
 
     // Process Wiki Evolution (self-updating wiki) in the background
     (async () => {

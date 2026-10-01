@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import ArchitectConsole from "@/components/admin/ArchitectConsole";
 import PatronsConsole from "@/components/admin/PatronsConsole";
+import EvolutionConsole from "@/components/admin/EvolutionConsole";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 
@@ -852,7 +853,7 @@ function OracleForm({
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    "transmissions" | "oracles" | "patrons" | "architect"
+    "transmissions" | "oracles" | "patrons" | "evolution" | "architect"
   >("transmissions");
 
   // Transmission state
@@ -1111,7 +1112,7 @@ export default function Admin() {
           className="flex gap-1 mb-6"
           style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}
         >
-          {(["transmissions", "oracles", "patrons", "architect"] as const).map(tab => (
+          {(["transmissions", "oracles", "patrons", "evolution", "architect"] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1673,6 +1674,7 @@ export default function Admin() {
         )}
 
         {activeTab === "patrons" && <PatronsConsole />}
+        {activeTab === "evolution" && <EvolutionConsole />}
         {activeTab === "architect" && <ArchitectConsole />}
       </div>
 
