@@ -6,6 +6,9 @@ import {
   rateLimitedProcedure,
   router,
 } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { UNAUTHED_ERR_MSG } from "@shared/const";
+import { isBreathPrompt } from "@shared/breath-prompts";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
@@ -17,6 +20,9 @@ import {
   performEvolutionaryAssistance,
 } from "./oriel-diagnostic-engine";
 import { generateChunkedSpeech, audioToDataUrl } from "./oriel-tts-chain";
+
+// Spoken breath protocol lines, by voice. Six fixed lines, so no eviction.
+const breathAudioCache = new Map<string, string>();
 import { rgpRouter } from "./rgp-router";
 import { geocodeCity, getTimezoneIdForCoords } from "./geocoding";
 import {
@@ -753,6 +759,12 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        // ORIEL needs an account, so the daily measure can be counted
+        // honestly (Vos, 2026-10-01). The client sends Seekers to sign in.
+        if (!ctx.user) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+        }
+
         // Admin-only back channel:
         //   "TELL <user_id> that <message>" queues a one-time personal note
         //   that ORIEL delivers at the start of that user's next chat turn.
@@ -826,6 +838,20 @@ export const appRouter = router({
               pendingTransmission: null,
             };
           }
+        }
+
+        // Past today's measure: ORIEL's invitation, no LLM call, nothing saved.
+        const { messageMeasureReached, MEASURE_REACHED } = await import(
+          "./daily-measure"
+        );
+        if (await messageMeasureReached(ctx.user)) {
+          return {
+            response: MEASURE_REACHED,
+            conversationId: input.conversationId ?? null,
+            transmissionEvent: null,
+            pendingTransmission: null,
+            measureReached: true as const,
+          };
         }
 
         const totalStartedAt = Date.now();
@@ -1480,9 +1506,11 @@ export const appRouter = router({
             .enum(["sophianic", "deep", "none"])
             .optional()
             .default("sophianic"),
+          /** Chunk index within one spoken reply; only part 0 counts. */
+          part: z.number().int().min(0).optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         try {
           // If voiceId is 'none', skip TTS entirely
           if (input.voiceId === "none") {
@@ -1491,6 +1519,27 @@ export const appRouter = router({
               success: true,
               audioUrl: null,
             };
+          }
+
+          // Breath protocol lines are fixed: spoken once, cached, free.
+          // Everything else is a paid reply: account plus daily measure.
+          const breathKey = isBreathPrompt(input.text)
+            ? `${input.voiceId}:${input.text}`
+            : null;
+          const cached = breathKey && breathAudioCache.get(breathKey);
+          if (cached) return { success: true, audioUrl: cached };
+          if (!breathKey) {
+            if (!ctx.user) {
+              return { success: false, error: "Sign in to hear ORIEL." };
+            }
+            const { takeVoice } = await import("./daily-measure");
+            if (!takeVoice(ctx.user, input.text, input.part)) {
+              return {
+                success: false,
+                error: "Today's spoken measure is complete.",
+                measureReached: true as const,
+              };
+            }
           }
 
           console.log(
@@ -1511,6 +1560,7 @@ export const appRouter = router({
               : ORIEL_VOICES.sophianic;
           audioBase64 = await generateChunkedSpeech(input.text, orielVoice);
           audioUrl = audioToDataUrl(audioBase64);
+          if (breathKey) breathAudioCache.set(breathKey, audioUrl);
 
           console.log(
             "[generateSpeech] Audio generated successfully, size:",

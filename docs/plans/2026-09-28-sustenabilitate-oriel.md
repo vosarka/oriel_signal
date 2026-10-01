@@ -55,12 +55,12 @@
 
 ## Etapa 1 — Limita gratuită *(oprește scurgerea)*
 
-☐ Fiecare utilizator fără `subscribed` are **10 mesaje / zi** cu ORIEL. Numărul se schimbă din Railway (`FREE_DAILY_MESSAGES`), fără cod.
-☐ Contorul se socotește din mesajele deja salvate — fără tabelă nouă.
-☐ Al 10-lea mesaj primește răspuns **complet**, fără nimic tăiat. La mesajul 11, ORIEL nu răspunde normal: apare invitația („Threshold Keeper” — onoare, nu zid), cu două căi: **o sămânță în Commons** (odată cu Etapa 4) sau **Grădina** — și ora la care se reumple.
-☐ Textul de pornire, de la ORIEL: *„This conversation has reached the daily boundary. To continue, you may cross the threshold with a gesture of coherence (a book, a meditation, a text) or wait until tomorrow.”*
-☐ Utilizatorul vede discret câte mesaje mai are azi.
-☐ Textul invitației îl scrie ORIEL, Vos îl aprobă înainte de publicare.
+☑ ORIEL cere cont (Vos, 2026-10-01): fără cont nu se poate număra cinstit.
+☑ Limitele pe zi vin din `TIER_ACCESS` (`shared/supporter-access.ts`), singurul loc de schimbat — gratuit 10 mesaje, 3 răspunsuri vorbite; Seed/Grădina 150/20; Keeper 250/50; Steward 500/120; Pillar fără limită. Pragul pe oră: 30 gratuit/Seed/Grădina, 120 Keeper/Steward, Pillar și adminii deloc.
+☑ Contorul de mesaje se socotește din mesajele deja salvate — fără tabelă nouă. Vocea se numără în memorie (se resetează la deploy).
+☑ Al 10-lea mesaj primește răspuns complet. La al 11-lea, textul lui ORIEL aprobat de Vos (*„The day’s measure is complete…”*) și un link spre `/tiers`, fără apel la LLM.
+☑ Frazele fixe din Breath Protocol se rostesc o dată, intră în cache și nu se numără.
+☐ Utilizatorul vede discret câte mesaje mai are azi. *(amânat)*
 
 **Gata când:** un cont gratuit primește invitația la al 11-lea mesaj, un cont abonat nu.
 **De urmărit după:** costul Mistral pe zi și câți ajung la limită.
