@@ -58,28 +58,42 @@ export function patronLevel(donated: number): "seed" | "keeper" | "steward" | "p
   return "seed";
 }
 
+/** The two PayPal plans of the Garden (Vos, 2026-10-01). Public ids. */
+export const GARDEN_PLANS = {
+  garden: "", // TODO(Vos): the €9.99 plan under PROD-8YV26109XT972880D
+  deep_garden: "P-6SY7118000596284YNK7HTLI",
+} as const;
+
 export interface SupporterFields {
   subscribed: boolean | null;
   paypalSubscriptionId: string | null;
+  paypalPlanId?: string | null;
+  subscriptionStatus?: string | null;
   subscriptionRenewalDate: Date | string | null;
   donated?: number | null;
 }
 
 export function supporterKind(user: SupporterFields, now: Date = new Date()): SupporterKind {
   if (!user.subscribed) return null;
-  if (user.paypalSubscriptionId) return "garden";
   const until = user.subscriptionRenewalDate ? new Date(user.subscriptionRenewalDate) : null;
-  return until && until <= now ? null : "patron";
+  const lapsed = Boolean(until && until <= now);
+  // A cancelled Garden stays open until the month already paid for ends.
+  if (user.paypalSubscriptionId) {
+    return user.subscriptionStatus === "cancelled" && lapsed ? null : "garden";
+  }
+  return lapsed ? null : "patron";
 }
 
-/**
- * The tier that decides a user's limits.
- * ponytail: every PayPal subscription reads as Garden for now; Deep Garden
- * needs the plan id stored when Etapa 2 wires the two PayPal plans.
- */
+/** The tier that decides a user's limits. */
 export function accessTier(user: SupporterFields, now: Date = new Date()): AccessTier {
   const kind = supporterKind(user, now);
-  if (kind === "garden") return "garden";
   if (kind === "patron") return patronLevel(Number(user.donated ?? 0));
-  return "free";
+  if (kind !== "garden") return "free";
+  const plan: AccessTier =
+    user.paypalPlanId === GARDEN_PLANS.deep_garden ? "deep_garden" : "garden";
+  // A patron who also joins the Garden keeps whichever opens more.
+  const donated = Number(user.donated ?? 0);
+  if (donated <= 0) return plan;
+  const level = patronLevel(donated);
+  return TIER_ACCESS[level].messagesPerDay > TIER_ACCESS[plan].messagesPerDay ? level : plan;
 }

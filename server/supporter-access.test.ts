@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessTier, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
+import { accessTier, GARDEN_PLANS, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const base = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
@@ -56,5 +56,30 @@ describe("patron levels and limits", () => {
   it("drops a lapsed key back to free whatever was donated", () => {
     const lapsed = { ...base, donated: 6000, subscriptionRenewalDate: "2026-09-01T00:00:00Z" };
     expect(accessTier(lapsed, now)).toBe("free");
+  });
+});
+
+describe("the Garden plans", () => {
+  const garden = {
+    ...base,
+    paypalSubscriptionId: "I-BW452GLLEP1G",
+    subscriptionStatus: "active",
+    subscriptionRenewalDate: "2026-10-20T00:00:00Z",
+  };
+
+  it("tells Deep Garden from Garden by the PayPal plan", () => {
+    expect(accessTier({ ...garden, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
+    expect(accessTier({ ...garden, paypalPlanId: "P-ANY-OTHER" }, now)).toBe("garden");
+  });
+
+  it("keeps a cancelled Garden open until the paid month ends", () => {
+    const cancelled = { ...garden, subscriptionStatus: "cancelled" };
+    expect(accessTier(cancelled, now)).toBe("garden");
+    expect(accessTier(cancelled, new Date("2026-10-20T00:00:01Z"))).toBe("free");
+  });
+
+  it("lets a patron who joins the Garden keep the larger of the two", () => {
+    expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("pillar");
+    expect(accessTier({ ...garden, donated: 50, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
   });
 });

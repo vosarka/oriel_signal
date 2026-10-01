@@ -217,6 +217,45 @@ export const appRouter = router({
   system: systemRouter,
   rgp: rgpRouter,
 
+  /** The Garden's PayPal subscriptions (Etapa 2). */
+  garden: router({
+    subscribe: protectedProcedure
+      .input(z.object({ plan: z.enum(["garden", "deep_garden"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const { supporterKind } = await import("@shared/supporter-access");
+        // A second subscription would bill twice; changing plans goes
+        // through PayPal until upgrades are wired.
+        if (supporterKind(ctx.user) === "garden" && ctx.user.subscriptionStatus === "active") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You are already in the Garden. To change plans, cancel the current one in PayPal first.",
+          });
+        }
+        const { startGardenSubscription } = await import("./garden-paypal");
+        try {
+          return { approveUrl: await startGardenSubscription(ctx.user.id, input.plan) };
+        } catch (error) {
+          console.error("[Garden] subscribe failed:", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "PayPal could not open the subscription. Please try again shortly.",
+          });
+        }
+      }),
+
+    confirm: protectedProcedure
+      .input(z.object({ subscriptionId: z.string().max(64) }))
+      .mutation(async ({ input, ctx }) => {
+        const { confirmGardenSubscription } = await import("./garden-paypal");
+        try {
+          return { active: await confirmGardenSubscription(ctx.user.id, input.subscriptionId) };
+        } catch (error) {
+          console.error("[Garden] confirm failed:", error);
+          return { active: false };
+        }
+      }),
+  }),
+
   geo: router({
     geocode: publicProcedure
       .input(z.object({ city: z.string().min(1) }))

@@ -47,6 +47,8 @@ export const users = mysqlTable("users", {
     .notNull(),
   /** PayPal subscription ID */
   paypalSubscriptionId: varchar("paypalSubscriptionId", { length: 255 }),
+  /** PayPal plan of that subscription: tells Garden from Deep Garden. */
+  paypalPlanId: varchar("paypalPlanId", { length: 64 }),
   /** Subscription start date */
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   /** Subscription renewal date */

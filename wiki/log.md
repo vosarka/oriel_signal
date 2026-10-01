@@ -2088,3 +2088,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - The hourly cap now follows the tier too: 30 for free/Seed/Garden, 120 for Keeper and above, none for Pillar and admins (`messagesPerHour` in `TIER_ACCESS`).
 - `generateSpeech` was public and spoke any text up to 20,000 characters for anyone. Now: an account is required, and each tier gets its spoken replies per day. A reply arrives in chunks; only `part: 0` counts, with a character backstop for clients that never send it. Counted in memory (resets on deploy). When the measure is reached, the browser's own voice reads the reply. The six fixed Breath Protocol lines (`shared/breath-prompts.ts`) stay open to everyone and are cached after the first synthesis.
 - Tests: `server/rate-limit-router.test.ts` covers sign-in, hourly caps by tier, the 10th/11th message, voice counting and the breath cache. `oriel-router-latency.test.ts` fails the same way on `main`, unrelated.
+
+## [2026-10-01] feat | Etapa 2: the Garden's PayPal subscriptions
+
+- `/tiers` now opens the Garden: a signed-in Seeker presses "Join with PayPal", the server creates the subscription with `custom_id: user-N` (`server/garden-paypal.ts`, `garden.subscribe`) and sends them to PayPal's approval page. Signed out, the button asks them to sign in first. A plot with no plan yet still reads "Opening soon".
+- On return PayPal adds `subscription_id`; `garden.confirm` reads it from PayPal and, only when it is ACTIVE, carries this account's `custom_id` and is one of the two Garden plans, opens the plot through the same handler the signed webhook uses. Access no longer depends on the webhook being subscribed.
+- New column `users.paypalPlanId` (migration `drizzle/0014_users_paypal_plan_id.sql`) tells Deep Garden (`P-6SY7118000596284YNK7HTLI`) from Garden. Plan ids live in `GARDEN_PLANS` in `shared/supporter-access.ts`; the €9.99 Garden plan is still empty because PayPal has no plan under that product yet.
+- A cancelled subscription keeps access until a month after its last payment, then closes on its own. A patron who also joins the Garden keeps whichever tier opens more. A second subscription is refused while one is active (it would bill twice).
+- Tests: `server/garden-paypal.test.ts`, three new cases in `server/supporter-access.test.ts`.
