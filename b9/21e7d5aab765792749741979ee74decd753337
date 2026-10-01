@@ -1,0 +1,49 @@
+client/src/components/BreathProtocol.tsx
+  s_c39201d9b0bd21::t_c78a70b70f43a6 11
+  s_c39201d9b0bd21::t_4fddaec9f3545b 94,123,125,127,156,162
+shared/supporter-access.ts
+  s_c39201d9b0bd21::t_01d9191471319b 31-32,44-50
+server/rate-limit-router.test.ts
+  s_c39201d9b0bd21::t_48c301c7242d45 22,30,100-117,272,276-278,281-283,285-287,290,292-295,297,300,302,304-309,312-314,316-319,321,324-331,333-343
+  s_c39201d9b0bd21::t_88526a4816626d 31
+server/oriel-chat-images.test.ts
+  s_c39201d9b0bd21::t_e9e3c6364bcfac 31
+  s_c39201d9b0bd21::t_98dbc946950a5e 30,387,396-398,401,412,423-426,430
+client/src/pages/Conduit.tsx
+  s_c39201d9b0bd21::t_0360437b94bd63 61-62,552-561,1382,1394,1406,1850,1878
+  s_c39201d9b0bd21::t_5d04c6a0ee8bb3 1375-1380,1383-1389,1402
+docs/plans/2026-09-28-sustenabilitate-oriel.md
+  ai_agent 58-63
+shared/breath-prompts.ts
+  s_c39201d9b0bd21::t_a770df21329ad7 1-18
+server/oriel-history-budget.test.ts
+  s_c39201d9b0bd21::t_98dbc946950a5e 32
+server/routers.ts
+  s_c39201d9b0bd21::t_7ac5fe694dc76b 9-10
+  s_c39201d9b0bd21::t_3b995de9699af1 762-767,843-854
+  s_c39201d9b0bd21::t_e7ea8b058bc342 11,23-25,1533
+  s_c39201d9b0bd21::t_80ae174b726241 1509-1510,1513,1524-1532,1534-1544,1563
+wiki/log.md
+  ai_agent 2083-2090
+server/daily-measure.ts
+  s_c39201d9b0bd21::t_13eec0d82d658e 7
+  s_c39201d9b0bd21::t_997e556124c085 1-6,8-84
+server/_core/rate-limit.ts
+  s_c39201d9b0bd21::t_eb8ffea51620b1 2,99-113,130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b921e7d5aab765792749741979ee74decd753337",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
