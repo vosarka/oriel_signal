@@ -400,6 +400,10 @@ export function TetradicFounderEdition({
               role="listitem"
               data-tfe-tetrad-card
             >
+              <span className="signal-corner signal-corner--tl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--tr" aria-hidden="true" />
+              <span className="signal-corner signal-corner--bl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--br" aria-hidden="true" />
               <div className="tfe__chapter-spread" aria-hidden="true">
                 <img src={chapter.plate} alt="" loading="lazy" decoding="async" />
                 <img src={chapter.page} alt="" loading="lazy" decoding="async" />
@@ -418,6 +422,10 @@ export function TetradicFounderEdition({
             role="listitem"
             data-tfe-tetrad-card
           >
+              <span className="signal-corner signal-corner--tl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--tr" aria-hidden="true" />
+              <span className="signal-corner signal-corner--bl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--br" aria-hidden="true" />
             <div className="tfe__tetrad-card-top">
               <span>Parts</span>
               <strong>II · III</strong>

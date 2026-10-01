@@ -13,12 +13,12 @@
   --fh-voice: "Cormorant Garamond", Georgia, serif;
   --fh-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
 
+  /* Transparent: the shared SignalBackdrop (void, gold bloom, grain,
+     starfield) mounted in Layout shows through, as on every page. */
   position: relative;
   overflow: clip;
   color: var(--fh-ivory);
-  background:
-    radial-gradient(70% 50% at 50% 0%, rgba(216, 181, 109, 0.07), transparent 70%),
-    var(--fh-void);
+  background: transparent;
   font-family: var(--fh-voice);
 }
 
@@ -79,7 +79,7 @@
   fill: none;
   stroke: var(--fh-gold);
   stroke-width: 0.6;
-  opacity: 0.35;
+  opacity: 0.2;
 }
 
 .fh-halo circle:nth-child(2n) {
@@ -213,22 +213,22 @@
 .fh-garden__plots {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
+  gap: clamp(1rem, 2vw, 1.6rem);
   margin-top: 2.6rem;
-  background: var(--fh-line);
-  border: 1px solid var(--fh-line);
 }
 
+/* GlowCard supplies the frame, corners and hover; this only lays it out. */
 .fh-plot {
   display: grid;
   gap: 1.2rem;
-  padding: clamp(1.6rem, 3vw, 2.6rem);
-  background: var(--fh-void-warm);
-  transition: background 400ms ease;
+  padding: clamp(1.8rem, 3vw, 2.8rem);
 }
 
-.fh-plot:hover {
-  background: rgba(216, 181, 109, 0.045);
+/* Lift content above GlowCard's sheen, but leave its corner ornaments
+   absolutely placed. */
+.fh-plot > :not(.signal-corner) {
+  position: relative;
+  z-index: 1;
 }
 
 .fh-plot h3 {
@@ -238,7 +238,7 @@
   font-size: 1.7rem;
 }
 
-.fh-plot__price {
+.fh .fh-plot .fh-plot__price {
   margin: 0.4rem 0 0;
   color: var(--fh-gold-bright);
   font-family: var(--fh-display);
@@ -252,7 +252,7 @@
   letter-spacing: 0.12em;
 }
 
-.fh-plot__line {
+.fh .fh-plot .fh-plot__line {
   margin: 0;
   color: var(--fh-muted);
   font-size: 1.12rem;
@@ -274,7 +274,7 @@
   font-size: 1.5rem;
 }
 
-.fh-plot__soon {
+.fh .fh-plot .fh-plot__soon {
   justify-self: start;
   margin: 0.4rem 0 0;
   padding: 0.45rem 0.9rem;

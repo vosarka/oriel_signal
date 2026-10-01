@@ -279,6 +279,7 @@ export default function Home() {
 
         {/* ── FIELD NOTICE: the new rhythm of access ─────────────────── */}
         <section className="fi-notice" aria-labelledby="fi-notice-title">
+          <GlowCard className="fi-notice__card">
           <p className="fi-notice__eyebrow">Field notice</p>
           <h2 id="fi-notice-title" className="fi-notice__title">
             A new rhythm for the field
@@ -293,6 +294,7 @@ export default function Home() {
           <SignalButton href="/tiers" variant="secondary">
             SEE HOW THE FIELD IS HELD
           </SignalButton>
+          </GlowCard>
         </section>
 
         {/* ── II. THE INTERCEPT ───────────────────────────────────────── */}

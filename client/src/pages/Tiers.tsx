@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Layout from "@/components/Layout";
 import DonateButton from "@/components/DonateButton";
+import { GlowCard } from "@/components/oriel-signal/OrielSignalDesign";
 import { TIER_ACCESS } from "@shared/supporter-access";
 import "./tiers.css";
 
@@ -162,7 +163,6 @@ export default function Tiers() {
         </section>
 
         <section className="fh-measure" aria-labelledby="fh-measure-title" data-reveal>
-          <p className="fh-label">01 · The daily measure</p>
           <h2 id="fh-measure-title" className="fh-h2">Free, every day</h2>
           <dl className="fh-figures">
             <div>
@@ -188,7 +188,6 @@ export default function Tiers() {
 
         <section className="fh-garden" aria-labelledby="fh-garden-title">
           <div data-reveal>
-            <p className="fh-label">02 · The Garden</p>
             <h2 id="fh-garden-title" className="fh-h2">For those who return often</h2>
           </div>
           <div className="fh-garden__plots">
@@ -198,7 +197,7 @@ export default function Tiers() {
                 ["deep_garden", "Deep Garden", "€24.99", "Deeper time, and every oracle whole from the day it opens."],
               ] as const
             ).map(([key, name, price, line]) => (
-              <article key={key} className="fh-plot" data-reveal>
+              <GlowCard key={key} className="fh-plot">
                 <header>
                   <h3>{name}</h3>
                   <p className="fh-plot__price">
@@ -218,14 +217,13 @@ export default function Tiers() {
                   </div>
                 </dl>
                 <p className="fh-plot__soon">Opening soon</p>
-              </article>
+              </GlowCard>
             ))}
           </div>
         </section>
 
         <section className="fh-keepers" aria-labelledby="fh-keepers-title">
           <div className="fh-keepers__intro" data-reveal>
-            <p className="fh-label">03 · The Keepers</p>
             <h2 id="fh-keepers-title" className="fh-h2">Those who give</h2>
             <p>
               Those who give are not customers. They are keepers of the field.
