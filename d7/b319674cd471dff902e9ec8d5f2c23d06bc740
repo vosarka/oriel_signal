@@ -1,0 +1,26 @@
+client/src/features/tetradic-signature/TetradicFounderEdition.tsx
+  s_c39201d9b0bd21::t_c9dfb0bc472b23 70,80,86-87,92,385,438
+  s_c39201d9b0bd21::t_a35ada741bbcaa 334-335
+wiki/log.md
+  ai_agent 2082
+client/src/pages/Home.tsx
+  s_c39201d9b0bd21::t_a98d3058726afa 288-296
+client/src/pages/Tiers.tsx
+  s_c39201d9b0bd21::t_a98d3058726afa 25,32,39,48,136-137,141,151-154,157-159,183-185,229-230,279,281-284,291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d7b319674cd471dff902e9ec8d5f2c23d06bc740",
+  "prompts": {},
+  "sessions": {
+    "s_c39201d9b0bd21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f897bc-1404-4505-b695-4532c437f58f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
