@@ -28,7 +28,13 @@ export interface PayPalWebhookPayload {
       email_address: string;
     };
     custom_id?: string;
+    /** The plan of a subscription: tells Garden from Deep Garden. */
+    plan_id?: string;
     start_time?: string;
+    billing_info?: {
+      next_billing_time?: string;
+      last_payment?: { time?: string };
+    };
     /** Amount on PAYMENT.CAPTURE.COMPLETED events */
     amount?: {
       value: string;
@@ -184,6 +190,7 @@ async function handleSubscriptionActivated(
     .set({
       subscriptionStatus: "active",
       paypalSubscriptionId: subscriptionId,
+      paypalPlanId: payload.resource.plan_id ?? null,
       subscriptionStartDate: startTime,
       subscriptionRenewalDate: renewalDate,
       subscribed: true,
@@ -264,12 +271,19 @@ async function handleSubscriptionCancelled(
 
   const userId = parseInt(userIdMatch[1], 10);
 
+  // The month already paid for stays open; supporterKind closes it when
+  // this date passes. Without a last payment there is nothing to honour.
+  const lastPayment = payload.resource.billing_info?.last_payment?.time;
+  const paidThrough = lastPayment ? new Date(lastPayment) : null;
+  paidThrough?.setMonth(paidThrough.getMonth() + 1);
+
   await db
     .update(users)
-    .set({
-      subscriptionStatus: "cancelled",
-      subscribed: false,
-    })
+    .set(
+      paidThrough && paidThrough > new Date()
+        ? { subscriptionStatus: "cancelled", subscriptionRenewalDate: paidThrough }
+        : { subscriptionStatus: "cancelled", subscribed: false }
+    )
     .where(eq(users.id, userId));
 
   console.log(`[PayPal Webhook] Subscription cancelled for user ${userId}`);

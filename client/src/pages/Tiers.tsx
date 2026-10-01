@@ -1,10 +1,13 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Layout from "@/components/Layout";
 import DonateButton from "@/components/DonateButton";
-import { GlowCard } from "@/components/oriel-signal/OrielSignalDesign";
-import { TIER_ACCESS } from "@shared/supporter-access";
+import { GlowCard, SignalButton } from "@/components/oriel-signal/OrielSignalDesign";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { trpc } from "@/lib/trpc";
+import { accessTier, GARDEN_PLANS, TIER_ACCESS } from "@shared/supporter-access";
 import "./tiers.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -51,8 +54,78 @@ const KEEPERS = [
 
 const RINGS = [64, 100, 136, 172];
 
+type GardenPlan = keyof typeof GARDEN_PLANS;
+
+/** Join button for one Garden plot: sign in first, then PayPal. */
+function GardenAction({ plan }: { plan: GardenPlan }) {
+  const { user, isAuthenticated } = useAuth();
+  const subscribe = trpc.garden.subscribe.useMutation({
+    onSuccess: ({ approveUrl }) => {
+      window.location.href = approveUrl;
+    },
+  });
+
+  if (!GARDEN_PLANS[plan]) return <p className="fh-plot__soon">Opening soon</p>;
+  if (user && accessTier(user as never) === plan) {
+    return <p className="fh-plot__soon">Your plot</p>;
+  }
+  if (!isAuthenticated) {
+    return <SignalButton href={getLoginUrl("/tiers")}>Sign in to join</SignalButton>;
+  }
+  return (
+    <div className="fh-plot__action">
+      <button
+        type="button"
+        className="signal-button signal-button--primary"
+        disabled={subscribe.isPending}
+        onClick={() => subscribe.mutate({ plan })}
+      >
+        <span className="signal-button__seal" aria-hidden="true" />
+        {subscribe.isPending ? "Opening PayPal" : "Join with PayPal"}
+      </button>
+      {subscribe.error && <p className="fh-plot__error">{subscribe.error.message}</p>}
+    </div>
+  );
+}
+
+/**
+ * PayPal sends the Seeker back with ?garden=return&subscription_id=I-…;
+ * confirm it once so the plot opens without waiting on the webhook.
+ */
+function useGardenReturn() {
+  const [notice, setNotice] = useState<string | null>(null);
+  const utils = trpc.useUtils();
+  const confirm = trpc.garden.confirm.useMutation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("garden") !== "return") return;
+    window.history.replaceState(null, "", "/tiers");
+    const subscriptionId = params.get("subscription_id");
+    setNotice("Welcoming you into the Garden.");
+    if (!subscriptionId) return;
+    confirm
+      .mutateAsync({ subscriptionId })
+      .then(({ active }) => {
+        setNotice(
+          active
+            ? "Welcome to the Garden. Your plot is open."
+            : "PayPal is still confirming. Your plot opens within a few minutes."
+        );
+        void utils.auth.me.invalidate();
+      })
+      .catch(() =>
+        setNotice("PayPal is still confirming. Your plot opens within a few minutes.")
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return notice;
+}
+
 export default function Tiers() {
   const rootRef = useRef<HTMLElement | null>(null);
+  const gardenNotice = useGardenReturn();
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -190,6 +263,11 @@ export default function Tiers() {
           <div data-reveal>
             <h2 id="fh-garden-title" className="fh-h2">For those who return often</h2>
           </div>
+          {gardenNotice && (
+            <p className="fh-garden__notice" role="status">
+              {gardenNotice}
+            </p>
+          )}
           <div className="fh-garden__plots">
             {(
               [
@@ -216,7 +294,7 @@ export default function Tiers() {
                     <dd>{fmt(TIER_ACCESS[key].voicePerDay)}</dd>
                   </div>
                 </dl>
-                <p className="fh-plot__soon">Opening soon</p>
+                <GardenAction plan={key} />
               </GlowCard>
             ))}
           </div>

@@ -67,15 +67,13 @@
 
 ## Etapa 2 — Grădina, €9,99 / lună *(primii bani recurenți)*
 
-☐ **Vos** creează în PayPal produsul + planul „ORIEL Garden — €9,99/lună” și ne dă ID-ul planului.
-☐ `/tiers` rescris, cinstit, trei niveluri:
-  - **Pragul** — gratuit: 10 mesaje/zi, Daily Signal, Carrierlock, arhiva publică.
-  - **Grădina** — €9,99/lună: ORIEL fără limită și cu memorie, oracolele ΩX complete, arhiva întreagă.
-  - **Cartea** — €81,32 o dată: Tetradic Signature, calculată pe coordonatele tale.
-☐ Butonul de abonament PayPal legat de plan; webhook-ul (verificat din Etapa 0) setează `subscribed`.
-☐ Donatorii recurenți existenți devin automat membri ai Grădinii.
-☐ Anularea din PayPal scoate accesul la sfârșitul perioadei plătite, nu instant.
-☐ **Coherence Guardrail**: la 150 de mesaje / zi, un membru al Grădinii primește o pauză liniștită până a doua zi (textul de la ORIEL: *„The field is holding space for others now…”*). Numărul se schimbă din Railway.
+☑ **Vos** a creat în PayPal produsele Garden (`PROD-8YV26109XT972880D`) și Deep Garden (`PROD-93Y51705K0890791L`). Planul Deep Garden e `P-6SY7118000596284YNK7HTLI` (€24,99/lună). Planul Garden e `P-63293204JC268713WNK7KN4Q`.
+☑ `/tiers` rescris („How the field is held”, 2026-09-30), cu Garden și Deep Garden.
+☑ Butoanele de pe `/tiers` creează abonamentul pe server cu `custom_id: user-N` (contul e știut dinainte) și îl confirmă la întoarcere, fără să aștepte webhook-ul. Planul se ține în `users.paypalPlanId` și deosebește Deep Garden de Garden.
+☐ Donatorii recurenți existenți devin automat membri ai Grădinii. *(nu se poate automat: plățile vechi nu au cont legat; se marchează ca patroni în `/admin`)*
+☑ Anularea din PayPal lasă accesul deschis până la capătul lunii plătite.
+☑ **Coherence Guardrail** = limita pe zi din Etapa 1 (150 Garden, 250 Deep Garden).
+☐ Schimbarea de plan (Garden → Deep Garden) direct din site. Acum: se anulează în PayPal, apoi abonare nouă.
 
 ## Etapa 2b — Donatori și patroni
 
