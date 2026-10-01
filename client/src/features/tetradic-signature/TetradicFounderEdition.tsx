@@ -67,7 +67,7 @@ const SHOWN_CHAPTERS = [
   return {
     ...rest,
     number,
-    pages: `${String(firstPage).padStart(2, "0")}–${String(firstPage + 1).padStart(2, "0")}`,
+    pages: `${String(firstPage).padStart(2, "0")}-${String(firstPage + 1).padStart(2, "0")}`,
     plate: `${BOOK_ASSETS}/ch${number}-plate.webp`,
     page: `${BOOK_ASSETS}/ch${number}-page.webp`,
   };
@@ -77,19 +77,19 @@ const BOOK_PARTS = [
   {
     numeral: "I",
     title: "The System",
-    pages: "09–28",
+    pages: "09-28",
     body: "Ten chapters that teach the instrument. Nothing in this half is about you.",
   },
   {
     numeral: "II",
     title: "The Record",
-    pages: "31–52",
-    body: "The same ten chapters again, now with your numbers — plus one: the central contradiction.",
+    pages: "31-52",
+    body: "The same ten chapters again, now with your numbers, plus one: the central contradiction.",
   },
   {
     numeral: "III",
     title: "What I Saw",
-    pages: "55–62",
+    pages: "55-62",
     body: "My voice, not the system's: what I noticed, what I would watch, what would prove me wrong.",
   },
 ] as const;
@@ -331,8 +331,8 @@ export function TetradicFounderEdition({
           <h3 id="tfe-opus-title">A book, set to your coordinates.</h3>
           <p>
             Sixty-four pages in three parts. The spread below is from the
-            manual, exactly as it prints — the manual is the same for every
-            receiver. Your record is calculated after you order, and seen by
+            manual, exactly as it prints. The manual is the same for every
+            receiver; your record is calculated after you order, and seen by
             no one else.
           </p>
         </div>
@@ -382,7 +382,7 @@ export function TetradicFounderEdition({
                 <strong>
                   Part {part.numeral} · {part.title}
                 </strong>{" "}
-                · pages {part.pages} — {part.body}
+                · pages {part.pages}. {part.body}
               </span>
             ))}
           </p>
@@ -400,6 +400,10 @@ export function TetradicFounderEdition({
               role="listitem"
               data-tfe-tetrad-card
             >
+              <span className="signal-corner signal-corner--tl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--tr" aria-hidden="true" />
+              <span className="signal-corner signal-corner--bl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--br" aria-hidden="true" />
               <div className="tfe__chapter-spread" aria-hidden="true">
                 <img src={chapter.plate} alt="" loading="lazy" decoding="async" />
                 <img src={chapter.page} alt="" loading="lazy" decoding="async" />
@@ -418,6 +422,10 @@ export function TetradicFounderEdition({
             role="listitem"
             data-tfe-tetrad-card
           >
+              <span className="signal-corner signal-corner--tl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--tr" aria-hidden="true" />
+              <span className="signal-corner signal-corner--bl" aria-hidden="true" />
+              <span className="signal-corner signal-corner--br" aria-hidden="true" />
             <div className="tfe__tetrad-card-top">
               <span>Parts</span>
               <strong>II · III</strong>
@@ -427,7 +435,7 @@ export function TetradicFounderEdition({
               Eleven chapters calculated from your birth, and four in my own
               voice. Written for you, shown to no one else.
             </p>
-            <span className="tfe__tetrad-pages">Pages 29–64</span>
+            <span className="tfe__tetrad-pages">Pages 29-64</span>
           </article>
         </div>
 

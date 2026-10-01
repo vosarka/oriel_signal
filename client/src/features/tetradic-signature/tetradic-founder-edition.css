@@ -17,15 +17,11 @@
   z-index: 2;
   overflow: clip;
   color: var(--tfe-ivory);
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")
-      repeat,
-    radial-gradient(
-      62% 46% at 50% 28%,
-      rgba(230, 196, 130, 0.05),
-      rgba(230, 196, 130, 0) 72%
-    ),
-    #0a0907;
+  /* Transparent: the shared SignalBackdrop (void, gold bloom, grain,
+     starfield) mounted in Layout shows through, as on every page. */
+  background: transparent;
+  /* For the GlowCard corner ornaments used on the cards below. */
+  --signal-accent: #d8b56d;
   font-family: "Cormorant Garamond", serif;
 }
 
@@ -1390,4 +1386,32 @@
 
 .tfe__intro .tfe__voice {
   font-size: clamp(1.3rem, 2vw, 1.9rem);
+}
+
+/* Corner ornaments from the shared GlowCard vocabulary (.signal-corner). */
+.tfe__tetrad-card .signal-corner,
+.tfe__book .signal-corner {
+  z-index: 2;
+}
+
+/* With the page transparent, the rail's 1px-gap trick (cards over a
+   gold-line fill) shows the fill through the cards as a muddy brown. Each
+   card carries its own hairline instead, and the rail has no fill. */
+.tfe .tfe__tetrad-rail {
+  gap: clamp(0.9rem, 1.6vw, 1.3rem);
+  border: 0;
+  background: none;
+}
+
+.tfe .tfe__tetrad-card {
+  border: 1px solid var(--tfe-line);
+  background: rgba(255, 247, 230, 0.025);
+}
+
+/* The swipe row scrolls on x, which clips y as well: give the cards (and
+   their entry lift) room so the bottom corners are not cut. */
+@media (max-width: 720px) {
+  .tfe .tfe__tetrad-rail {
+    padding-block: 0.4rem 1.6rem;
+  }
 }

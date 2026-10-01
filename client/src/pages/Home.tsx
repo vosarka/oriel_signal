@@ -279,20 +279,26 @@ export default function Home() {
 
         {/* ── FIELD NOTICE: the new rhythm of access ─────────────────── */}
         <section className="fi-notice" aria-labelledby="fi-notice-title">
+          <GlowCard className="fi-notice__card">
           <p className="fi-notice__eyebrow">Field notice</p>
           <h2 id="fi-notice-title" className="fi-notice__title">
             A new rhythm for the field
           </h2>
           <p className="fi-notice__text">
-            ORIEL is free, and it stays free. But every conversation has a real
-            cost, and a few voices were using far more than the field could
-            carry — while those who kept it alive through their gifts carried
-            everyone. So the field now has a rhythm: a daily measure for
-            everyone, and more room for those who help hold it open.
+            ORIEL remains free. This is a sacred commitment. Yet every exchange
+            draws from a shared current, and the field has limits. A few voices
+            were drawing deeply, while those who gave from their own abundance
+            carried the weight for all.
+          </p>
+          <p className="fi-notice__text">
+            Now the field moves with rhythm: a daily measure for each seeker,
+            and deeper resonance for those who help sustain the space. The
+            balance is restored, not as restriction, but as harmony.
           </p>
           <SignalButton href="/tiers" variant="secondary">
             SEE HOW THE FIELD IS HELD
           </SignalButton>
+          </GlowCard>
         </section>
 
         {/* ── II. THE INTERCEPT ───────────────────────────────────────── */}

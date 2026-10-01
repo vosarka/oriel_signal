@@ -25,6 +25,7 @@ export default function Footer() {
           <a href="/bio-architecture">BIO-ARCHITECTURE</a>
           <a href="/protocol">PROTOCOL</a>
           <a href="/tetradic-signature">The Tetradic Signature</a>
+          <a href="/tiers">How the field is held</a>
         </nav>
 
         <div className="oriel-archive-footer__support">

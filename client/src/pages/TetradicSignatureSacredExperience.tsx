@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 
+import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import {
@@ -71,6 +72,7 @@ export default function TetradicSignatureSacredExperience() {
   }, []);
 
   return (
+    <Layout>
     <TetradicFounderEdition
       isAuthenticated={isAuthenticated}
       user={user?.name && user.email ? { name: user.name, email: user.email } : null}
@@ -79,5 +81,6 @@ export default function TetradicSignatureSacredExperience() {
       onCreateCheckpoint={createCheckpoint}
       onContinueToPayPal={continueToPayPal}
     />
+    </Layout>
   );
 }
