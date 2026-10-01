@@ -8,6 +8,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { BREATH_PROMPTS } from "@shared/breath-prompts";
 import { Play, Pause, RotateCcw, Volume2, VolumeX, Check } from "lucide-react";
 
 // Breath phase configuration
@@ -26,18 +27,6 @@ interface BreathProtocolProps {
   onComplete: () => void;
   isCompleted: boolean;
 }
-
-// Audio prompts for ORIEL voice guidance
-const AUDIO_PROMPTS = {
-  start:
-    "Begin the breath protocol. Center yourself. Let go of external noise.",
-  inhale: "Breathe in slowly. Fill your lungs completely.",
-  hold: "Hold. Let the breath settle within you.",
-  exhale: "Release slowly. Let tension dissolve with each exhale.",
-  cycleComplete: "Cycle complete. Prepare for the next breath.",
-  complete:
-    "The protocol is complete. Your field is now calibrated for assessment.",
-};
 
 export default function BreathProtocol({
   onComplete,
@@ -102,7 +91,7 @@ export default function BreathProtocol({
     setPhase("inhale");
     setCurrentCycle(1);
     setProgress(0);
-    playAudioPromptRef.current(AUDIO_PROMPTS.start);
+    playAudioPromptRef.current(BREATH_PROMPTS.start);
   }, []);
 
   // Pause the protocol
@@ -131,11 +120,11 @@ export default function BreathProtocol({
       lastPhaseRef.current = phase;
 
       if (phase === "inhale") {
-        playAudioPromptRef.current(AUDIO_PROMPTS.inhale);
+        playAudioPromptRef.current(BREATH_PROMPTS.inhale);
       } else if (phase === "hold") {
-        playAudioPromptRef.current(AUDIO_PROMPTS.hold);
+        playAudioPromptRef.current(BREATH_PROMPTS.hold);
       } else if (phase === "exhale") {
-        playAudioPromptRef.current(AUDIO_PROMPTS.exhale);
+        playAudioPromptRef.current(BREATH_PROMPTS.exhale);
       }
     }
 
@@ -164,13 +153,13 @@ export default function BreathProtocol({
         setPhase("exhale");
       } else if (phase === "exhale") {
         if (currentCycle < TOTAL_CYCLES) {
-          playAudioPromptRef.current(AUDIO_PROMPTS.cycleComplete);
+          playAudioPromptRef.current(BREATH_PROMPTS.cycleComplete);
           setPhase("pause");
         } else {
           // Protocol complete
           setPhase("complete");
           setIsPlaying(false);
-          playAudioPromptRef.current(AUDIO_PROMPTS.complete);
+          playAudioPromptRef.current(BREATH_PROMPTS.complete);
           onCompleteRef.current();
         }
       } else if (phase === "pause") {

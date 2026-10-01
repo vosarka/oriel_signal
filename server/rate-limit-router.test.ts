@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   calculateBirthChart: vi.fn(),
   generateStaticSignature: vi.fn(),
   generateORIELDynamicTransmission: vi.fn(),
+  getDb: vi.fn(async () => null as unknown),
   getTimezoneForLocalDateTime: vi.fn(() => ({
     tzId: "UTC",
     offsetHours: 0,
@@ -26,6 +27,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./db", () => ({
+  getDb: mocks.getDb,
+  getPendingOperatorMessage: vi.fn(async () => null),
   getConversationMessages: mocks.getConversationMessages,
   saveChatMessage: mocks.saveChatMessage,
   getUserStaticProfile: vi.fn(),
@@ -94,6 +97,24 @@ vi.mock("./static-profile-service", () => ({
 
 import { appRouter } from "./routers";
 import { resetRateLimitBucketsForTests } from "./_core/rate-limit";
+import { MEASURE_REACHED, resetVoiceUsageForTests } from "./daily-measure";
+import { BREATH_PROMPTS } from "@shared/breath-prompts";
+
+const freeUser = { id: 42, openId: "test-user", role: "user", subscribed: false };
+const pillarUser = {
+  id: 43,
+  openId: "pillar-user",
+  role: "user",
+  subscribed: true,
+  paypalSubscriptionId: null,
+  subscriptionRenewalDate: null,
+  donated: 2000,
+};
+
+/** A db whose chatMessages count for today is `n`. */
+const dbWithTodayCount = (n: number) => ({
+  select: () => ({ from: () => ({ where: async () => [{ n }] }) }),
+});
 
 const makePlanet = (planet: string, longitude: number) => ({
   planet,
@@ -248,62 +269,78 @@ describe("expensive public route rate limits", () => {
     });
   });
 
-  it("blocks anonymous ORIEL chat after five calls and does not make a sixth LLM call", async () => {
+  it("asks anonymous Seekers to sign in before ORIEL answers", async () => {
     const caller = callerFor("198.51.100.10");
 
-    for (let i = 0; i < 5; i += 1) {
-      await caller.oriel.chat({ message: `hello ${i}`, history: [] });
-    }
-
     await expect(
-      caller.oriel.chat({ message: "blocked", history: [] })
-    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
-    expect(mocks.chatWithORIEL).toHaveBeenCalledTimes(5);
+      caller.oriel.chat({ message: "hello", history: [] })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    expect(mocks.chatWithORIEL).not.toHaveBeenCalled();
   });
 
-  it("uses authenticated user quotas instead of inheriting an exhausted anonymous IP bucket", async () => {
-    const ip = "198.51.100.11";
-    const anonymousCaller = callerFor(ip);
+  it("caps free accounts at 30 messages an hour but never caps a Pillar", async () => {
+    const free = callerFor("198.51.100.11", freeUser);
+    const pillar = callerFor("198.51.100.11", pillarUser);
 
-    for (let i = 0; i < 5; i += 1) {
-      await anonymousCaller.oriel.chat({
-        message: `anonymous ${i}`,
-        history: [],
-      });
+    for (let i = 0; i < 30; i += 1) {
+      await free.oriel.chat({ message: `free ${i}`, conversationId: 12 });
+      await pillar.oriel.chat({ message: `pillar ${i}`, conversationId: 13 });
     }
     await expect(
-      anonymousCaller.oriel.chat({ message: "anonymous blocked", history: [] })
+      free.oriel.chat({ message: "one more", conversationId: 12 })
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
-
-    const authenticatedCaller = callerFor(ip, {
-      id: 42,
-      openId: "test-user",
-      email: "test@example.com",
-      role: "user",
-    });
-
     await expect(
-      authenticatedCaller.oriel.chat({
-        message: "authenticated still has a separate quota",
-        conversationId: 12,
-        history: [],
-      })
+      pillar.oriel.chat({ message: "one more", conversationId: 13 })
     ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
   });
 
-  it("does not rate limit chunked ORIEL speech", async () => {
-    const caller = callerFor("198.51.100.12");
+  it("answers the 10th free message in full and invites on the 11th", async () => {
+    const caller = callerFor("198.51.100.15", { ...freeUser, id: 44 });
 
-    for (let i = 0; i < 4; i += 1) {
+    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(9));
+    await expect(
+      caller.oriel.chat({ message: "tenth", conversationId: 12 })
+    ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
+
+    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(10));
+    await expect(
+      caller.oriel.chat({ message: "eleventh", conversationId: 12 })
+    ).resolves.toMatchObject({ response: MEASURE_REACHED, measureReached: true });
+    expect(mocks.chatWithORIEL).toHaveBeenCalledTimes(1);
+  });
+
+  it("speaks three replies a day for a free account; later chunks of a reply do not count", async () => {
+    resetVoiceUsageForTests();
+    const caller = callerFor("198.51.100.12", freeUser);
+
+    for (let i = 0; i < 3; i += 1) {
       await expect(
-        caller.oriel.generateSpeech({
-          text: `Speak this short line ${i}.`,
-          voiceId: "sophianic",
-        })
+        caller.oriel.generateSpeech({ text: `Reply ${i}.`, voiceId: "sophianic", part: 0 })
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        caller.oriel.generateSpeech({ text: `Reply ${i}, second chunk.`, voiceId: "sophianic", part: 1 })
       ).resolves.toMatchObject({ success: true });
     }
+    await expect(
+      caller.oriel.generateSpeech({ text: "Fourth reply.", voiceId: "sophianic", part: 0 })
+    ).resolves.toMatchObject({ success: false, measureReached: true });
+    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(6);
+  });
 
-    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(4);
+  it("never speaks for anonymous callers, except the cached breath protocol lines", async () => {
+    const caller = callerFor("198.51.100.16");
+
+    await expect(
+      caller.oriel.generateSpeech({ text: "Any text at all.", voiceId: "sophianic" })
+    ).resolves.toMatchObject({ success: false });
+    expect(mocks.generateChunkedSpeech).not.toHaveBeenCalled();
+
+    for (let i = 0; i < 2; i += 1) {
+      await expect(
+        caller.oriel.generateSpeech({ text: BREATH_PROMPTS.hold, voiceId: "deep" })
+      ).resolves.toMatchObject({ success: true });
+    }
+    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(1);
   });
 
   it("blocks anonymous artifact lore/image generation after two calls", async () => {

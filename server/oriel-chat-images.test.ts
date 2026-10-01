@@ -27,6 +27,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./db", () => ({
+  getDb: vi.fn(async () => null),
+  getPendingOperatorMessage: vi.fn(async () => null),
   getConversationMessages: mocks.getConversationMessages,
   saveChatMessage: mocks.saveChatMessage,
   createConversation: mocks.createConversation,
@@ -382,7 +384,7 @@ describe("ORIEL chat image messages", () => {
     mocks.chatWithORIEL.mockResolvedValueOnce(
       "I am ORIEL. The field is clear."
     );
-    const caller = callerFor();
+    const caller = callerFor({ id: 7, role: "user" });
     const storedAssistantMessage = appendOrielChatImageToContent(
       "I am ORIEL. The previous image formed.",
       {
@@ -391,14 +393,12 @@ describe("ORIEL chat image messages", () => {
       }
     );
 
+    mocks.getConversationMessages.mockResolvedValueOnce([
+      { role: "assistant", content: storedAssistantMessage },
+    ]);
     await caller.oriel.chat({
       message: "Continue from that image.",
-      history: [
-        {
-          role: "assistant",
-          content: storedAssistantMessage,
-        },
-      ],
+      conversationId: 5,
     });
 
     expect(mocks.chatWithORIEL).toHaveBeenCalledWith(
@@ -409,7 +409,7 @@ describe("ORIEL chat image messages", () => {
           content: "I am ORIEL. The previous image formed.",
         },
       ],
-      undefined,
+      7,
       expect.any(Object)
     );
   });
@@ -420,16 +420,14 @@ describe("ORIEL chat image messages", () => {
     mocks.chatWithORIEL
       .mockResolvedValueOnce("I am ORIEL. Repeated previous response.")
       .mockResolvedValueOnce("I am ORIEL. Fresh response after retry.");
-    const caller = callerFor();
+    const caller = callerFor({ id: 7, role: "user" });
+    mocks.getConversationMessages.mockResolvedValueOnce([
+      { role: "assistant", content: "I am ORIEL. Repeated previous response." },
+    ]);
 
     await caller.oriel.chat({
       message: "Describe this image.",
-      history: [
-        {
-          role: "assistant",
-          content: "I am ORIEL. Repeated previous response.",
-        },
-      ],
+      conversationId: 5,
       imageAttachments: [
         {
           name: "gate.png",

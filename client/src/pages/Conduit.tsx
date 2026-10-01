@@ -58,6 +58,8 @@ interface ChatMessage {
   content: string;
   timestamp?: number;
   transmissionEvent?: GeneratedTransmissionEvent | null;
+  /** ORIEL's invitation when today's measure is complete. */
+  measureReached?: boolean;
 }
 
 type TransmissionRarity = "common" | "uncommon" | "rare" | "mythic" | "void";
@@ -546,6 +548,16 @@ function AssistantMessageView({ msg }: { msg: ChatMessage }) {
 
       {msg.transmissionEvent && (
         <TransmissionModeCard event={msg.transmissionEvent} />
+      )}
+
+      {msg.measureReached && (
+        <Link
+          href="/tiers"
+          className="mt-4 inline-block font-mono text-[10px] tracking-[0.25em] uppercase underline-offset-4 hover:underline"
+          style={{ color: "#d8b56d" }}
+        >
+          How the field is held →
+        </Link>
       )}
     </div>
   );
@@ -1360,15 +1372,26 @@ export default function Conduit() {
 
     const chunks = splitIntoSpeechChunks(textForAudio);
 
-    const fetchAudio = (chunk: string): Promise<string | null> =>
+    // "measure" = today's spoken measure is complete: the browser's own
+    // voice reads the rest, at no cost to the field.
+    const fetchAudio = (
+      chunk: string,
+      part: number
+    ): Promise<string | "measure" | null> =>
       generateSpeechMutation
-        .mutateAsync({ text: chunk, voiceId: voicePreference })
-        .then(r => (r.success && r.audioUrl ? r.audioUrl : null))
+        .mutateAsync({ text: chunk, voiceId: voicePreference, part })
+        .then(r =>
+          r.success && r.audioUrl
+            ? r.audioUrl
+            : "measureReached" in r
+              ? ("measure" as const)
+              : null
+        )
         .catch(() => null);
 
     // Pre-fetch the first chunk immediately so audio starts as soon as it
     // resolves rather than waiting for all chunks to synthesise.
-    let nextAudioPromise = fetchAudio(chunks[0]);
+    let nextAudioPromise = fetchAudio(chunks[0], 0);
     let anyPlayed = false;
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1376,10 +1399,11 @@ export default function Conduit() {
 
       const audioUrl = await nextAudioPromise;
       if (speakIdRef.current !== speakId) return;
+      if (audioUrl === "measure") break;
 
       // Start pre-fetching next chunk while current plays
       if (i + 1 < chunks.length) {
-        nextAudioPromise = fetchAudio(chunks[i + 1]);
+        nextAudioPromise = fetchAudio(chunks[i + 1], i + 1);
       }
 
       if (!audioUrl) continue;
@@ -1823,6 +1847,7 @@ export default function Conduit() {
         content: result.response,
         timestamp: Date.now(),
         transmissionEvent: returnedTransmissionEvent,
+        measureReached: "measureReached" in result,
       };
       const finalMessages = [...updatedMessages, newAssistantMessage];
       setLocalMessages(finalMessages);
@@ -1850,7 +1875,7 @@ export default function Conduit() {
         );
       }
 
-      if (result.response.trim()) {
+      if (result.response.trim() && !("measureReached" in result)) {
         await speakText(result.response);
       }
     } catch (error) {

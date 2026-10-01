@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./db", () => ({
+  getDb: vi.fn(async () => null),
   getConversationMessages: mocks.getConversationMessages,
   saveChatMessage: mocks.saveChatMessage,
   createConversation: mocks.createConversation,

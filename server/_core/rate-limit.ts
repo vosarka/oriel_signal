@@ -1,4 +1,5 @@
 import type { TrpcContext } from "./context";
+import { accessTier, TIER_ACCESS } from "../../shared/supporter-access";
 
 export type RateLimitBucket =
   | "oriel.chat"
@@ -95,6 +96,21 @@ function getIdentity(ctx: Partial<TrpcContext>): {
   };
 }
 
+// ORIEL's hourly cap follows the supporter tier (Vos, 2026-10-01): Pillar
+// and admins are never capped, Keeper and above get 120, everyone else 30.
+function limitFor(
+  ctx: Partial<TrpcContext>,
+  bucket: RateLimitBucket,
+  tier: RateLimitTier
+) {
+  const user = ctx.user;
+  if (bucket !== "oriel.chat" || tier !== "authenticated" || !user) {
+    return RATE_LIMITS[bucket][tier];
+  }
+  if (user.role === "admin") return Infinity;
+  return TIER_ACCESS[accessTier(user)].messagesPerHour;
+}
+
 export type RateLimitResult = {
   allowed: boolean;
   bucket: RateLimitBucket;
@@ -111,7 +127,7 @@ export function checkRateLimit(
 ): RateLimitResult {
   const config = RATE_LIMITS[bucket];
   const identity = getIdentity(ctx);
-  const limit = config[identity.tier];
+  const limit = limitFor(ctx, bucket, identity.tier);
   const currentTime = now();
   const key = `${bucket}:${identity.key}`;
   const existing = buckets.get(key);

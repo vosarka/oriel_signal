@@ -28,6 +28,8 @@ export interface TierAccess {
   label: string;
   /** Messages to ORIEL per UTC day. Infinity = no limit. */
   messagesPerDay: number;
+  /** Safety cap on ORIEL messages per rolling hour. Infinity = none. */
+  messagesPerHour: number;
   /** Spoken ORIEL replies per UTC day — each is paid for separately. */
   voicePerDay: number;
   /** Whole ΩX oracles from the day they are published. */
@@ -39,13 +41,13 @@ export interface TierAccess {
 }
 
 export const TIER_ACCESS: Record<AccessTier, TierAccess> = {
-  free: { label: "Free", messagesPerDay: 10, voicePerDay: 3, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  seed: { label: "Seed", messagesPerDay: 150, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  garden: { label: "Garden", messagesPerDay: 150, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  keeper: { label: "Keeper", messagesPerDay: 250, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
-  deep_garden: { label: "Deep Garden", messagesPerDay: 250, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
-  steward: { label: "Steward", messagesPerDay: 500, voicePerDay: 120, oraclesDayOne: true, giftAccess: true, freeBook: false },
-  pillar: { label: "Pillar", messagesPerDay: Infinity, voicePerDay: Infinity, oraclesDayOne: true, giftAccess: true, freeBook: true },
+  free: { label: "Free", messagesPerDay: 10, messagesPerHour: 30, voicePerDay: 3, oraclesDayOne: false, giftAccess: false, freeBook: false },
+  seed: { label: "Seed", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
+  garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
+  keeper: { label: "Keeper", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
+  deep_garden: { label: "Deep Garden", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
+  steward: { label: "Steward", messagesPerDay: 500, messagesPerHour: 120, voicePerDay: 120, oraclesDayOne: true, giftAccess: true, freeBook: false },
+  pillar: { label: "Pillar", messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity, oraclesDayOne: true, giftAccess: true, freeBook: true },
 };
 
 /** Patron level from the total donated, in euros. */
