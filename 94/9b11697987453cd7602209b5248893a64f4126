@@ -1,0 +1,32 @@
+client/src/pages/Conduit.tsx
+  s_836a66a690c5eb::t_66cfc6923fabdd 27,665-669,1810,2829-2835
+server/rate-limit-router.test.ts
+  s_836a66a690c5eb::t_78ba1cda925c09 312-335
+client/src/components/oriel-signal/DailyMeasureStatus.tsx
+  s_836a66a690c5eb::t_dc55e1261bdbd3 1-2
+  s_836a66a690c5eb::t_74763c4a264b4b 3-48
+server/routers.ts
+  s_836a66a690c5eb::t_3bb3eb41ea7fe5 2593-2598
+client/src/pages/Profile.tsx
+  s_836a66a690c5eb::t_30f36c66472174 2,129-133,283-288,552
+server/daily-measure.ts
+  s_836a66a690c5eb::t_ff8aee1f42cd6d 35,37,43,48-72
+wiki/log.md
+  s_836a66a690c5eb::t_bc1c51cdc375a5 2099-2105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "949b11697987453cd7602209b5248893a64f4126",
+  "prompts": {},
+  "sessions": {
+    "s_836a66a690c5eb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fc3a-bbbd-7b03-b307-42071f584a5c",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
