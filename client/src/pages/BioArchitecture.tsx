@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/Layout";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { SupporterLock } from "@/components/supporter-lock/SupporterLock";
+import { isSupporter } from "@shared/supporter-access";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import {
@@ -55,6 +58,7 @@ const NEUTRAL_FIELD_CODONS: Codon[] = Array.from(
 );
 
 export default function BioArchitecture() {
+  const { user } = useAuth();
   const [codons, setCodons] = useState<CodonDetail[] | null>(null);
   const [selectedId, setSelectedId] = useState<number>(1);
   const [selectedFacetKey, setSelectedFacetKey] = useState<Facet>("A");
@@ -1491,6 +1495,7 @@ export default function BioArchitecture() {
             width="100%"
           />
 
+          <SupporterLock locked={!isSupporter(user as never)} label="Bio-Architecture terminal" floating>
           {/* Permanent HUD status strip */}
           <div className="vtrs-status-strip">
             SYSTEM STATUS: ACTIVE · 64 CODONS · 8 CENTERS · 32 LINKS · 512 NODES
@@ -1692,6 +1697,7 @@ export default function BioArchitecture() {
                 )}
             </AnimatePresence>
           )}
+          </SupporterLock>
         </main>
       </SignalPageShell>
     </Layout>

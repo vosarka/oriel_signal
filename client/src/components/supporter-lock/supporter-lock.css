@@ -1,0 +1,56 @@
+/* Greyed, out of reach, with a gold lock above it. VISUAL_LAW tokens. */
+.supporter-lock {
+  position: relative;
+}
+
+.supporter-lock__content {
+  filter: grayscale(1);
+  opacity: 0.32;
+  pointer-events: none;
+  user-select: none;
+}
+
+.supporter-lock__seal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: min(18vh, 9rem);
+  pointer-events: none;
+}
+
+.supporter-lock__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.2rem;
+  border: 1px solid rgba(216, 181, 109, 0.45);
+  background: rgba(5, 5, 5, 0.86);
+  color: #e4c88c;
+  font-family: "Red Hat Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  pointer-events: auto;
+  box-shadow: 0 0 28px rgba(216, 181, 109, 0.12);
+}
+
+.supporter-lock--floating .supporter-lock__seal {
+  position: fixed;
+  inset: auto 0 2.5rem;
+  z-index: 40;
+  padding: 0 1rem;
+}
+
+.supporter-lock__badge:hover,
+.supporter-lock__badge:focus-visible {
+  border-color: #d8b56d;
+  color: #fff7e6;
+}
+
+.supporter-lock__tip {
+  max-width: 18rem;
+  line-height: 1.5;
+}
