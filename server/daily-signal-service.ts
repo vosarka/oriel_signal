@@ -27,9 +27,27 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+/** First two words, lowercased, punctuation dropped. */
+function lead(line: string): string {
+  return line
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .join(" ");
+}
+
+/**
+ * "Grief is…", "Silence is not empty…": a definition, the shape the model
+ * fell into on 9 of its first 13 openings.
+ */
+const DEFINITION_OPENING = /^\s*[\p{L}'-]+(\s+[\p{L}'-]+)?\s+is(\s+not)?\b/iu;
+
 export function isValidGeneratedSignal(
   frame: DailySignalFrame,
-  value: unknown
+  value: unknown,
+  recentOpenings: string[] = []
 ): value is GeneratedSignal {
   if (!value || typeof value !== "object") return false;
   const g = value as Record<string, unknown>;
@@ -48,32 +66,62 @@ export function isValidGeneratedSignal(
       g.shards.every(isNonEmptyString)
     );
   }
-  return (
-    isNonEmptyString(g.opening) &&
-    isNonEmptyString(g.middle) &&
-    isNonEmptyString(g.closing)
-  );
+  if (
+    !isNonEmptyString(g.opening) ||
+    !isNonEmptyString(g.middle) ||
+    !isNonEmptyString(g.closing)
+  ) {
+    return false;
+  }
+  if (DEFINITION_OPENING.test(g.opening)) return false;
+  const opening = lead(g.opening);
+  return !recentOpenings.some(r => lead(r) === opening);
 }
 
-/** One retry on a malformed response; give up rather than write a broken row. */
-async function generateSignal(
-  frame: DailySignalFrame
+/**
+ * The openings of the last week, read from stored bodies: line 0 is the
+ * carrier line, line 1 the opening. Fractured days have shards, not an
+ * opening, so they are skipped.
+ */
+async function recentOpenings(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ register: dailySignals.clarityRegister, bodyLines: dailySignals.bodyLines })
+    .from(dailySignals)
+    .orderBy(desc(dailySignals.signalDate))
+    .limit(7);
+  return rows.flatMap(r => {
+    if (r.register === "FRACTURED") return [];
+    try {
+      const line = JSON.parse(r.bodyLines)[1];
+      return typeof line === "string" ? [line] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** Two retries on a malformed or repeated response; give up rather than write a broken row. */
+export async function generateSignal(
+  frame: DailySignalFrame,
+  recent: string[] = []
 ): Promise<{ gen: GeneratedSignal; model: string } | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       // invokeLLM carries the configured fallback chain, so a dead key on
       // one provider drops through to the next rather than failing.
       const res = await invokeLLM({
         temperature: 0.85,
         maxTokens: 900,
-        messages: [{ role: "user", content: buildSignalPrompt(frame) }],
+        messages: [{ role: "user", content: buildSignalPrompt(frame, recent) }],
         responseFormat: { type: "json_object" },
       });
       const raw = res.choices?.[0]?.message?.content;
       const text = typeof raw === "string" ? raw : JSON.stringify(raw);
       const body = text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
       const parsed = JSON.parse(body);
-      if (isValidGeneratedSignal(frame, parsed)) {
+      if (isValidGeneratedSignal(frame, parsed, recent)) {
         return { gen: parsed, model: res.model };
       }
       console.warn(
@@ -127,7 +175,7 @@ export async function getOrCreateTodaysSignal(): Promise<DailySignalRow | null> 
   // counts that as a failed attempt and tries again on its next tick.
   const today = new Date();
   const frame = frameFor(today, isCodonDay(today) ? await codonOfDay(today) : null);
-  const result = await generateSignal(frame);
+  const result = await generateSignal(frame, await recentOpenings());
   if (!result) return null;
   const { gen, model } = result;
 

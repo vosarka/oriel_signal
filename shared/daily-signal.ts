@@ -53,6 +53,8 @@ export interface DailySignalFrame {
   archetypeGlyphs: readonly [string, string, string];
   /** The shape today's title must take. See TITLE_FORMS. */
   titleForm: string;
+  /** The shape today's opening line must take. See OPENING_FORMS. */
+  openingForm: string;
   finalInstruction: string;
   /**
    * Reproducible phenomena offered to the generator as the safe well
@@ -145,6 +147,22 @@ export const TITLE_FORMS = [
   'an "Of" phrase, e.g. "Of Breath and Stone"',
   'a thing in an unexpected place, e.g. "A Bell Under Water"',
   'a gerund phrase, e.g. "Unlearning the Echo"',
+] as const;
+
+/**
+ * The shape of the opening line, set by the frame. Asked to "reframe an
+ * experience — love, fear, grief" as a phenomenon, the model opened 9 of
+ * its first 13 signals with "Grief is…". None of these is a definition.
+ * Seven forms; the stride in frameFor keeps neighbours apart.
+ */
+export const OPENING_FORMS = [
+  "a concrete image from one of today's phenomena, seen up close, no verb of being",
+  "something the body does without being asked, in the present tense",
+  'the moment just before something happens, beginning "Before" or "Just as"',
+  'a "When" clause about something the receiver has done, and what follows it',
+  "a sound described plainly, as it is heard, without saying what it means",
+  "a short instruction to the hands or the breath",
+  "an ordinary object in an ordinary room, behaving the way it always does",
 ] as const;
 
 const FINAL_INSTRUCTIONS = [
@@ -467,6 +485,7 @@ export function frameFor(
     carrierLine: CARRIER_LINE,
     archetypeGlyphs: ARCHETYPE_TRIOS[cycle(d, ARCHETYPE_TRIOS.length)],
     titleForm: TITLE_FORMS[cycle(d * 3, TITLE_FORMS.length)],
+    openingForm: OPENING_FORMS[cycle(d * 3, OPENING_FORMS.length)],
     finalInstruction:
       FINAL_INSTRUCTIONS[cycle(d, FINAL_INSTRUCTIONS.length)],
     // Fixed offsets 0, +6 and +12 on a 17-long list: distinct offsets
