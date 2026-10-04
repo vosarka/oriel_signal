@@ -1,0 +1,21 @@
+client/src/pages/Tiers.tsx
+  s_fb7a7986d66af6::t_d632bf7e5d6691 59-65,246,254,260,274-278,282-303,308,312-313
+client/src/pages/tiers.css
+  s_fb7a7986d66af6::t_d632bf7e5d6691 181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1d1518120d3dbce9971992ebde1d336271d83a40",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
