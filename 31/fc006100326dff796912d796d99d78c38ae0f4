@@ -1,0 +1,26 @@
+shared/daily-signal.ts
+  s_fb7a7986d66af6::t_cbbcf028cb1510 56-57,152-167,488
+server/daily-signal.test.ts
+  s_fb7a7986d66af6::t_96568ffd288d8b 177-199
+shared/daily-signal-prompt.ts
+  s_fb7a7986d66af6::t_74a62f1c9fe0b6 42-44
+  s_fb7a7986d66af6::t_89363da718b968 53-55,92-105,137-140,144
+server/daily-signal-service.ts
+  s_fb7a7986d66af6::t_525eede9c04b05 30-46,49-50,69-102,105-108,110,117,124,178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "31fc006100326dff796912d796d99d78c38ae0f4",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
