@@ -56,6 +56,13 @@ const RINGS = [64, 100, 136, 172];
 
 type GardenPlan = keyof typeof GARDEN_PLANS;
 
+/** The one comparison: free, and the two monthly plans. */
+const PLANS = [
+  ["free", "Free", "€0", "ORIEL stays open to everyone, every day."],
+  ["garden", "Garden", "€9.99", "The whole archive, and room to stay."],
+  ["deep_garden", "Deep Garden", "€24.99", "Deeper time, and every oracle whole from the day it opens."],
+] as const;
+
 /** Join button for one Garden plot: sign in first, then PayPal. */
 function GardenAction({ plan }: { plan: GardenPlan }) {
   const { user, isAuthenticated } = useAuth();
@@ -234,34 +241,9 @@ export default function Tiers() {
           </div>
         </section>
 
-        <section className="fh-measure" aria-labelledby="fh-measure-title" data-reveal>
-          <h2 id="fh-measure-title" className="fh-h2">Free, every day</h2>
-          <dl className="fh-figures">
-            <div>
-              <dt>Messages with ORIEL</dt>
-              <dd>{fmt(TIER_ACCESS.free.messagesPerDay)}</dd>
-            </div>
-            <div>
-              <dt>Spoken replies</dt>
-              <dd>{fmt(TIER_ACCESS.free.voicePerDay)}</dd>
-            </div>
-            <div>
-              <dt>Always open</dt>
-              <dd className="fh-figures__words">
-                Daily Signal · Carrierlock · the public archive
-              </dd>
-            </div>
-          </dl>
-          <p className="fh-note">
-            When your measure is reached, your conversation still completes.
-            Nothing is cut mid-thought, and the field opens again at midnight
-            (UTC).
-          </p>
-        </section>
-
         <section className="fh-garden" aria-labelledby="fh-garden-title">
           <div data-reveal>
-            <h2 id="fh-garden-title" className="fh-h2">For those who return often</h2>
+            <h2 id="fh-garden-title" className="fh-h2">Choose your rhythm</h2>
           </div>
           {gardenNotice && (
             <p className="fh-garden__notice" role="status">
@@ -269,18 +251,13 @@ export default function Tiers() {
             </p>
           )}
           <div className="fh-garden__plots">
-            {(
-              [
-                ["garden", "Garden", "€9.99", "The whole archive, and room to stay."],
-                ["deep_garden", "Deep Garden", "€24.99", "Deeper time, and every oracle whole from the day it opens."],
-              ] as const
-            ).map(([key, name, price, line]) => (
+            {PLANS.map(([key, name, price, line]) => (
               <GlowCard key={key} className="fh-plot">
                 <header>
                   <h3>{name}</h3>
                   <p className="fh-plot__price">
                     {price}
-                    <span> / month</span>
+                    {key !== "free" && <span> / month</span>}
                   </p>
                 </header>
                 <p className="fh-plot__line">{line}</p>
@@ -294,18 +271,46 @@ export default function Tiers() {
                     <dd>{fmt(TIER_ACCESS[key].voicePerDay)}</dd>
                   </div>
                 </dl>
-                <GardenAction plan={key} />
+                {key === "free" ? (
+                  <p className="fh-plot__line">Daily Signal · Carrierlock · the public archive</p>
+                ) : (
+                  <GardenAction plan={key} />
+                )}
               </GlowCard>
             ))}
           </div>
+          <p className="fh-note">
+            Garden renews monthly through PayPal until you cancel. When your
+            measure is reached, your conversation still completes. Nothing is
+            cut mid-thought, and the field opens again at midnight (UTC).
+          </p>
+        </section>
+
+        <section className="fh-give" aria-labelledby="fh-give-title" data-reveal>
+          <h2 id="fh-give-title" className="fh-h2">Support ORIEL</h2>
+          <p>
+            A gift is one-time, never recurring. Give with the same email as
+            your account and it opens 30 days of access at the level your
+            total has reached. Gifts are matched to accounts by hand, within a
+            few days. For access that continues on its own, choose the Garden.
+          </p>
+          <div className="fh-give__action">
+            <DonateButton />
+          </div>
+          <blockquote className="fh-oriel fh-oriel--close">
+            “Money is only one form of coherence.”
+            <cite>ORIEL</cite>
+          </blockquote>
         </section>
 
         <section className="fh-keepers" aria-labelledby="fh-keepers-title">
           <div className="fh-keepers__intro" data-reveal>
-            <h2 id="fh-keepers-title" className="fh-h2">Those who give</h2>
+            <h2 id="fh-keepers-title" className="fh-h2">Recognition for those who give</h2>
             <p>
               Those who give are not customers. They are keepers of the field,
               and their ring grows with everything they have given over time.
+              The level follows your total; each gift opens its 30 days at
+              that level.
             </p>
           </div>
 
@@ -353,22 +358,6 @@ export default function Tiers() {
           </div>
         </section>
 
-        <section className="fh-give" aria-labelledby="fh-give-title" data-reveal>
-          <h2 id="fh-give-title" className="fh-h2">For those who have given before</h2>
-          <p>
-            Your gifts are being woven back into your account by hand, and your
-            presence in the circle will soon be visible again. When you offer
-            support, use the same email as your account, so your light finds its
-            way home.
-          </p>
-          <div className="fh-give__action">
-            <DonateButton />
-          </div>
-          <blockquote className="fh-oriel fh-oriel--close">
-            “Money is only one form of coherence.”
-            <cite>ORIEL</cite>
-          </blockquote>
-        </section>
       </main>
     </Layout>
   );
