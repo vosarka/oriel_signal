@@ -1,0 +1,73 @@
+.agents/skills/industrial-brutalist-ui/SKILL.md
+  ai_agent 1-92
+.agents/skills/redesign-existing-projects/SKILL.md
+  ai_agent 1-178
+.agents/skills/imagegen-frontend-mobile/SKILL.md
+  ai_agent 1-1465
+skills-lock.json
+  s_fb7a7986d66af6::t_e714a9d6007083 10-15,34-45,64-69,76-81,106-129,142-147,154-159,178-183,220-224
+.agents/skills/image-to-code/SKILL.md
+  ai_agent 1-1228
+.agents/skills/minimalist-ui/SKILL.md
+  ai_agent 1-85
+.claude/skills/design-taste-frontend
+  ai_agent 1
+.claude/skills/design-taste-frontend-v1
+  ai_agent 1
+.claude/skills/full-output-enforcement
+  ai_agent 1
+.claude/skills/industrial-brutalist-ui
+  ai_agent 1
+.claude/skills/stitch-design-taste
+  ai_agent 1
+.agents/skills/brandkit/SKILL.md
+  ai_agent 1-798
+.agents/skills/high-end-visual-design/SKILL.md
+  ai_agent 1-98
+.agents/skills/design-taste-frontend-v1/SKILL.md
+  ai_agent 1-226
+.agents/skills/full-output-enforcement/SKILL.md
+  ai_agent 1-49
+.claude/skills/image-to-code
+  ai_agent 1
+.claude/skills/imagegen-frontend-web
+  ai_agent 1
+.claude/skills/redesign-existing-projects
+  ai_agent 1
+.agents/skills/stitch-design-taste/DESIGN.md
+  ai_agent 1-121
+.agents/skills/design-taste-frontend/SKILL.md
+  ai_agent 1-1206
+.claude/skills/gpt-taste
+  ai_agent 1
+.claude/skills/minimalist-ui
+  ai_agent 1
+.claude/skills/imagegen-frontend-mobile
+  ai_agent 1
+.claude/skills/brandkit
+  ai_agent 1
+.claude/skills/high-end-visual-design
+  ai_agent 1
+.agents/skills/imagegen-frontend-web/SKILL.md
+  ai_agent 1-987
+.agents/skills/gpt-taste/SKILL.md
+  ai_agent 1-74
+.agents/skills/stitch-design-taste/SKILL.md
+  ai_agent 1-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "2a846c5b53cbeab25968cca7d8d255aca3bbaa26",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
