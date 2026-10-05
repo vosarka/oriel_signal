@@ -1,0 +1,32 @@
+client/src/pages/Home.tsx
+  s_03cf8a618dae37::t_7dcb73e366351b 262-264
+client/src/pages/Tiers.tsx
+  s_03cf8a618dae37::t_7dcb73e366351b 290-299
+wiki/log.md
+  s_03cf8a618dae37::t_dc337416b0e46d 2099-2106
+  s_03cf8a618dae37::t_3cf8928e42c518 2107
+client/src/App.tsx
+  s_03cf8a618dae37::t_7dcb73e366351b 20,70
+client/src/pages/BioArchitecture.tsx
+  s_03cf8a618dae37::t_7dcb73e366351b 5,1695-1699
+client/src/pages/founders-reading.css
+  s_03cf8a618dae37::t_8fbb6b7bc31796 1-21
+client/src/pages/FoundersReading.tsx
+  s_03cf8a618dae37::t_8fbb6b7bc31796 1-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "9f534f576309c83c949155219c1a1bcf701e6627",
+  "prompts": {},
+  "sessions": {
+    "s_03cf8a618dae37": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10a14-a5c3-7bb2-93c0-47626c63ea05",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
