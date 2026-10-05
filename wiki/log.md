@@ -2096,3 +2096,12 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - New column `users.paypalPlanId` (migration `drizzle/0014_users_paypal_plan_id.sql`) tells Deep Garden (`P-6SY7118000596284YNK7HTLI`) from Garden. Plan ids live in `GARDEN_PLANS` in `shared/supporter-access.ts`; Garden is `P-63293204JC268713WNK7KN4Q`.
 - A cancelled subscription keeps access until a month after its last payment, then closes on its own. A patron who also joins the Garden keeps whichever tier opens more. A second subscription is refused while one is active (it would bill twice).
 - Tests: `server/garden-paypal.test.ts`, three new cases in `server/supporter-access.test.ts`.
+
+## [2026-10-05] feat | Founder’s Reading video product preview
+
+- Started `feat/founders-reading-video` from the existing Signal/Tiers branch, pending user merge.
+- Added `/founders-reading`: founder-created simplified Tetradic Signature video, spoken narration or text on screen, one-time purchase framing.
+- Added links from Home, Bio-Architecture and Tiers. Existing full Founder Edition stays separate.
+- Reused `/signal/check` for optional breath preparation and the existing Mental Noise, Body Tension and Emotional Tide questions. No scoring or engine changes.
+- Orders are explicitly closed pending price and delivery approval. No payment, order persistence, database migration or video delivery integration added.
+- Verification: Daily Signal 20 tests passed. Typecheck reports the existing `server/routers.ts:1098` circuitLinks error. Wiki lint reports 59 existing ghost targets; this entry adds no wiki links. Frontend production build result recorded in handoff.

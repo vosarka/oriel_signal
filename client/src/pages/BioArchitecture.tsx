@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/Layout";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
-import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
+import { SignalButton, SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import {
   CodonWheel,
   type BaseView,
@@ -1692,6 +1692,11 @@ export default function BioArchitecture() {
                 )}
             </AnimatePresence>
           )}
+          <section aria-labelledby="bio-founders-reading" style={{ marginTop: "4rem", paddingTop: "2rem", borderTop: "1px solid rgba(205,161,74,.2)" }}>
+            <h2 id="bio-founders-reading">Your signature, personally interpreted</h2>
+            <p style={{ margin: "1rem 0", maxWidth: "42rem" }}>Receive a simplified video reading of your Tetradic Signature from the founder of ORIEL.</p>
+            <SignalButton href="/founders-reading">Explore Founder’s Reading</SignalButton>
+          </section>
         </main>
       </SignalPageShell>
     </Layout>

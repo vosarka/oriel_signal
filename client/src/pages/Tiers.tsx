@@ -287,6 +287,16 @@ export default function Tiers() {
           </p>
         </section>
 
+        <section className="fh-garden" aria-labelledby="fh-reading-title">
+          <h2 id="fh-reading-title" className="fh-h2">A personal reading from the founder</h2>
+          <p className="fh-note">A simplified interpretation of your Tetradic Signature,
+            personally presented in a video with spoken narration or text on screen.
+            A separate, one-time purchase.</p>
+          <div style={{ marginTop: "1.8rem" }}>
+            <SignalButton href="/founders-reading">Explore Founder’s Reading</SignalButton>
+          </div>
+        </section>
+
         <section className="fh-give" aria-labelledby="fh-give-title" data-reveal>
           <h2 id="fh-give-title" className="fh-h2">Support ORIEL</h2>
           <p>

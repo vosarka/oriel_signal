@@ -259,6 +259,9 @@ export default function Home() {
                 >
                   The Founder-Curated Bio-Signature
                 </SignalButton>
+                <SignalButton href="/founders-reading" variant="secondary">
+                  Founder’s Reading · Personal video
+                </SignalButton>
                 <SignalButton href="/bio-architecture" variant="secondary">
                   Bio-Architecture
                 </SignalButton>

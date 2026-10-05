@@ -1,0 +1,21 @@
+.founders-reading { color: #eee5d4; }
+.fr-wrap { width: min(1100px, calc(100% - 3rem)); margin: 0 auto; padding: 9rem 0 5rem; position: relative; z-index: 1; }
+.fr-hero { padding: 3rem 0 6rem; }
+.fr-kicker { font-family: "JetBrains Mono", monospace; font-size: .7rem; text-transform: uppercase; letter-spacing: .16em; color: #d8b56d; line-height: 1.8; }
+.fr-hero h1 { font-family: "Cinzel", serif; font-size: clamp(3rem, 8vw, 6rem); font-weight: 400; line-height: 1.15; margin: 1.5rem 0; }
+.fr-hero h1 em { font-family: "Cormorant Garamond", serif; color: #d8b56d; }
+.fr-intro { font-family: "Cormorant Garamond", serif; font-size: clamp(1.8rem, 4vw, 2.8rem); }
+.fr-description { max-width: 42rem; font-family: "Cormorant Garamond", serif; font-size: 1.4rem; line-height: 1.7; color: #c4bba9; margin: 1.5rem 0 2rem; }
+.fr-section { border-top: 1px solid rgba(216,181,109,.22); padding: 4rem 0; scroll-margin-top: 6rem; }
+.fr-section h2, .fr-offer h2 { font-family: "Cormorant Garamond", serif; font-size: clamp(2rem, 5vw, 3.3rem); font-weight: 400; line-height: 1.2; margin: 1rem 0 2rem; }
+.fr-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+.fr-columns p, .fr-process p, .fr-offer > p:not(.fr-kicker):not(.fr-status) { font-family: "Cormorant Garamond", serif; font-size: 1.3rem; line-height: 1.7; color: #c4bba9; }
+.fr-process { list-style: decimal-leading-zero; padding-left: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; }
+.fr-process li::marker { font-family: "JetBrains Mono", monospace; color: #d8b56d; }
+.fr-process h3 { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; margin-bottom: 1rem; }
+.fr-actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+.fr-offer { border: 1px solid rgba(216,181,109,.3); padding: clamp(1.5rem, 5vw, 4rem); margin-top: 2rem; max-width: 48rem; }
+.fr-status { font-family: "JetBrains Mono", monospace; font-size: .8rem; color: #d8b56d; margin: 1.5rem 0; }
+.fr-book-link { color: #eee5d4; text-decoration: underline; text-underline-offset: .25rem; }
+.fr-book-link:focus-visible { outline: 2px solid #d8b56d; outline-offset: 5px; }
+@media (max-width: 760px) { .fr-wrap { padding-top: 6rem; } .fr-hero { padding-top: 1rem; } .fr-columns, .fr-process { grid-template-columns: 1fr; gap: 1.5rem; } .fr-actions { flex-direction: column; align-items: flex-start; } }
