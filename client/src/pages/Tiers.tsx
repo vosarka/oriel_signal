@@ -88,7 +88,7 @@ function GardenAction({ plan }: { plan: GardenPlan }) {
         onClick={() => subscribe.mutate({ plan })}
       >
         <span className="signal-button__seal" aria-hidden="true" />
-        {subscribe.isPending ? "Opening PayPal" : "Join with PayPal"}
+        {subscribe.isPending ? "Opening PayPal" : "Join · PayPal or card"}
       </button>
       {subscribe.error && <p className="fh-plot__error">{subscribe.error.message}</p>}
     </div>
@@ -280,7 +280,8 @@ export default function Tiers() {
             ))}
           </div>
           <p className="fh-note">
-            Garden renews monthly through PayPal until you cancel. When your
+            Garden renews monthly through PayPal until you cancel. No PayPal
+            account needed: you can pay by card on the PayPal page. When your
             measure is reached, your conversation still completes. Nothing is
             cut mid-thought, and the field opens again at midnight (UTC).
           </p>
