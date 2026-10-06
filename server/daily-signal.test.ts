@@ -174,6 +174,29 @@ describe("isValidGeneratedSignal", () => {
     }
   });
 
+  it("never gives two days in a row the same opening form", () => {
+    for (let n = 0; n < 365; n++) {
+      const a = frameFor(new Date(START + n * 86_400_000)).openingForm;
+      const b = frameFor(new Date(START + (n + 1) * 86_400_000)).openingForm;
+      expect(b).not.toBe(a);
+    }
+  });
+
+  it("rejects an opening that defines, or that echoes a recent one", () => {
+    const signal = (opening: string) => ({ ...head, opening, middle: "m", closing: "c" });
+    expect(isValidGeneratedSignal(coherent, signal("Grief is a frequency held too long."))).toBe(false);
+    expect(isValidGeneratedSignal(coherent, signal("Silence is not empty."))).toBe(false);
+    expect(isValidGeneratedSignal(coherent, signal("Old grief is a room."))).toBe(false);
+
+    const recent = ["A struck glass keeps ringing after the hand has gone."];
+    expect(
+      isValidGeneratedSignal(coherent, signal("A struck bell hums under the table."), recent)
+    ).toBe(false);
+    expect(
+      isValidGeneratedSignal(coherent, signal("Your ribs widen before you decide to breathe."), recent)
+    ).toBe(true);
+  });
+
   it("always needs a title and an archetype", () => {
     expect(
       isValidGeneratedSignal(coherent, { archetype: head.archetype, key: head.key, opening: "o", middle: "m", closing: "c" })
