@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-10-10-oriel-transmissions-deep-garden-design.md
+  s_fb7a7986d66af6::t_f91be2f6323628 1-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c3e4f7af8fd25a911b673129ead004389ab4be5c",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
