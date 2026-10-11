@@ -18,6 +18,7 @@ import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
 import AdminTransmissions from "./pages/AdminTransmissions";
+import TransmissionPlayer from "./pages/TransmissionPlayer";
 import FoundersReading from "./pages/FoundersReading";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
@@ -69,6 +70,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/founders-reading" component={FoundersReading} />
+      <Route path="/t/:token" component={TransmissionPlayer} />
       <Route path={"/orb-preview"} component={OrbPreview} />
       <Route path={"/resonance-body"} component={ResonanceBodyLab} />
       <Route

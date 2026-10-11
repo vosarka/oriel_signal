@@ -1,0 +1,25 @@
+.tp { position: relative; min-height: 100vh; display: grid; align-content: center; justify-items: center; gap: 2rem;
+  padding: 4rem 1rem; overflow: hidden; background: #050505; color: #fff7e6; text-align: center; }
+.tp-field { position: absolute; inset: -20%; z-index: 0; pointer-events: none; }
+.tp-field span { position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%; filter: blur(60px); opacity: 0.22;
+  background: radial-gradient(circle, #d8b56d 0%, transparent 65%); animation: tp-drift 38s ease-in-out infinite alternate; }
+.tp-field span:nth-child(1) { top: 10%; left: 5%; }
+.tp-field span:nth-child(2) { top: 40%; left: 45%; animation-duration: 52s; background: radial-gradient(circle, #e4c88c 0%, transparent 60%); }
+.tp-field span:nth-child(3) { top: 60%; left: 10%; animation-duration: 64s; opacity: 0.1; background: radial-gradient(circle, #5ba4a4 0%, transparent 60%); }
+@keyframes tp-drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(8vmax, -6vmax) scale(1.15); } }
+.tp > :not(.tp-field) { position: relative; z-index: 1; }
+.tp-kicker { margin: 0; font-family: "Red Hat Mono", monospace; font-size: 0.7rem; letter-spacing: 0.24em; text-transform: uppercase; color: #bda36b; }
+.tp-title { margin: 0.6rem 0 0; font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(2.2rem, 7vw, 4rem); color: #e4c88c; }
+.tp-choose { display: flex; gap: 1rem; }
+.tp-btn { padding: 0.75rem 1.4rem; background: transparent; color: #e4c88c; border: 1px solid #d8b56d; cursor: pointer;
+  font-family: "Red Hat Mono", monospace; font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; }
+.tp-btn--primary { background: #d8b56d; color: #050505; }
+.tp-chapter { max-width: 38rem; font-family: "Cormorant Garamond", serif; font-size: clamp(1.25rem, 3.4vw, 1.6rem); line-height: 1.6;
+  animation: tp-arrive 2.4s ease-out both; }
+.tp-chapter__label { font-family: "Red Hat Mono", monospace; font-size: 0.7rem; letter-spacing: 0.24em; text-transform: uppercase; color: #bda36b; }
+@keyframes tp-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.tp-audio { width: min(32rem, 100%); }
+.tp-missing { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; color: rgba(255, 247, 230, 0.7); }
+@media (prefers-reduced-motion: reduce) {
+  .tp-field span, .tp-chapter { animation: none; }
+}
