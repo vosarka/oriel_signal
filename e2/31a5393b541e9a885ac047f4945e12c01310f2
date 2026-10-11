@@ -1,0 +1,25 @@
+client/src/pages/founders-reading.css
+  s_fb7a7986d66af6::t_f6d3d9e4eac4c3 22-24
+client/src/pages/FoundersReading.tsx
+  s_fb7a7986d66af6::t_f6d3d9e4eac4c3 4-65,73,76-78,86-90,97,103-104,122,124
+client/src/pages/Tiers.tsx
+  ai_agent 292-293
+client/src/pages/Home.tsx
+  ai_agent 263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e231a5393b541e9a885ac047f4945e12c01310f2",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
