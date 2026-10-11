@@ -28,7 +28,10 @@ vi.mock("./ephemeris-service", () => ({ bodyLongitudeAtUtc: vi.fn(async () => 0)
 vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" } }));
 
 import {
+  adminQueue,
   approveTransmission,
+  recheckPayment,
+  regenerateTransmission,
   captureFoundersReading,
   generateScript,
   newToken,
@@ -91,7 +94,7 @@ describe("ordering a Founder's Reading", () => {
 describe("capturing on return", () => {
   it("captures once, then answers a refresh without capturing again", async () => {
     db.getTransmission.mockResolvedValueOnce(row());
-    paypal.captureReadingOrder.mockResolvedValue({ captureId: "CAP1" });
+    paypal.captureReadingOrder.mockResolvedValue({ captureId: "CAP1", pending: false });
     llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(goodScript) } }], model: "m" });
     db.getTransmission.mockResolvedValue(row({ status: "requested" }));
 
@@ -188,4 +191,64 @@ describe("playing by token", () => {
 it("makes 64-hex tokens", () => {
   expect(newToken()).toMatch(/^[a-f0-9]{64}$/);
   expect(newToken()).not.toBe(newToken());
+});
+
+describe("fixes from the final review", () => {
+  it("records a capture PayPal holds as pending, so Vos sees it before approving", async () => {
+    db.getTransmission.mockResolvedValueOnce(row());
+    db.getTransmission.mockResolvedValue(row({ status: "requested" }));
+    paypal.captureReadingOrder.mockResolvedValue({ captureId: "CAP1", pending: true });
+    await captureFoundersReading({ id: 3 }, 7);
+    expect(db.updateTransmission).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ status: "requested", paypalCaptureId: "CAP1", failureReason: expect.stringMatching(/pending/i) })
+    );
+  });
+
+  it("lets Vos re-check a stuck payment from admin, whoever's row it is", async () => {
+    db.getTransmission.mockResolvedValueOnce(row({ userId: 99 }));
+    db.getTransmission.mockResolvedValue(row({ userId: 99, status: "requested" }));
+    paypal.captureReadingOrder.mockResolvedValue({ captureId: "CAP1", pending: false });
+    await expect(recheckPayment(7)).resolves.toEqual({ status: "requested" });
+    expect(paypal.captureReadingOrder).toHaveBeenCalledWith({ transmissionId: 7, paypalOrderId: "ORDER1", priceEur: 10 });
+  });
+
+  it("resends without re-voicing when a voiced transmission is approved again", async () => {
+    db.getTransmission.mockResolvedValue(
+      row({ status: "voiced", audioStorageKey: "k", script: JSON.stringify(goodScript) })
+    );
+    await approveTransmission(7, goodScript);
+    expect(tts.generateChunkedSpeech).not.toHaveBeenCalled();
+    expect(mailer.sendTransmissionDeliveryEmail).toHaveBeenCalled();
+    expect(db.updateTransmission).toHaveBeenLastCalledWith(7, expect.objectContaining({ status: "delivered" }));
+  });
+
+  it("marks failed, with the reason, when anything before the model throws", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "requested" }));
+    users.getUserById.mockRejectedValue(new Error("db down"));
+    await generateScript(7);
+    expect(db.updateTransmission).toHaveBeenLastCalledWith(7, { status: "failed", failureReason: "db down" });
+  });
+
+  it("keeps the admin queue to what needs Vos, newest delivered last, stuck payments visible", () => {
+    const now = new Date("2026-10-11T12:00:00Z");
+    const d = (iso: string) => new Date(iso);
+    const rows = [
+      row({ id: 1, status: "delivered", deliveredAt: d("2026-08-01T00:00:00Z"), createdAt: d("2026-07-30T00:00:00Z") }),
+      row({ id: 2, status: "delivered", deliveredAt: d("2026-10-10T00:00:00Z"), createdAt: d("2026-10-09T00:00:00Z") }),
+      row({ id: 3, status: "draft_ready", createdAt: d("2026-01-01T00:00:00Z") }),
+      row({ id: 4, status: "pending_payment", paypalOrderId: "ORDER4", createdAt: d("2026-10-10T00:00:00Z") }),
+      row({ id: 5, status: "pending_payment", paypalOrderId: null, createdAt: d("2026-10-10T00:00:00Z") }),
+      row({ id: 6, status: "pending_payment", paypalOrderId: "ORDER6", createdAt: d("2026-09-01T00:00:00Z") }),
+      row({ id: 7, status: "requested", createdAt: d("2026-10-11T00:00:00Z") }),
+    ];
+    expect(adminQueue(rows as never, now).map(r => r.id)).toEqual([3, 4, 7, 2]);
+  });
+});
+
+it("never writes a transmission that has not been paid for, even from admin", async () => {
+  db.getTransmission.mockResolvedValue(row({ status: "pending_payment" }));
+  await expect(regenerateTransmission(7)).rejects.toThrow(/paid/i);
+  expect(llm.invokeLLM).not.toHaveBeenCalled();
+  expect(db.updateTransmission).not.toHaveBeenCalled();
 });

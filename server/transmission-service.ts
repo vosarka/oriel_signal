@@ -100,16 +100,36 @@ export async function captureFoundersReading(user: { id: number }, transmissionI
   if (!row || row.userId !== user.id || row.source !== "purchase") {
     throw new TRPCError({ code: "NOT_FOUND", message: "No such reading." });
   }
+  return settlePayment(row);
+}
+
+/** Admin: re-check a payment that is stuck at pending_payment. */
+export async function recheckPayment(transmissionId: number) {
+  const row = await tdb.getTransmission(transmissionId);
+  if (!row || row.source !== "purchase") {
+    throw new TRPCError({ code: "NOT_FOUND", message: "No such reading." });
+  }
+  return settlePayment(row);
+}
+
+async function settlePayment(row: PersonalTransmission) {
   if (row.status !== "pending_payment") return { status: row.status };
   if (!row.paypalOrderId || !row.priceEur) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "This reading has no PayPal order." });
   }
-  const { captureId } = await captureReadingOrder({
+  const { captureId, pending } = await captureReadingOrder({
     transmissionId: row.id,
     paypalOrderId: row.paypalOrderId,
     priceEur: row.priceEur,
   });
-  await tdb.updateTransmission(row.id, { status: "requested", paypalCaptureId: captureId, paidAt: new Date() });
+  await tdb.updateTransmission(row.id, {
+    status: "requested",
+    paypalCaptureId: captureId,
+    paidAt: new Date(),
+    failureReason: pending
+      ? "PayPal is holding this payment (capture PENDING). Check it has settled in PayPal before approving."
+      : null,
+  });
   void generateScript(row.id).catch(error => console.error("[transmissions] generate failed:", error));
   return { status: "requested" as const };
 }
@@ -117,6 +137,18 @@ export async function captureFoundersReading(user: { id: number }, transmissionI
 // ── Writing ──────────────────────────────────────────────────────────────
 
 export async function generateScript(id: number): Promise<void> {
+  try {
+    await writeScript(id);
+  } catch (error) {
+    // Anything before the model (database, signature, user) must not leave
+    // the row at "requested" with no reason; Vos sees it and can Regenerate.
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`[transmissions] generate ${id} failed:`, error);
+    await tdb.updateTransmission(id, { status: "failed", failureReason: reason });
+  }
+}
+
+async function writeScript(id: number): Promise<void> {
   const row = await tdb.getTransmission(id);
   if (!row) return;
   const seeker = await seekerFor(row);
@@ -146,12 +178,26 @@ export async function generateScript(id: number): Promise<void> {
   await tdb.updateTransmission(id, { status: "failed", failureReason: lastError });
 }
 
+/** Admin: write again. Never for an unpaid order, never over a delivered one. */
+export async function regenerateTransmission(id: number): Promise<void> {
+  const row = await tdb.getTransmission(id);
+  if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "No such transmission." });
+  if (row.status === "pending_payment") {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "This reading has not been paid for yet. Re-check the payment first." });
+  }
+  if (row.status === "delivered") {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "This transmission was already delivered." });
+  }
+  await tdb.updateTransmission(id, { status: "requested", failureReason: null });
+  await generateScript(id);
+}
+
 // ── Approving, voicing, delivering ───────────────────────────────────────
 
 export async function approveTransmission(id: number, script: unknown): Promise<void> {
   const row = await tdb.getTransmission(id);
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "No such transmission." });
-  if (!["draft_ready", "approved", "failed"].includes(row.status)) {
+  if (!["draft_ready", "approved", "voiced", "failed"].includes(row.status)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: `Cannot approve a ${row.status} transmission.` });
   }
   const user = row.userId ? await getUserById(row.userId) : null;
@@ -160,12 +206,18 @@ export async function approveTransmission(id: number, script: unknown): Promise<
     throw new TRPCError({ code: "BAD_REQUEST", message: "The script breaks the transmission contract." });
   }
   const valid = script as TransmissionScript;
-  await tdb.updateTransmission(id, { status: "approved", script: JSON.stringify(valid), approvedAt: new Date() });
+  const alreadyVoiced =
+    row.status === "voiced" && Boolean(row.audioStorageKey) && row.script === JSON.stringify(valid);
 
-  // If the voice fails the row stays approved and Approve can be pressed again.
-  const audio = await generateChunkedSpeech(spokenText(valid), ORIEL_VOICES.sophianic);
-  const { key } = await storagePut(`transmissions/${row.accessToken}.mp3`, Buffer.from(audio, "base64"), "audio/mpeg");
-  await tdb.updateTransmission(id, { status: "voiced", audioStorageKey: key });
+  // Voiced already (only the email failed): send again without paying for
+  // the voice twice. Otherwise voice it; if that fails the row stays
+  // approved and Approve can be pressed again.
+  if (!alreadyVoiced) {
+    await tdb.updateTransmission(id, { status: "approved", script: JSON.stringify(valid), approvedAt: new Date() });
+    const audio = await generateChunkedSpeech(spokenText(valid), ORIEL_VOICES.sophianic);
+    const { key } = await storagePut(`transmissions/${row.accessToken}.mp3`, Buffer.from(audio, "base64"), "audio/mpeg");
+    await tdb.updateTransmission(id, { status: "voiced", audioStorageKey: key });
+  }
 
   if (user?.email) {
     await sendTransmissionDeliveryEmail({
@@ -176,6 +228,30 @@ export async function approveTransmission(id: number, script: unknown): Promise<
     });
   }
   await tdb.updateTransmission(id, { status: "delivered", deliveredAt: new Date() });
+}
+
+// ── The admin queue ──────────────────────────────────────────────────────
+
+const DAY = 86_400_000;
+
+/**
+ * What needs Vos: everything not yet delivered (oldest first), payments
+ * stuck after PayPal approval in the last week, then deliveries of the last
+ * month (newest first). Unbounded on purpose: a cap hid new requests.
+ */
+export function adminQueue(rows: PersonalTransmission[], now: Date): PersonalTransmission[] {
+  const age = (d: Date | null) => (d ? now.getTime() - new Date(d).getTime() : Infinity);
+  const waiting = rows
+    .filter(r =>
+      r.status === "pending_payment"
+        ? Boolean(r.paypalOrderId) && age(r.createdAt) <= 7 * DAY
+        : r.status !== "delivered"
+    )
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const delivered = rows
+    .filter(r => r.status === "delivered" && age(r.deliveredAt) <= 30 * DAY)
+    .sort((a, b) => new Date(b.deliveredAt!).getTime() - new Date(a.deliveredAt!).getTime());
+  return [...waiting, ...delivered];
 }
 
 // ── Playing ──────────────────────────────────────────────────────────────

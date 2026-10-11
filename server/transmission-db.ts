@@ -63,15 +63,21 @@ export async function countPaidPurchases(): Promise<number> {
   return Number(row?.n ?? 0);
 }
 
-/** Everything awaiting Vos or delivered recently, oldest first. */
+/**
+ * The admin queue's raw rows: drops abandoned checkouts older than a week
+ * and deliveries older than a month. adminQueue() in the service orders
+ * and filters precisely; no row cap, since a cap hid new requests.
+ */
 export async function listForAdmin(): Promise<PersonalTransmission[]> {
   const db = await requireDb();
   return db
     .select()
     .from(personalTransmissions)
-    .where(sql`${personalTransmissions.status} <> 'pending_payment'`)
-    .orderBy(asc(personalTransmissions.createdAt))
-    .limit(200);
+    .where(
+      sql`NOT (${personalTransmissions.status} = 'pending_payment' AND ${personalTransmissions.createdAt} < NOW() - INTERVAL 7 DAY)
+        AND NOT (${personalTransmissions.status} = 'delivered' AND ${personalTransmissions.deliveredAt} < NOW() - INTERVAL 30 DAY)`
+    )
+    .orderBy(asc(personalTransmissions.createdAt));
 }
 
 export async function getMonthly(userId: number, period: string): Promise<PersonalTransmission | null> {

@@ -110,6 +110,22 @@ export function firstName(full: string | null | undefined): string | null {
   return first ? first : null;
 }
 
+/**
+ * A name as the model may write it: curly or straight apostrophe, Romanian
+ * ş/ţ with cedilla or comma below, Ana-Maria or Ana Maria, any Unicode form.
+ */
+function comparable(text: string): string {
+  return text
+    .normalize("NFC")
+    .replace(/[\u2018\u2019\u02BC]/gu, "'")
+    .replace(/\u015F/gu, "\u0219")
+    .replace(/\u015E/gu, "\u0218")
+    .replace(/\u0163/gu, "\u021B")
+    .replace(/\u0162/gu, "\u021A")
+    .replace(/[-\s]+/gu, " ")
+    .toLocaleLowerCase();
+}
+
 /** The first sentence of the mirror, where the name must be spoken. */
 function openingLine(text: string): string {
   return text.trim().split(/(?<=[.!?…])\s/u)[0] ?? "";
@@ -133,8 +149,7 @@ export function isValidScript(
   if ([script.title, ...movements].some(m => MEASUREMENT.test(m))) return false;
 
   if (kind !== "echo" && name) {
-    const opening = openingLine(script.mirror).toLocaleLowerCase();
-    if (!opening.includes(name.toLocaleLowerCase())) return false;
+    if (!comparable(openingLine(script.mirror)).includes(comparable(name))) return false;
   }
   return true;
 }

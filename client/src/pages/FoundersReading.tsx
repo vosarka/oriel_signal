@@ -22,11 +22,15 @@ function OrderReading() {
     const params = new URLSearchParams(window.location.search);
     const id = Number(params.get("id"));
     if (params.get("reading") !== "return" || !id) return;
-    window.history.replaceState(null, "", "/founders-reading");
     setNotice("Confirming with PayPal…");
+    // The return address stays until the capture succeeds, so a refresh
+    // after a failed confirmation tries again.
     capture
       .mutateAsync({ id })
-      .then(() => setNotice("Received. Your transmission reaches your email within 48 hours."))
+      .then(() => {
+        window.history.replaceState(null, "", "/founders-reading");
+        setNotice("Received. Your transmission reaches your email within 48 hours.");
+      })
       .catch(e => setNotice(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

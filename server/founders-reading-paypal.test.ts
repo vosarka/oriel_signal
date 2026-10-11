@@ -54,7 +54,7 @@ describe("Founder's Reading PayPal order", () => {
   it("returns the capture id when the capture matches the row", async () => {
     await expect(
       captureReadingOrder({ transmissionId: 7, paypalOrderId: "ORDER1", priceEur: 10 }, paypal(completed()) as never)
-    ).resolves.toEqual({ captureId: "CAP1" });
+    ).resolves.toEqual({ captureId: "CAP1", pending: false });
   });
 
   it.each([
@@ -62,8 +62,8 @@ describe("Founder's Reading PayPal order", () => {
       payments: { captures: [{ id: "CAP1", status: "COMPLETED", amount: { currency_code: "EUR", value: "15.00" } }] },
     })],
     ["another row's order", completed({ custom_id: readingCustomId(8) })],
-    ["a capture not completed", completed({
-      payments: { captures: [{ id: "CAP1", status: "PENDING", amount: { currency_code: "EUR", value: "10.00" } }] },
+    ["a capture that was declined", completed({
+      payments: { captures: [{ id: "CAP1", status: "DECLINED", amount: { currency_code: "EUR", value: "10.00" } }] },
     })],
   ])("refuses %s", async (_label, payload) => {
     await expect(
@@ -75,5 +75,27 @@ describe("Founder's Reading PayPal order", () => {
     await expect(
       captureReadingOrder({ transmissionId: 7, paypalOrderId: "ORDER1", priceEur: 10 }, paypal({}, 422) as never)
     ).rejects.toThrow();
+  });
+});
+
+describe("capture that is held or retried", () => {
+  it("accepts a capture PayPal holds as PENDING, and says so", async () => {
+    const held = completed({
+      payments: { captures: [{ id: "CAP1", status: "PENDING", amount: { currency_code: "EUR", value: "10.00" } }] },
+    });
+    await expect(
+      captureReadingOrder({ transmissionId: 7, paypalOrderId: "ORDER1", priceEur: 10 }, paypal(held) as never)
+    ).resolves.toEqual({ captureId: "CAP1", pending: true });
+  });
+
+  it("reads the order when the capture call fails because it was already captured", async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith("/v1/oauth2/token")) return json({ access_token: "t" });
+      if (init?.method === "POST") return json({ name: "UNPROCESSABLE_ENTITY" }, 422);
+      return json(completed());
+    });
+    await expect(
+      captureReadingOrder({ transmissionId: 7, paypalOrderId: "ORDER1", priceEur: 10 }, fetch as never)
+    ).resolves.toEqual({ captureId: "CAP1", pending: false });
   });
 });

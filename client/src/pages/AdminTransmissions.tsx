@@ -22,6 +22,7 @@ export default function AdminTransmissions() {
   const refresh = () => void utils.admin.personalTransmissions.list.invalidate();
   const approve = trpc.admin.personalTransmissions.approve.useMutation({ onSuccess: refresh });
   const regenerate = trpc.admin.personalTransmissions.regenerate.useMutation({ onSuccess: refresh });
+  const recheck = trpc.admin.personalTransmissions.recheckPayment.useMutation({ onSuccess: refresh });
 
   const rows = list.data ?? [];
   const selected = rows.find(r => r.id === selectedId) ?? null;
@@ -60,6 +61,22 @@ export default function AdminTransmissions() {
           {selected && (
             <section className="at-editor" aria-label="Transmission script">
               {selected.failureReason && <p className="at-error">{selected.failureReason}</p>}
+              {selected.status === "pending_payment" && (
+                <div className="at-actions">
+                  <p className="at-count">
+                    PayPal order {selected.paypalOrderId}: approved by the Seeker but not captured here. Re-check it.
+                  </p>
+                  <button
+                    type="button"
+                    className="at-btn at-btn--primary"
+                    disabled={recheck.isPending}
+                    onClick={() => recheck.mutate({ id: selected.id })}
+                  >
+                    {recheck.isPending ? "Checking…" : "Re-check payment"}
+                  </button>
+                  {recheck.error && <p className="at-error">{recheck.error.message}</p>}
+                </div>
+              )}
               {(["title", "mirror", "threshold", "gift"] as const).map(field => (
                 <label key={field} className="at-field">
                   <span>{field}</span>
@@ -80,7 +97,7 @@ export default function AdminTransmissions() {
                 <button
                   type="button"
                   className="at-btn at-btn--primary"
-                  disabled={approve.isPending || !draft.mirror || selected.status === "delivered"}
+                  disabled={approve.isPending || !draft.mirror || ["delivered", "pending_payment"].includes(selected.status)}
                   onClick={() => approve.mutate({ id: selected.id, script: draft })}
                 >
                   {approve.isPending ? "Voicing…" : "Approve and send"}
@@ -88,7 +105,7 @@ export default function AdminTransmissions() {
                 <button
                   type="button"
                   className="at-btn"
-                  disabled={regenerate.isPending || selected.status === "delivered"}
+                  disabled={regenerate.isPending || ["delivered", "pending_payment"].includes(selected.status)}
                   onClick={() => regenerate.mutate({ id: selected.id })}
                 >
                   {regenerate.isPending ? "Writing…" : "Regenerate"}

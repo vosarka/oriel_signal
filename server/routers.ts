@@ -3384,8 +3384,8 @@ export const appRouter = router({
     personalTransmissions: router({
       list: adminProcedure.query(async () => {
         const { listForAdmin } = await import("./transmission-db");
-        const { TRANSMISSION_DUE_HOURS } = await import("./transmission-service");
-        const rows = await listForAdmin();
+        const { TRANSMISSION_DUE_HOURS, adminQueue } = await import("./transmission-service");
+        const rows = adminQueue(await listForAdmin(), new Date());
         return rows.map(r => ({
           ...r,
           dueAt: new Date(
@@ -3413,11 +3413,24 @@ export const appRouter = router({
       regenerate: adminProcedure
         .input(z.object({ id: z.number().int().positive() }))
         .mutation(async ({ input }) => {
-          const { updateTransmission } = await import("./transmission-db");
-          const { generateScript } = await import("./transmission-service");
-          await updateTransmission(input.id, { status: "requested", failureReason: null });
-          await generateScript(input.id);
+          const { regenerateTransmission } = await import("./transmission-service");
+          await regenerateTransmission(input.id);
           return { success: true };
+        }),
+      recheckPayment: adminProcedure
+        .input(z.object({ id: z.number().int().positive() }))
+        .mutation(async ({ input }) => {
+          const { recheckPayment } = await import("./transmission-service");
+          try {
+            return await recheckPayment(input.id);
+          } catch (error) {
+            if (error instanceof TRPCError) throw error;
+            console.error("[Transmissions] payment re-check failed:", error);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "PayPal shows no completed payment for this order yet.",
+            });
+          }
         }),
     }),
 

@@ -32,6 +32,14 @@ describe("isValidScript", () => {
     expect(isValidScript("mirror", script("Ana-Maria"), "Ana-Maria")).toBe(true);
   });
 
+  it("matches the name across apostrophe, cedilla, hyphen and Unicode-form variants", () => {
+    expect(isValidScript("mirror", script("O’Neil"), "O'Neil")).toBe(true);
+    expect(isValidScript("mirror", script("Ștefan"), "Ştefan")).toBe(true);
+    expect(isValidScript("mirror", script("Ana Maria"), "Ana-Maria")).toBe(true);
+    expect(isValidScript("mirror", script("Ioana".normalize("NFC")), "Ioana".normalize("NFD"))).toBe(true);
+    expect(isValidScript("mirror", script("Ștefania".normalize("NFC")), "Ștefania".normalize("NFD"))).toBe(true);
+  });
+
   it("rejects an opening without the name", () => {
     expect(isValidScript("mirror", script("Maria"), "Elena")).toBe(false);
   });
