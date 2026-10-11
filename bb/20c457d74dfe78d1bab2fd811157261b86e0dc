@@ -1,0 +1,29 @@
+server/garden-paypal.ts
+  s_fb7a7986d66af6::t_3d88f768969a48 15
+server/founders-reading-paypal.test.ts
+  s_fb7a7986d66af6::t_3d88f768969a48 1-79
+server/transmission-db.ts
+  s_fb7a7986d66af6::t_3d88f768969a48 1-126
+drizzle/0015_personal_transmissions.sql
+  s_fb7a7986d66af6::t_3d88f768969a48 1-28
+server/founders-reading-paypal.ts
+  s_fb7a7986d66af6::t_16f8c01aa655b3 1-98
+drizzle/schema.ts
+  s_fb7a7986d66af6::t_3d88f768969a48 1156-1205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "bb20c457d74dfe78d1bab2fd811157261b86e0dc",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
