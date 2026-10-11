@@ -1,0 +1,39 @@
+server/founders-reading-paypal.test.ts
+  s_fb7a7986d66af6::t_ad57faf0a8afb3 57,65-66,80-99
+server/transmission-service.ts
+  s_fb7a7986d66af6::t_28d7eb2741a693 103-115,120,125-132,140-151,200,209-210,212-220,233-254
+  s_fb7a7986d66af6::t_7d3db18431d488 181-194
+server/transmission-service.test.ts
+  s_fb7a7986d66af6::t_ad57faf0a8afb3 31,33,97,195-246
+  s_fb7a7986d66af6::t_685b968bb2a52d 34,247-253
+server/routers.ts
+  s_fb7a7986d66af6::t_7d3db18431d488 3387-3388,3416-3417,3420-3433
+client/src/pages/FoundersReading.tsx
+  s_fb7a7986d66af6::t_ec0141a1ddcbc8 26-27,30-33
+server/transmission-script.test.ts
+  s_fb7a7986d66af6::t_ad57faf0a8afb3 35-42
+server/transmission-db.ts
+  s_fb7a7986d66af6::t_7d3db18431d488 66-70,76-80
+server/founders-reading-paypal.ts
+  s_fb7a7986d66af6::t_72bbc2c1969b7f 60-67,69-77,80,83,88-115
+client/src/pages/AdminTransmissions.tsx
+  s_fb7a7986d66af6::t_ec0141a1ddcbc8 25,64-79,100,108
+shared/transmission-script.ts
+  s_fb7a7986d66af6::t_72bbc2c1969b7f 113-128,152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "dc31ece0dafb2c389cd1f404054249b815b7869d",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
