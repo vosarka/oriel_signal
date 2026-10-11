@@ -12,7 +12,7 @@ export type GardenPlan = keyof typeof GARDEN_PLANS;
 
 type Fetch = typeof fetch;
 
-async function accessToken(fetchImpl: Fetch): Promise<string> {
+export async function accessToken(fetchImpl: Fetch): Promise<string> {
   const credentials = Buffer.from(`${ENV.paypalClientId}:${ENV.paypalClientSecret}`).toString("base64");
   const res = await fetchImpl(`${ENV.paypalApiBaseUrl}/v1/oauth2/token`, {
     method: "POST",
