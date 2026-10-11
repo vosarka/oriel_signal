@@ -17,6 +17,7 @@ import Artifacts from "./pages/Artifacts";
 import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
+import AdminTransmissions from "./pages/AdminTransmissions";
 import FoundersReading from "./pages/FoundersReading";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
@@ -74,6 +75,7 @@ function Router() {
         path={"/admin/signature-letters"}
         component={AdminSignatureLetters}
       />
+      <Route path={"/admin/transmissions"} component={AdminTransmissions} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />

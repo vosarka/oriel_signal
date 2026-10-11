@@ -1,0 +1,23 @@
+.at-wrap { min-height: 100vh; padding: 2.5rem 1rem; background: #050505; color: #fff7e6; }
+.at-title { margin: 0 0 1.6rem; font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 2.2rem; color: #e4c88c; }
+.at-grid { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; gap: 1.6rem; max-width: 80rem; }
+.at-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; align-content: start; }
+.at-item { width: 100%; display: grid; gap: 0.2rem; padding: 0.8rem 1rem; text-align: left; background: transparent;
+  border: 1px solid rgba(216, 181, 109, 0.25); color: inherit; cursor: pointer; font-family: "Red Hat Mono", monospace; font-size: 0.78rem; }
+.at-item.is-active, .at-item:hover { border-color: #d8b56d; }
+.at-item__status { color: #bda36b; text-transform: uppercase; letter-spacing: 0.12em; }
+.at-item__status--failed { color: #5ba4a4; }
+.at-item__due { color: rgba(255, 247, 230, 0.6); }
+.at-empty { color: rgba(255, 247, 230, 0.6); }
+.at-editor { display: grid; gap: 1rem; }
+.at-field { display: grid; gap: 0.35rem; font-family: "Red Hat Mono", monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: #bda36b; }
+.at-field input, .at-field textarea { padding: 0.7rem; background: #0c0c0c; color: #fff7e6; border: 1px solid rgba(216, 181, 109, 0.3);
+  font-family: "Cormorant Garamond", serif; font-size: 1.1rem; text-transform: none; letter-spacing: 0; line-height: 1.5; }
+.at-count { margin: 0; font-family: "Red Hat Mono", monospace; font-size: 0.72rem; color: rgba(255, 247, 230, 0.6); }
+.at-error { margin: 0; color: #5ba4a4; }
+.at-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.at-btn { padding: 0.65rem 1.1rem; background: transparent; color: #e4c88c; border: 1px solid #d8b56d; cursor: pointer;
+  font-family: "Red Hat Mono", monospace; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; }
+.at-btn--primary { background: #d8b56d; color: #050505; }
+.at-btn:disabled { opacity: 0.5; cursor: progress; }
+@media (max-width: 760px) { .at-grid { grid-template-columns: 1fr; } }
