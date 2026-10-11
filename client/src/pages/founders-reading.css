@@ -19,3 +19,6 @@
 .fr-book-link { color: #eee5d4; text-decoration: underline; text-underline-offset: .25rem; }
 .fr-book-link:focus-visible { outline: 2px solid #d8b56d; outline-offset: 5px; }
 @media (max-width: 760px) { .fr-wrap { padding-top: 6rem; } .fr-hero { padding-top: 1rem; } .fr-columns, .fr-process { grid-template-columns: 1fr; gap: 1.5rem; } .fr-actions { flex-direction: column; align-items: flex-start; } }
+
+.fr-order { display: grid; justify-items: center; gap: 1rem; margin-top: 1.6rem; }
+.fr-price { margin: 0; font-family: "Red Hat Mono", monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #e4c88c; }
