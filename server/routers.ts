@@ -217,6 +217,52 @@ export const appRouter = router({
   system: systemRouter,
   rgp: rgpRouter,
 
+  /** Founder's Reading: one personal transmission, bought once. */
+  foundersReading: router({
+    status: publicProcedure.query(async () => {
+      const { foundersReadingStatus } = await import("./transmission-service");
+      return foundersReadingStatus();
+    }),
+    order: protectedProcedure.mutation(async ({ ctx }) => {
+      const { orderFoundersReading } = await import("./transmission-service");
+      try {
+        return await orderFoundersReading(ctx.user);
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        console.error("[FoundersReading] order failed:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "PayPal could not open the order. Please try again shortly.",
+        });
+      }
+    }),
+    capture: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const { captureFoundersReading } = await import("./transmission-service");
+        try {
+          return await captureFoundersReading(ctx.user, input.id);
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          console.error("[FoundersReading] capture failed:", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "PayPal has not confirmed the payment yet. Refresh in a minute.",
+          });
+        }
+      }),
+  }),
+
+  /** The private player. The token is the key; no login. */
+  personalTransmissions: router({
+    play: publicProcedure
+      .input(z.object({ token: z.string().max(64) }))
+      .query(async ({ input }) => {
+        const { playTransmission } = await import("./transmission-service");
+        return playTransmission(input.token);
+      }),
+  }),
+
   /** The Garden's PayPal subscriptions (Etapa 2). */
   garden: router({
     subscribe: protectedProcedure
@@ -3331,6 +3377,46 @@ export const appRouter = router({
         )
         .mutation(async ({ input }) => {
           await setDonated(input.userId, input.amount);
+          return { success: true };
+        }),
+    }),
+
+    personalTransmissions: router({
+      list: adminProcedure.query(async () => {
+        const { listForAdmin } = await import("./transmission-db");
+        const { TRANSMISSION_DUE_HOURS } = await import("./transmission-service");
+        const rows = await listForAdmin();
+        return rows.map(r => ({
+          ...r,
+          dueAt: new Date(
+            (r.paidAt ?? r.createdAt).getTime() + TRANSMISSION_DUE_HOURS * 3_600_000
+          ),
+        }));
+      }),
+      approve: adminProcedure
+        .input(
+          z.object({
+            id: z.number().int().positive(),
+            script: z.object({
+              title: z.string().max(120),
+              mirror: z.string().max(6000),
+              threshold: z.string().max(6000),
+              gift: z.string().max(6000),
+            }),
+          })
+        )
+        .mutation(async ({ input }) => {
+          const { approveTransmission } = await import("./transmission-service");
+          await approveTransmission(input.id, input.script);
+          return { success: true };
+        }),
+      regenerate: adminProcedure
+        .input(z.object({ id: z.number().int().positive() }))
+        .mutation(async ({ input }) => {
+          const { updateTransmission } = await import("./transmission-db");
+          const { generateScript } = await import("./transmission-service");
+          await updateTransmission(input.id, { status: "requested", failureReason: null });
+          await generateScript(input.id);
           return { success: true };
         }),
     }),
