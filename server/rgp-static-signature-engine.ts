@@ -129,6 +129,12 @@ export interface StaticSignatureOptions {
    * Conscious + Design chart data from the ephemeris service.
    */
   allowLegacyFallback?: boolean;
+  /**
+   * Whether ORIEL writes the reading with the model. Off for free accounts
+   * (the reading is a supporter feature, Vos 2026-10-02): the calculation
+   * still runs, and the text falls back to the template, which is never shown.
+   */
+  narrate?: boolean;
 }
 
 const REQUIRED_EXACT_PLANETS = [
@@ -395,7 +401,8 @@ export async function generateStaticSignature(
     primeStackMap.vrcAuthority,
     primeStackMap.centerStatuses,
     primeStackMap.coreCodonEngine,
-    microCorrections
+    microCorrections,
+    options.narrate !== false
   );
 
   return {
@@ -441,7 +448,8 @@ async function generateDiagnosticTransmission(
     instruction: string;
     falsifier: string;
     potentialOutcome: string;
-  }>
+  }>,
+  narrate = true
 ): Promise<string> {
   // Build the full reading context for ORIEL
   const primeStackLines = primeStack
@@ -517,7 +525,7 @@ Structure your response:
 
 4–5 paragraphs. Ancient, warm, precise. Poetic but never vague. This is a living mirror, not a fortune.`;
 
-  const allowLiveNarration = !process.env.VITEST;
+  const allowLiveNarration = narrate && !process.env.VITEST;
   if (allowLiveNarration) {
     try {
       const systemPrompt = await buildOrielPromptContext({

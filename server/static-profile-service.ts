@@ -251,7 +251,8 @@ export function resolveStoredNatalInputForRecompute(
 
 export async function buildUserStaticProfile(
   userId: string,
-  input: NatalProfileInput
+  input: NatalProfileInput,
+  options: { narrate?: boolean } = {}
 ) {
   const birthDateObj = new Date(input.birthDate);
   if (Number.isNaN(birthDateObj.getTime())) {
@@ -327,7 +328,7 @@ export async function buildUserStaticProfile(
     sun: consciousChartData?.Sun,
     moon: consciousChartData?.Moon,
     northNode: consciousChartData?.["North Node"],
-  });
+  }, undefined, { narrate: options.narrate });
 
   return {
     birthDate: input.birthDate,

@@ -26,6 +26,8 @@ import {
   normalizeChannels,
 } from "@/lib/bodygraph-data";
 import { StaticSignaturePanel } from "./StaticReading";
+import { SupporterLock } from "@/components/supporter-lock/SupporterLock";
+import { isSupporter } from "@shared/supporter-access";
 import {
   buildProfileStats,
   formatProfileDate,
@@ -409,6 +411,7 @@ export default function Profile() {
                 when you need it.
               </p>
 
+              <SupporterLock locked={!isSupporter(user as never)} label="Static Signature reading">
               {/* Cross-reference to Bio-Architecture: makes the general VTRS terminal
                   indispensable for understanding the personal data shown here. */}
               <div className="profile-layer__actions" style={{ marginBottom: "0.75rem" }}>
@@ -430,6 +433,7 @@ export default function Profile() {
               </div>
 
               <StaticSignaturePanel embedded />
+              </SupporterLock>
             </ProfileSection>
 
             {/* Concrete fix: Working password change for authenticated users */}

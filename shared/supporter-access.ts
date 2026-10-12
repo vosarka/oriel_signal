@@ -84,6 +84,18 @@ export function supporterKind(user: SupporterFields, now: Date = new Date()): Su
   return lapsed ? null : "patron";
 }
 
+/**
+ * Supporter features (the profile reading, the Bio-Architecture wheel):
+ * every tier above free, and admins. Decided with Vos, 2026-10-02.
+ */
+export function isSupporter(
+  user: (SupporterFields & { role?: string | null }) | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!user) return false;
+  return user.role === "admin" || accessTier(user, now) !== "free";
+}
+
 /** The tier that decides a user's limits. */
 export function accessTier(user: SupporterFields, now: Date = new Date()): AccessTier {
   const kind = supporterKind(user, now);
