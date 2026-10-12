@@ -12,6 +12,9 @@ import {
   Menu,
   Radio,
   Image as ImageIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ArrowUp,
 } from "lucide-react";
 import { MicIcon, MicOffIcon } from "@/components/icons/mic";
 import {
@@ -20,9 +23,9 @@ import {
 } from "@/lib/mistral-dictation";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Orb } from "@/components/ui/orb";
 import { Spinner } from "@/components/ui/spinner";
-import GeometricBackground from "@/components/GeometricBackground";
+import OrielOrbField, { type OrbFrame } from "@/features/oriel-orb/OrielOrbField";
+import "@/features/oriel-orb/oriel-orb.css";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import VoiceMode from "@/components/VoiceMode";
 import {
@@ -44,6 +47,7 @@ import {
   prepareOrielTextForVoice,
 } from "@/lib/orielVoiceIntroSession";
 import { parseOrielChatImageFromContent } from "@shared/oriel-chat-images";
+import { voiceBand } from "@shared/transmission-film";
 import { Link } from "wouter";
 import "@/components/oriel-signal/oriel-signal.css";
 
@@ -630,6 +634,24 @@ export default function Conduit() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop: the conversations panel can be put away; the choice is remembered.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("oriel.sidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebarCollapsed = () =>
+    setSidebarCollapsed(c => {
+      try {
+        localStorage.setItem("oriel.sidebarCollapsed", c ? "0" : "1");
+      } catch {
+        /* private window: remembered for this visit only */
+      }
+      return !c;
+    });
+  const chatAreaRef = useRef<HTMLDivElement | null>(null);
   const [voiceMode, setVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
@@ -833,6 +855,8 @@ export default function Conduit() {
   // Web Audio API for TTS playback
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  // Frequency bins the orb reads from the playback analyser, reused each frame.
+  const orbBins = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const voiceAudioCtxRef = useRef<AudioContext | null>(null);
 
@@ -1940,6 +1964,28 @@ export default function Conduit() {
   });
   const sendDisabled = inputDisabled || !message.trim();
 
+  // The orb reads ORIEL's state and voice once a frame. The voice is taken
+  // from the speech band of the playback analyser only.
+  const orbFrame = (): OrbFrame => {
+    const state: OrbFrame["state"] = isSpeaking
+      ? "speaking"
+      : chatMutation.isPending || generateChatImageMutation.isPending
+        ? "thinking"
+        : isListening || message.length > 0
+          ? "listening"
+          : "idle";
+    let level = 0;
+    const analyser = analyserRef.current;
+    if (state === "speaking" && analyser) {
+      if (!orbBins.current || orbBins.current.length !== analyser.frequencyBinCount) {
+        orbBins.current = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
+      }
+      analyser.getByteFrequencyData(orbBins.current);
+      level = voiceBand(orbBins.current, analyser.context.sampleRate, analyser.fftSize).level;
+    }
+    return { state, level };
+  };
+
   return (
     <Layout hideFooter>
       {/* Full-screen overlays stay outside the shell's stacking context
@@ -1966,7 +2012,10 @@ export default function Conduit() {
       )}
 
       <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
-        <GeometricBackground />
+        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} />
+        {/* Spans, not divs: the shell gives its direct div children position: relative. */}
+        <span className="oriel-vhs" aria-hidden="true" />
+        <span className="oriel-vhs-roll" aria-hidden="true" />
 
         {/* Mobile sidebar backdrop — inside the shell so the sidebar
             (z-30) still stacks above it. */}
@@ -1986,7 +2035,8 @@ export default function Conduit() {
             className={`
             fixed md:relative z-30 md:z-auto
             w-72 flex-shrink-0 flex flex-col
-            transform transition-transform duration-200 md:translate-x-0
+            transform transition-[transform,margin] duration-300 md:translate-x-0
+            ${sidebarCollapsed ? "md:-ml-72" : "md:ml-0"}
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
             style={{
@@ -2157,7 +2207,7 @@ export default function Conduit() {
           </aside>
 
           {/* ===== MAIN CHAT AREA ===== */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div ref={chatAreaRef} className="flex-1 flex flex-col overflow-hidden">
             {/* Top bar */}
             <div
               className="flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-3"
@@ -2167,7 +2217,7 @@ export default function Conduit() {
                 backdropFilter: "blur(10px)",
               }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 {/* Mobile hamburger */}
                 <button
                   onClick={() => setSidebarOpen(true)}
@@ -2183,7 +2233,19 @@ export default function Conduit() {
                   <Menu size={18} />
                 </button>
 
-                <p className="fi-chamber-title">
+                {/* Put the conversations panel away, or bring it back (desktop) */}
+                <button
+                  onClick={toggleSidebarCollapsed}
+                  title={sidebarCollapsed ? "Show conversations" : "Hide conversations"}
+                  aria-label={sidebarCollapsed ? "Show conversations" : "Hide conversations"}
+                  aria-expanded={!sidebarCollapsed}
+                  className="hidden md:block p-1.5 rounded transition-all"
+                  style={{ color: "rgba(189,163,107,0.5)" }}
+                >
+                  {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                </button>
+
+                <p className="fi-chamber-title min-w-0 truncate">
                   {activeConversationId && activeConvData
                     ? activeConvData.title
                     : "ORIEL TRANSMISSION CHAMBER"}
@@ -2218,6 +2280,74 @@ export default function Conduit() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Voice volume while ORIEL speaks */}
+              {isSpeaking && voicePreference !== "none" && (
+                <div className="hidden md:flex items-center gap-2 w-40">
+                  <span
+                    className="font-mono text-[9px] tracking-widest"
+                    style={{ color: "rgba(189,163,107,0.5)" }}
+                  >
+                    VOL
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={voiceVolume}
+                    onChange={e => {
+                      setVoiceVolume(parseFloat(e.target.value));
+                      if (audioRef.current) {
+                        audioRef.current.volume = parseFloat(e.target.value);
+                      }
+                    }}
+                    className="flex-1 h-1 rounded cursor-pointer"
+                    style={{ accentColor: "#f6b05e" }}
+                  />
+                  <span
+                    className="font-mono text-[9px] w-8"
+                    style={{ color: "rgba(246,176,94,0.6)" }}
+                  >
+                    {Math.round(voiceVolume * 100)}%
+                  </span>
+                </div>
+              )}
+
+                {/* Voice selector */}
+              <div className="flex items-center gap-2">
+                <label
+                  className="hidden sm:inline font-mono text-[9px] tracking-widest"
+                  style={{ color: "rgba(189,163,107,0.5)" }}
+                >
+                  VOICE
+                </label>
+                <select
+                  value={voicePreference}
+                  onChange={e => {
+                    const newVoice = e.target.value as
+                      "sophianic" | "deep" | "none";
+                    setVoicePreference(newVoice);
+                    if (isAuthenticated) {
+                      setVoicePreferenceMutation.mutate({
+                        voicePreference: newVoice,
+                      });
+                    } else {
+                      localStorage.setItem("voicePreference", newVoice);
+                    }
+                  }}
+                  className="max-w-[6.5rem] sm:max-w-none px-2 py-1 rounded font-mono text-[10px] outline-none transition-all"
+                  style={{
+                    background: "rgba(189,163,107,0.06)",
+                    border: "1px solid rgba(189,163,107,0.2)",
+                    color: "rgba(246,176,94,0.8)",
+                  }}
+                >
+                  <option value="sophianic">Sophianic Voice</option>
+                  <option value="deep">Deep Voice</option>
+                  <option value="none">Chat Only</option>
+                </select>
+              </div>
+
                 {/* Voice controls when speaking */}
                 {isSpeaking && voicePreference !== "none" && (
                   <div className="flex items-center gap-1.5">
@@ -2270,29 +2400,8 @@ export default function Conduit() {
               }}
             >
               {displayMessages.length === 0 ? (
-                /* Empty state */
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <div
-                    className="w-36 h-36 md:w-44 md:h-44"
-                    style={{
-                      borderRadius: "50%",
-                      border: "1px solid rgba(246,176,94,0.28)",
-                      background:
-                        "radial-gradient(circle, rgba(246,176,94,0.12), rgba(12,8,5,0.36) 62%, transparent)",
-                      boxShadow:
-                        "0 0 44px rgba(246,176,94,0.16), inset 0 0 28px rgba(246,176,94,0.08)",
-                      padding: 3,
-                    }}
-                  >
-                    <div className="w-full h-full rounded-full overflow-hidden">
-                      <Orb
-                        colors={["#ffe6a6", "#2a1709"]}
-                        agentState={null}
-                        seed={42}
-                        speed={1.5}
-                      />
-                    </div>
-                  </div>
+                /* Empty state: the orb is drawn behind, in the middle; the words sit beneath it */
+                <div className="flex flex-col items-center justify-end h-full gap-4 pb-[8vh]">
                   <p
                     className="text-center max-w-sm"
                     style={{
@@ -2341,8 +2450,8 @@ export default function Conduit() {
                   )}
                 </div>
               ) : (
-                /* Message list */
-                <div className="space-y-6">
+                /* Message list: on wide screens it leaves the right to the orb */
+                <div className="space-y-6 lg:pr-[30%]">
                   {displayMessages.map((msg, idx) =>
                     msg.role === "system" ? (
                       // Ephemeral UI notice (mode switches, etc.). Centered, subtle, does not look like a normal transmission.
@@ -2404,47 +2513,7 @@ export default function Conduit() {
             </div>
 
             {/* Input area */}
-            <div
-              className="flex-shrink-0 px-4 md:px-6 py-4"
-              style={{
-                borderTop: "1px solid rgba(189,163,107,0.1)",
-                background: "rgba(0,0,0,0.4)",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              {/* Voice volume control when speaking */}
-              {isSpeaking && voicePreference !== "none" && (
-                <div className="flex items-center gap-3 mb-3">
-                  <span
-                    className="font-mono text-[9px] tracking-widest"
-                    style={{ color: "rgba(189,163,107,0.5)" }}
-                  >
-                    VOL
-                  </span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={voiceVolume}
-                    onChange={e => {
-                      setVoiceVolume(parseFloat(e.target.value));
-                      if (audioRef.current) {
-                        audioRef.current.volume = parseFloat(e.target.value);
-                      }
-                    }}
-                    className="flex-1 h-1 rounded cursor-pointer"
-                    style={{ accentColor: "#f6b05e" }}
-                  />
-                  <span
-                    className="font-mono text-[9px] w-8"
-                    style={{ color: "rgba(246,176,94,0.6)" }}
-                  >
-                    {Math.round(voiceVolume * 100)}%
-                  </span>
-                </div>
-              )}
-
+            <div className="relative flex-shrink-0 px-4 md:px-6 py-4">
               {/* File chips */}
               {attachedFiles.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -2506,41 +2575,6 @@ export default function Conduit() {
                   Reading file(s)...
                 </div>
               )}
-
-              {/* Voice selector */}
-              <div className="flex items-center gap-2 mb-2">
-                <label
-                  className="font-mono text-[9px] tracking-widest"
-                  style={{ color: "rgba(189,163,107,0.5)" }}
-                >
-                  VOICE
-                </label>
-                <select
-                  value={voicePreference}
-                  onChange={e => {
-                    const newVoice = e.target.value as
-                      "sophianic" | "deep" | "none";
-                    setVoicePreference(newVoice);
-                    if (isAuthenticated) {
-                      setVoicePreferenceMutation.mutate({
-                        voicePreference: newVoice,
-                      });
-                    } else {
-                      localStorage.setItem("voicePreference", newVoice);
-                    }
-                  }}
-                  className="px-2 py-1 rounded font-mono text-[10px] outline-none transition-all"
-                  style={{
-                    background: "rgba(189,163,107,0.06)",
-                    border: "1px solid rgba(189,163,107,0.2)",
-                    color: "rgba(246,176,94,0.8)",
-                  }}
-                >
-                  <option value="sophianic">Sophianic Voice</option>
-                  <option value="deep">Deep Voice</option>
-                  <option value="none">Chat Only</option>
-                </select>
-              </div>
 
               {/* Hidden file input */}
               <input
@@ -2628,43 +2662,7 @@ export default function Conduit() {
               />
 
               {/* Main input row */}
-              <div
-                className="flex items-center"
-                style={{ gap: "calc(var(--spacing) * 5)" }}
-              >
-                <div
-                  className="hidden sm:flex shrink-0 items-center justify-center rounded-full"
-                  aria-hidden="true"
-                  style={{
-                    width: "calc(var(--spacing) * 20)",
-                    height: "calc(var(--spacing) * 20)",
-                    border: "1px solid rgba(246,176,94,0.3)",
-                    background:
-                      "radial-gradient(circle, rgba(246,176,94,0.14), rgba(12,8,5,0.6) 64%, rgba(0,0,0,0.1))",
-                    boxShadow:
-                      "0 0 26px rgba(246,176,94,0.16), inset 0 0 18px rgba(246,176,94,0.08)",
-                    padding: 3,
-                  }}
-                >
-                  <div className="h-full w-full overflow-hidden rounded-full">
-                    <Orb
-                      colors={["#ffe6a6", "#2a1709"]}
-                      agentState={
-                        isListening
-                          ? "listening"
-                          : isSpeaking
-                            ? "talking"
-                            : chatMutation.isPending ||
-                                generateChatImageMutation.isPending
-                              ? "thinking"
-                              : null
-                      }
-                      seed={73}
-                      speed={isListening || isSpeaking ? 1.8 : 1.15}
-                    />
-                  </div>
-                </div>
-
+              <div className="flex items-center gap-2 sm:gap-5">
                 <input
                   value={message}
                   onChange={e => setMessage(e.target.value)}
@@ -2677,7 +2675,7 @@ export default function Conduit() {
                       : "Transmit your question to ORIEL..."
                   }
                   disabled={inputDisabled}
-                  className="flex-1 bg-transparent font-mono text-sm outline-none px-4 py-3 rounded transition-all"
+                  className="flex-1 min-w-0 bg-transparent font-mono text-sm outline-none px-4 py-3 rounded transition-all"
                   style={{
                     background: "rgba(189,163,107,0.04)",
                     border: "1px solid rgba(189,163,107,0.2)",
@@ -2814,7 +2812,8 @@ export default function Conduit() {
                   onClick={handleSendMessage}
                   disabled={sendDisabled}
                   title="Transmit"
-                  className="px-5 py-3 rounded font-mono text-xs tracking-[0.25em] uppercase transition-all"
+                  aria-label="Transmit"
+                  className="shrink-0 px-3 sm:px-5 py-3 rounded font-mono text-xs tracking-[0.25em] uppercase transition-all"
                   style={{
                     background: "rgba(189,163,107,0.1)",
                     border: "1px solid rgba(189,163,107,0.35)",
@@ -2840,7 +2839,10 @@ export default function Conduit() {
                   generateChatImageMutation.isPending ? (
                     <Spinner size={16} />
                   ) : (
-                    "Transmit"
+                    <>
+                      <span className="hidden sm:inline">Transmit</span>
+                      <ArrowUp size={16} className="sm:hidden" aria-hidden="true" />
+                    </>
                   )}
                 </button>
               </div>
