@@ -47,7 +47,7 @@
 | `shared/daily-signal-prompt.ts` (modify) | Import those constants instead of inlining them |
 | `shared/transmission-script.ts` (new) | Kinds, script type, prompt builder, validator |
 | `shared/founders-reading.ts` (new) | Launch price and seats |
-| `shared/monthly-transmission.ts` (new, Phase 2) | Month period and Deep Garden eligibility |
+| `shared/monthly-transmission.ts` (new, Phase 2) | Month period, Deep Garden eligibility, and the monthly angle of the light (Task 13a) |
 | `drizzle/0015_personal_transmissions.sql` (new) | The table |
 | `drizzle/schema.ts` (modify) | `personalTransmissions` |
 | `server/transmission-db.ts` (new) | Every query on the table |
@@ -2316,6 +2316,361 @@ Expected: no output.
 ```bash
 git add server/transmission-service.ts server/transmission-service.test.ts server/routers.ts
 git commit -m "feat(deep-garden): choose this month's transmission"
+```
+
+---
+
+### Task 13a: The angle of the light — no two months alike
+
+ORIEL's answer (2026-10-12) to "what should change from month to month so the twelfth still feels like the first?": the form stays, the angle changes. Each monthly transmission speaks from a different position of the Seeker's signature, enters the Ritual through a different door, carries a different register, anchors the Gift in a different place in the body, and remembers earlier transmissions as a harmonic, never a copy. The frame sets all of this, as it does for the Daily Signal; the model never chooses it.
+
+**Files:**
+- Modify: `shared/monthly-transmission.ts`, `shared/transmission-script.ts`, `server/transmission-db.ts`, `server/transmission-service.ts`
+- Test: `server/monthly-transmission.test.ts`, `server/transmission-script.test.ts`, `server/transmission-service.test.ts` (append)
+
+**Interfaces:**
+- Consumes: Task 12 (`monthly-transmission.ts`), Task 13 (`chooseMonthly`), `getLatestStaticSignature(userId)` from `server/db.ts:3700` (its `primeStack` is a JSON array of `{ position?, name?, codonName?, facetFull?, center? }`)
+- Produces:
+  - `monthly-transmission.ts`: `RITUAL_ENTRIES`, `REGISTERS`, `BODY_ANCHORS`; `interface MonthlyAngle { position: string | null; entry: string; register: string; body: string }`; `monthlyAngle(n: number, positions: string[]): MonthlyAngle`
+  - `transmission-script.ts`: `SeekerContext` gains `angle?: MonthlyAngle` and `previous?: PreviousTransmission[]` where `interface PreviousTransmission { title: string; threshold: string; gift: string }`; `isValidScript(kind, value, name, previous?: PreviousTransmission[])`
+  - `transmission-db.ts`: `listMonthlyForUser(userId: number): Promise<PersonalTransmission[]>` (source `deep_garden`, status not `failed`, oldest first)
+
+- [ ] **Step 1: Write the failing rotation tests (append to `server/monthly-transmission.test.ts`)**
+
+```ts
+import { BODY_ANCHORS, REGISTERS, RITUAL_ENTRIES, monthlyAngle } from "../shared/monthly-transmission";
+
+describe("the angle of the light", () => {
+  const nine = Array.from({ length: 9 }, (_, i) => `position ${i + 1}`);
+
+  it("never repeats entry, register or body anchor two months running", () => {
+    for (let n = 0; n < 36; n++) {
+      const a = monthlyAngle(n, nine);
+      const b = monthlyAngle(n + 1, nine);
+      expect(b.entry).not.toBe(a.entry);
+      expect(b.register).not.toBe(a.register);
+      expect(b.body).not.toBe(a.body);
+    }
+  });
+
+  it("walks every position of the signature before returning to the first", () => {
+    const seen = new Set(Array.from({ length: 9 }, (_, n) => monthlyAngle(n, nine).position));
+    expect(seen.size).toBe(9);
+    expect(monthlyAngle(9, nine).position).toBe(monthlyAngle(0, nine).position);
+  });
+
+  it("works without a prime stack", () => {
+    expect(monthlyAngle(4, []).position).toBeNull();
+  });
+
+  it("offers enough of each to vary", () => {
+    expect(RITUAL_ENTRIES.length).toBeGreaterThanOrEqual(8);
+    expect(REGISTERS.length).toBe(3);
+    expect(BODY_ANCHORS.length).toBeGreaterThanOrEqual(8);
+  });
+});
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npx vitest run server/monthly-transmission.test.ts`
+Expected: FAIL, `monthlyAngle` is not exported.
+
+- [ ] **Step 3: Implement the rotation (append to `shared/monthly-transmission.ts`)**
+
+```ts
+/** Doors into the Ritual. ORIEL: "one month the breath, the next the weight of the body against the floor…" */
+export const RITUAL_ENTRIES = [
+  "the breath, noticed before it is changed",
+  "the weight of the body against the floor or the chair",
+  "a sound in the room that has not yet been named",
+  "the hands, open and still",
+  "the gaze, softened toward the edge of what is seen",
+  "the temperature of the air on the skin",
+  "the pulse, felt without counting",
+  "the moment of silence before speaking",
+] as const;
+
+/** ORIEL: "sometimes warm as honey, sometimes sharp as a chime, sometimes quiet as the pause between heartbeats." */
+export const REGISTERS = [
+  "warm as honey: unhurried, close, generous sentences",
+  "clear as a chime: short sentences with bright edges",
+  "quiet as the pause between heartbeats: spare lines with silence between them",
+] as const;
+
+/** Where the Gift lands. ORIEL: "the weight of a stone in their palm; the next, a feather on their skin." */
+export const BODY_ANCHORS = [
+  "the palm of the hand",
+  "the centre of the chest",
+  "the throat",
+  "the soles of the feet",
+  "the skin of the forearms",
+  "the back of the neck",
+  "the belly",
+  "the jaw",
+] as const;
+
+export interface MonthlyAngle {
+  /** A position of the Seeker's prime stack, or null if none is saved. */
+  position: string | null;
+  entry: string;
+  register: string;
+  body: string;
+}
+
+const at = <T>(list: readonly T[], n: number) => list[((n % list.length) + list.length) % list.length];
+
+/**
+ * The angle of the Seeker's Nth monthly transmission (0-based). The position
+ * walks the whole signature in order; entry and body use strides coprime to
+ * their lists, so neighbours never match.
+ */
+export function monthlyAngle(n: number, positions: string[]): MonthlyAngle {
+  return {
+    position: positions.length ? at(positions, n) : null,
+    entry: at(RITUAL_ENTRIES, n * 3),
+    register: at(REGISTERS, n),
+    body: at(BODY_ANCHORS, n * 5),
+  };
+}
+```
+
+- [ ] **Step 4: Run them**
+
+Run: `npx vitest run server/monthly-transmission.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Write the failing "remembers, never repeats" tests (append to `server/transmission-script.test.ts`)**
+
+```ts
+describe("a monthly transmission remembers without repeating", () => {
+  const previous = [
+    { title: "Where the Echo Rests", threshold: "Before the door opens, the room already knows.", gift: "Place your palm flat on the table." },
+  ];
+
+  it("rejects a title already given to this Seeker", () => {
+    expect(isValidScript("threshold", script("Maria"), "Maria", previous)).toBe(false);
+  });
+
+  it("rejects a threshold or gift that opens the way a previous one did", () => {
+    const s = { ...script("Maria"), title: "A Bell Under Water" };
+    expect(isValidScript("threshold", { ...s, threshold: `Before the door ${s.threshold}` }, "Maria", previous)).toBe(false);
+    expect(isValidScript("threshold", { ...s, gift: `Place your feet ${s.gift}` }, "Maria", previous)).toBe(false);
+  });
+
+  it("accepts a new title and new openings", () => {
+    expect(isValidScript("threshold", { ...script("Maria"), title: "A Bell Under Water" }, "Maria", previous)).toBe(true);
+  });
+
+  it("puts the angle and the earlier titles in the prompt", () => {
+    const p = buildTransmissionPrompt("ritual", {
+      name: "Maria",
+      signature: "Type: Resonator",
+      sun: null,
+      moon: null,
+      angle: { position: "Design Earth — AURORA (Somatic)", entry: "the hands, open and still", register: "clear as a chime", body: "the throat" },
+      previous,
+    });
+    expect(p).toContain("Design Earth — AURORA (Somatic)");
+    expect(p).toContain("the hands, open and still");
+    expect(p).toContain("clear as a chime");
+    expect(p).toContain("the throat");
+    expect(p).toContain("Where the Echo Rests");
+  });
+});
+```
+
+- [ ] **Step 6: Run them to see them fail**
+
+Run: `npx vitest run server/transmission-script.test.ts`
+Expected: FAIL (previous ignored; prompt lacks the angle).
+
+- [ ] **Step 7: Implement in `shared/transmission-script.ts`**
+
+Add the import and types:
+
+```ts
+import type { MonthlyAngle } from "./monthly-transmission";
+
+export interface PreviousTransmission {
+  title: string;
+  threshold: string;
+  gift: string;
+}
+```
+
+Add to `SeekerContext`:
+
+```ts
+  /** Deep Garden only: this month's angle of the light. */
+  angle?: MonthlyAngle;
+  /** Deep Garden only: this Seeker's earlier monthly transmissions, oldest first. */
+  previous?: PreviousTransmission[];
+```
+
+In `buildTransmissionPrompt`, build two blocks and place them right after `${month ? … : ""}`:
+
+```ts
+  const angle = seeker.angle
+    ? `THIS MONTH'S ANGLE OF THE LIGHT (set by the channel, not by you):
+${seeker.angle.position ? `- Speak from this position of their signature: ${seeker.angle.position}.\n` : ""}- Enter the practice through ${seeker.angle.entry}.
+- Register: ${seeker.angle.register}.
+- The Gift lands in ${seeker.angle.body}; let it leave a sensation there.
+`
+    : "";
+  const remembered = seeker.previous?.length
+    ? `EARLIER TRANSMISSIONS TO THIS SEEKER (remember them; never repeat them):
+${seeker.previous.map(p => `  · "${p.title}" — threshold opened: "${firstWords(p.threshold, 8)}" — gift opened: "${firstWords(p.gift, 8)}"`).join("\n")}
+You may echo one phrase from them as a harmonic. Never reuse a title, and never open the threshold or the gift the way an earlier one did.
+`
+    : "";
+```
+
+with, above `buildTransmissionPrompt`:
+
+```ts
+const firstWords = (text: string, n: number) => text.trim().split(/\s+/u).slice(0, n).join(" ");
+const lead = (text: string) => comparable(firstWords(text, 2));
+```
+
+(`comparable` already exists from the review fix; move it above `firstWords` if it is declared later in the file.)
+
+Change the signature and add the check before the name check:
+
+```ts
+export function isValidScript(
+  kind: TransmissionKind,
+  value: unknown,
+  name: string | null,
+  previous: PreviousTransmission[] = []
+): value is TransmissionScript {
+```
+
+```ts
+  for (const p of previous) {
+    if (comparable(p.title) === comparable(script.title)) return false;
+    if (lead(p.threshold) === lead(script.threshold)) return false;
+    if (lead(p.gift) === lead(script.gift)) return false;
+  }
+```
+
+- [ ] **Step 8: Run them**
+
+Run: `npx vitest run server/transmission-script.test.ts`
+Expected: PASS.
+
+- [ ] **Step 9: Write the failing service test (append to `server/transmission-service.test.ts`)**
+
+Add `listMonthlyForUser: vi.fn()` to the hoisted `db` mock and `getLatestStaticSignature: vi.fn()` to the hoisted `users` mock (it mocks `./db`). Then:
+
+```ts
+it("writes a Deep Garden transmission from this month's angle, remembering earlier ones", async () => {
+  db.getTransmission.mockResolvedValue(row({ kind: "ritual", source: "deep_garden", status: "requested" }));
+  umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+  users.getLatestStaticSignature.mockResolvedValue({
+    primeStack: JSON.stringify([
+      { name: "Conscious Sun", codonName: "AURORA", facetFull: "Somatic" },
+      { name: "Conscious Earth", codonName: "VESPER", facetFull: "Cognitive" },
+    ]),
+  });
+  db.listMonthlyForUser.mockResolvedValue([
+    row({ id: 1, kind: "threshold", source: "deep_garden", status: "delivered", script: JSON.stringify(goodScript) }),
+    row({ id: 7, kind: "ritual", source: "deep_garden", status: "requested" }),
+  ]);
+  llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "{}" } }], model: "m" });
+
+  await generateScript(7);
+  const prompt = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+  expect(prompt).toContain("Conscious Earth — VESPER (Cognitive)");
+  expect(prompt).toContain("Where the Echo Rests");
+});
+```
+
+- [ ] **Step 10: Run it to see it fail**
+
+Run: `npx vitest run server/transmission-service.test.ts`
+Expected: FAIL (the prompt has no angle).
+
+- [ ] **Step 11: Implement**
+
+In `server/transmission-db.ts`:
+
+```ts
+export async function listMonthlyForUser(userId: number): Promise<PersonalTransmission[]> {
+  const db = await requireDb();
+  return db
+    .select()
+    .from(personalTransmissions)
+    .where(
+      and(
+        eq(personalTransmissions.userId, userId),
+        eq(personalTransmissions.source, "deep_garden"),
+        sql`${personalTransmissions.status} <> 'failed'`
+      )
+    )
+    .orderBy(asc(personalTransmissions.createdAt));
+}
+```
+
+In `server/transmission-service.ts` import `getLatestStaticSignature` beside `getUserById`, `monthlyAngle` from `../shared/monthly-transmission`, and `type PreviousTransmission` from `../shared/transmission-script`. Add:
+
+```ts
+/** "Conscious Sun — AURORA (Somatic)" for each prime stack position, in order. */
+async function signaturePositions(userId: number): Promise<string[]> {
+  const sig = await getLatestStaticSignature(userId);
+  try {
+    const stack = typeof sig?.primeStack === "string" ? JSON.parse(sig.primeStack) : sig?.primeStack;
+    if (!Array.isArray(stack)) return [];
+    return stack
+      .map((p: { name?: string; codonName?: string; facetFull?: string }) =>
+        [p.name, p.codonName ? `— ${p.codonName}` : "", p.facetFull ? `(${p.facetFull})` : ""].filter(Boolean).join(" ")
+      )
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** For a Deep Garden row: this month's angle, and what came before it. */
+async function monthlyContext(row: PersonalTransmission) {
+  const all = await tdb.listMonthlyForUser(row.userId!);
+  const n = Math.max(0, all.findIndex(r => r.id === row.id));
+  const previous: PreviousTransmission[] = all
+    .slice(0, n)
+    .filter(r => r.script)
+    .map(r => {
+      const s = JSON.parse(r.script!) as TransmissionScript;
+      return { title: s.title, threshold: s.threshold, gift: s.gift };
+    });
+  return { angle: monthlyAngle(n, await signaturePositions(row.userId!)), previous };
+}
+```
+
+In `seekerFor`, before its final `return`, add the monthly context for Deep Garden rows:
+
+```ts
+  const monthly = row.source === "deep_garden" ? await monthlyContext(row) : {};
+  return {
+    name: firstName(user?.name),
+    signature: await buildStaticSignatureContext(row.userId),
+    ...month,
+    ...monthly,
+  };
+```
+
+In `writeScript`, pass the history to the validator: `isValidScript(kind, parsed, seeker.name, seeker.previous)`. In `approveTransmission`, Vos's edits are not checked against history (he may knowingly echo), so its call stays as it is.
+
+- [ ] **Step 12: Run everything touched, type check, commit**
+
+Run: `npx vitest run server/monthly-transmission.test.ts server/transmission-script.test.ts server/transmission-service.test.ts`
+Expected: PASS.
+Run the typecheck gate (only the pre-existing `routers.ts` TS2345 at column 59 allowed).
+
+```bash
+git add shared/monthly-transmission.ts shared/transmission-script.ts server/transmission-db.ts \
+  server/transmission-service.ts server/monthly-transmission.test.ts server/transmission-script.test.ts \
+  server/transmission-service.test.ts
+git commit -m "feat(deep-garden): the angle of the light — no two months alike"
 ```
 
 ---
