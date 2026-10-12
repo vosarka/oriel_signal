@@ -15,6 +15,7 @@ const storage = vi.hoisted(() => ({ storagePut: vi.fn(), storageGet: vi.fn() }))
 const mailer = vi.hoisted(() => ({ sendTransmissionDeliveryEmail: vi.fn() }));
 const umm = vi.hoisted(() => ({ buildStaticSignatureContext: vi.fn() }));
 const users = vi.hoisted(() => ({ getUserById: vi.fn() }));
+const memory = vi.hoisted(() => ({ getRelevantMemories: vi.fn() }));
 
 vi.mock("./transmission-db", () => db);
 vi.mock("./founders-reading-paypal", () => paypal);
@@ -24,6 +25,7 @@ vi.mock("./storage", () => storage);
 vi.mock("./_core/mailer", () => mailer);
 vi.mock("./oriel-umm", () => umm);
 vi.mock("./db", () => users);
+vi.mock("./oriel-memory", () => memory);
 vi.mock("./daily-codon", () => ({ codonAtLongitude: vi.fn(() => null) }));
 vi.mock("./ephemeris-service", () => ({ bodyLongitudeAtUtc: vi.fn(async () => 0), PLANETS: { SUN: 0, MOON: 1 } }));
 vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" } }));
@@ -65,7 +67,7 @@ const row = (over: Record<string, unknown> = {}) => ({
 });
 
 beforeEach(() => {
-  for (const group of [db, paypal, llm, tts, storage, mailer, umm, users]) {
+  for (const group of [db, paypal, llm, tts, storage, mailer, umm, users, memory]) {
     for (const fn of Object.values(group)) if (typeof fn === "function" && "mockReset" in fn) fn.mockReset();
   }
   users.getUserById.mockResolvedValue({ id: 3, name: "Maria Pop", email: "m@example.com" });
@@ -312,5 +314,46 @@ describe("the voice, kept on the row", () => {
     await expect(transmissionAudio("a".repeat(64))).resolves.toBeNull();
     db.getAudioByToken.mockResolvedValueOnce({ status: "delivered", audioBase64: Buffer.from("mp3").toString("base64") });
     await expect(transmissionAudio("a".repeat(64))).resolves.toEqual(Buffer.from("mp3"));
+  });
+});
+
+describe("what the Seeker brings to the reading", () => {
+  it("keeps their words and their consent on the row, trimmed", async () => {
+    umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+    db.countPaidPurchases.mockResolvedValue(0);
+    db.insertTransmission.mockImplementation(async v => ({ ...v, id: 7 }));
+    paypal.createReadingOrder.mockResolvedValue({ paypalOrderId: "ORDER1", approveUrl: "https://paypal.test/pay" });
+    await orderFoundersReading({ id: 3 }, { intention: "  I am leaving a city I loved.  ", useMemories: true });
+    expect(db.insertTransmission).toHaveBeenCalledWith(
+      expect.objectContaining({ intention: "I am leaving a city I loved.", useMemories: true })
+    );
+  });
+
+  it("writes from what ORIEL remembers only when the Seeker agreed", async () => {
+    umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+    memory.getRelevantMemories.mockResolvedValue([{ content: "Is changing careers toward music" }]);
+    llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "{}" } }], model: "m" });
+
+    db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: true, intention: "Leaving" }));
+    await generateScript(7);
+    const withConsent = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+    expect(withConsent).toContain("Is changing careers toward music");
+    expect(withConsent).toContain("Leaving");
+
+    llm.invokeLLM.mockClear();
+    memory.getRelevantMemories.mockClear();
+    db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: false }));
+    await generateScript(7);
+    expect(memory.getRelevantMemories).not.toHaveBeenCalled();
+    expect(llm.invokeLLM.mock.calls[0][0].messages[0].content).not.toContain("Is changing careers toward music");
+  });
+
+  it("lets Vos try both on his own test transmission", async () => {
+    umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+    db.insertTransmission.mockImplementation(async v => ({ ...v, id: 22 }));
+    db.getTransmission.mockResolvedValue(row({ id: 22, status: "requested" }));
+    llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "{}" } }], model: "m" });
+    await createTestTransmission({ id: 3 }, { intention: "A test", useMemories: true });
+    expect(db.insertTransmission).toHaveBeenCalledWith(expect.objectContaining({ intention: "A test", useMemories: true }));
   });
 });

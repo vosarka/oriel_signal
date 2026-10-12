@@ -13,6 +13,7 @@ import { buildStaticSignatureContext } from "./oriel-umm";
 import { codonAtLongitude } from "./daily-codon";
 import { bodyLongitudeAtUtc, PLANETS } from "./ephemeris-service";
 import { getUserById } from "./db";
+import { getRelevantMemories } from "./oriel-memory";
 import * as tdb from "./transmission-db";
 import { captureReadingOrder, createReadingOrder } from "./founders-reading-paypal";
 import { foundersReadingPrice, launchSeatsLeft } from "../shared/founders-reading";
@@ -56,8 +57,28 @@ async function seekerFor(row: PersonalTransmission): Promise<SeekerContext> {
     name: firstName(user?.name),
     signature: await buildStaticSignatureContext(row.userId),
     ...month,
+    intention: row.intention,
+    // Only with the Seeker's consent, given at the order.
+    memories: row.useMemories ? await rememberedThemes(row.userId) : [],
   };
 }
+
+/** What ORIEL keeps of a Seeker's conversations: its active memories, most important first. */
+async function rememberedThemes(userId: number): Promise<string[]> {
+  const memories = await getRelevantMemories(userId, 12);
+  return memories.map(m => m.content.trim()).filter(Boolean).map(c => c.slice(0, 240));
+}
+
+/** What the Seeker brings to a reading: their words, and whether ORIEL may draw on its memories. */
+export interface ReadingInput {
+  intention?: string | null;
+  useMemories?: boolean;
+}
+
+const cleanInput = (input: ReadingInput = {}) => ({
+  intention: input.intention?.trim().slice(0, 600) || null,
+  useMemories: Boolean(input.useMemories),
+});
 
 // ── Founder's Reading ────────────────────────────────────────────────────
 
@@ -67,7 +88,7 @@ export async function foundersReadingStatus() {
   return { priceEur: foundersReadingPrice(paid), seatsLeft, launch: seatsLeft > 0 };
 }
 
-export async function orderFoundersReading(user: { id: number }) {
+export async function orderFoundersReading(user: { id: number }, input: ReadingInput = {}) {
   if (!(await buildStaticSignatureContext(user.id))) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -82,6 +103,7 @@ export async function orderFoundersReading(user: { id: number }) {
     status: "pending_payment",
     accessToken: newToken(),
     priceEur,
+    ...cleanInput(input),
   });
   const { paypalOrderId, approveUrl } = await createReadingOrder({
     transmissionId: row.id,
@@ -107,7 +129,7 @@ export async function captureFoundersReading(user: { id: number }, transmissionI
  * path after PayPal (writing, approval, voice, email, player) can be
  * tried and heard. No price and no paidAt, so it never counts as a sale.
  */
-export async function createTestTransmission(admin: { id: number }) {
+export async function createTestTransmission(admin: { id: number }, input: ReadingInput = {}) {
   if (!(await buildStaticSignatureContext(admin.id))) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -120,6 +142,7 @@ export async function createTestTransmission(admin: { id: number }) {
     source: "purchase",
     status: "requested",
     accessToken: newToken(),
+    ...cleanInput(input),
   });
   void generateScript(row.id).catch(error => console.error("[transmissions] test generate failed:", error));
   return { id: row.id };

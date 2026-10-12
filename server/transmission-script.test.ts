@@ -115,3 +115,21 @@ describe("buildTransmissionPrompt", () => {
     expect(p).toMatch(/no name/i);
   });
 });
+
+describe("what the Seeker brings: their words, and what ORIEL remembers", () => {
+  const base: SeekerContext = { name: "Maria", signature: "Type: Resonator", sun: null, moon: null };
+
+  it("carries the Seeker's own words when they wrote some", () => {
+    const p = buildTransmissionPrompt("mirror", { ...base, intention: "I am leaving a city I loved." });
+    expect(p).toContain("I am leaving a city I loved.");
+    expect(p).toMatch(/in their own words/i);
+  });
+
+  it("carries remembered themes only when given, and asks for the theme, not the details", () => {
+    const p = buildTransmissionPrompt("threshold", { ...base, memories: ["Is changing careers toward music", "Fears being too late"] });
+    expect(p).toContain("Is changing careers toward music");
+    expect(p).toMatch(/one theme/i);
+    expect(p).toMatch(/never repeat a private detail/i);
+    expect(buildTransmissionPrompt("threshold", base)).not.toMatch(/remembers of your conversations/i);
+  });
+});

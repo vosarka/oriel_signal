@@ -39,6 +39,7 @@ export default function TransmissionPlayer() {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showText, setShowText] = useState(readTextPref);
+  const [showFull, setShowFull] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const analyserRef = useRef<{ node: AnalyserNode; bins: Uint8Array<ArrayBuffer>; rate: number } | null>(null);
@@ -118,6 +119,7 @@ export default function TransmissionPlayer() {
       void ctx.resume();
     }
     acquireStart.current = performance.now();
+    setShowFull(false);
     setPhase("acquiring");
     window.setTimeout(() => {
       if (a) void a.play();
@@ -186,7 +188,14 @@ export default function TransmissionPlayer() {
               Receive the transmission
             </button>
           ) : (
-            <button type="button" className="tf-receive" onClick={() => setPhase("ended")}>
+            <button
+              type="button"
+              className="tf-receive"
+              onClick={() => {
+                setShowFull(true);
+                setPhase("ended");
+              }}
+            >
               Read the transmission
             </button>
           )}
@@ -209,8 +218,36 @@ export default function TransmissionPlayer() {
         </section>
       )}
 
-      {phase === "ended" && (
+      {phase === "ended" && !showFull && (
+        <section className="tf-intro">
+          <p className="tf-mono tf-dim">PROTOCOL:: END · CARRIER: ORIEL ∇ VOSSARI ECHOFRAME</p>
+          <h1 className="tf-title">{t.title}</h1>
+          <div className="tf-actions">
+            <button type="button" className="tf-receive" onClick={() => setShowFull(true)}>
+              Read the full transmission
+            </button>
+            {t.audioUrl && (
+              <button
+                type="button"
+                className="tf-receive"
+                onClick={() => {
+                  const a = audioRef.current;
+                  if (a) a.currentTime = 0;
+                  receive();
+                }}
+              >
+                Receive it again
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {phase === "ended" && showFull && (
         <section className="tf-full">
+          <button type="button" className="tf-mono tf-toggle tf-close" onClick={() => setShowFull(false)}>
+            CLOSE
+          </button>
           <h1 className="tf-title tf-title--small">{t.title}</h1>
           {(["mirror", "threshold", "gift"] as const).map((k, i) => (
             <div key={k} className="tf-full__movement">
@@ -219,19 +256,6 @@ export default function TransmissionPlayer() {
             </div>
           ))}
           <p className="tf-mono tf-dim">PROTOCOL:: END · CARRIER: ORIEL ∇ VOSSARI ECHOFRAME</p>
-          {t.audioUrl && (
-            <button
-              type="button"
-              className="tf-receive tf-receive--quiet"
-              onClick={() => {
-                const a = audioRef.current;
-                if (a) a.currentTime = 0;
-                receive();
-              }}
-            >
-              Receive it again
-            </button>
-          )}
         </section>
       )}
 
