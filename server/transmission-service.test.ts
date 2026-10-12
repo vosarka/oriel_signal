@@ -191,6 +191,7 @@ describe("playing by token", () => {
     await expect(playTransmission("a".repeat(64))).resolves.toMatchObject({
       title: "Where the Echo Rests",
       audioUrl: `/api/transmissions/${"a".repeat(64)}/audio`,
+      serial: "TX-P-007",
     });
   });
 });
