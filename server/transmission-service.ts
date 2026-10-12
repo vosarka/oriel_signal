@@ -9,7 +9,6 @@ import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
 import { sendTransmissionDeliveryEmail } from "./_core/mailer";
 import { generateChunkedSpeech, ORIEL_VOICES } from "./oriel-tts-chain";
-import { storageGet, storagePut } from "./storage";
 import { buildStaticSignatureContext } from "./oriel-umm";
 import { codonAtLongitude } from "./daily-codon";
 import { bodyLongitudeAtUtc, PLANETS } from "./ephemeris-service";
@@ -220,7 +219,10 @@ export async function regenerateTransmission(id: number): Promise<void> {
 export async function approveTransmission(id: number, script: unknown): Promise<void> {
   const row = await tdb.getTransmission(id);
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "No such transmission." });
-  if (!["draft_ready", "approved", "voiced", "failed"].includes(row.status)) {
+  // A delivered transmission without its voice (stored before the voice
+  // lived on the row) may be approved again, and is voiced this time.
+  const voiceless = row.status === "delivered" && !row.audioBase64;
+  if (!voiceless && !["draft_ready", "approved", "voiced", "failed"].includes(row.status)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: `Cannot approve a ${row.status} transmission.` });
   }
   const user = row.userId ? await getUserById(row.userId) : null;
@@ -230,7 +232,7 @@ export async function approveTransmission(id: number, script: unknown): Promise<
   }
   const valid = script as TransmissionScript;
   const alreadyVoiced =
-    row.status === "voiced" && Boolean(row.audioStorageKey) && row.script === JSON.stringify(valid);
+    row.status === "voiced" && Boolean(row.audioBase64) && row.script === JSON.stringify(valid);
 
   // Voiced already (only the email failed): send again without paying for
   // the voice twice. Otherwise voice it; if that fails the row stays
@@ -238,8 +240,10 @@ export async function approveTransmission(id: number, script: unknown): Promise<
   if (!alreadyVoiced) {
     await tdb.updateTransmission(id, { status: "approved", script: JSON.stringify(valid), approvedAt: new Date() });
     const audio = await generateChunkedSpeech(spokenText(valid), ORIEL_VOICES.sophianic);
-    const { key } = await storagePut(`transmissions/${row.accessToken}.mp3`, Buffer.from(audio, "base64"), "audio/mpeg");
-    await tdb.updateTransmission(id, { status: "voiced", audioStorageKey: key });
+    // The voice is kept on the row (MP3, base64): no object storage to be
+    // missing, and a transmission is never delivered silent.
+    if (!audio) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "The voice came back empty." });
+    await tdb.updateTransmission(id, { status: "voiced", audioBase64: audio });
   }
 
   if (user?.email) {
@@ -262,7 +266,9 @@ const DAY = 86_400_000;
  * stuck after PayPal approval in the last week, then deliveries of the last
  * month (newest first). Unbounded on purpose: a cap hid new requests.
  */
-export function adminQueue(rows: PersonalTransmission[], now: Date): PersonalTransmission[] {
+type QueueRow = Pick<PersonalTransmission, "status" | "paypalOrderId" | "createdAt" | "deliveredAt">;
+
+export function adminQueue<T extends QueueRow>(rows: T[], now: Date): T[] {
   const age = (d: Date | null) => (d ? now.getTime() - new Date(d).getTime() : Infinity);
   const waiting = rows
     .filter(r =>
@@ -284,6 +290,14 @@ export async function playTransmission(token: string) {
   const row = await tdb.getTransmissionByToken(token);
   if (!row || row.status !== "delivered" || !row.script) return null;
   const script = JSON.parse(row.script) as TransmissionScript;
-  const audioUrl = row.audioStorageKey ? (await storageGet(row.audioStorageKey)).url || null : null;
+  const audioUrl = row.hasAudio ? `/api/transmissions/${token}/audio` : null;
   return { kind: row.kind, title: script.title, script, audioUrl, deliveredAt: row.deliveredAt };
+}
+
+/** The MP3 of a delivered transmission, or null. Served at /api/transmissions/:token/audio. */
+export async function transmissionAudio(token: string): Promise<Buffer | null> {
+  if (!TOKEN.test(token)) return null;
+  const row = await tdb.getAudioByToken(token);
+  if (!row || row.status !== "delivered" || !row.audioBase64) return null;
+  return Buffer.from(row.audioBase64, "base64");
 }

@@ -19,6 +19,7 @@ import { registerSignatureStripeWebhookRoute } from "../signature-letter-webhook
 import { registerTetradicSignaturePayPalWebhookRoute } from "../tetradic-signature-paypal-webhook-route";
 import { getOrCreateTodaysSignal } from "../daily-signal-service";
 import { registerDailySignalFeedRoute } from "../daily-signal-feed";
+import { registerTransmissionAudioRoute } from "../transmission-audio-route";
 import {
   maybeGenerateOracleDraft,
   releaseDueOracleParts,
@@ -141,6 +142,7 @@ async function startServer() {
   registerSignatureStripeWebhookRoute(app);
   registerTetradicSignaturePayPalWebhookRoute(app);
   registerDailySignalFeedRoute(app);
+  registerTransmissionAudioRoute(app);
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
