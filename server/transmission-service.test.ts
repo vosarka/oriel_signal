@@ -30,6 +30,7 @@ vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" }
 import {
   adminQueue,
   approveTransmission,
+  createTestTransmission,
   recheckPayment,
   regenerateTransmission,
   captureFoundersReading,
@@ -251,4 +252,26 @@ it("never writes a transmission that has not been paid for, even from admin", as
   await expect(regenerateTransmission(7)).rejects.toThrow(/paid/i);
   expect(llm.invokeLLM).not.toHaveBeenCalled();
   expect(db.updateTransmission).not.toHaveBeenCalled();
+});
+
+describe("a test transmission for Vos", () => {
+  it("writes a Mirror for the admin's own account, unpaid and outside the launch count", async () => {
+    umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+    db.insertTransmission.mockImplementation(async v => ({ ...v, id: 21 }));
+    db.getTransmission.mockResolvedValue(row({ id: 21, status: "requested", priceEur: null }));
+    llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(goodScript) } }], model: "m" });
+
+    await expect(createTestTransmission({ id: 3 })).resolves.toEqual({ id: 21 });
+    const values = db.insertTransmission.mock.calls[0][0];
+    expect(values).toMatchObject({ userId: 3, kind: "mirror", source: "purchase", status: "requested" });
+    expect(values.priceEur ?? null).toBeNull();
+    expect(values.paidAt ?? null).toBeNull();
+    expect(paypal.createReadingOrder).not.toHaveBeenCalled();
+  });
+
+  it("needs a saved signature, like a real reading", async () => {
+    umm.buildStaticSignatureContext.mockResolvedValue("");
+    await expect(createTestTransmission({ id: 3 })).rejects.toThrow(/signature/i);
+    expect(db.insertTransmission).not.toHaveBeenCalled();
+  });
 });

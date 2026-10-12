@@ -21,3 +21,4 @@
 .at-btn--primary { background: #d8b56d; color: #050505; }
 .at-btn:disabled { opacity: 0.5; cursor: progress; }
 @media (max-width: 760px) { .at-grid { grid-template-columns: 1fr; } }
+.at-top { margin-bottom: 1.6rem; align-items: center; }

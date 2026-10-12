@@ -16,13 +16,22 @@ function hoursLeft(due: Date | string) {
 export default function AdminTransmissions() {
   const { user, loading } = useAuth();
   const utils = trpc.useUtils();
-  const list = trpc.admin.personalTransmissions.list.useQuery(undefined, { enabled: user?.role === "admin" });
+  const list = trpc.admin.personalTransmissions.list.useQuery(undefined, {
+    enabled: user?.role === "admin",
+    refetchInterval: 15_000,
+  });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Script>(EMPTY);
   const refresh = () => void utils.admin.personalTransmissions.list.invalidate();
   const approve = trpc.admin.personalTransmissions.approve.useMutation({ onSuccess: refresh });
   const regenerate = trpc.admin.personalTransmissions.regenerate.useMutation({ onSuccess: refresh });
   const recheck = trpc.admin.personalTransmissions.recheckPayment.useMutation({ onSuccess: refresh });
+  const createTest = trpc.admin.personalTransmissions.createTest.useMutation({
+    onSuccess: ({ id }) => {
+      refresh();
+      setSelectedId(id);
+    },
+  });
 
   const rows = list.data ?? [];
   const selected = rows.find(r => r.id === selectedId) ?? null;
@@ -40,6 +49,13 @@ export default function AdminTransmissions() {
     <Layout>
       <main className="at-wrap">
         <h1 className="at-title">Transmissions to approve</h1>
+        <div className="at-actions at-top">
+          <button type="button" className="at-btn" disabled={createTest.isPending} onClick={() => createTest.mutate()}>
+            {createTest.isPending ? "Starting…" : "Test transmission for me"}
+          </button>
+          <span className="at-count">A Mirror for your own account, unpaid. ORIEL writes it in about a minute; the draft appears here on its own.</span>
+          {createTest.error && <p className="at-error">{createTest.error.message}</p>}
+        </div>
         <div className="at-grid">
           <ol className="at-list">
             {rows.map(r => (
