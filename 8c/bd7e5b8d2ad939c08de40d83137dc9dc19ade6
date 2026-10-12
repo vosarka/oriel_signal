@@ -1,0 +1,23 @@
+server/mp3-join.ts
+  s_fb7a7986d66af6::t_fee791edf1b860 1-56
+server/mp3-join.test.ts
+  s_fb7a7986d66af6::t_dc1c4603eb0b62 1-41
+server/oriel-tts-chain.ts
+  s_fb7a7986d66af6::t_bae6a12c976b20 26,245-247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "8cbd7e5b8d2ad939c08de40d83137dc9dc19ade6",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
