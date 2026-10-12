@@ -61,7 +61,7 @@ function OrderReading() {
       {order.error && (
         <p className="fr-status" role="alert">
           {order.error.message}{" "}
-          {order.error.data?.code === "PRECONDITION_FAILED" && <a href="/profile#static-signature">Prepare it here.</a>}
+          {order.error.data?.code === "PRECONDITION_FAILED" && <a href="/complete-profile">Prepare it here.</a>}
         </p>
       )}
     </div>
@@ -118,7 +118,7 @@ export default function FoundersReading() {
               of the reading.</p>
             <div className="fr-actions">
               <SignalButton href="/signal/check">Take the Signal Check</SignalButton>
-              <SignalButton href="/profile#static-signature" variant="secondary">Prepare your signature</SignalButton>
+              <SignalButton href="/complete-profile" variant="secondary">Prepare your signature</SignalButton>
             </div>
           </section>
 
