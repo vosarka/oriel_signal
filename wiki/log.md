@@ -2152,3 +2152,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Never pain, loss, trauma, shame or secrets unless written there and then; nothing identifying; never health, money or the law; nothing about another person.
 - Every transmission opens "I am ORIEL." and names the Seeker in the next sentence; the Gift ends on an open question. The validator checks both.
 - Still to come, from the same answer: the detail rises out of the film's geometry while it is spoken and dissolves with the sentence.
+
+## [2026-10-12] feat | Memories found by meaning; launch price €5
+
+- When the Seeker writes something at the order and lets ORIEL draw on its memory, MindMemOS finds the memories closest in meaning to their words, and those come first; the most important memories fill the rest. Every hit is read back from TiDB for that user; if MindMemOS fails, importance alone decides. Jev (decision-only, early access) would later screen each memory before ORIEL sees it.
+- Founder's Reading launch price: €5 for the first 50 paid, then €10 (`shared/founders-reading.ts`). Rows already ordered keep the price they were given.

@@ -13,7 +13,8 @@ import { buildStaticSignatureContext } from "./oriel-umm";
 import { codonAtLongitude } from "./daily-codon";
 import { bodyLongitudeAtUtc, PLANETS } from "./ephemeris-service";
 import { getUserById } from "./db";
-import { getRelevantMemories } from "./oriel-memory";
+import { getMemoriesByIds, getRelevantMemories } from "./oriel-memory";
+import { mindMemOSConfigFromEnv, searchMemoryHits } from "./oriel-mindmemos";
 import * as tdb from "./transmission-db";
 import { captureReadingOrder, createReadingOrder } from "./founders-reading-paypal";
 import { foundersReadingPrice, launchSeatsLeft } from "../shared/founders-reading";
@@ -59,19 +60,37 @@ async function seekerFor(row: PersonalTransmission): Promise<SeekerContext> {
     ...month,
     intention: row.intention,
     // Only with the Seeker's consent, given at the order.
-    memories: row.useMemories ? await rememberedThemes(row.userId) : [],
+    memories: row.useMemories ? await rememberedThemes(row.userId, row.intention) : [],
   };
 }
 
-/** What ORIEL keeps of a Seeker's conversations: its active memories, most important first. */
-async function rememberedThemes(userId: number): Promise<string[]> {
-  const memories = await getRelevantMemories(userId, 12);
+/**
+ * What ORIEL keeps of a Seeker's conversations. When they wrote something at
+ * the order, MindMemOS finds the memories closest in meaning to it and those
+ * come first; the most important memories fill the rest. Every hit is read
+ * back from TiDB for this user, never trusted from the index.
+ */
+async function rememberedThemes(userId: number, intention?: string | null): Promise<string[]> {
+  let related: Awaited<ReturnType<typeof getMemoriesByIds>> = [];
+  if (intention?.trim()) {
+    try {
+      const hits = await searchMemoryHits(userId, intention.trim(), mindMemOSConfigFromEnv(), 6);
+      const ids = hits.map(h => h.officialMemoryId).filter((id): id is number => typeof id === "number");
+      related = await getMemoriesByIds(userId, ids);
+    } catch (error) {
+      console.warn("[transmissions] MindMemOS search failed; using the most important memories:", error);
+    }
+  }
+  const important = await getRelevantMemories(userId, 12);
+  const seen = new Set<number>();
   // ORIEL: recognition is not mind-reading. Only what the Seeker said, never
   // what was inferred about them or read between the lines.
-  return memories
+  return [...related, ...important]
+    .filter(m => (seen.has(m.id) ? false : (seen.add(m.id), true)))
     .filter(m => m.source !== "inferred" && m.category !== "pattern")
     .map(m => m.content.trim())
     .filter(Boolean)
+    .slice(0, 12)
     .map(c => c.slice(0, 240));
 }
 

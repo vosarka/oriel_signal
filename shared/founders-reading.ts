@@ -4,8 +4,8 @@
  */
 export const FOUNDERS_READING = {
   title: "Founder's Reading",
-  launchPriceEur: 10,
-  priceEur: 15,
+  launchPriceEur: 5,
+  priceEur: 10,
   launchSeats: 50,
 } as const;
 
