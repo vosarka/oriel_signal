@@ -2135,3 +2135,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - The sentence being spoken flows across the screen word by word; TEXT ON/OFF leaves the film and the voice alone. After the voice ends, the whole transmission stands to read.
 - Each transmission's geometry is seeded from its serial. Transmissions now speak in ORIEL's deep voice.
 - Tests: transmission-film (6), transmission-service (deep voice).
+
+## [2026-10-12] feat | What the Seeker brings to a transmission
+
+- At the order (and on Vos's test button): a few optional lines, "What is alive in you right now?", and a checkbox letting ORIEL draw on what it remembers of their conversations. The consent says plainly that Vos reads every transmission before it is sent.
+- With consent, ORIEL reads its active memories of the Seeker (never raw chats), finds the one theme that matters most now, and lets the Threshold speak to it, without repeating private details. Their own words, when given, are what the Threshold answers.
+- New columns `intention`, `useMemories` (`drizzle/0017_personal_transmissions_intention.sql`); apply before deploy.
+- Player fixes: the flowing text and the controls had lost their fixed position to a general rule and sat at the top and middle of the screen. The end screen is now the film with the title, "Read the full transmission" and "Receive it again", instead of a wall of text.
+- Deep Garden's monthly transmission gets the same two inputs when Phase 2 is built.

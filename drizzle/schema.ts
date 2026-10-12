@@ -1185,6 +1185,10 @@ export const personalTransmissions = mysqlTable(
     audioBase64: longtext("audioBase64"),
     accessToken: varchar("accessToken", { length: 64 }).notNull(),
     failureReason: text("failureReason"),
+    /** What the Seeker wrote at the order: what is alive in them now. */
+    intention: text("intention"),
+    /** Consent, given at the order, for ORIEL to draw on its memories of them. */
+    useMemories: boolean("useMemories").default(false).notNull(),
     priceEur: int("priceEur"),
     paypalOrderId: varchar("paypalOrderId", { length: 64 }),
     paypalCaptureId: varchar("paypalCaptureId", { length: 64 }),

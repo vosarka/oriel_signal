@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import ReadingInputFields, { type ReadingInputValue } from "@/components/ReadingInputFields";
 
 /** Buy once; PayPal returns with ?reading=return&id=N and the server captures. */
 function OrderReading() {
@@ -16,6 +17,7 @@ function OrderReading() {
     },
   });
   const capture = trpc.foundersReading.capture.useMutation();
+  const [input, setInput] = useState<ReadingInputValue>({ intention: "", useMemories: false });
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,15 +48,18 @@ function OrderReading() {
       {notice && <p className="fr-status" role="status">{notice}</p>}
       {!notice &&
         (isAuthenticated ? (
+          <>
+          <ReadingInputFields value={input} onChange={setInput} />
           <button
             type="button"
             className="signal-button signal-button--primary"
             disabled={order.isPending}
-            onClick={() => order.mutate()}
+            onClick={() => order.mutate(input)}
           >
             <span className="signal-button__seal" aria-hidden="true" />
             {order.isPending ? "Opening PayPal" : "Receive your reading · PayPal or card"}
           </button>
+          </>
         ) : (
           <SignalButton href={getLoginUrl("/founders-reading")}>Sign in to receive it</SignalButton>
         ))}

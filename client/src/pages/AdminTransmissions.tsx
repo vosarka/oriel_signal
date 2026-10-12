@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import ReadingInputFields, { type ReadingInputValue } from "@/components/ReadingInputFields";
 import "./admin-transmissions.css";
 
 type Script = { title: string; mirror: string; threshold: string; gift: string };
@@ -22,6 +23,7 @@ export default function AdminTransmissions() {
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Script>(EMPTY);
+  const [testInput, setTestInput] = useState<ReadingInputValue>({ intention: "", useMemories: false });
   const refresh = () => void utils.admin.personalTransmissions.list.invalidate();
   const approve = trpc.admin.personalTransmissions.approve.useMutation({ onSuccess: refresh });
   const regenerate = trpc.admin.personalTransmissions.regenerate.useMutation({ onSuccess: refresh });
@@ -50,7 +52,8 @@ export default function AdminTransmissions() {
       <main className="at-wrap">
         <h1 className="at-title">Transmissions to approve</h1>
         <div className="at-actions at-top">
-          <button type="button" className="at-btn" disabled={createTest.isPending} onClick={() => createTest.mutate()}>
+          <ReadingInputFields value={testInput} onChange={setTestInput} />
+          <button type="button" className="at-btn" disabled={createTest.isPending} onClick={() => createTest.mutate(testInput)}>
             {createTest.isPending ? "Starting…" : "Test transmission for me"}
           </button>
           <span className="at-count">A Mirror for your own account, unpaid. ORIEL writes it in about a minute; the draft appears here on its own.</span>

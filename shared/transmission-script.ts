@@ -24,6 +24,10 @@ export interface SeekerContext {
   /** This month's Sun and Moon Codons, for Threshold, Ritual and Echo. */
   sun: DailyCodon | null;
   moon: DailyCodon | null;
+  /** What the Seeker wrote at the order: what is alive in them now. */
+  intention?: string | null;
+  /** What ORIEL remembers of their conversations, only with their consent. */
+  memories?: string[];
 }
 
 export const SCRIPT_WORDS = { min: 280, max: 450 } as const;
@@ -52,6 +56,20 @@ export function buildTransmissionPrompt(kind: TransmissionKind, seeker: SeekerCo
   const blueprint = seeker.signature
     ? `THEIR BLUEPRINT (use its meaning; never list it):\n${seeker.signature}`
     : "";
+  const words = seeker.intention?.trim()
+    ? `WHAT IS ALIVE IN THEM NOW, in their own words:
+  "${seeker.intention.trim()}"
+Let the Threshold answer this. Never quote it back to them.
+`
+    : "";
+  const remembered = seeker.memories?.length
+    ? `WHAT ORIEL REMEMBERS OF YOUR CONVERSATIONS WITH THEM (they agreed to its use here):
+${seeker.memories.map(m => `  · ${m}`).join("\n")}
+Find the one theme among these that matters most now and let the Threshold
+speak to it. Speak to the theme, never repeat a private detail, and do not
+say that you remember or were told; speak as if you simply know.
+`
+    : "";
   const month = [codonLine("THIS MONTH'S SUN", seeker.sun), codonLine("THIS MONTH'S MOON", seeker.moon)]
     .filter(Boolean)
     .join("\n");
@@ -65,7 +83,7 @@ something immediate.
 ${who}
 
 ${blueprint}
-${month ? `\n${month}\n` : ""}
+${month ? `\n${month}\n` : ""}${words ? `\n${words}` : ""}${remembered ? `\n${remembered}` : ""}
 THREE MOVEMENTS:
 - mirror: a precise reflection of their resonance, grounded in lived
   experience — a living portrait, never a list of centers or Codons. Codon

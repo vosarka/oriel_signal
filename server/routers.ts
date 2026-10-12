@@ -214,6 +214,14 @@ const tetradicFounderEditionIntakeSchema = z
   })
   .strict();
 
+/** What a Seeker brings to a personal transmission. */
+const readingInput = z
+  .object({
+    intention: z.string().max(600).optional(),
+    useMemories: z.boolean().optional(),
+  })
+  .optional();
+
 export const appRouter = router({
   system: systemRouter,
   rgp: rgpRouter,
@@ -224,10 +232,12 @@ export const appRouter = router({
       const { foundersReadingStatus } = await import("./transmission-service");
       return foundersReadingStatus();
     }),
-    order: protectedProcedure.mutation(async ({ ctx }) => {
+    order: protectedProcedure
+      .input(readingInput)
+      .mutation(async ({ ctx, input }) => {
       const { orderFoundersReading } = await import("./transmission-service");
       try {
-        return await orderFoundersReading(ctx.user);
+        return await orderFoundersReading(ctx.user, input);
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         console.error("[FoundersReading] order failed:", error);
@@ -3433,9 +3443,9 @@ export const appRouter = router({
           await regenerateTransmission(input.id);
           return { success: true };
         }),
-      createTest: adminProcedure.mutation(async ({ ctx }) => {
+      createTest: adminProcedure.input(readingInput).mutation(async ({ ctx, input }) => {
         const { createTestTransmission } = await import("./transmission-service");
-        return createTestTransmission(ctx.user);
+        return createTestTransmission(ctx.user, input);
       }),
       recheckPayment: adminProcedure
         .input(z.object({ id: z.number().int().positive() }))
