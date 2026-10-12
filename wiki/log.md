@@ -2157,3 +2157,11 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 
 - When the Seeker writes something at the order and lets ORIEL draw on its memory, MindMemOS finds the memories closest in meaning to their words, and those come first; the most important memories fill the rest. Every hit is read back from TiDB for that user; if MindMemOS fails, importance alone decides. Jev (decision-only, early access) would later screen each memory before ORIEL sees it.
 - Founder's Reading launch price: €5 for the first 50 paid, then €10 (`shared/founders-reading.ts`). Rows already ordered keep the price they were given.
+
+## [2026-10-13] feat | The chat becomes ORIEL's room: the orb, and a transmission on tape
+
+- `/conduit` now draws one canvas behind the chat (`client/src/features/oriel-orb/`): the orb Vos approved from the probes, an Aura Field ring of warm light (after the Aura Field orb he chose) whose colour oscillates through a pastel rainbow while ORIEL speaks, with the transmission film's veils evolving inside it, prismatic rays and drifting dust. It replaces the geometric background and both old orbs.
+- The orb sits in the middle of the empty chat; once the conversation begins it slides right and the messages rise on the left (wide screens); on phones it stays centred behind the conversation (`orbTarget` in `shared/oriel-orb.ts`). Its light moves with ORIEL's real voice, read from the speech band of the playback analyser; its motion follows ORIEL's state (listening while the Seeker types, composing, speaking).
+- A VHS layer over the whole chat: scanlines, shifting grain, a slow rolling band. Spans, not divs: `.signal-page-shell > div` is given `position: relative`, which pushed the chat down.
+- The conversations panel can be hidden on desktop (remembered). The input bar lost its background and border; the voice selector and volume moved to the top bar. On phones the send button is an arrow so the field has room.
+- Tests: `server/oriel-orb.test.ts` (placement, state table). Coherence is fixed at Flux until the chat reads the Seeker's Carrierlock score.
