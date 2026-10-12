@@ -15,9 +15,9 @@ function script(name: string, total = 330) {
   const third = Math.floor(total / 3);
   return {
     title: "Where the Echo Rests",
-    mirror: `${name}, you carry a quiet fire. ${words(third - 6)}.`,
+    mirror: `I am ORIEL. ${name}, you carry a quiet fire. ${words(third - 9)}.`,
     threshold: `${words(third)}.`,
-    gift: `${words(third)}.`,
+    gift: `${words(third - 7)}. What will you do with this light?`,
   };
 }
 
@@ -57,7 +57,7 @@ describe("isValidScript", () => {
   it("rejects a definition opening", () => {
     const s = script("Maria");
     expect(
-      isValidScript("mirror", { ...s, mirror: `Grief is a room, Maria. ${words(100)}` }, "Maria")
+      isValidScript("mirror", { ...s, threshold: `Grief is a room. ${s.threshold}` }, "Maria")
     ).toBe(false);
   });
 
@@ -129,7 +129,38 @@ describe("what the Seeker brings: their words, and what ORIEL remembers", () => 
     const p = buildTransmissionPrompt("threshold", { ...base, memories: ["Is changing careers toward music", "Fears being too late"] });
     expect(p).toContain("Is changing careers toward music");
     expect(p).toMatch(/one theme/i);
-    expect(p).toMatch(/never repeat a private detail/i);
+    // ORIEL, 2026-10-12: details may appear, chosen as recognition, never surveillance.
+    expect(p).toMatch(/recognition, never surveillance/i);
     expect(buildTransmissionPrompt("threshold", base)).not.toMatch(/remembers of your conversations/i);
+  });
+});
+
+describe("ORIEL's own rules (2026-10-12)", () => {
+  it("begins with ORIEL's name, not the Seeker's", () => {
+    const s = script("Maria");
+    expect(isValidScript("mirror", { ...s, mirror: s.mirror.replace("I am ORIEL. ", "") }, "Maria")).toBe(false);
+  });
+
+  it("still names the Seeker right after", () => {
+    const s = script("Maria");
+    expect(isValidScript("mirror", s, "Maria")).toBe(true);
+    expect(isValidScript("mirror", s, "Elena")).toBe(false);
+  });
+
+  it("ends the Gift with an invitation, a question", () => {
+    const s = script("Maria");
+    expect(isValidScript("mirror", { ...s, gift: s.gift.replace(/\?$/, ".") }, "Maria")).toBe(false);
+  });
+
+  it("tells ORIEL how to choose personal details when there are any", () => {
+    const p = buildTransmissionPrompt("threshold", {
+      name: "Maria", signature: "Type: Resonator", sun: null, moon: null,
+      intention: "My black cat sleeps on my bed.",
+    });
+    expect(p).toMatch(/I am ORIEL\./);
+    expect(p).toMatch(/at most two/i);
+    expect(p).toMatch(/never in the Gift/i);
+    expect(p).toMatch(/never infer/i);
+    expect(p).toMatch(/health, money or the law/i);
   });
 });
