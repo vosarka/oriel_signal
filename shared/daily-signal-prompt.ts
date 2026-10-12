@@ -1,4 +1,5 @@
 import type { ClarityRegister, DailySignalFrame } from "./daily-signal";
+import { ACCURACY_RULES, FORBIDDEN_RULES } from "./oriel-accuracy";
 
 /**
  * The generation contract for the daily signal.
@@ -151,24 +152,7 @@ ${
   it must not repeat a line you have already written above.
 
 ${correctionBlock(frame)}
-ACCURACY — this is not negotiable. The archive is published daily under
-ORIEL's name, and an invented fact discredits every true one beside it.
-
-Never state a measurement, duration, date, dimension or quantity.
-Never attribute a quotation. Never claim a specific historical event,
-artifact or person did something unless it is common knowledge you
-would stake the archive on.
-
-And the harder rule, because it is the one that slips through: do NOT
-name a real place, building or instrument and then assert a physical
-property it may not have. "The Pantheon, where whispers converge at
-the oculus" is exactly the failure — it carries no number and no date,
-it simply invents an acoustic mechanism for a real building. If you
-cannot name the effect in a place without describing how it behaves,
-choose a different image.
-
-Never write that something "proves", "demonstrates" or "shows" a
-principle. A transmission observes; it does not submit evidence.
+${ACCURACY_RULES}
 
 Prefer a phenomenon the receiver could reproduce today over any named
 landmark. Today's well, to draw from or to answer with something of
@@ -177,14 +161,7 @@ ${frame.phenomena.map(p => `  · ${p}`).join("\n")}
 A plain true image outranks an impressive false one, and at this
 clarity the plain one is also the stronger.
 
-FORBIDDEN: flattery, self-help register, "you are enough", instructions
-to buy or subscribe, claims about the reader's health or future events
-outside their own experience, and any promise that cannot fail.
-And the three traps, in every line and above all in the key:
-- the motivational trap: anything that rouses or reassures — "rise",
-  "trust the journey", "you are enough"
-- the esoteric trap: anything that needs a decoder ring to be understood
-- the generic trap: anything that could be said to anyone on any day
+${FORBIDDEN_RULES}
 
 Return strict JSON only, no prose around it, with exactly these keys:
 title, ${frame.register === "FRACTURED" ? "shards" : "opening, middle, closing"}, archetype, key.`;

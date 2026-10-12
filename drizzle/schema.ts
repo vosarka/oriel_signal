@@ -1153,3 +1153,53 @@ export const dailySignals = mysqlTable("daily_signals", {
   generatedBy: varchar("generatedBy", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/**
+ * Personal transmissions: ORIEL writes, Vos approves, the Seeker plays it
+ * at /t/:accessToken. Payment for a Founder's Reading lives on the row.
+ * (userId, period) makes a Deep Garden member's monthly one exactly one.
+ */
+export const personalTransmissions = mysqlTable(
+  "personal_transmissions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId"),
+    kind: mysqlEnum("kind", ["mirror", "threshold", "ritual", "echo"]).notNull(),
+    source: mysqlEnum("source", ["purchase", "deep_garden", "echo"]).notNull(),
+    period: varchar("period", { length: 7 }),
+    status: mysqlEnum("status", [
+      "pending_payment",
+      "requested",
+      "draft_ready",
+      "approved",
+      "voiced",
+      "delivered",
+      "failed",
+    ])
+      .default("requested")
+      .notNull(),
+    /** JSON TransmissionScript. */
+    script: longtext("script"),
+    audioStorageKey: varchar("audioStorageKey", { length: 255 }),
+    accessToken: varchar("accessToken", { length: 64 }).notNull(),
+    failureReason: text("failureReason"),
+    priceEur: int("priceEur"),
+    paypalOrderId: varchar("paypalOrderId", { length: 64 }),
+    paypalCaptureId: varchar("paypalCaptureId", { length: 64 }),
+    paidAt: timestamp("paidAt"),
+    approvedAt: timestamp("approvedAt"),
+    deliveredAt: timestamp("deliveredAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("uq_personal_transmissions_token").on(table.accessToken),
+    uniqueIndex("uq_personal_transmissions_user_period").on(table.userId, table.period),
+    uniqueIndex("uq_personal_transmissions_paypal_order").on(table.paypalOrderId),
+    uniqueIndex("uq_personal_transmissions_paypal_capture").on(table.paypalCaptureId),
+    index("idx_personal_transmissions_status").on(table.status),
+  ]
+);
+
+export type PersonalTransmission = typeof personalTransmissions.$inferSelect;
+export type InsertPersonalTransmission = typeof personalTransmissions.$inferInsert;

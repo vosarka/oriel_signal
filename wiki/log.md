@@ -2101,3 +2101,22 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 
 - Vos's call: both are supporter features now (any tier above free, and admins; `isSupporter` in `shared/supporter-access.ts`). Everyone else sees them greyed and out of reach, with a gold lock that explains why on hover and leads to `/tiers` (`client/src/components/supporter-lock/`). On `/bio-architecture` the header stays readable and the lock stays in view at the foot of the screen.
 - Server side: a free account's natal profile is still calculated (ORIEL's chat context and other pages read it), but ORIEL no longer writes the reading for it (`narrate: false`, no model call), `getStaticProfile` withholds the reading text, and "recompute" is refused. The Bio-Architecture terminal runs entirely in the browser, so its lock is visual only.
+
+## [2026-10-05] feat | Founder’s Reading video product preview
+
+- Started `feat/founders-reading-video` from the existing Signal/Tiers branch, pending user merge.
+- Added `/founders-reading`: founder-created simplified Tetradic Signature video, spoken narration or text on screen, one-time purchase framing.
+- Added links from Home, Bio-Architecture and Tiers. Existing full Founder Edition stays separate.
+- Reused `/signal/check` for optional breath preparation and the existing Mental Noise, Body Tension and Emotional Tide questions. No scoring or engine changes.
+- Orders are explicitly closed pending price and delivery approval. No payment, order persistence, database migration or video delivery integration added.
+- Verification: Daily Signal 20 tests passed. Typecheck reports the existing `server/routers.ts:1098` circuitLinks error. Wiki lint reports 59 existing ghost targets; this entry adds no wiki links. Frontend production build result recorded in handoff.
+
+## [2026-10-11] feat | Founder's Reading: personal transmissions, end to end
+
+- New table `personal_transmissions` (`drizzle/0015_personal_transmissions.sql`, applied by hand like 0014; not yet applied anywhere). Payment for a Founder's Reading lives on the row, not in `signature_orders`, so it never appears in /admin/signature-letters.
+- ORIEL writes Mirror → Threshold → Gift from the Seeker's signature (`shared/transmission-script.ts`; accuracy and forbidden rules now shared with the Daily Signal through `shared/oriel-accuracy.ts`, prompt output unchanged). Vos approves at `/admin/transmissions`; the voice is generated, the audio stored, the Seeker emailed a private `/t/<token>` link.
+- Launch price €10 for the first 50 paid, then €15 (`shared/founders-reading.ts`); the server sets the price and PayPal must capture exactly that amount. No webhook: intent CAPTURE, captured on return, idempotent on refresh.
+- Admin routes are `admin.personalTransmissions.*` (`admin.transmissions` is the lore archive).
+- Copy on /founders-reading, /tiers and Home now says what happens: ORIEL writes, Vos approves; ORIEL's voice, not the founder's.
+- Tests: transmission-script, founders-reading, founders-reading-paypal, transmission-service. Full suite: 1094 pass; 3 fail as before this work (`oriel-public-terminology`, `profile-console-model`, `oriel-router-latency` — its `./db` mock lacks `getDb` for the daily measure).
+- 0015 applied on production by Vos on 2026-10-12 (additive table only). Live test: Vos buys his own reading, approves it, refunds it.

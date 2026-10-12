@@ -160,3 +160,30 @@ export async function sendSignatureLetterDeliveryEmail(input: {
     ].join("\n"),
   });
 }
+
+export async function sendTransmissionDeliveryEmail(input: {
+  email: string;
+  name: string | null;
+  title: string;
+  url: string;
+}) {
+  await sendMail({
+    from: ENV.authEmailFrom || ENV.resendFrom,
+    to: input.email,
+    subject: `Your transmission has arrived: ${input.title}`,
+    text: [
+      input.name ? `${input.name},` : "Seeker,",
+      "",
+      "A transmission was written for you, read and approved by Vos Arkana, and is waiting.",
+      "Find a quiet moment before you press play.",
+      "",
+      input.url,
+      "",
+      "This link is yours. It opens without signing in, so keep it as you would a key.",
+      "",
+      "This is a symbolic transmission for self-inquiry. It is not medical, legal, therapeutic, financial, or predictive guidance.",
+      "",
+      "ORIEL Signal",
+    ].join("\n"),
+  });
+}

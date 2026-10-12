@@ -17,6 +17,9 @@ import Artifacts from "./pages/Artifacts";
 import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
+import AdminTransmissions from "./pages/AdminTransmissions";
+import TransmissionPlayer from "./pages/TransmissionPlayer";
+import FoundersReading from "./pages/FoundersReading";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
 import Arcana from "./pages/Arcana";
@@ -66,12 +69,15 @@ function SignatureRedirect() {
 function Router() {
   return (
     <Switch>
+      <Route path="/founders-reading" component={FoundersReading} />
+      <Route path="/t/:token" component={TransmissionPlayer} />
       <Route path={"/orb-preview"} component={OrbPreview} />
       <Route path={"/resonance-body"} component={ResonanceBodyLab} />
       <Route
         path={"/admin/signature-letters"}
         component={AdminSignatureLetters}
       />
+      <Route path={"/admin/transmissions"} component={AdminTransmissions} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />

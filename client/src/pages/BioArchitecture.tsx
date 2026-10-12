@@ -5,7 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { SupporterLock } from "@/components/supporter-lock/SupporterLock";
 import { isSupporter } from "@shared/supporter-access";
 import { PageHeaderBand } from "@/components/oriel-signal/PageHeaderBand";
-import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
+import { SignalButton, SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import {
   CodonWheel,
   type BaseView,
@@ -1698,6 +1698,11 @@ export default function BioArchitecture() {
             </AnimatePresence>
           )}
           </SupporterLock>
+          <section aria-labelledby="bio-founders-reading" style={{ marginTop: "4rem", paddingTop: "2rem", borderTop: "1px solid rgba(205,161,74,.2)" }}>
+            <h2 id="bio-founders-reading">Your signature, personally interpreted</h2>
+            <p style={{ margin: "1rem 0", maxWidth: "42rem" }}>Receive a personal transmission from your Tetradic Signature, written by ORIEL and approved by the founder.</p>
+            <SignalButton href="/founders-reading">Explore Founder’s Reading</SignalButton>
+          </section>
         </main>
       </SignalPageShell>
     </Layout>
