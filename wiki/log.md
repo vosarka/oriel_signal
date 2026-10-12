@@ -2127,3 +2127,11 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - The voice now lives on the row (`audioBase64`, `drizzle/0016_personal_transmissions_audio.sql`) and is served at `/api/transmissions/:token/audio` with byte ranges for seeking. Lists never select it.
 - An empty voice now stops delivery. A transmission delivered without a voice can be approved again from /admin ("Give it its voice and send again").
 - Order: apply 0016 on the database **before** this reaches main.
+
+## [2026-10-12] feat | The transmission becomes a film
+
+- `/t/<token>` is now a full-screen generative film (`client/src/features/transmission-film/`), approved by Vos from a taste probe: translucent veils in a desaturated pastel rainbow, multicoloured dust, holographic sheen. The signal is caught out of static before the voice starts; the film's colours are its own, the chrome stays gold on void.
+- The geometry flows at one steady pace and never jumps; ORIEL's voice moves only the light. The voice is read from the speech band only (80 Hz to 4 kHz, `shared/transmission-film.ts`), so nothing else in the sound moves it.
+- The sentence being spoken flows across the screen word by word; TEXT ON/OFF leaves the film and the voice alone. After the voice ends, the whole transmission stands to read.
+- Each transmission's geometry is seeded from its serial. Transmissions now speak in ORIEL's deep voice.
+- Tests: transmission-film (6), transmission-service (deep voice).
