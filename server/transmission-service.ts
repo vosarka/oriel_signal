@@ -103,6 +103,29 @@ export async function captureFoundersReading(user: { id: number }, transmissionI
   return settlePayment(row);
 }
 
+/**
+ * Admin: a Mirror for Vos's own account, without payment, so the whole
+ * path after PayPal (writing, approval, voice, email, player) can be
+ * tried and heard. No price and no paidAt, so it never counts as a sale.
+ */
+export async function createTestTransmission(admin: { id: number }) {
+  if (!(await buildStaticSignatureContext(admin.id))) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Save your own signature first, at /complete-profile.",
+    });
+  }
+  const row = await tdb.insertTransmission({
+    userId: admin.id,
+    kind: "mirror",
+    source: "purchase",
+    status: "requested",
+    accessToken: newToken(),
+  });
+  void generateScript(row.id).catch(error => console.error("[transmissions] test generate failed:", error));
+  return { id: row.id };
+}
+
 /** Admin: re-check a payment that is stuck at pending_payment. */
 export async function recheckPayment(transmissionId: number) {
   const row = await tdb.getTransmission(transmissionId);

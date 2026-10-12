@@ -3433,6 +3433,10 @@ export const appRouter = router({
           await regenerateTransmission(input.id);
           return { success: true };
         }),
+      createTest: adminProcedure.mutation(async ({ ctx }) => {
+        const { createTestTransmission } = await import("./transmission-service");
+        return createTestTransmission(ctx.user);
+      }),
       recheckPayment: adminProcedure
         .input(z.object({ id: z.number().int().positive() }))
         .mutation(async ({ input }) => {
