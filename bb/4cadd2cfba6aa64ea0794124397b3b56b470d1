@@ -1,0 +1,28 @@
+server/transmission-service.ts
+  s_fb7a7986d66af6::t_2407e770a6f607 106-128
+client/src/pages/AdminTransmissions.tsx
+  s_fb7a7986d66af6::t_2407e770a6f607 29-34,52-55,57-58
+  ai_agent 19-22,56
+server/transmission-service.test.ts
+  s_fb7a7986d66af6::t_06dd9567c9431a 33,256-276
+client/src/pages/admin-transmissions.css
+  s_fb7a7986d66af6::t_2407e770a6f607 24
+server/routers.ts
+  s_fb7a7986d66af6::t_2407e770a6f607 3436-3439
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "bb4cadd2cfba6aa64ea0794124397b3b56b470d1",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
