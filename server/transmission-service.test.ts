@@ -4,6 +4,7 @@ const db = vi.hoisted(() => ({
   insertTransmission: vi.fn(),
   getTransmission: vi.fn(),
   getTransmissionByToken: vi.fn(),
+  getAudioByToken: vi.fn(),
   updateTransmission: vi.fn(),
   countPaidPurchases: vi.fn(),
 }));
@@ -28,6 +29,7 @@ vi.mock("./ephemeris-service", () => ({ bodyLongitudeAtUtc: vi.fn(async () => 0)
 vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" } }));
 
 import {
+  transmissionAudio,
   adminQueue,
   approveTransmission,
   createTestTransmission,
@@ -58,6 +60,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   paypalOrderId: "ORDER1",
   script: null,
   audioStorageKey: null,
+  audioBase64: null,
   ...over,
 });
 
@@ -142,9 +145,13 @@ describe("approving", () => {
   it("voices, stores, emails and delivers", async () => {
     db.getTransmission.mockResolvedValue(row({ status: "draft_ready" }));
     tts.generateChunkedSpeech.mockResolvedValue(Buffer.from("mp3").toString("base64"));
-    storage.storagePut.mockResolvedValue({ key: "k", url: "" });
     await approveTransmission(7, goodScript);
-    expect(storage.storagePut).toHaveBeenCalledWith(`transmissions/${"a".repeat(64)}.mp3`, expect.any(Buffer), "audio/mpeg");
+    // The voice lives on the row: no S3 to be missing on Railway.
+    expect(db.updateTransmission).toHaveBeenCalledWith(7, {
+      status: "voiced",
+      audioBase64: Buffer.from("mp3").toString("base64"),
+    });
+    expect(storage.storagePut).not.toHaveBeenCalled();
     expect(mailer.sendTransmissionDeliveryEmail).toHaveBeenCalledWith(
       expect.objectContaining({ email: "m@example.com", url: `https://orielsignal.space/t/${"a".repeat(64)}` })
     );
@@ -179,12 +186,11 @@ describe("playing by token", () => {
 
   it("plays a delivered one with a signed audio link", async () => {
     db.getTransmissionByToken.mockResolvedValue(
-      row({ status: "delivered", script: JSON.stringify(goodScript), audioStorageKey: "k", deliveredAt: new Date(0) })
+      row({ status: "delivered", script: JSON.stringify(goodScript), hasAudio: true, deliveredAt: new Date(0) })
     );
-    storage.storageGet.mockResolvedValue({ key: "k", url: "https://s3.test/k" });
     await expect(playTransmission("a".repeat(64))).resolves.toMatchObject({
       title: "Where the Echo Rests",
-      audioUrl: "https://s3.test/k",
+      audioUrl: `/api/transmissions/${"a".repeat(64)}/audio`,
     });
   });
 });
@@ -216,7 +222,7 @@ describe("fixes from the final review", () => {
 
   it("resends without re-voicing when a voiced transmission is approved again", async () => {
     db.getTransmission.mockResolvedValue(
-      row({ status: "voiced", audioStorageKey: "k", script: JSON.stringify(goodScript) })
+      row({ status: "voiced", audioBase64: "bXAz", script: JSON.stringify(goodScript) })
     );
     await approveTransmission(7, goodScript);
     expect(tts.generateChunkedSpeech).not.toHaveBeenCalled();
@@ -273,5 +279,35 @@ describe("a test transmission for Vos", () => {
     umm.buildStaticSignatureContext.mockResolvedValue("");
     await expect(createTestTransmission({ id: 3 })).rejects.toThrow(/signature/i);
     expect(db.insertTransmission).not.toHaveBeenCalled();
+  });
+});
+
+describe("the voice, kept on the row", () => {
+  it("never delivers without a voice", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "draft_ready" }));
+    tts.generateChunkedSpeech.mockResolvedValue("");
+    await expect(approveTransmission(7, goodScript)).rejects.toThrow(/voice/i);
+    expect(db.updateTransmission).not.toHaveBeenCalledWith(7, expect.objectContaining({ status: "delivered" }));
+  });
+
+  it("lets a delivered transmission that has no voice be approved again, and voices it", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "delivered", script: JSON.stringify(goodScript), audioBase64: null }));
+    tts.generateChunkedSpeech.mockResolvedValue(Buffer.from("mp3").toString("base64"));
+    await approveTransmission(7, goodScript);
+    expect(tts.generateChunkedSpeech).toHaveBeenCalled();
+    expect(db.updateTransmission).toHaveBeenLastCalledWith(7, expect.objectContaining({ status: "delivered" }));
+  });
+
+  it("still refuses a delivered transmission that has its voice", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "delivered", script: JSON.stringify(goodScript), audioBase64: "bXAz" }));
+    await expect(approveTransmission(7, goodScript)).rejects.toThrow();
+  });
+
+  it("serves the audio of a delivered transmission, and nothing for a draft or a bad token", async () => {
+    await expect(transmissionAudio("nope")).resolves.toBeNull();
+    db.getAudioByToken.mockResolvedValueOnce({ status: "draft_ready", audioBase64: "bXAz" });
+    await expect(transmissionAudio("a".repeat(64))).resolves.toBeNull();
+    db.getAudioByToken.mockResolvedValueOnce({ status: "delivered", audioBase64: Buffer.from("mp3").toString("base64") });
+    await expect(transmissionAudio("a".repeat(64))).resolves.toEqual(Buffer.from("mp3"));
   });
 });

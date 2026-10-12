@@ -2120,3 +2120,10 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - Copy on /founders-reading, /tiers and Home now says what happens: ORIEL writes, Vos approves; ORIEL's voice, not the founder's.
 - Tests: transmission-script, founders-reading, founders-reading-paypal, transmission-service. Full suite: 1094 pass; 3 fail as before this work (`oriel-public-terminology`, `profile-console-model`, `oriel-router-latency` — its `./db` mock lacks `getDb` for the daily measure).
 - 0015 applied on production by Vos on 2026-10-12 (additive table only). Live test: Vos buys his own reading, approves it, refunds it.
+
+## [2026-10-12] fix | Personal transmissions keep their voice on the row
+
+- The first live test transmission was delivered silent: Railway has no S3 configured and `storagePut` skips without an error, so the MP3 was never stored.
+- The voice now lives on the row (`audioBase64`, `drizzle/0016_personal_transmissions_audio.sql`) and is served at `/api/transmissions/:token/audio` with byte ranges for seeking. Lists never select it.
+- An empty voice now stops delivery. A transmission delivered without a voice can be approved again from /admin ("Give it its voice and send again").
+- Order: apply 0016 on the database **before** this reaches main.

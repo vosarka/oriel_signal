@@ -113,10 +113,19 @@ export default function AdminTransmissions() {
                 <button
                   type="button"
                   className="at-btn at-btn--primary"
-                  disabled={approve.isPending || !draft.mirror || ["delivered", "pending_payment"].includes(selected.status)}
+                  disabled={
+                    approve.isPending ||
+                    !draft.mirror ||
+                    selected.status === "pending_payment" ||
+                    (selected.status === "delivered" && Boolean(selected.hasAudio))
+                  }
                   onClick={() => approve.mutate({ id: selected.id, script: draft })}
                 >
-                  {approve.isPending ? "Voicing…" : "Approve and send"}
+                  {approve.isPending
+                    ? "Voicing…"
+                    : selected.status === "delivered"
+                      ? "Give it its voice and send again"
+                      : "Approve and send"}
                 </button>
                 <button
                   type="button"

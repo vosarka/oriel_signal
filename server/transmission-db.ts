@@ -1,5 +1,5 @@
 /** Every query on personal_transmissions, so the service stays testable. */
-import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   personalTransmissions,
@@ -36,10 +36,24 @@ export async function getTransmission(id: number): Promise<PersonalTransmission 
   return row ?? null;
 }
 
-export async function getTransmissionByToken(token: string): Promise<PersonalTransmission | null> {
+/** Every column except the voice, which is megabytes. */
+const { audioBase64: _audio, ...light } = getTableColumns(personalTransmissions);
+
+/** A row without its voice, plus whether it has one. */
+export async function getTransmissionByToken(token: string) {
   const db = await requireDb();
   const [row] = await db
-    .select()
+    .select({ ...light, hasAudio: sql<number>`${personalTransmissions.audioBase64} IS NOT NULL` })
+    .from(personalTransmissions)
+    .where(eq(personalTransmissions.accessToken, token))
+    .limit(1);
+  return row ? { ...row, hasAudio: Boolean(row.hasAudio) } : null;
+}
+
+export async function getAudioByToken(token: string) {
+  const db = await requireDb();
+  const [row] = await db
+    .select({ status: personalTransmissions.status, audioBase64: personalTransmissions.audioBase64 })
     .from(personalTransmissions)
     .where(eq(personalTransmissions.accessToken, token))
     .limit(1);
@@ -68,10 +82,10 @@ export async function countPaidPurchases(): Promise<number> {
  * and deliveries older than a month. adminQueue() in the service orders
  * and filters precisely; no row cap, since a cap hid new requests.
  */
-export async function listForAdmin(): Promise<PersonalTransmission[]> {
+export async function listForAdmin() {
   const db = await requireDb();
   return db
-    .select()
+    .select({ ...light, hasAudio: sql<boolean>`${personalTransmissions.audioBase64} IS NOT NULL` })
     .from(personalTransmissions)
     .where(
       sql`NOT (${personalTransmissions.status} = 'pending_payment' AND ${personalTransmissions.createdAt} < NOW() - INTERVAL 7 DAY)

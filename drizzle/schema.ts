@@ -1181,6 +1181,8 @@ export const personalTransmissions = mysqlTable(
     /** JSON TransmissionScript. */
     script: longtext("script"),
     audioStorageKey: varchar("audioStorageKey", { length: 255 }),
+    /** The voice, MP3 as base64. Never selected in lists (it is megabytes). */
+    audioBase64: longtext("audioBase64"),
     accessToken: varchar("accessToken", { length: 64 }).notNull(),
     failureReason: text("failureReason"),
     priceEur: int("priceEur"),
