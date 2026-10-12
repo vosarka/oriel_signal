@@ -1,0 +1,45 @@
+client/src/components/ReadingInputFields.tsx
+  s_fb7a7986d66af6::t_c6c86af3f51177 1-49
+server/transmission-service.test.ts
+  s_fb7a7986d66af6::t_26692c30a8910b 18,28,70,319-357
+server/routers.ts
+  s_fb7a7986d66af6::t_1598d0826f4a22 217-224,235-237,240,3446,3448
+client/src/components/reading-input-fields.css
+  s_fb7a7986d66af6::t_c6c86af3f51177 1-9
+drizzle/0017_personal_transmissions_intention.sql
+  s_fb7a7986d66af6::t_09b3bafe487705 1-3
+client/src/pages/AdminTransmissions.tsx
+  s_fb7a7986d66af6::t_c6c86af3f51177 5,26,55-56
+drizzle/schema.ts
+  s_fb7a7986d66af6::t_09b3bafe487705 1188-1191
+client/src/pages/FoundersReading.tsx
+  s_fb7a7986d66af6::t_c6c86af3f51177 8,20,51-52,57,62
+shared/transmission-script.ts
+  s_fb7a7986d66af6::t_16787af7b24eda 27-30,59-72,86
+server/transmission-service.ts
+  s_fb7a7986d66af6::t_09b3bafe487705 16,60-62,66-82,91,106,132,145
+client/src/pages/transmission-player.css
+  s_fb7a7986d66af6::t_61d9649fcbf2d7 20,35,89,110-112
+wiki/log.md
+  ai_agent 2138-2145
+client/src/pages/TransmissionPlayer.tsx
+  s_fb7a7986d66af6::t_61d9649fcbf2d7 42,122,191-198,221-246,248-250
+server/transmission-script.test.ts
+  s_fb7a7986d66af6::t_023f17b4f96b31 118-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e4dfea85fd735d3fe0124530cd3c2c1c25da445e",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
