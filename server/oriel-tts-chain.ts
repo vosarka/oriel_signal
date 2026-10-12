@@ -23,6 +23,7 @@ import {
   ELEVENLABS_SOPHIANIC_VOICE_ID,
   generateElevenLabsSpeech,
 } from "./elevenlabs-tts";
+import { joinMp3 } from "./mp3-join";
 import { generateMistralSpeech, mistralTtsVoiceFor } from "./mistral-tts";
 
 /**
@@ -241,5 +242,7 @@ export async function generateChunkedSpeech(
     if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 150));
   }
 
-  return Buffer.concat(buffers).toString("base64");
+  // Each chunk is a whole MP3 file; glued as-is, players stop after the
+  // first one. joinMp3 keeps only the audio frames.
+  return joinMp3(buffers).toString("base64");
 }
