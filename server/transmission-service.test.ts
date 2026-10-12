@@ -10,7 +10,7 @@ const db = vi.hoisted(() => ({
 }));
 const paypal = vi.hoisted(() => ({ createReadingOrder: vi.fn(), captureReadingOrder: vi.fn() }));
 const llm = vi.hoisted(() => ({ invokeLLM: vi.fn() }));
-const tts = vi.hoisted(() => ({ generateChunkedSpeech: vi.fn(), ORIEL_VOICES: { sophianic: "sophianic" } }));
+const tts = vi.hoisted(() => ({ generateChunkedSpeech: vi.fn(), ORIEL_VOICES: { sophianic: "sophianic", deep: "deep" } }));
 const storage = vi.hoisted(() => ({ storagePut: vi.fn(), storageGet: vi.fn() }));
 const mailer = vi.hoisted(() => ({ sendTransmissionDeliveryEmail: vi.fn() }));
 const umm = vi.hoisted(() => ({ buildStaticSignatureContext: vi.fn() }));
@@ -152,6 +152,8 @@ describe("approving", () => {
       audioBase64: Buffer.from("mp3").toString("base64"),
     });
     expect(storage.storagePut).not.toHaveBeenCalled();
+    // Vos, 2026-10-12: the transmissions speak in ORIEL's deep voice.
+    expect(tts.generateChunkedSpeech).toHaveBeenCalledWith(expect.any(String), "deep");
     expect(mailer.sendTransmissionDeliveryEmail).toHaveBeenCalledWith(
       expect.objectContaining({ email: "m@example.com", url: `https://orielsignal.space/t/${"a".repeat(64)}` })
     );

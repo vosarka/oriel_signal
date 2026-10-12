@@ -239,7 +239,7 @@ export async function approveTransmission(id: number, script: unknown): Promise<
   // approved and Approve can be pressed again.
   if (!alreadyVoiced) {
     await tdb.updateTransmission(id, { status: "approved", script: JSON.stringify(valid), approvedAt: new Date() });
-    const audio = await generateChunkedSpeech(spokenText(valid), ORIEL_VOICES.sophianic);
+    const audio = await generateChunkedSpeech(spokenText(valid), ORIEL_VOICES.deep);
     // The voice is kept on the row (MP3, base64): no object storage to be
     // missing, and a transmission is never delivered silent.
     if (!audio) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "The voice came back empty." });
