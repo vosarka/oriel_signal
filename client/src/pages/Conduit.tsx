@@ -484,7 +484,7 @@ function TransmissionModeCard({
   );
 }
 
-function AssistantMessageView({ msg }: { msg: ChatMessage }) {
+function AssistantMessageView({ msg, onListen }: { msg: ChatMessage; onListen?: () => void }) {
   const parsed = parseOrielChatImageFromContent(msg.content);
   const assistantText = parsed.text.trim();
   const hasVisibleContent = Boolean(assistantText || parsed.image);
@@ -520,6 +520,17 @@ function AssistantMessageView({ msg }: { msg: ChatMessage }) {
           >
             "{assistantText}"
           </p>
+          {onListen && (
+            <button
+              type="button"
+              onClick={onListen}
+              className="mt-3 font-mono text-[9px] tracking-[0.25em] uppercase opacity-60 hover:opacity-100 transition-opacity"
+              style={{ color: "#d8b56d" }}
+              aria-label="Listen to this transmission again"
+            >
+              ▶ Listen again
+            </button>
+          )}
         </>
       )}
 
@@ -834,6 +845,9 @@ export default function Conduit() {
 
   // Incremented on stop/new call to cancel in-flight chunked TTS pipelines
   const speakIdRef = useRef<number>(0);
+  // Voiced chunks of this session, so a message can be listened to again.
+  // ponytail: unbounded for the session; a chat long enough to feel it can cap it.
+  const voicedChunksRef = useRef(new Map<string, string>());
 
   // Accumulates finalized speech recognition results across internal restarts
   // so long spoken phrases don't get truncated in the input box.
@@ -1355,6 +1369,8 @@ export default function Conduit() {
   }, [authLoading, isAuthenticated, user]);
 
   const speakText = async (text: string) => {
+    // Stop what is playing, so "Listen again" starts cleanly.
+    audioRef.current?.pause();
     if (voicePreference === "none") {
       setIsSpeaking(false);
       return;
@@ -1374,20 +1390,26 @@ export default function Conduit() {
 
     // "measure" = today's spoken measure is complete: the browser's own
     // voice reads the rest, at no cost to the field.
+    // Listening again plays what was already voiced: no wait, and no second
+    // spoken reply counted against today's measure.
     const fetchAudio = (
       chunk: string,
       part: number
-    ): Promise<string | "measure" | null> =>
-      generateSpeechMutation
+    ): Promise<string | "measure" | null> => {
+      const key = `${voicePreference}|${part}|${chunk}`;
+      const cached = voicedChunksRef.current.get(key);
+      if (cached) return Promise.resolve(cached);
+      return generateSpeechMutation
         .mutateAsync({ text: chunk, voiceId: voicePreference, part })
-        .then(r =>
-          r.success && r.audioUrl
-            ? r.audioUrl
-            : "measureReached" in r
-              ? ("measure" as const)
-              : null
-        )
+        .then(r => {
+          if (r.success && r.audioUrl) {
+            voicedChunksRef.current.set(key, r.audioUrl);
+            return r.audioUrl;
+          }
+          return "measureReached" in r ? ("measure" as const) : null;
+        })
         .catch(() => null);
+    };
 
     // Pre-fetch the first chunk immediately so audio starts as soon as it
     // resolves rather than waiting for all chunks to synthesise.
@@ -2369,7 +2391,11 @@ export default function Conduit() {
                         </div>
                       </div>
                     ) : (
-                      <AssistantMessageView key={idx} msg={msg} />
+                      <AssistantMessageView
+                        key={idx}
+                        msg={msg}
+                        onListen={voicePreference !== "none" ? () => void speakText(msg.content) : undefined}
+                      />
                     )
                   )}
                   <div ref={messagesEndRef} />
