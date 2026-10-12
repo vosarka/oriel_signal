@@ -1,0 +1,20 @@
+client/src/pages/Conduit.tsx
+  s_fb7a7986d66af6::t_11c8fbbc79b359 848-850
+  s_fb7a7986d66af6::t_ae3b09a4f324d0 487,523-533,1372-1373,1393-1394,1398-1402,1404-1410,1412,2394-2398
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "10ce5bbd41cd15437ee4cecc822cb87ba2112f9b",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
