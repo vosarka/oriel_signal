@@ -291,7 +291,15 @@ export async function playTransmission(token: string) {
   if (!row || row.status !== "delivered" || !row.script) return null;
   const script = JSON.parse(row.script) as TransmissionScript;
   const audioUrl = row.hasAudio ? `/api/transmissions/${token}/audio` : null;
-  return { kind: row.kind, title: script.title, script, audioUrl, deliveredAt: row.deliveredAt };
+  return {
+    kind: row.kind,
+    /** TX-P-007: the archive's TX format, P for personal so it never collides. */
+    serial: `TX-P-${String(row.id).padStart(3, "0")}`,
+    title: script.title,
+    script,
+    audioUrl,
+    deliveredAt: row.deliveredAt,
+  };
 }
 
 /** The MP3 of a delivered transmission, or null. Served at /api/transmissions/:token/audio. */
