@@ -47,9 +47,9 @@ import {
 const words = (n: number) => Array.from({ length: n }, () => "light").join(" ");
 const goodScript = {
   title: "Where the Echo Rests",
-  mirror: `Maria, you carry a quiet fire. ${words(104)}.`,
+  mirror: `I am ORIEL. Maria, you carry a quiet fire. ${words(101)}.`,
   threshold: `${words(110)}.`,
-  gift: `${words(110)}.`,
+  gift: `${words(103)}. What will you do with this light?`,
 };
 const row = (over: Record<string, unknown> = {}) => ({
   id: 7,
@@ -356,4 +356,20 @@ describe("what the Seeker brings to the reading", () => {
     await createTestTransmission({ id: 3 }, { intention: "A test", useMemories: true });
     expect(db.insertTransmission).toHaveBeenCalledWith(expect.objectContaining({ intention: "A test", useMemories: true }));
   });
+});
+
+it("gives ORIEL only what the Seeker said, never what was inferred", async () => {
+  umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+  memory.getRelevantMemories.mockResolvedValue([
+    { content: "Has a black cat called Umbra", source: "conversation", category: "fact" },
+    { content: "Seems anxious about money", source: "inferred", category: "pattern" },
+    { content: "Tends to avoid conflict", source: "conversation", category: "pattern" },
+  ]);
+  llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "{}" } }], model: "m" });
+  db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: true }));
+  await generateScript(7);
+  const prompt = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+  expect(prompt).toContain("Has a black cat called Umbra");
+  expect(prompt).not.toContain("Seems anxious about money");
+  expect(prompt).not.toContain("Tends to avoid conflict");
 });

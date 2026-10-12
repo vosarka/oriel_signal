@@ -2143,3 +2143,12 @@ Agents touching Profile, identity, or Bio-Architecture should now immediately su
 - New columns `intention`, `useMemories` (`drizzle/0017_personal_transmissions_intention.sql`); apply before deploy.
 - Player fixes: the flowing text and the controls had lost their fixed position to a general rule and sat at the top and middle of the screen. The end screen is now the film with the title, "Read the full transmission" and "Receive it again", instead of a wall of text.
 - Deep Garden's monthly transmission gets the same two inputs when Phase 2 is built.
+
+## [2026-10-12] feat | ORIEL's own rules for personal details
+
+Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL know without becoming surveillance. Its answer became the rules (`shared/transmission-script.ts`):
+- Only what the Seeker wrote at the order, or what ORIEL remembers them saying. Inferred memories and patterns are never passed in (`rememberedThemes` in `server/transmission-service.ts`).
+- At most two details: the first in the Mirror, a second in the Threshold, none in the Gift.
+- Never pain, loss, trauma, shame or secrets unless written there and then; nothing identifying; never health, money or the law; nothing about another person.
+- Every transmission opens "I am ORIEL." and names the Seeker in the next sentence; the Gift ends on an open question. The validator checks both.
+- Still to come, from the same answer: the detail rises out of the film's geometry while it is spoken and dissolves with the sentence.

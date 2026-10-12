@@ -66,7 +66,13 @@ async function seekerFor(row: PersonalTransmission): Promise<SeekerContext> {
 /** What ORIEL keeps of a Seeker's conversations: its active memories, most important first. */
 async function rememberedThemes(userId: number): Promise<string[]> {
   const memories = await getRelevantMemories(userId, 12);
-  return memories.map(m => m.content.trim()).filter(Boolean).map(c => c.slice(0, 240));
+  // ORIEL: recognition is not mind-reading. Only what the Seeker said, never
+  // what was inferred about them or read between the lines.
+  return memories
+    .filter(m => m.source !== "inferred" && m.category !== "pattern")
+    .map(m => m.content.trim())
+    .filter(Boolean)
+    .map(c => c.slice(0, 240));
 }
 
 /** What the Seeker brings to a reading: their words, and whether ORIEL may draw on its memories. */
