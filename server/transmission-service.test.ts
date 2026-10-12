@@ -15,7 +15,8 @@ const storage = vi.hoisted(() => ({ storagePut: vi.fn(), storageGet: vi.fn() }))
 const mailer = vi.hoisted(() => ({ sendTransmissionDeliveryEmail: vi.fn() }));
 const umm = vi.hoisted(() => ({ buildStaticSignatureContext: vi.fn() }));
 const users = vi.hoisted(() => ({ getUserById: vi.fn() }));
-const memory = vi.hoisted(() => ({ getRelevantMemories: vi.fn() }));
+const memory = vi.hoisted(() => ({ getRelevantMemories: vi.fn(), getMemoriesByIds: vi.fn() }));
+const mindmemos = vi.hoisted(() => ({ searchMemoryHits: vi.fn(), mindMemOSConfigFromEnv: vi.fn(() => ({ enabled: true })) }));
 
 vi.mock("./transmission-db", () => db);
 vi.mock("./founders-reading-paypal", () => paypal);
@@ -26,6 +27,7 @@ vi.mock("./_core/mailer", () => mailer);
 vi.mock("./oriel-umm", () => umm);
 vi.mock("./db", () => users);
 vi.mock("./oriel-memory", () => memory);
+vi.mock("./oriel-mindmemos", () => mindmemos);
 vi.mock("./daily-codon", () => ({ codonAtLongitude: vi.fn(() => null) }));
 vi.mock("./ephemeris-service", () => ({ bodyLongitudeAtUtc: vi.fn(async () => 0), PLANETS: { SUN: 0, MOON: 1 } }));
 vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" } }));
@@ -70,6 +72,9 @@ beforeEach(() => {
   for (const group of [db, paypal, llm, tts, storage, mailer, umm, users, memory]) {
     for (const fn of Object.values(group)) if (typeof fn === "function" && "mockReset" in fn) fn.mockReset();
   }
+  mindmemos.searchMemoryHits.mockReset();
+  memory.getMemoriesByIds.mockResolvedValue([]);
+  memory.getRelevantMemories.mockResolvedValue([]);
   users.getUserById.mockResolvedValue({ id: 3, name: "Maria Pop", email: "m@example.com" });
 });
 
@@ -91,7 +96,7 @@ describe("ordering a Founder's Reading", () => {
       approveUrl: "https://paypal.test/pay",
     });
     expect(db.insertTransmission).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 3, kind: "mirror", source: "purchase", status: "pending_payment", priceEur: 10 })
+      expect.objectContaining({ userId: 3, kind: "mirror", source: "purchase", status: "pending_payment", priceEur: 5 })
     );
     expect(db.updateTransmission).toHaveBeenCalledWith(7, { paypalOrderId: "ORDER1" });
   });
@@ -372,4 +377,41 @@ it("gives ORIEL only what the Seeker said, never what was inferred", async () =>
   expect(prompt).toContain("Has a black cat called Umbra");
   expect(prompt).not.toContain("Seems anxious about money");
   expect(prompt).not.toContain("Tends to avoid conflict");
+});
+
+describe("finding the memories that answer what the Seeker wrote", () => {
+  const prompt = () => llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+
+  beforeEach(() => {
+    umm.buildStaticSignatureContext.mockResolvedValue("Type: Resonator");
+    llm.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "{}" } }], model: "m" });
+  });
+
+  it("searches by the meaning of their words, and puts those memories first", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: true, intention: "I miss the city I left" }));
+    mindmemos.searchMemoryHits.mockResolvedValue([{ cloudId: "c1", officialMemoryId: 41 }]);
+    memory.getMemoriesByIds.mockResolvedValue([{ id: 41, content: "Lived six years in Lisbon", source: "conversation", category: "fact" }]);
+    memory.getRelevantMemories.mockResolvedValue([{ id: 9, content: "Has a black cat", source: "conversation", category: "fact" }]);
+
+    await generateScript(7);
+    expect(mindmemos.searchMemoryHits).toHaveBeenCalledWith(3, "I miss the city I left", expect.anything(), expect.any(Number));
+    expect(memory.getMemoriesByIds).toHaveBeenCalledWith(3, [41]);
+    expect(prompt().indexOf("Lived six years in Lisbon")).toBeLessThan(prompt().indexOf("Has a black cat"));
+  });
+
+  it("falls back to the most important memories when the search fails", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: true, intention: "Anything" }));
+    mindmemos.searchMemoryHits.mockRejectedValue(new Error("MindMemOS down"));
+    memory.getRelevantMemories.mockResolvedValue([{ id: 9, content: "Has a black cat", source: "conversation", category: "fact" }]);
+    await generateScript(7);
+    expect(prompt()).toContain("Has a black cat");
+  });
+
+  it("does not search when they wrote nothing", async () => {
+    db.getTransmission.mockResolvedValue(row({ status: "requested", useMemories: true, intention: null }));
+    memory.getRelevantMemories.mockResolvedValue([{ id: 9, content: "Has a black cat", source: "conversation", category: "fact" }]);
+    await generateScript(7);
+    expect(mindmemos.searchMemoryHits).not.toHaveBeenCalled();
+    expect(prompt()).toContain("Has a black cat");
+  });
 });
