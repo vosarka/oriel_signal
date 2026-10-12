@@ -1,0 +1,39 @@
+drizzle/0016_personal_transmissions_audio.sql
+  s_fb7a7986d66af6::t_1c978606ace238 1-3
+server/transmission-audio-route.test.ts
+  s_fb7a7986d66af6::t_a3db3f3cdeaa25 1-21
+drizzle/schema.ts
+  s_fb7a7986d66af6::t_1c978606ace238 1184-1185
+server/transmission-service.test.ts
+  s_fb7a7986d66af6::t_5e6550d0667674 7,32,63,149-154,189,193,225,284-311
+client/src/pages/AdminTransmissions.tsx
+  s_fb7a7986d66af6::t_344b212518e477 116-121,124-128
+wiki/log.md
+  ai_agent 2123-2129
+server/transmission-audio-route.ts
+  s_fb7a7986d66af6::t_a3db3f3cdeaa25 1-46
+server/_core/index.ts
+  s_fb7a7986d66af6::t_a3db3f3cdeaa25 22,145
+server/transmission-service.ts
+  s_fb7a7986d66af6::t_1c978606ace238 222-225,235,243-246,293,296-302
+  s_fb7a7986d66af6::t_a3db3f3cdeaa25 269-271
+server/transmission-db.ts
+  s_fb7a7986d66af6::t_1c978606ace238 2,39-43,46-56,85
+  s_fb7a7986d66af6::t_344b212518e477 88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "d9fbf3782d826d7fb27fc18c66f65a20be13863f",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
