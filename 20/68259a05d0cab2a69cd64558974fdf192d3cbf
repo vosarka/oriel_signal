@@ -1,0 +1,28 @@
+server/transmission-service.ts
+  s_fb7a7986d66af6::t_7be20a6d9be2f5 69-75
+server/transmission-script.test.ts
+  s_fb7a7986d66af6::t_6d8f5efc63573f 18,20,60,137-164
+  s_fb7a7986d66af6::t_4649ef39c58b0c 132-133
+shared/transmission-script.ts
+  s_fb7a7986d66af6::t_7be20a6d9be2f5 54-55,69,72-86,100,110-111,162-164,184-188,190
+server/transmission-service.test.ts
+  s_fb7a7986d66af6::t_6d8f5efc63573f 50,52,360-374
+wiki/log.md
+  ai_agent 2146-2154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "2068259a05d0cab2a69cd64558974fdf192d3cbf",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
