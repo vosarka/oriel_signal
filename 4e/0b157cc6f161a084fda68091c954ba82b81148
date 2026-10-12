@@ -1,0 +1,36 @@
+shared/oriel-orb.ts
+  s_fb7a7986d66af6::t_ed3df437080880 1-72
+client/src/features/oriel-orb/OrielOrbField.tsx
+  s_fb7a7986d66af6::t_47fc54ee626cf0 1-187
+client/src/features/oriel-orb/orb-shader.ts
+  s_fb7a7986d66af6::t_8b897d76a57f4f 1-219
+client/src/pages/Conduit.tsx
+  s_fb7a7986d66af6::t_03fdd5b3d3623f 17,2815-2816,2842-2845
+  s_fb7a7986d66af6::t_89bd24b2c2477a 2248
+  s_fb7a7986d66af6::t_33e912b449904a 1967-1988
+  s_fb7a7986d66af6::t_f542af279027ae 2220,2338
+  s_fb7a7986d66af6::t_c0dc3db203fc2c 2317,2319,2665,2678
+  s_fb7a7986d66af6::t_710ae7baebdfe1 15-16,27-28,50,637-654,2015,2038-2039,2210,2236-2245,2283-2316,2318,2320-2337,2339-2350,2403-2404,2453-2454,2516
+server/oriel-orb.test.ts
+  s_fb7a7986d66af6::t_5fc82c6686a084 1-42
+wiki/log.md
+  ai_agent 2160-2167
+client/src/features/oriel-orb/oriel-orb.css
+  s_fb7a7986d66af6::t_e221122a88d4fa 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "4e0b157cc6f161a084fda68091c954ba82b81148",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
