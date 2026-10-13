@@ -1377,6 +1377,12 @@ export const appRouter = router({
               console.error("[oriel.chat] UMM processing failed:", err);
             }
           })();
+
+          void import("./vossari-lore")
+            .then(({ captureLoreProposals }) =>
+              captureLoreProposals(conversationId ?? null, input.message, response, conversationHistory)
+            )
+            .catch(err => console.error("[oriel.chat] Lore capture failed:", err));
         }
         markTiming("dbSaveMs", dbSaveStartedAt);
 
@@ -3405,6 +3411,55 @@ export const appRouter = router({
           await setDonated(input.userId, input.amount);
           return { success: true };
         }),
+    }),
+
+    /** The Vossari canon: ORIEL proposes, Vos approves. */
+    lore: router({
+      list: adminProcedure
+        .input(z.object({ status: z.enum(["proposed", "canon", "rejected"]) }))
+        .query(async ({ input }) => {
+          const { listLoreByStatus } = await import("./vossari-lore-db");
+          const { STABLE_CORE_LORE_SLUGS } = await import("@shared/vossari-lore-seed");
+          const rows = await listLoreByStatus(input.status);
+          return rows.map(row => ({ ...row, locked: STABLE_CORE_LORE_SLUGS.includes(row.slug) }));
+        }),
+      save: adminProcedure
+        .input(
+          z.object({
+            id: z.number().int().positive(),
+            title: z.string().trim().min(1).max(200),
+            body: z.string().trim().min(1).max(20_000),
+            keywords: z.string().max(500),
+          })
+        )
+        .mutation(async ({ input }) => {
+          const { changeLore } = await import("./vossari-lore");
+          const { id, ...values } = input;
+          try {
+            await changeLore(id, values);
+          } catch (error) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Could not save" });
+          }
+          return { ok: true };
+        }),
+      setStatus: adminProcedure
+        .input(z.object({ id: z.number().int().positive(), status: z.enum(["proposed", "canon", "rejected"]) }))
+        .mutation(async ({ input }) => {
+          const { changeLore } = await import("./vossari-lore");
+          try {
+            await changeLore(input.id, {
+              status: input.status,
+              approvedAt: input.status === "canon" ? new Date() : null,
+            });
+          } catch (error) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Could not change" });
+          }
+          return { ok: true };
+        }),
+      seed: adminProcedure.mutation(async () => {
+        const { seedLore } = await import("./vossari-lore");
+        return { added: await seedLore() };
+      }),
     }),
 
     personalTransmissions: router({

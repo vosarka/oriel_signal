@@ -18,6 +18,7 @@ import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
 import AdminTransmissions from "./pages/AdminTransmissions";
+import AdminLore from "./pages/AdminLore";
 import TransmissionPlayer from "./pages/TransmissionPlayer";
 import FoundersReading from "./pages/FoundersReading";
 import Codex from "./pages/Codex";
@@ -78,6 +79,7 @@ function Router() {
         component={AdminSignatureLetters}
       />
       <Route path={"/admin/transmissions"} component={AdminTransmissions} />
+      <Route path={"/admin/lore"} component={AdminLore} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />

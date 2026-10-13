@@ -119,6 +119,16 @@ export async function buildRetrievalLayer({
     }
   }
 
+  if (userMessage) {
+    try {
+      const { buildLoreContext } = await import("./vossari-lore");
+      const loreContext = await buildLoreContext(userMessage, conversationHistory);
+      if (loreContext) parts.push(loreContext);
+    } catch (error) {
+      console.warn("[buildRetrievalLayer] Failed to load Vossari canon:", error);
+    }
+  }
+
   if (includeWiki && userMessage) {
     try {
       const { retrieveWikiContext } = await import("./oriel-wiki-retriever");

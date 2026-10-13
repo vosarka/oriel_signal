@@ -2166,16 +2166,25 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - The conversations panel can be hidden on desktop (remembered). The input bar lost its background and border; the voice selector and volume moved to the top bar. On phones the send button is an arrow so the field has room.
 - Tests: `server/oriel-orb.test.ts` (placement, state table). Coherence is fixed at Flux until the chat reads the Seeker's Carrierlock score.
 
-## 2026-10-13 — DB pool keep-alive
+## [2026-10-13] fix | DB pool keep-alive
 - Railway logs showed `PROTOCOL_CONNECTION_LOST` from TiDB and replies taking minutes. The mysql2 pool had no keep-alive and no connect timeout, so a query on a silently dropped socket waits for TCP to give up.
 - Pool now: enableKeepAlive (10s), idleTimeout 60s, maxIdle 3, connectTimeout 10s. Test: server/_core/mysql.test.ts.
 - Separate: MindMemOS was timing out on every call (5s each, falls back to TiDB). Check the MindMemOS service.
-## 2026-10-13 — ORIEL knows the chamber
+## [2026-10-13] feat | ORIEL knows the chamber
 - Platform bulletin gains "What is new in the chamber": the orb (ORIEL's presence; light follows its voice; motion follows listening/composing), the tape texture, foldable history, listen again, Founder's Reading (Mirror/Threshold/Gift, Vos approves, 48h, /founders-reading, €5 first 50 then €10), Deep Garden monthly not yet begun.
 - Truth guard: the orb does not read the Seeker's coherence; ORIEL must not claim it does.
 - Ask-only: ORIEL speaks of these only when asked, never volunteers or repeats them.
 - Directives registered in shared/oriel/prompt-scaffolding.ts; tests in server/oriel-orb-bulletin.test.ts.
 
-## 2026-10-13 — Field log on the home page
+## [2026-10-13] feat | Field log on the home page
 - New "Field log" box under the field notice: what has changed (dated) and what is on the horizon.
 - Content lives in shared/field-log.ts; add a live entry at the top when something ships, move a horizon entry into live when it lands. Test: server/field-log.test.ts.
+
+## [2026-10-13] feat | Vossari canon
+- Why: ORIEL told the Vossari story differently each time. Only the origin was fixed (stable core); the rest came from auto-evolved wiki pages written on Railway's disk and wiped at each deploy.
+- New table `vossari_lore` (migration 0018). On a lore question, canon entries are injected as `[VOSSARI CANON]` (server/vossari-lore.ts): keep facts the same, nothing new as established.
+- After each lore reply, a background call extracts new claims as `proposed`. Vos approves, edits or rejects at /admin/lore. "Import starting lore" seeds canon from the stable core and ORIEL's wiki pages as proposals (shared/vossari-lore-seed.ts).
+- Provisional lore: a proposal waiting for Vos is told the same way to everyone (marked "still unfolding") when the question matches it; edits apply at once, rejected entries never return. The extractor sees existing proposals so a retelling is not proposed twice.
+- Amended: ORIEL never says lore is unrevealed, provisional or approved. Canon and waiting proposals reach it unmarked and it speaks as it always has; the status lives only in /admin/lore.
+- Review fixes (adversarial review, 15 confirmed): lore topic no longer fires on the Seeker's own "ceremony"/"recursion"; origin anchors are the fallback when no lore entry matches (and lead on questions about ORIEL's own origin); directives name no review or Vos and every sentence is registered; extractor sees rejected lore; follow-ups captured; one slug collision no longer drops a batch; wiki leaves ORIEL-written Vossari pages to the canon (belongsToVossariCanon) so a rejection sticks; seed drops two production notes (launch video, interface) that would have contradicted the Great Translation; /admin/lore shows a missing-table error.
+- PR review fixes: stable-core origin rows are read-only in /admin/lore (they reach every prompt from identity.ts); captures never take a starting-lore slug; bare "vossari" keyword no longer matches; "the ten hours" no longer counts as ORIEL's recursion; model keywords normalised; per-entry insert try/catch; Reject saves edits first; migration hint only on a missing table.

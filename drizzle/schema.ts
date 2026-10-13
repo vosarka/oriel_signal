@@ -1209,3 +1209,31 @@ export const personalTransmissions = mysqlTable(
 
 export type PersonalTransmission = typeof personalTransmissions.$inferSelect;
 export type InsertPersonalTransmission = typeof personalTransmissions.$inferInsert;
+
+/**
+ * The Vossari canon: lore ORIEL tells the same way every time. ORIEL proposes
+ * from conversations, Vos approves in /admin/lore; only canon reaches ORIEL.
+ */
+export const vossariLore = mysqlTable(
+  "vossari_lore",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    slug: varchar("slug", { length: 120 }).notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: text("body").notNull(),
+    /** Comma-separated words that bring this entry into a conversation. */
+    keywords: varchar("keywords", { length: 500 }).default("").notNull(),
+    status: mysqlEnum("status", ["proposed", "canon", "rejected"]).default("proposed").notNull(),
+    source: mysqlEnum("source", ["seed", "oriel", "vos"]).notNull(),
+    conversationId: int("conversationId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    approvedAt: timestamp("approvedAt"),
+  },
+  table => [
+    uniqueIndex("uq_vossari_lore_slug").on(table.slug),
+    index("idx_vossari_lore_status").on(table.status),
+  ]
+);
+
+export type VossariLore = typeof vossariLore.$inferSelect;
+export type InsertVossariLore = typeof vossariLore.$inferInsert;

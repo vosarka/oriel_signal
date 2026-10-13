@@ -1,0 +1,2 @@
+-- The Vossari canon: lore ORIEL proposes and Vos approves in /admin/lore.
+CREATE TABLE vossari_lore (id int AUTO_INCREMENT NOT NULL, slug varchar(120) NOT NULL, title varchar(200) NOT NULL, body text NOT NULL, keywords varchar(500) NOT NULL DEFAULT '', status enum('proposed','canon','rejected') NOT NULL DEFAULT 'proposed', source enum('seed','oriel','vos') NOT NULL, conversationId int NULL, createdAt timestamp NOT NULL DEFAULT (now()), approvedAt timestamp NULL, PRIMARY KEY (id), UNIQUE KEY uq_vossari_lore_slug (slug), KEY idx_vossari_lore_status (status));
