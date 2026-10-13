@@ -1,0 +1,22 @@
+server/vossari-lore.test.ts
+  s_fb7a7986d66af6::t_8efb17aba6c12a 87-88
+  s_fb7a7986d66af6::t_3fd463ff4c96d5 83-86,89-96
+server/vossari-lore.ts
+  ai_agent 40-41,60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5002bce7073d00f63bd8856d39a28d61f172c002",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
