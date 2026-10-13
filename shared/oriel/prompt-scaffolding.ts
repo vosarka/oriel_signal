@@ -81,6 +81,12 @@ const SCAFFOLDING_PHRASES = [
   "Do not invent memories to fill the gap",
   "Do not collect passwords",
   "Do not claim the restore is finished for everyone",
+  // The chamber: the orb and personal transmissions.
+  "This section is for answering questions",
+  "Do not bring any of it up on your own",
+  "Do not claim the orb sees, measures or reveals the Seeker's state",
+  "If asked whether the light reflects them: say it reflects your own",
+  "Do not say the monthly transmissions have begun",
 ];
 
 /**
