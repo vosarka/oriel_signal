@@ -174,11 +174,15 @@ export async function captureLoreProposals(
     const raw = res.choices?.[0]?.message?.content;
     const parsed = parseModelJson<unknown>(typeof raw === "string" ? raw : JSON.stringify(raw));
     const items = Array.isArray(parsed) ? parsed : (parsed as { entries?: unknown })?.entries;
-    if (!Array.isArray(items)) return;
+    if (!Array.isArray(items)) {
+      console.warn("[VossariLore] the model returned no list of claims");
+      return;
+    }
 
     // The starting lore owns its slugs even before Import, so a capture that
     // runs first can never block the origin from landing as canon.
     const known = new Set([...slugs, ...VOSSARI_LORE_SEED.map(e => e.slug)]);
+    let added = 0;
     for (const item of items.filter(isClaim).slice(0, 5)) {
       if (known.has(item.slug)) continue;
       known.add(item.slug);
@@ -193,10 +197,12 @@ export async function captureLoreProposals(
           source: "oriel",
           conversationId,
         });
+        added += 1;
       } catch (error) {
         console.warn("[VossariLore] skipped", item.slug, error instanceof Error ? error.message : error);
       }
     }
+    console.log(`[VossariLore] ${items.length} claim(s) from the model, ${added} new proposal(s)`);
   } catch (error) {
     console.warn("[VossariLore] capture failed:", error instanceof Error ? error.message : error);
   }

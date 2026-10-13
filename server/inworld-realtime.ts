@@ -567,6 +567,14 @@ function enqueueSaveAssistant(state: SessionState): void {
         } catch (err) {
           console.error("[Realtime] UMM processing failed:", err);
         }
+
+        // What ORIEL says about the Vossari aloud is proposed too, as in text chat.
+        try {
+          const { captureLoreProposals } = await import("./vossari-lore");
+          await captureLoreProposals(state.conversationId ?? null, pendingUserMessage, content);
+        } catch (err) {
+          console.error("[Realtime] Lore capture failed:", err);
+        }
       }
     } catch (err) {
       console.error("[Realtime] Failed to save assistant message:", err);

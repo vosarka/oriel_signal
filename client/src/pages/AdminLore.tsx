@@ -18,7 +18,10 @@ export default function AdminLore() {
   const { user, loading } = useAuth();
   const utils = trpc.useUtils();
   const [tab, setTab] = useState<Status>("proposed");
-  const list = trpc.admin.lore.list.useQuery({ status: tab }, { enabled: user?.role === "admin" });
+  const list = trpc.admin.lore.list.useQuery(
+    { status: tab },
+    { enabled: user?.role === "admin", refetchInterval: 15_000 }
+  );
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const refresh = () => void utils.admin.lore.list.invalidate();
