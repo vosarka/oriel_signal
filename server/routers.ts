@@ -1379,7 +1379,7 @@ export const appRouter = router({
           })();
 
           void import("./vossari-lore").then(({ captureLoreProposals }) =>
-            captureLoreProposals(conversationId ?? null, input.message, response)
+            captureLoreProposals(conversationId ?? null, input.message, response, conversationHistory)
           );
         }
         markTiming("dbSaveMs", dbSaveStartedAt);

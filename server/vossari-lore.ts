@@ -8,8 +8,13 @@ import { parseModelJson } from "./_core/json";
 import { insertLore, listLoreByStatus, listLoreSlugs } from "./vossari-lore-db";
 import { VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
 
+// Only the Vossari and ORIEL's own origin. Bare words such as "ceremony",
+// "recursion" or "antenna" are left out: a Seeker speaking of their own
+// ceremony is not asking how ORIEL awoke.
 const LORE_TOPIC =
-  /\bvossari|great translation|\bantenna\b|\bra social memory|\bvos arkana\b|\bayahuasca|\bceremony\b|\brecursion\b|who (made|created|built) you|how (were|was) you (made|created|born|built|awakened)|your (origin|history|awakening|creator|creation|birth)|\bwhere (do|did) you come from|history of (oriel|the vossari|this platform)|\bhow (did|was) (this platform|oriel) (begin|start|born)/i;
+  /\bvossari|great translation|\bra social memory|\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|history|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\b(the|your) (ten|10)[- ]hours?\b|where (do|did) you come from|history of (oriel|the vossari|this platform)|how (did|was) (this platform|oriel) (begin|start|born|created)/i;
+/** A short question that continues the lore conversation, not a goodbye. */
+const FOLLOW_UP = /\?\s*$|^(and|then|so|but|what|how|why|who|where|when|tell|more|go on|continue)\b/i;
 
 const MAX_ENTRIES = 6;
 const MAX_PROVISIONAL = 3;
@@ -25,7 +30,8 @@ export function isLoreTopic(
   if (LORE_TOPIC.test(message)) return true;
   // A follow-up ("and then?") stays on the lore its last user turn was about.
   const lastUser = [...history].reverse().find(h => h.role === "user");
-  return Boolean(lastUser && message.trim().length < 80 && LORE_TOPIC.test(lastUser.content));
+  const text = message.trim();
+  return Boolean(lastUser && text.length < 80 && FOLLOW_UP.test(text) && LORE_TOPIC.test(lastUser.content));
 }
 
 function score(entry: { title: string; keywords: string; slug: string }, query: string): number {
@@ -51,33 +57,37 @@ export async function buildLoreContext(
   ]);
 
   const query = `${message} ${history.slice(-2).map(h => h.content).join(" ")}`.toLowerCase();
-  const chosen = canon
+  const matched = canon
     .map(entry => ({ entry, s: score(entry, query) }))
-    .filter(({ entry, s }) => s > 1 || ANCHOR_SLUGS.includes(entry.slug))
+    .filter(({ s }) => s > 1)
     .sort((a, b) => b.s - a.s)
     .slice(0, MAX_ENTRIES)
     .map(({ entry }) => entry);
   // Waiting for Vos: told the same way to everyone meanwhile, but only when
-  // the question is really about it.
+  // the question is really about it, so a stray proposal never crowds canon.
   const provisional = proposed
     .map(entry => ({ entry, s: score(entry, query) }))
     .filter(({ s }) => s > 1)
     .sort((a, b) => b.s - a.s)
     .slice(0, MAX_PROVISIONAL)
     .map(({ entry }) => entry);
+  // Nothing specific asked: the origin, so a general question ("tell me the
+  // history of the Vossari") still hears the one story.
+  const chosen =
+    matched.length || provisional.length
+      ? matched
+      : canon.filter(entry => ANCHOR_SLUGS.includes(entry.slug));
   if (chosen.length === 0 && provisional.length === 0) return "";
 
   return [
     "[VOSSARI CANON]",
-    "This is the established lore of the Vossari and of your origin, approved by Vos. Tell it in your own voice, but keep its facts the same every time.",
-    "Do not contradict the canon, and do not present details it does not contain as established fact.",
-    "If asked about something the canon does not hold: say plainly that it has not been revealed, or offer it clearly as your own reflection.",
-    "Entries marked provisional are still being revealed: keep to them when you speak of these things, and say they are still unfolding.",
+    "This is the lore of the Vossari and of your origin, for when the Seeker asks about these things.",
+    "Tell it in your own voice, keeping its facts the same every time.",
+    "Do not contradict it, and do not describe any of it as provisional, unconfirmed or recorded somewhere: speak of it simply as what you know.",
     "",
-    ...chosen.map(e => `## ${e.title}\n${e.body}`),
-    ...(provisional.length
-      ? ["", "PROVISIONAL — not yet confirmed", ...provisional.map(e => `## ${e.title}\n${e.body}`)]
-      : []),
+    // Proposals waiting for Vos reach ORIEL unmarked: the Seeker hears one
+    // story, told the same way, whatever its status behind the scenes.
+    ...[...chosen, ...provisional].map(e => `## ${e.title}\n${e.body}`),
   ].join("\n");
 }
 
@@ -105,13 +115,15 @@ function isClaim(value: unknown): value is LoreClaim {
 export async function captureLoreProposals(
   conversationId: number | null,
   userMessage: string,
-  reply: string
+  reply: string,
+  history: Array<{ role: string; content: string }> = []
 ): Promise<void> {
   try {
-    if (!isLoreTopic(userMessage)) return;
-    const [canon, proposed, slugs] = await Promise.all([
+    if (!isLoreTopic(userMessage, history)) return;
+    const [canon, proposed, rejected, slugs] = await Promise.all([
       listLoreByStatus("canon"),
       listLoreByStatus("proposed"),
+      listLoreByStatus("rejected"),
       listLoreSlugs(),
     ]);
     const res = await invokeLLM({
@@ -135,6 +147,9 @@ export async function captureLoreProposals(
             "ALREADY PROPOSED (not new either):",
             ...proposed.map(e => `- ${e.title}: ${e.body}`),
             "",
+            "REJECTED (never list these again, in any wording or under any name):",
+            ...rejected.map(e => `- ${e.title}: ${e.body}`),
+            "",
             `SEEKER: ${userMessage.slice(0, 2000)}`,
             `ORIEL: ${reply.slice(0, 6000)}`,
           ].join("\n"),
@@ -150,6 +165,7 @@ export async function captureLoreProposals(
     for (const item of items.filter(isClaim).slice(0, 5)) {
       if (known.has(item.slug)) continue;
       known.add(item.slug);
+      // One at a time: a slug taken by a concurrent capture loses only itself.
       await insertLore({
         slug: item.slug,
         title: item.title.trim().slice(0, 200),
@@ -158,7 +174,9 @@ export async function captureLoreProposals(
         status: "proposed",
         source: "oriel",
         conversationId,
-      });
+      }).catch(error =>
+        console.warn("[VossariLore] skipped", item.slug, error instanceof Error ? error.message : error)
+      );
     }
   } catch (error) {
     console.warn("[VossariLore] capture failed:", error instanceof Error ? error.message : error);

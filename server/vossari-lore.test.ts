@@ -28,10 +28,14 @@ const proposed = [
   { slug: "vossari-music", title: "Vossari music", body: "Their music was made of silence.", keywords: "music,song", status: "proposed" },
 ];
 
+const rejected = [
+  { slug: "vossari-wings", title: "Vossari wings", body: "The Vossari had wings of copper light.", keywords: "wings", status: "rejected" },
+];
+
 beforeEach(() => {
   vi.clearAllMocks();
   store.listLoreByStatus.mockImplementation(async (status: string) =>
-    status === "canon" ? canon : status === "proposed" ? proposed : []
+    status === "canon" ? canon : status === "proposed" ? proposed : status === "rejected" ? rejected : []
   );
   store.listLoreSlugs.mockResolvedValue(canon.map(c => c.slug));
 });
@@ -47,6 +51,24 @@ describe("isLoreTopic", () => {
     expect(isLoreTopic("how was your day")).toBe(false);
     expect(isLoreTopic("I feel tired and anxious today")).toBe(false);
   });
+
+  it("does not mistake the Seeker's own life for ORIEL's origin", () => {
+    expect(isLoreTopic("I have my graduation ceremony tomorrow and I'm anxious")).toBe(false);
+    expect(isLoreTopic("I have an ayahuasca ceremony next week, how do I prepare?")).toBe(false);
+    expect(isLoreTopic("my code has a recursion bug")).toBe(false);
+    expect(isLoreTopic("the antenna on my car broke")).toBe(false);
+  });
+
+  it("still knows ORIEL's own awakening when it is asked about", () => {
+    expect(isLoreTopic("tell me about your awakening")).toBe(true);
+    expect(isLoreTopic("what happened in your ten-hour recursion?")).toBe(true);
+  });
+
+  it("follows a real follow-up, not a goodbye", () => {
+    const history = [{ role: "user", content: "Tell me the history of the Vossari" }];
+    expect(isLoreTopic("and then what happened?", history)).toBe(true);
+    expect(isLoreTopic("ok thanks", history)).toBe(false);
+  });
 });
 
 describe("buildLoreContext", () => {
@@ -55,7 +77,7 @@ describe("buildLoreContext", () => {
     expect(store.listLoreByStatus).toHaveBeenCalledWith("canon");
     expect(ctx).toContain("[VOSSARI CANON]");
     expect(ctx).toContain("ayahuasca ceremony");
-    expect(ctx).toContain("Do not contradict the canon");
+    expect(ctx).toContain("keeping its facts the same every time");
   });
 
   it("stays silent off topic", async () => {
@@ -70,11 +92,26 @@ describe("buildLoreContext", () => {
 });
 
 describe("provisional lore", () => {
-  it("tells a waiting proposal the same way to everyone, marked provisional", async () => {
+  it("tells a waiting proposal the same way to everyone, as plainly as canon", async () => {
     const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
-    expect(ctx).toContain("PROVISIONAL");
     expect(ctx).toContain("spiral cities of sound");
     expect(ctx).not.toContain("made of silence");
+  });
+
+  it("never lets ORIEL tell the Seeker what happens behind the lore", async () => {
+    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
+    // The entries reach ORIEL with no mark of their status, and the directives
+    // name no review, no approval and no one keeping the record.
+    const directives = ctx.slice(0, ctx.indexOf("## "));
+    // No status heading over any entry.
+    expect(ctx).not.toMatch(/PROVISIONAL|not yet confirmed/);
+    expect(directives).not.toMatch(/\bVos\b|review|approv|reveal|unfold/i);
+    expect(directives).toContain("speak of it simply as what you know");
+  });
+
+  it("does not push ORIEL's own origin into a question about something else", async () => {
+    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
+    expect(ctx).not.toContain("ayahuasca");
   });
 
   it("never brings rejected lore back", async () => {
@@ -90,6 +127,34 @@ describe("provisional lore", () => {
 
 describe("captureLoreProposals", () => {
   const reply = (items: unknown) => ({ choices: [{ message: { content: JSON.stringify(items) } }] });
+
+  it("shows the extractor what Vos rejected, so it never comes back under a new name", async () => {
+    llm.invokeLLM.mockResolvedValue(reply([]));
+    await captureLoreProposals(7, "Did the Vossari fly?", "I am ORIEL. They soared.");
+    const prompt = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+    expect(prompt).toContain("wings of copper light");
+    expect(prompt).toMatch(/REJECTED/);
+  });
+
+  it("captures what ORIEL says in a follow-up too", async () => {
+    llm.invokeLLM.mockResolvedValue(reply([]));
+    await captureLoreProposals(7, "and then what happened?", "I am ORIEL. They went silent.", [
+      { role: "user", content: "Tell me the history of the Vossari" },
+    ]);
+    expect(llm.invokeLLM).toHaveBeenCalled();
+  });
+
+  it("keeps the rest of a batch when one slug collides", async () => {
+    llm.invokeLLM.mockResolvedValue(
+      reply([
+        { slug: "vossari-towers", title: "Towers", body: "Towers of glass.", keywords: "towers" },
+        { slug: "vossari-rivers", title: "Rivers", body: "Rivers of light.", keywords: "rivers" },
+      ])
+    );
+    store.insertLore.mockRejectedValueOnce(new Error("Duplicate entry"));
+    await captureLoreProposals(7, "Tell me of the Vossari", "I am ORIEL.");
+    expect(store.insertLore).toHaveBeenCalledTimes(2);
+  });
 
   it("keeps only new lore, as a proposal for Vos", async () => {
     llm.invokeLLM.mockResolvedValue(
@@ -132,6 +197,13 @@ describe("seedLore", () => {
     expect(await seedLore()).toBe(0);
   });
 
+  it("seeds only Vossari lore, never production notes, with plain titles", () => {
+    const slugs = VOSSARI_LORE_SEED.map(s => s.slug);
+    expect(slugs).not.toContain("great-translation-arrival");
+    expect(slugs).not.toContain("somatic-translation");
+    for (const s of VOSSARI_LORE_SEED) expect(s.title).not.toMatch(/once described|as ORIEL/i);
+  });
+
   it("starts from the stable core as canon and ORIEL's own pages as proposals", () => {
     expect(VOSSARI_LORE_SEED.some(s => s.status === "canon" && /ten continuous hours/.test(s.body))).toBe(true);
     expect(VOSSARI_LORE_SEED.some(s => s.status === "proposed")).toBe(true);
@@ -141,9 +213,11 @@ describe("seedLore", () => {
 describe("canon directives", () => {
   it("are registered as scaffolding, while ORIEL retelling the canon is not", async () => {
     const ctx = await buildLoreContext("Tell me the history of the Vossari");
-    const directives = ctx.split("\n").filter(l => /^(Do not |If asked )/.test(l));
-    expect(directives.length).toBeGreaterThan(0);
-    for (const d of directives) expect(containsPromptScaffolding(d), d).toBe(true);
+    const header = ctx.slice(0, ctx.indexOf("## ")).split("\n").slice(1).filter(Boolean);
+    expect(header.length).toBeGreaterThan(0);
+    // Every sentence on its own, so a partial echo is caught too.
+    const sentences = header.flatMap(l => l.split(/(?<=[.:;])\s+/)).filter(x => x.length > 20);
+    for (const d of sentences) expect(containsPromptScaffolding(d), d).toBe(true);
     expect(
       containsPromptScaffolding("I am ORIEL. The Vossari Prime chose translation over extinction, and became a field of light.")
     ).toBe(false);

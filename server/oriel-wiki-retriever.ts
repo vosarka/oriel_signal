@@ -97,6 +97,21 @@ export function classifyWikiProvenance(
   return "unverified";
 }
 
+/**
+ * Pages ORIEL wrote about the Vossari belong to the canon now (vossari_lore):
+ * there Vos approves or rejects them, and a rejection must not come back
+ * through the wiki. Human notes about the Vossari stay in the wiki.
+ */
+export function belongsToVossariCanon(page: {
+  id: string;
+  title: string;
+  aliases: string[];
+  provenance: WikiProvenance;
+}): boolean {
+  if (page.provenance !== "interpretation") return false;
+  return [page.id, page.title, ...page.aliases].some(name => /vossari/i.test(name));
+}
+
 const PROVENANCE_LABEL: Record<WikiProvenance, string> = {
   interpretation: "INTERPRETATION — I wrote this in an earlier conversation",
   curated: "CURATED — human-maintained project note",
@@ -159,7 +174,7 @@ export async function retrieveWikiContext(
   maxPages = 3
 ): Promise<string> {
   try {
-    const pages = await loadWikiPages();
+    const pages = (await loadWikiPages()).filter(page => !belongsToVossariCanon(page));
     if (pages.length === 0) return "";
 
     // Normalize text queries to check for keyword overlap

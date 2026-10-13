@@ -76,11 +76,14 @@ export default function AdminLore() {
             {seed.data
               ? `${seed.data.added} entries imported.`
               : tab === "proposed"
-                ? "ORIEL already tells these, marked as provisional. Edit, make canon, or reject."
+                ? "ORIEL already tells these exactly like canon, unmarked: the Seeker never knows. Edit, make canon, or reject."
                 : "Whatever new ORIEL says about the Vossari lands in Proposed."}
           </span>
-          {(seed.error || setStatus.error || save.error) && (
-            <p className="at-error">{(seed.error ?? setStatus.error ?? save.error)?.message}</p>
+          {(list.error || seed.error || setStatus.error || save.error) && (
+            <p className="at-error">
+              {(list.error ?? seed.error ?? setStatus.error ?? save.error)?.message}
+              {list.error && " — has the vossari_lore table been created in TiDB (migration 0018)?"}
+            </p>
           )}
         </div>
         <div className="at-grid">
@@ -97,7 +100,7 @@ export default function AdminLore() {
                 </button>
               </li>
             ))}
-            {!rows.length && <li className="at-empty">Nothing here.</li>}
+            {!rows.length && !list.error && <li className="at-empty">{list.isLoading ? "Loading…" : "Nothing here."}</li>}
           </ol>
 
           {selected && (

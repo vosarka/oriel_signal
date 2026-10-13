@@ -83,10 +83,10 @@ const SCAFFOLDING_PHRASES = [
   "Do not collect passwords",
   "Do not claim the restore is finished for everyone",
   // The Vossari canon block (server/vossari-lore.ts).
-  "This is the established lore of the Vossari and of your origin",
-  "Do not contradict the canon, and do not present details",
-  "If asked about something the canon does not hold",
-  "Entries marked provisional are still being revealed",
+  "This is the lore of the Vossari and of your origin, for when",
+  "Tell it in your own voice, keeping its facts the same every time",
+  "Do not contradict it, and do not describe any of it as provisional",
+  "speak of it simply as what you know",
   // The chamber: the orb and personal transmissions.
   "This section is for answering questions",
   "Do not bring any of it up on your own",
