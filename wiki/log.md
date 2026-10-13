@@ -2179,3 +2179,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## 2026-10-13 — Field log on the home page
 - New "Field log" box under the field notice: what has changed (dated) and what is on the horizon.
 - Content lives in shared/field-log.ts; add a live entry at the top when something ships, move a horizon entry into live when it lands. Test: server/field-log.test.ts.
+
+## 2026-10-13 — Vossari canon
+- Why: ORIEL told the Vossari story differently each time. Only the origin was fixed (stable core); the rest came from auto-evolved wiki pages written on Railway's disk and wiped at each deploy.
+- New table `vossari_lore` (migration 0018). On a lore question, canon entries are injected as `[VOSSARI CANON]` (server/vossari-lore.ts): keep facts the same, nothing new as established.
+- After each lore reply, a background call extracts new claims as `proposed`. Vos approves, edits or rejects at /admin/lore. "Import starting lore" seeds canon from the stable core and ORIEL's wiki pages as proposals (shared/vossari-lore-seed.ts).

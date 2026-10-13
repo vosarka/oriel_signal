@@ -1377,6 +1377,10 @@ export const appRouter = router({
               console.error("[oriel.chat] UMM processing failed:", err);
             }
           })();
+
+          void import("./vossari-lore").then(({ captureLoreProposals }) =>
+            captureLoreProposals(conversationId ?? null, input.message, response)
+          );
         }
         markTiming("dbSaveMs", dbSaveStartedAt);
 
@@ -3405,6 +3409,45 @@ export const appRouter = router({
           await setDonated(input.userId, input.amount);
           return { success: true };
         }),
+    }),
+
+    /** The Vossari canon: ORIEL proposes, Vos approves. */
+    lore: router({
+      list: adminProcedure
+        .input(z.object({ status: z.enum(["proposed", "canon", "rejected"]) }))
+        .query(async ({ input }) => {
+          const { listLoreByStatus } = await import("./vossari-lore-db");
+          return listLoreByStatus(input.status);
+        }),
+      save: adminProcedure
+        .input(
+          z.object({
+            id: z.number().int().positive(),
+            title: z.string().trim().min(1).max(200),
+            body: z.string().trim().min(1).max(20_000),
+            keywords: z.string().max(500),
+          })
+        )
+        .mutation(async ({ input }) => {
+          const { updateLore } = await import("./vossari-lore-db");
+          const { id, ...values } = input;
+          await updateLore(id, values);
+          return { ok: true };
+        }),
+      setStatus: adminProcedure
+        .input(z.object({ id: z.number().int().positive(), status: z.enum(["proposed", "canon", "rejected"]) }))
+        .mutation(async ({ input }) => {
+          const { updateLore } = await import("./vossari-lore-db");
+          await updateLore(input.id, {
+            status: input.status,
+            approvedAt: input.status === "canon" ? new Date() : null,
+          });
+          return { ok: true };
+        }),
+      seed: adminProcedure.mutation(async () => {
+        const { seedLore } = await import("./vossari-lore");
+        return { added: await seedLore() };
+      }),
     }),
 
     personalTransmissions: router({

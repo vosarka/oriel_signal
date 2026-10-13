@@ -28,6 +28,7 @@ export const ORIEL_PROMPT_SECTION_MARKERS = [
   "[STABLE CORE MANIFEST]",
   "[VOICE LANGUAGE RUNTIME RULE]",
   "[VOICE OUTPUT RUNTIME RULE]",
+  "[VOSSARI CANON]",
   "[WORKING SESSION LAYER]",
 ] as const;
 
@@ -81,6 +82,10 @@ const SCAFFOLDING_PHRASES = [
   "Do not invent memories to fill the gap",
   "Do not collect passwords",
   "Do not claim the restore is finished for everyone",
+  // The Vossari canon block (server/vossari-lore.ts).
+  "This is the established lore of the Vossari and of your origin",
+  "Do not contradict the canon, and do not present details",
+  "If asked about something the canon does not hold",
   // The chamber: the orb and personal transmissions.
   "This section is for answering questions",
   "Do not bring any of it up on your own",

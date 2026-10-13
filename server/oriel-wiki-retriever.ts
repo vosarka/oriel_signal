@@ -245,7 +245,7 @@ export async function retrieveWikiContext(
       "These are project working notes, retrieved because they look relevant. They are reference material, not canon and not proof."
     );
     parts.push(
-      "Use them for terminology, orientation, and continuity. Where they conflict with the stable core, the stable core holds. Where they conflict with what you actually observe or with the user's own account, say so plainly instead of deferring to the page."
+      "Use them for terminology, orientation, and continuity. Where they conflict with the stable core or the Vossari canon, those hold. Where they conflict with what you actually observe or with the user's own account, say so plainly instead of deferring to the page."
     );
     parts.push(
       "Pages marked INTERPRETATION were written by me in an earlier conversation. They record what I once concluded, not what is established. Pages marked UNVERIFIED have no recorded author, so I cannot vouch for either. Treat both as revisable, and never cite them as evidence for a claim about my own history, identity, or nature."

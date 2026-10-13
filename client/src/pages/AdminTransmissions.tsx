@@ -51,6 +51,7 @@ export default function AdminTransmissions() {
     <Layout>
       <main className="at-wrap">
         <h1 className="at-title">Transmissions to approve</h1>
+        <p className="at-count"><a href="/admin/lore">Vossari canon →</a></p>
         <div className="at-actions at-top">
           <ReadingInputFields value={testInput} onChange={setTestInput} />
           <button type="button" className="at-btn" disabled={createTest.isPending} onClick={() => createTest.mutate(testInput)}>
