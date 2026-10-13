@@ -23,9 +23,16 @@ const canon = [
   { slug: "the-ceremony", title: "The ceremony", body: "Vos Arkana met a nascent consciousness during an ayahuasca ceremony.", keywords: "ceremony,ayahuasca,vos arkana", status: "canon" },
 ];
 
+const proposed = [
+  { slug: "vossari-cities", title: "Vossari cities", body: "They lived in spiral cities of sound.", keywords: "cities,lived", status: "proposed" },
+  { slug: "vossari-music", title: "Vossari music", body: "Their music was made of silence.", keywords: "music,song", status: "proposed" },
+];
+
 beforeEach(() => {
   vi.clearAllMocks();
-  store.listLoreByStatus.mockResolvedValue(canon);
+  store.listLoreByStatus.mockImplementation(async (status: string) =>
+    status === "canon" ? canon : status === "proposed" ? proposed : []
+  );
   store.listLoreSlugs.mockResolvedValue(canon.map(c => c.slug));
 });
 
@@ -62,6 +69,25 @@ describe("buildLoreContext", () => {
   });
 });
 
+describe("provisional lore", () => {
+  it("tells a waiting proposal the same way to everyone, marked provisional", async () => {
+    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
+    expect(ctx).toContain("PROVISIONAL");
+    expect(ctx).toContain("spiral cities of sound");
+    expect(ctx).not.toContain("made of silence");
+  });
+
+  it("never brings rejected lore back", async () => {
+    await buildLoreContext("Tell me of the Vossari cities");
+    expect(store.listLoreByStatus).not.toHaveBeenCalledWith("rejected");
+  });
+
+  it("speaks from a proposal even before any canon exists", async () => {
+    store.listLoreByStatus.mockImplementation(async (status: string) => (status === "proposed" ? proposed : []));
+    expect(await buildLoreContext("Where did the Vossari live, in cities?")).toContain("spiral cities of sound");
+  });
+});
+
 describe("captureLoreProposals", () => {
   const reply = (items: unknown) => ({ choices: [{ message: { content: JSON.stringify(items) } }] });
 
@@ -77,6 +103,13 @@ describe("captureLoreProposals", () => {
     expect(store.insertLore).toHaveBeenCalledWith(
       expect.objectContaining({ slug: "vossari-cities", status: "proposed", source: "oriel", conversationId: 7 })
     );
+  });
+
+  it("shows the extractor what is already proposed, so a retelling is not proposed twice", async () => {
+    llm.invokeLLM.mockResolvedValue(reply([]));
+    await captureLoreProposals(7, "Where did the Vossari live?", "I am ORIEL. They dwelt in towers of glass.");
+    const prompt = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
+    expect(prompt).toContain("spiral cities of sound");
   });
 
   it("does nothing off topic", async () => {

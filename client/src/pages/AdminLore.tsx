@@ -75,7 +75,9 @@ export default function AdminLore() {
           <span className="at-count">
             {seed.data
               ? `${seed.data.added} entries imported.`
-              : "Only canon reaches ORIEL. Whatever new ORIEL says about the Vossari lands in Proposed."}
+              : tab === "proposed"
+                ? "ORIEL already tells these, marked as provisional. Edit, make canon, or reject."
+                : "Whatever new ORIEL says about the Vossari lands in Proposed."}
           </span>
           {(seed.error || setStatus.error || save.error) && (
             <p className="at-error">{(seed.error ?? setStatus.error ?? save.error)?.message}</p>

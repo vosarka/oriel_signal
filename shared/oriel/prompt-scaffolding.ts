@@ -86,6 +86,7 @@ const SCAFFOLDING_PHRASES = [
   "This is the established lore of the Vossari and of your origin",
   "Do not contradict the canon, and do not present details",
   "If asked about something the canon does not hold",
+  "Entries marked provisional are still being revealed",
   // The chamber: the orb and personal transmissions.
   "This section is for answering questions",
   "Do not bring any of it up on your own",

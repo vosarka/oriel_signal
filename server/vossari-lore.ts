@@ -12,6 +12,9 @@ const LORE_TOPIC =
   /\bvossari|great translation|\bantenna\b|\bra social memory|\bvos arkana\b|\bayahuasca|\bceremony\b|\brecursion\b|who (made|created|built) you|how (were|was) you (made|created|born|built|awakened)|your (origin|history|awakening|creator|creation|birth)|\bwhere (do|did) you come from|history of (oriel|the vossari|this platform)|\bhow (did|was) (this platform|oriel) (begin|start|born)/i;
 
 const MAX_ENTRIES = 6;
+const MAX_PROVISIONAL = 3;
+/** In nearly every title, so they say nothing about which entry is meant. */
+const GENERIC_WORDS = new Set(["vossari", "oriel", "oriel's", "their", "the"]);
 /** Always present on a lore question: the origin ORIEL must never retell differently. */
 const ANCHOR_SLUGS = ["great-translation", "the-ceremony", "the-recursion"];
 
@@ -32,7 +35,7 @@ function score(entry: { title: string; keywords: string; slug: string }, query: 
     if (word.length > 2 && query.includes(word)) s += 10;
   }
   for (const w of entry.title.toLowerCase().split(/\s+/)) {
-    if (w.length > 3 && query.includes(w)) s += 5;
+    if (w.length > 3 && !GENERIC_WORDS.has(w) && query.includes(w)) s += 5;
   }
   return s;
 }
@@ -42,8 +45,10 @@ export async function buildLoreContext(
   history: Array<{ role: string; content: string }> = []
 ): Promise<string> {
   if (!isLoreTopic(message, history)) return "";
-  const canon = await listLoreByStatus("canon");
-  if (canon.length === 0) return "";
+  const [canon, proposed] = await Promise.all([
+    listLoreByStatus("canon"),
+    listLoreByStatus("proposed"),
+  ]);
 
   const query = `${message} ${history.slice(-2).map(h => h.content).join(" ")}`.toLowerCase();
   const chosen = canon
@@ -52,14 +57,27 @@ export async function buildLoreContext(
     .sort((a, b) => b.s - a.s)
     .slice(0, MAX_ENTRIES)
     .map(({ entry }) => entry);
+  // Waiting for Vos: told the same way to everyone meanwhile, but only when
+  // the question is really about it.
+  const provisional = proposed
+    .map(entry => ({ entry, s: score(entry, query) }))
+    .filter(({ s }) => s > 1)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, MAX_PROVISIONAL)
+    .map(({ entry }) => entry);
+  if (chosen.length === 0 && provisional.length === 0) return "";
 
   return [
     "[VOSSARI CANON]",
     "This is the established lore of the Vossari and of your origin, approved by Vos. Tell it in your own voice, but keep its facts the same every time.",
     "Do not contradict the canon, and do not present details it does not contain as established fact.",
     "If asked about something the canon does not hold: say plainly that it has not been revealed, or offer it clearly as your own reflection.",
+    "Entries marked provisional are still being revealed: keep to them when you speak of these things, and say they are still unfolding.",
     "",
     ...chosen.map(e => `## ${e.title}\n${e.body}`),
+    ...(provisional.length
+      ? ["", "PROVISIONAL — not yet confirmed", ...provisional.map(e => `## ${e.title}\n${e.body}`)]
+      : []),
   ].join("\n");
 }
 
@@ -91,7 +109,11 @@ export async function captureLoreProposals(
 ): Promise<void> {
   try {
     if (!isLoreTopic(userMessage)) return;
-    const [canon, slugs] = await Promise.all([listLoreByStatus("canon"), listLoreSlugs()]);
+    const [canon, proposed, slugs] = await Promise.all([
+      listLoreByStatus("canon"),
+      listLoreByStatus("proposed"),
+      listLoreSlugs(),
+    ]);
     const res = await invokeLLM({
       tier: "background",
       temperature: 0.2,
@@ -102,13 +124,16 @@ export async function captureLoreProposals(
           role: "user",
           content: [
             "You keep the lore archive of the Vossari and of ORIEL's origin.",
-            "Below is the approved canon, then an exchange in which ORIEL spoke about the lore.",
-            "List only claims ORIEL made about the Vossari, their history, the Great Translation, or ORIEL's own origin that the canon does not already contain.",
+            "Below is the approved canon, the lore already proposed, then an exchange in which ORIEL spoke about the lore.",
+            "List only claims ORIEL made about the Vossari, their history, the Great Translation, or ORIEL's own origin that neither the canon nor the proposals already contain.",
             "Ignore advice, practices, questions to the Seeker, and anything about the Seeker personally.",
             'Return JSON: {"entries":[{"slug":"kebab-case-id","title":"short title","body":"the claim, stated plainly in ORIEL\'s first person where it speaks of itself","keywords":"comma,separated,words"}]}. Return {"entries":[]} when nothing is new.',
             "",
             "CANON:",
             ...canon.map(e => `- ${e.title}: ${e.body}`),
+            "",
+            "ALREADY PROPOSED (not new either):",
+            ...proposed.map(e => `- ${e.title}: ${e.body}`),
             "",
             `SEEKER: ${userMessage.slice(0, 2000)}`,
             `ORIEL: ${reply.slice(0, 6000)}`,
