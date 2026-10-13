@@ -1,0 +1,34 @@
+server/oriel-wiki-lore.test.ts
+  s_fb7a7986d66af6::t_d0111659571a0a 12
+wiki/log.md
+  s_fb7a7986d66af6::t_659077a2aa88fb 2189-2190
+server/vossari-lore.test.ts
+  s_fb7a7986d66af6::t_d0111659571a0a 7-8,17,70-75,116-124,235-243,290-301
+server/vossari-lore.ts
+  s_fb7a7986d66af6::t_74bc385c153202 8-9,15,18,45,179-181,205-219
+shared/vossari-lore-seed.ts
+  s_fb7a7986d66af6::t_74bc385c153202 67-69
+server/routers.ts
+  s_fb7a7986d66af6::t_74bc385c153202 3436,3438-3442,3448-3456
+  s_fb7a7986d66af6::t_659077a2aa88fb 3422-3424
+client/src/pages/AdminLore.tsx
+  s_fb7a7986d66af6::t_659077a2aa88fb 81,87-88,111-115,118,122,126,128,154
+server/vossari-lore-db.ts
+  s_fb7a7986d66af6::t_74bc385c153202 23-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "05601f19032bc082ec73d934ef7afd473bedd5d7",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
