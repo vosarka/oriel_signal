@@ -53,6 +53,8 @@ export const ENV = {
   enableOrielMindMemos: resolveMindMemosEnabled(),
   mindMemosBaseUrl: process.env.ORIEL_MINDMEMOS_BASE_URL ?? "",
   mindMemosApiKey: process.env.ORIEL_MINDMEMOS_API_KEY ?? "",
+  /** The Vossari lore's own MindMemOS project, shared by every Seeker. */
+  mindMemosLoreApiKey: process.env.MINDMEMOS_LORE_API_KEY ?? "",
   llmProvider: resolveLlmProvider(),
   llmRequestTimeoutMs: resolveLlmRequestTimeoutMs(),
   llmModel: process.env.LLM_MODEL ?? "",

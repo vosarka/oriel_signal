@@ -1,5 +1,5 @@
 /** Every query on vossari_lore, so the lore logic stays testable. */
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "./db";
 import { vossariLore, type InsertVossariLore, type VossariLore } from "../drizzle/schema";
 
@@ -24,6 +24,35 @@ export async function getLore(id: number): Promise<VossariLore | null> {
   const db = await requireDb();
   const [row] = await db.select().from(vossariLore).where(eq(vossariLore.id, id)).limit(1);
   return row ?? null;
+}
+
+export async function getLoreBySlug(slug: string): Promise<VossariLore | null> {
+  const db = await requireDb();
+  const [row] = await db.select().from(vossariLore).where(eq(vossariLore.slug, slug)).limit(1);
+  return row ?? null;
+}
+
+export async function getLoreByIds(ids: number[]): Promise<VossariLore[]> {
+  if (ids.length === 0) return [];
+  const db = await requireDb();
+  return db.select().from(vossariLore).where(inArray(vossariLore.id, ids));
+}
+
+/** Remember the lore memory ids of an entry, adding to those it already has. */
+export async function setLoreMemosIds(id: number, cloudIds: string[]): Promise<void> {
+  const db = await requireDb();
+  const [row] = await db.select({ memosIds: vossariLore.memosIds }).from(vossariLore).where(eq(vossariLore.id, id)).limit(1);
+  const known = (row?.memosIds ?? "").split(",").filter(Boolean);
+  const merged = Array.from(new Set([...known, ...cloudIds]));
+  await db.update(vossariLore).set({ memosIds: merged.join(",") }).where(eq(vossariLore.id, id));
+}
+
+/** The entry each lore memory id belongs to (null when unknown), in order. The table is small. */
+export async function getLoreIdsByMemosId(cloudIds: string[]): Promise<Array<number | null>> {
+  if (cloudIds.length === 0) return [];
+  const db = await requireDb();
+  const rows = await db.select({ id: vossariLore.id, memosIds: vossariLore.memosIds }).from(vossariLore);
+  return cloudIds.map(cloudId => rows.find(r => (r.memosIds ?? "").split(",").includes(cloudId))?.id ?? null);
 }
 
 export async function listLoreSlugs(): Promise<string[]> {

@@ -33,6 +33,7 @@ export default function AdminLore() {
     },
   });
   const seed = trpc.admin.lore.seed.useMutation({ onSuccess: refresh });
+  const sync = trpc.admin.lore.sync.useMutation();
 
   const rows = list.data ?? [];
   const selected = rows.find(r => r.id === selectedId) ?? null;
@@ -77,6 +78,9 @@ export default function AdminLore() {
           <button type="button" className="at-btn" disabled={seed.isPending} onClick={() => seed.mutate()}>
             {seed.isPending ? "Importing…" : "Import starting lore"}
           </button>
+          <button type="button" className="at-btn" disabled={sync.isPending} onClick={() => sync.mutate()}>
+            {sync.isPending ? "Syncing…" : sync.data ? `${sync.data.indexed} in the lore memory` : "Sync lore memory"}
+          </button>
           <span className="at-count">
             {seed.data
               ? `${seed.data.added} entries imported.`
@@ -84,9 +88,9 @@ export default function AdminLore() {
                 ? "When a question is about one of these, ORIEL tells it like canon, unmarked. Edit, make canon, or reject."
                 : "Whatever new ORIEL says about the Vossari lands in Proposed."}
           </span>
-          {(list.error || seed.error || setStatus.error || save.error) && (
+          {(list.error || seed.error || sync.error || setStatus.error || save.error) && (
             <p className="at-error">
-              {(list.error ?? seed.error ?? setStatus.error ?? save.error)?.message}
+              {(list.error ?? seed.error ?? sync.error ?? setStatus.error ?? save.error)?.message}
               {list.error && /doesn't exist|ER_NO_SUCH_TABLE/i.test(list.error.message) &&
                 " — create the vossari_lore table in TiDB (migration 0018)."}
             </p>

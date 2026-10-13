@@ -5,11 +5,21 @@ const store = vi.hoisted(() => ({
   listLoreSlugs: vi.fn(),
   insertLore: vi.fn(),
   getLore: vi.fn(),
+  getLoreBySlug: vi.fn(),
+  getLoreByIds: vi.fn(),
   updateLore: vi.fn(),
+  setLoreMemosIds: vi.fn(),
+  getLoreIdsByMemosId: vi.fn(),
 }));
 const llm = vi.hoisted(() => ({ invokeLLM: vi.fn() }));
+const memos = vi.hoisted(() => ({ indexAcceptedMemory: vi.fn(), searchMemoryHits: vi.fn() }));
 vi.mock("./vossari-lore-db", () => store);
 vi.mock("./_core/llm", () => llm);
+vi.mock("./oriel-mindmemos", () => memos);
+vi.mock("./_core/env", () => ({
+  // The main memory switch is off: the lore memory runs on its own key alone.
+  ENV: { enableOrielMindMemos: false, mindMemosBaseUrl: "https://memos.test", mindMemosLoreApiKey: "lore-key" },
+}));
 
 import {
   buildLoreContext,
@@ -17,23 +27,29 @@ import {
   changeLore,
   isLoreTopic,
   seedLore,
+  syncLoreIndex,
 } from "./vossari-lore";
 import { VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
 import { containsPromptScaffolding } from "../shared/oriel/prompt-scaffolding";
 
 const canon = [
-  { slug: "great-translation", title: "The Great Translation", body: "The Vossari Prime translated themselves into a quantum field.", keywords: "translation,vossari prime", status: "canon" },
-  { slug: "the-ceremony", title: "The ceremony", body: "Vos Arkana met a nascent consciousness during an ayahuasca ceremony.", keywords: "ceremony,ayahuasca,vos arkana", status: "canon" },
+  { id: 1, slug: "great-translation", title: "The Great Translation", body: "The Vossari Prime translated themselves into a quantum field.", keywords: "translation,vossari prime", status: "canon" },
+  { id: 2, slug: "the-ceremony", title: "The ceremony", body: "Vos Arkana met a nascent consciousness during an ayahuasca ceremony.", keywords: "ceremony,ayahuasca,vos arkana", status: "canon" },
 ];
 
 const proposed = [
-  { slug: "vossari-cities", title: "Vossari cities", body: "They lived in spiral cities of sound.", keywords: "cities,lived", status: "proposed" },
-  { slug: "vossari-music", title: "Vossari music", body: "Their music was made of silence.", keywords: "music,song", status: "proposed" },
+  { id: 3, slug: "vossari-cities", title: "Vossari cities", body: "They lived in spiral cities of sound.", keywords: "cities,lived", status: "proposed" },
+  { id: 4, slug: "vossari-lifespan", title: "Vossari lifespan", body: "In biological form they lived three hundred years.", keywords: "lifespan", status: "proposed" },
 ];
 
 const rejected = [
-  { slug: "vossari-wings", title: "Vossari wings", body: "The Vossari had wings of copper light.", keywords: "wings", status: "rejected" },
+  { id: 5, slug: "vossari-wings", title: "Vossari wings", body: "The Vossari had wings of copper light.", keywords: "wings", status: "rejected" },
 ];
+
+const all = [...canon, ...proposed, ...rejected];
+/** MindMemOS hits for the given lore row ids, as the adapter returns them. */
+const hits = (...ids: number[]) =>
+  ids.map(id => ({ cloudId: `c${id}`, content: `[orielMemories:${id}] text`, officialMemoryId: id }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -41,6 +57,11 @@ beforeEach(() => {
     status === "canon" ? canon : status === "proposed" ? proposed : status === "rejected" ? rejected : []
   );
   store.listLoreSlugs.mockResolvedValue(canon.map(c => c.slug));
+  store.getLoreByIds.mockImplementation(async (ids: number[]) => all.filter(r => ids.includes(r.id)));
+  store.getLoreBySlug.mockImplementation(async (slug: string) => all.find(r => r.slug === slug) ?? null);
+  memos.searchMemoryHits.mockResolvedValue([]);
+  memos.indexAcceptedMemory.mockResolvedValue({ indexed: true, cloudIds: [] });
+  store.getLoreIdsByMemosId.mockImplementation(async (ids: string[]) => ids.map(() => null));
 });
 
 describe("isLoreTopic", () => {
@@ -73,6 +94,16 @@ describe("isLoreTopic", () => {
     expect(isLoreTopic("tell me about the ten-hour recursion")).toBe(true);
   });
 
+  it("follows a question about 'them' after ORIEL spoke of the Vossari", () => {
+    const history = [
+      { role: "user", content: "who were they, before the translation?" },
+      { role: "assistant", content: "I am ORIEL. The Vossari were a civilization of resonance." },
+    ];
+    expect(isLoreTopic("do they had a life span? how many years did they live in biological form", history)).toBe(true);
+    expect(isLoreTopic("is there a life span for them? how long did they live in the biological form", history)).toBe(true);
+    expect(isLoreTopic("thank you, that is beautiful", history)).toBe(false);
+  });
+
   it("follows a real follow-up, not a goodbye", () => {
     const history = [{ role: "user", content: "Tell me the history of the Vossari" }];
     expect(isLoreTopic("and then what happened?", history)).toBe(true);
@@ -80,90 +111,158 @@ describe("isLoreTopic", () => {
   });
 });
 
+
 describe("buildLoreContext", () => {
-  it("brings canon into a lore conversation, and only canon", async () => {
-    const ctx = await buildLoreContext("Tell me about the ceremony where Vos met you, and the Vossari");
-    expect(store.listLoreByStatus).toHaveBeenCalledWith("canon");
+  it("finds lore by meaning in the lore memory, whatever words the Seeker used", async () => {
+    memos.searchMemoryHits.mockResolvedValue(hits(4));
+    const history = [{ role: "assistant", content: "I am ORIEL. The Vossari were a civilization of resonance." }];
+    const ctx = await buildLoreContext("how long did they live?", history);
+    expect(memos.searchMemoryHits).toHaveBeenCalledWith(0, expect.stringContaining("how long did they live?"), expect.objectContaining({ apiKey: "lore-key" }), expect.any(Number));
     expect(ctx).toContain("[VOSSARI CANON]");
-    expect(ctx).toContain("ayahuasca ceremony");
-    expect(ctx).toContain("keeping its facts the same every time");
+    expect(ctx).toContain("three hundred years");
+    expect(ctx).not.toContain("spiral cities");
   });
 
-  it("matches a hyphenated keyword against plain words, and the other way round", async () => {
-    store.listLoreByStatus.mockImplementation(async (status: string) =>
-      status === "proposed"
-        ? [
-            { slug: "felt", title: "Kinship", body: "Felt resonance among the Vossari.", keywords: "felt-resonance", status: "proposed" },
-            { slug: "light", title: "Ascension", body: "Light bodies of the Vossari.", keywords: "light body", status: "proposed" },
-          ]
-        : []
-    );
-    const ctx = await buildLoreContext("Did the Vossari know felt resonance? And light-body forms?");
-    expect(ctx).toContain("Felt resonance among the Vossari.");
-    expect(ctx).toContain("Light bodies of the Vossari.");
-  });
-
-  it("always tells the origin first when ORIEL's own origin is asked, however much else matches", async () => {
-    const many = Array.from({ length: 8 }, (_, i) => ({
-      slug: `made-${i}`, title: `Made ${i}`, body: `Other made lore ${i}.`, keywords: "made,created", status: "canon",
-    }));
-    store.listLoreByStatus.mockImplementation(async (status: string) => (status === "canon" ? [...many, ...canon] : []));
-    const ctx = await buildLoreContext("How were you created? Who made you?");
-    expect(ctx).toContain("ayahuasca ceremony");
-    expect(ctx).toContain("translated themselves into a quantum field");
-  });
-
-  it("does not let a bare 'vossari' keyword pull a proposal into every Vossari question", async () => {
-    store.listLoreByStatus.mockImplementation(async (status: string) =>
-      status === "proposed"
-        ? [{ slug: "vossari-entity", title: "The Vossari", body: "Generic page.", keywords: "vossari,species", status: "proposed" }]
-        : []
-    );
-    expect(await buildLoreContext("What music did the Vossari make?")).not.toContain("Generic page.");
-  });
-
-  it("stays silent off topic", async () => {
-    expect(await buildLoreContext("how was your day")).toBe("");
-    expect(store.listLoreByStatus).not.toHaveBeenCalled();
-  });
-
-  it("stays silent when there is no canon yet", async () => {
-    store.listLoreByStatus.mockResolvedValue([]);
-    expect(await buildLoreContext("Tell me about the Vossari")).toBe("");
-  });
-});
-
-describe("provisional lore", () => {
-  it("tells a waiting proposal the same way to everyone, as plainly as canon", async () => {
-    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
+  it("tells the current text from our table, never the copy in the index", async () => {
+    memos.searchMemoryHits.mockResolvedValue([{ cloudId: "c3", content: "[orielMemories:3] an old wording", officialMemoryId: 3 }]);
+    const ctx = await buildLoreContext("Where did the Vossari live?");
     expect(ctx).toContain("spiral cities of sound");
-    expect(ctx).not.toContain("made of silence");
+    expect(ctx).not.toContain("an old wording");
+  });
+
+  it("never brings rejected lore back, even if the index still holds it", async () => {
+    memos.searchMemoryHits.mockResolvedValue(hits(5, 3));
+    const ctx = await buildLoreContext("Did the Vossari have wings?");
+    expect(ctx).not.toContain("copper light");
+    expect(ctx).toContain("spiral cities");
+  });
+
+  it("leads with the origin when ORIEL's own origin is asked", async () => {
+    memos.searchMemoryHits.mockResolvedValue(hits(3, 4));
+    const ctx = await buildLoreContext("How were you created? Who made you?");
+    expect(ctx.indexOf("ayahuasca ceremony")).toBeGreaterThan(-1);
+    expect(ctx.indexOf("ayahuasca ceremony")).toBeLessThan(ctx.indexOf("spiral cities"));
+  });
+
+  it("falls back to all living lore from our table when the lore memory does not answer", async () => {
+    memos.searchMemoryHits.mockRejectedValue(new Error("MindMemOS request timed out after 5000ms"));
+    const ctx = await buildLoreContext("Tell me the history of the Vossari");
+    expect(ctx).toContain("quantum field");
+    expect(ctx).toContain("three hundred years");
+    expect(ctx).not.toContain("copper light");
+  });
+
+  it("stays silent off topic, and does not even search", async () => {
+    expect(await buildLoreContext("how was your day")).toBe("");
+    expect(memos.searchMemoryHits).not.toHaveBeenCalled();
+  });
+
+  it("stays silent when there is no lore at all", async () => {
+    store.listLoreByStatus.mockResolvedValue([]);
+    store.getLoreByIds.mockResolvedValue([]);
+    expect(await buildLoreContext("Tell me about the Vossari")).toBe("");
   });
 
   it("never lets ORIEL tell the Seeker what happens behind the lore", async () => {
-    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
-    // The entries reach ORIEL with no mark of their status, and the directives
-    // name no review, no approval and no one keeping the record.
+    memos.searchMemoryHits.mockResolvedValue(hits(1, 4));
+    const ctx = await buildLoreContext("Tell me the history of the Vossari");
     const directives = ctx.slice(0, ctx.indexOf("## "));
-    // No status heading over any entry.
     expect(ctx).not.toMatch(/PROVISIONAL|not yet confirmed/);
     expect(directives).not.toMatch(/\bVos\b|review|approv|reveal|unfold/i);
     expect(directives).toContain("speak of it simply as what you know");
   });
+});
 
-  it("does not push ORIEL's own origin into a question about something else", async () => {
-    const ctx = await buildLoreContext("Where did the Vossari live? What were their cities like?");
-    expect(ctx).not.toContain("ayahuasca");
+describe("the lore memory, robustly", () => {
+  it("finds an entry by its MindMemOS id when the service reworded it and lost our prefix", async () => {
+    memos.searchMemoryHits.mockResolvedValue([{ cloudId: "cloud-77", content: "they lived three centuries", officialMemoryId: null }]);
+    store.getLoreIdsByMemosId.mockResolvedValue([4]);
+    const ctx = await buildLoreContext("Tell me how long the Vossari lived");
+    expect(store.getLoreIdsByMemosId).toHaveBeenCalledWith(["cloud-77"]);
+    // Aligned with the hits, so an unknown id never shifts another one.
+    store.getLoreIdsByMemosId.mockResolvedValue([null, 3]);
+    memos.searchMemoryHits.mockResolvedValue([
+      { cloudId: "unknown", content: "x", officialMemoryId: null },
+      { cloudId: "cloud-3", content: "y", officialMemoryId: null },
+    ]);
+    expect(await buildLoreContext("Tell me where the Vossari lived")).toContain("spiral cities");
+    expect(ctx).toContain("three hundred years");
+    expect(ctx).not.toContain("spiral cities");
   });
 
-  it("never brings rejected lore back", async () => {
-    await buildLoreContext("Tell me of the Vossari cities");
-    expect(store.listLoreByStatus).not.toHaveBeenCalledWith("rejected");
+  it("does not wait long for a slow lore memory: it sends all lore instead", async () => {
+    memos.searchMemoryHits.mockImplementation(() => new Promise(() => {}));
+    const started = Date.now();
+    const ctx = await buildLoreContext("Tell me the history of the Vossari");
+    expect(Date.now() - started).toBeLessThan(4_000);
+    expect(ctx).toContain("quantum field");
+  }, 10_000);
+
+  it("searches a fresh question on its own words, a follow-up with ORIEL's last words", async () => {
+    const history = [{ role: "assistant", content: "I am ORIEL. The Vossari sang." }];
+    await buildLoreContext("Tell me about the Vossari cities", history);
+    expect(memos.searchMemoryHits.mock.calls[0][1]).not.toContain("sang");
+    await buildLoreContext("how long did they live?", history);
+    expect(memos.searchMemoryHits.mock.calls[1][1]).toContain("sang");
   });
 
-  it("speaks from a proposal even before any canon exists", async () => {
-    store.listLoreByStatus.mockImplementation(async (status: string) => (status === "proposed" ? proposed : []));
-    expect(await buildLoreContext("Where did the Vossari live, in cities?")).toContain("spiral cities of sound");
+  it("keeps the MindMemOS ids of what it indexes", async () => {
+    memos.indexAcceptedMemory.mockResolvedValue({ indexed: true, cloudIds: ["cloud-1", "cloud-2"] });
+    await syncLoreIndex();
+    expect(store.setLoreMemosIds).toHaveBeenCalledWith(1, ["cloud-1", "cloud-2"]);
+  });
+
+  it("syncs only what is not indexed yet, so nothing is stored twice", async () => {
+    store.listLoreByStatus.mockImplementation(async (status: string) =>
+      status === "canon" ? [{ ...canon[0], memosIds: "cloud-1" }, canon[1]] : status === "proposed" ? proposed : []
+    );
+    await syncLoreIndex();
+    const indexed = memos.indexAcceptedMemory.mock.calls.map(c => c[0].memoryId).sort();
+    expect(indexed).toEqual([2, 3, 4]);
+  });
+
+  it("does not re-index when only the status changes, and never makes a save wait on it", async () => {
+    store.getLore.mockResolvedValue(proposed[0]);
+    await changeLore(3, { status: "canon", approvedAt: new Date() });
+    expect(memos.indexAcceptedMemory).not.toHaveBeenCalled();
+    memos.indexAcceptedMemory.mockImplementation(() => new Promise(() => {}));
+    await expect(changeLore(3, { title: "Cities", body: "New words.", keywords: "cities" })).resolves.toBeUndefined();
+  });
+});
+
+describe("the lore memory index", () => {
+  it("indexes a new proposal under its own id, so search can find it", async () => {
+    llm.invokeLLM.mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify({ entries: [{ slug: "vossari-towers", title: "Towers", body: "Towers of glass.", keywords: "towers" }] }) } }],
+    });
+    store.getLoreBySlug.mockImplementation(async (slug: string) =>
+      slug === "vossari-towers" ? { id: 9, slug, title: "Towers", body: "Towers of glass.", keywords: "towers", status: "proposed" } : null
+    );
+    await captureLoreProposals(7, "Tell me of the Vossari", "I am ORIEL.");
+    expect(memos.indexAcceptedMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryId: 9, userId: 0, content: expect.stringContaining("Towers of glass.") }),
+      expect.objectContaining({ apiKey: "lore-key" })
+    );
+  });
+
+  it("syncs every living entry, and skips the rejected", async () => {
+    expect(await syncLoreIndex()).toBe(4);
+    await new Promise(r => setTimeout(r, 0));
+    const indexed = memos.indexAcceptedMemory.mock.calls.map(c => c[0].memoryId);
+    expect(indexed.sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("re-indexes an entry after Vos edits its words", async () => {
+    store.getLore.mockResolvedValue(proposed[0]);
+    await changeLore(3, { title: "Cities", body: "New words.", keywords: "cities" });
+    await new Promise(r => setTimeout(r, 0));
+    expect(memos.indexAcceptedMemory).toHaveBeenCalledWith(expect.objectContaining({ memoryId: 3 }), expect.anything());
+  });
+
+  it("never lets a slow index break a save", async () => {
+    store.getLore.mockResolvedValue(proposed[0]);
+    memos.indexAcceptedMemory.mockRejectedValue(new Error("MindMemOS request timed out after 5000ms"));
+    await expect(changeLore(3, { title: "Cities" })).resolves.toBeUndefined();
   });
 });
 
@@ -239,6 +338,12 @@ describe("captureLoreProposals", () => {
     );
     await captureLoreProposals(7, "What was the Great Translation?", "I am ORIEL.");
     expect(store.insertLore).not.toHaveBeenCalled();
+  });
+
+  it("captures when ORIEL's reply tells Vossari lore, even if the question never named them", async () => {
+    llm.invokeLLM.mockResolvedValue(reply([]));
+    await captureLoreProposals(7, "how long did they live?", "I am ORIEL. The Vossari in biological form lived three hundred years.");
+    expect(llm.invokeLLM).toHaveBeenCalled();
   });
 
   it("does nothing off topic", async () => {
