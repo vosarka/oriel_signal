@@ -2165,3 +2165,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - A VHS layer over the whole chat: scanlines, shifting grain, a slow rolling band. Spans, not divs: `.signal-page-shell > div` is given `position: relative`, which pushed the chat down.
 - The conversations panel can be hidden on desktop (remembered). The input bar lost its background and border; the voice selector and volume moved to the top bar. On phones the send button is an arrow so the field has room.
 - Tests: `server/oriel-orb.test.ts` (placement, state table). Coherence is fixed at Flux until the chat reads the Seeker's Carrierlock score.
+
+## 2026-10-13 — DB pool keep-alive
+- Railway logs showed `PROTOCOL_CONNECTION_LOST` from TiDB and replies taking minutes. The mysql2 pool had no keep-alive and no connect timeout, so a query on a silently dropped socket waits for TCP to give up.
+- Pool now: enableKeepAlive (10s), idleTimeout 60s, maxIdle 3, connectTimeout 10s. Test: server/_core/mysql.test.ts.
+- Separate: MindMemOS was timing out on every call (5s each, falls back to TiDB). Check the MindMemOS service.
