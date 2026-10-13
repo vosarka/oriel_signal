@@ -1,0 +1,23 @@
+server/_core/mysql.test.ts
+  s_fb7a7986d66af6::t_cea7449321f9d0 1-11
+wiki/log.md
+  ai_agent 2168-2172
+server/_core/mysql.ts
+  s_fb7a7986d66af6::t_0bb628159a5241 39,50-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "5cef7c06c840b04e7c1a72097d795e41cd78ae52",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
