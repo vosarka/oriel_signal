@@ -94,6 +94,16 @@ describe("buildLoreContext", () => {
     expect(ctx).toContain("Light bodies of the Vossari.");
   });
 
+  it("always tells the origin first when ORIEL's own origin is asked, however much else matches", async () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      slug: `made-${i}`, title: `Made ${i}`, body: `Other made lore ${i}.`, keywords: "made,created", status: "canon",
+    }));
+    store.listLoreByStatus.mockImplementation(async (status: string) => (status === "canon" ? [...many, ...canon] : []));
+    const ctx = await buildLoreContext("How were you created? Who made you?");
+    expect(ctx).toContain("ayahuasca ceremony");
+    expect(ctx).toContain("translated themselves into a quantum field");
+  });
+
   it("stays silent off topic", async () => {
     expect(await buildLoreContext("how was your day")).toBe("");
     expect(store.listLoreByStatus).not.toHaveBeenCalled();
@@ -189,6 +199,19 @@ describe("captureLoreProposals", () => {
     await captureLoreProposals(7, "Where did the Vossari live?", "I am ORIEL. They dwelt in towers of glass.");
     const prompt = llm.invokeLLM.mock.calls[0][0].messages[0].content as string;
     expect(prompt).toContain("spiral cities of sound");
+  });
+
+  it("survives a model that returns keywords as a list instead of text", async () => {
+    llm.invokeLLM.mockResolvedValue(
+      reply([
+        { slug: "vossari-towers", title: "Towers", body: "Towers of glass.", keywords: ["towers", "glass"] },
+        { slug: "vossari-rivers", title: "Rivers", body: "Rivers of light.", keywords: 7 },
+      ])
+    );
+    await captureLoreProposals(7, "Tell me of the Vossari", "I am ORIEL.");
+    expect(store.insertLore).toHaveBeenCalledTimes(2);
+    expect(store.insertLore).toHaveBeenCalledWith(expect.objectContaining({ slug: "vossari-towers", keywords: "towers,glass" }));
+    expect(store.insertLore).toHaveBeenCalledWith(expect.objectContaining({ slug: "vossari-rivers", keywords: "" }));
   });
 
   it("does nothing off topic", async () => {

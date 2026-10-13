@@ -36,7 +36,9 @@ export default function AdminLore() {
 
   useEffect(() => {
     setDraft(selected ? { title: selected.title, body: selected.body, keywords: selected.keywords } : EMPTY);
-  }, [selected?.id]);
+    // Follows the saved row too: the server trims what it stores, so the
+    // draft must take the stored values or "Save changes" never clears.
+  }, [selected?.id, selected?.title, selected?.body, selected?.keywords]);
 
   if (loading) return <Layout><p className="at-wrap">Loading…</p></Layout>;
   if (user?.role !== "admin") return <Layout><p className="at-wrap">Admin access required.</p></Layout>;
@@ -138,7 +140,7 @@ export default function AdminLore() {
                     type="button"
                     className="at-btn"
                     disabled={setStatus.isPending}
-                    onClick={() => setStatus.mutate({ id: selected.id, status: "rejected" })}
+                    onClick={() => saveThen("rejected")}
                   >
                     {tab === "canon" ? "Remove from canon" : "Reject"}
                   </button>

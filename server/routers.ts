@@ -1378,9 +1378,11 @@ export const appRouter = router({
             }
           })();
 
-          void import("./vossari-lore").then(({ captureLoreProposals }) =>
-            captureLoreProposals(conversationId ?? null, input.message, response, conversationHistory)
-          );
+          void import("./vossari-lore")
+            .then(({ captureLoreProposals }) =>
+              captureLoreProposals(conversationId ?? null, input.message, response, conversationHistory)
+            )
+            .catch(err => console.error("[oriel.chat] Lore capture failed:", err));
         }
         markTiming("dbSaveMs", dbSaveStartedAt);
 

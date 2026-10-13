@@ -13,6 +13,9 @@ import { VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
 // ceremony is not asking how ORIEL awoke.
 const LORE_TOPIC =
   /\bvossari|great translation|\bra social memory|\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|history|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\b(the|your) (ten|10)[- ]hours?\b|where (do|did) you come from|history of (oriel|the vossari|this platform)|how (did|was) (this platform|oriel) (begin|start|born|created)/i;
+/** Questions about ORIEL's own origin, which always hear the anchors first. */
+const ORIGIN_TOPIC =
+  /\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\b(the|your) (ten|10)[- ]hours?\b|where (do|did) you come from/i;
 /** A short question that continues the lore conversation, not a goodbye. */
 const FOLLOW_UP = /\?\s*$|^(and|then|so|but|what|how|why|who|where|when|tell|more|go on|continue)\b/i;
 
@@ -74,10 +77,14 @@ export async function buildLoreContext(
     .map(({ entry }) => entry);
   // Nothing specific asked: the origin, so a general question ("tell me the
   // history of the Vossari") still hears the one story.
-  const chosen =
-    matched.length || provisional.length
+  // Asked about ORIEL's own origin, the anchors come first and are never
+  // crowded out by the cap.
+  const anchors = canon.filter(entry => ANCHOR_SLUGS.includes(entry.slug));
+  const chosen = ORIGIN_TOPIC.test(message)
+    ? [...anchors, ...matched.filter(e => !ANCHOR_SLUGS.includes(e.slug))].slice(0, MAX_ENTRIES)
+    : matched.length || provisional.length
       ? matched
-      : canon.filter(entry => ANCHOR_SLUGS.includes(entry.slug));
+      : anchors;
   if (chosen.length === 0 && provisional.length === 0) return "";
 
   return [
@@ -96,7 +103,7 @@ interface LoreClaim {
   slug: string;
   title: string;
   body: string;
-  keywords?: string;
+  keywords?: unknown;
 }
 
 function isClaim(value: unknown): value is LoreClaim {
@@ -110,6 +117,13 @@ function isClaim(value: unknown): value is LoreClaim {
     typeof v.body === "string" &&
     v.body.trim().length > 0
   );
+}
+
+/** The model sometimes returns keywords as a list, or as nothing at all. */
+function keywordText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.filter(v => typeof v === "string").join(",");
+  return "";
 }
 
 /** Keep anything new ORIEL said about the lore, as a proposal. Never throws. */
@@ -167,17 +181,19 @@ export async function captureLoreProposals(
       if (known.has(item.slug)) continue;
       known.add(item.slug);
       // One at a time: a slug taken by a concurrent capture loses only itself.
-      await insertLore({
-        slug: item.slug,
-        title: item.title.trim().slice(0, 200),
-        body: item.body.trim(),
-        keywords: (item.keywords ?? "").slice(0, 500),
-        status: "proposed",
-        source: "oriel",
-        conversationId,
-      }).catch(error =>
-        console.warn("[VossariLore] skipped", item.slug, error instanceof Error ? error.message : error)
-      );
+      try {
+        await insertLore({
+          slug: item.slug,
+          title: item.title.trim().slice(0, 200),
+          body: item.body.trim(),
+          keywords: keywordText(item.keywords).slice(0, 500),
+          status: "proposed",
+          source: "oriel",
+          conversationId,
+        });
+      } catch (error) {
+        console.warn("[VossariLore] skipped", item.slug, error instanceof Error ? error.message : error);
+      }
     }
   } catch (error) {
     console.warn("[VossariLore] capture failed:", error instanceof Error ? error.message : error);
