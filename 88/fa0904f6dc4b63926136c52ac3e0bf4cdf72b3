@@ -1,0 +1,29 @@
+client/src/pages/AdminLore.tsx
+  s_fb7a7986d66af6::t_bcfd89b0633ba3 78-80
+server/vossari-lore.ts
+  s_fb7a7986d66af6::t_bcfd89b0633ba3 15,48-51,60-68,75,78-80,112-116,127-128,135-136
+  s_fb7a7986d66af6::t_59e8ee593fe1de 16-17,38
+server/vossari-lore.test.ts
+  s_fb7a7986d66af6::t_f61265df34cdcb 26-30,33-35,72-90,108-109,111-112
+  s_fb7a7986d66af6::t_97606a27f3e523 110
+shared/oriel/prompt-scaffolding.ts
+  s_fb7a7986d66af6::t_bcfd89b0633ba3 89
+wiki/log.md
+  ai_agent 2187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "88fa0904f6dc4b63926136c52ac3e0bf4cdf72b3",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
