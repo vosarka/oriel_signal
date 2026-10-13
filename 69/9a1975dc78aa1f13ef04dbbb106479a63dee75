@@ -1,0 +1,40 @@
+server/vossari-lore.ts
+  s_fb7a7986d66af6::t_6ce48f2bb87898 67,88-90
+  s_fb7a7986d66af6::t_bed672fd44592a 11-13,15-17,33-34,60,62,74-79,84-86,118-119,122-123,126,150-152,168,177-179
+server/oriel-wiki-retriever.ts
+  s_fb7a7986d66af6::t_974b6d1cb179ec 100-114,177
+server/vossari-lore.test.ts
+  s_fb7a7986d66af6::t_88afe0cea8ac30 80,95,101,113
+  s_fb7a7986d66af6::t_6b9ef13a38491a 106-107
+  s_fb7a7986d66af6::t_c2a2554071512e 31-34,38,54-70,102-105,108-112,114-116,131-158,200-206,216-220
+client/src/pages/AdminLore.tsx
+  s_fb7a7986d66af6::t_6ce48f2bb87898 79
+  s_fb7a7986d66af6::t_6dbfa95135d7cc 82-86,103
+wiki/log.md
+  s_fb7a7986d66af6::t_6ce48f2bb87898 2188
+  s_fb7a7986d66af6::t_6dbfa95135d7cc 2189
+server/oriel-wiki-lore.test.ts
+  s_fb7a7986d66af6::t_c2a2554071512e 1-14
+shared/vossari-lore-seed.ts
+  s_fb7a7986d66af6::t_bed672fd44592a 5-6,47
+shared/oriel/prompt-scaffolding.ts
+  s_fb7a7986d66af6::t_bed672fd44592a 86-89
+server/routers.ts
+  s_fb7a7986d66af6::t_bed672fd44592a 1382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "699a1975dc78aa1f13ef04dbbb106479a63dee75",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
