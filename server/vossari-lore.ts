@@ -37,7 +37,8 @@ export function isLoreTopic(
 function score(entry: { title: string; keywords: string; slug: string }, query: string): number {
   let s = ANCHOR_SLUGS.includes(entry.slug) ? 1 : 0;
   for (const k of entry.keywords.split(",")) {
-    const word = k.trim().toLowerCase();
+    // Hyphens count as spaces on both sides: "felt-resonance" and "felt resonance" are one keyword.
+    const word = k.trim().toLowerCase().replace(/-/g, " ");
     if (word.length > 2 && query.includes(word)) s += 10;
   }
   for (const w of entry.title.toLowerCase().split(/\s+/)) {
@@ -56,7 +57,7 @@ export async function buildLoreContext(
     listLoreByStatus("proposed"),
   ]);
 
-  const query = `${message} ${history.slice(-2).map(h => h.content).join(" ")}`.toLowerCase();
+  const query = `${message} ${history.slice(-2).map(h => h.content).join(" ")}`.toLowerCase().replace(/-/g, " ");
   const matched = canon
     .map(entry => ({ entry, s: score(entry, query) }))
     .filter(({ s }) => s > 1)

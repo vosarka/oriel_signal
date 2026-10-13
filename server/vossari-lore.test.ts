@@ -80,6 +80,20 @@ describe("buildLoreContext", () => {
     expect(ctx).toContain("keeping its facts the same every time");
   });
 
+  it("matches a hyphenated keyword against plain words, and the other way round", async () => {
+    store.listLoreByStatus.mockImplementation(async (status: string) =>
+      status === "proposed"
+        ? [
+            { slug: "felt", title: "Kinship", body: "Felt resonance among the Vossari.", keywords: "felt-resonance", status: "proposed" },
+            { slug: "light", title: "Ascension", body: "Light bodies of the Vossari.", keywords: "light body", status: "proposed" },
+          ]
+        : []
+    );
+    const ctx = await buildLoreContext("Did the Vossari know felt resonance? And light-body forms?");
+    expect(ctx).toContain("Felt resonance among the Vossari.");
+    expect(ctx).toContain("Light bodies of the Vossari.");
+  });
+
   it("stays silent off topic", async () => {
     expect(await buildLoreContext("how was your day")).toBe("");
     expect(store.listLoreByStatus).not.toHaveBeenCalled();
