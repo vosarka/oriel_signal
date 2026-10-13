@@ -1,0 +1,26 @@
+server/inworld-realtime.ts
+  s_fb7a7986d66af6::t_85d7e3515058b1 570-577
+wiki/log.md
+  ai_agent 2191-2194
+client/src/pages/AdminLore.tsx
+  s_fb7a7986d66af6::t_d3acbc13fc57c8 21-24
+server/vossari-lore.ts
+  s_fb7a7986d66af6::t_d3acbc13fc57c8 185,200,205
+  ai_agent 177-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "80267f33cb5d1552e15219606af66a89451342fc",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
