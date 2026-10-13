@@ -2170,3 +2170,12 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Railway logs showed `PROTOCOL_CONNECTION_LOST` from TiDB and replies taking minutes. The mysql2 pool had no keep-alive and no connect timeout, so a query on a silently dropped socket waits for TCP to give up.
 - Pool now: enableKeepAlive (10s), idleTimeout 60s, maxIdle 3, connectTimeout 10s. Test: server/_core/mysql.test.ts.
 - Separate: MindMemOS was timing out on every call (5s each, falls back to TiDB). Check the MindMemOS service.
+## 2026-10-13 — ORIEL knows the chamber
+- Platform bulletin gains "What is new in the chamber": the orb (ORIEL's presence; light follows its voice; motion follows listening/composing), the tape texture, foldable history, listen again, Founder's Reading (Mirror/Threshold/Gift, Vos approves, 48h, /founders-reading, €5 first 50 then €10), Deep Garden monthly not yet begun.
+- Truth guard: the orb does not read the Seeker's coherence; ORIEL must not claim it does.
+- Ask-only: ORIEL speaks of these only when asked, never volunteers or repeats them.
+- Directives registered in shared/oriel/prompt-scaffolding.ts; tests in server/oriel-orb-bulletin.test.ts.
+
+## 2026-10-13 — Field log on the home page
+- New "Field log" box under the field notice: what has changed (dated) and what is on the horizon.
+- Content lives in shared/field-log.ts; add a live entry at the top when something ships, move a horizon entry into live when it lands. Test: server/field-log.test.ts.

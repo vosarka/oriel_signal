@@ -4349,3 +4349,78 @@
   font-size: clamp(1.08rem, 1.6vw, 1.25rem);
   line-height: 1.65;
 }
+
+/* ── Field log: what changed, and what is coming (home) ────────────── */
+.fi-log {
+  width: min(100% - 2rem, 64rem);
+  margin: clamp(3rem, 7vw, 5rem) auto;
+  text-align: left;
+}
+
+.fi-log__grid {
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 900px) {
+  .fi-log__grid {
+    grid-template-columns: 3fr 2fr;
+  }
+  .fi-log__horizon {
+    padding-left: 2rem;
+    border-left: 1px solid rgba(216, 181, 109, 0.18);
+  }
+}
+
+.fi-log .fi-log__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.6rem;
+}
+
+.fi-log .fi-log__date {
+  display: block;
+  margin: 0 0 0.35rem;
+  color: #d8b56d;
+  font-family: var(--fi-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.fi-log__horizon > .fi-log__date {
+  margin-bottom: 1.2rem;
+  color: #5ba4a4;
+}
+
+.fi-log .fi-log__name {
+  margin: 0;
+  color: #fff7e6;
+  font-family: var(--fi-font-display);
+  font-weight: 500;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  line-height: 1.25;
+}
+
+.fi-log .fi-log__name a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(216, 181, 109, 0.35);
+}
+
+.fi-log .fi-log__name a:hover,
+.fi-log .fi-log__name a:focus-visible {
+  color: #e4c88c;
+  border-bottom-color: #e4c88c;
+}
+
+.fi-log .fi-log__text {
+  margin: 0.4rem 0 0;
+  color: rgba(255, 247, 230, 0.68);
+  font-family: var(--fi-font-voice);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
