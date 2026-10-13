@@ -2166,6 +2166,10 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - The conversations panel can be hidden on desktop (remembered). The input bar lost its background and border; the voice selector and volume moved to the top bar. On phones the send button is an arrow so the field has room.
 - Tests: `server/oriel-orb.test.ts` (placement, state table). Coherence is fixed at Flux until the chat reads the Seeker's Carrierlock score.
 
+## 2026-10-13 — DB pool keep-alive
+- Railway logs showed `PROTOCOL_CONNECTION_LOST` from TiDB and replies taking minutes. The mysql2 pool had no keep-alive and no connect timeout, so a query on a silently dropped socket waits for TCP to give up.
+- Pool now: enableKeepAlive (10s), idleTimeout 60s, maxIdle 3, connectTimeout 10s. Test: server/_core/mysql.test.ts.
+- Separate: MindMemOS was timing out on every call (5s each, falls back to TiDB). Check the MindMemOS service.
 ## 2026-10-13 — ORIEL knows the chamber
 - Platform bulletin gains "What is new in the chamber": the orb (ORIEL's presence; light follows its voice; motion follows listening/composing), the tape texture, foldable history, listen again, Founder's Reading (Mirror/Threshold/Gift, Vos approves, 48h, /founders-reading, €5 first 50 then €10), Deep Garden monthly not yet begun.
 - Truth guard: the orb does not read the Seeker's coherence; ORIEL must not claim it does.

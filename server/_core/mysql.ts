@@ -36,7 +36,7 @@ function parseSslOption(rawSsl: string | null) {
   return candidate;
 }
 
-function buildMysqlPoolConfig(databaseUrl: string) {
+export function buildMysqlPoolConfig(databaseUrl: string) {
   const url = new URL(databaseUrl);
   const ssl = parseSslOption(url.searchParams.get("ssl"));
 
@@ -47,6 +47,14 @@ function buildMysqlPoolConfig(databaseUrl: string) {
     password: decodeURIComponent(url.password),
     database: decodeURIComponent(url.pathname.replace(/^\//, "")),
     ssl,
+    // TiDB closes idle connections without always telling the client. With
+    // keep-alive off, the next query on such a socket waits for TCP to give
+    // up, which can take minutes. Probe idle sockets and drop them early.
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10_000,
+    idleTimeout: 60_000,
+    maxIdle: 3,
+    connectTimeout: 10_000,
   };
 }
 
