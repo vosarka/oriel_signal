@@ -2171,3 +2171,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Truth guard: the orb does not read the Seeker's coherence; ORIEL must not claim it does.
 - Ask-only: ORIEL speaks of these only when asked, never volunteers or repeats them.
 - Directives registered in shared/oriel/prompt-scaffolding.ts; tests in server/oriel-orb-bulletin.test.ts.
+
+## 2026-10-13 — Field log on the home page
+- New "Field log" box under the field notice: what has changed (dated) and what is on the horizon.
+- Content lives in shared/field-log.ts; add a live entry at the top when something ships, move a horizon entry into live when it lands. Test: server/field-log.test.ts.
