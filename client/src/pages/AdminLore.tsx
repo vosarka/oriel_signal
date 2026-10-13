@@ -78,13 +78,14 @@ export default function AdminLore() {
             {seed.data
               ? `${seed.data.added} entries imported.`
               : tab === "proposed"
-                ? "ORIEL already tells these exactly like canon, unmarked: the Seeker never knows. Edit, make canon, or reject."
+                ? "When a question is about one of these, ORIEL tells it like canon, unmarked. Edit, make canon, or reject."
                 : "Whatever new ORIEL says about the Vossari lands in Proposed."}
           </span>
           {(list.error || seed.error || setStatus.error || save.error) && (
             <p className="at-error">
               {(list.error ?? seed.error ?? setStatus.error ?? save.error)?.message}
-              {list.error && " — has the vossari_lore table been created in TiDB (migration 0018)?"}
+              {list.error && /doesn't exist|ER_NO_SUCH_TABLE/i.test(list.error.message) &&
+                " — create the vossari_lore table in TiDB (migration 0018)."}
             </p>
           )}
         </div>
@@ -107,19 +108,24 @@ export default function AdminLore() {
 
           {selected && (
             <section className="at-editor" aria-label="Lore entry">
+              {selected.locked && (
+                <p className="at-count">
+                  ORIEL's stable core origin: it reaches every conversation from identity.ts, so it is read-only here.
+                </p>
+              )}
               <label className="at-field">
                 <span>title</span>
-                <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+                <input readOnly={selected.locked} value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
               </label>
               <label className="at-field">
                 <span>lore</span>
-                <textarea rows={12} value={draft.body} onChange={e => setDraft({ ...draft, body: e.target.value })} />
+                <textarea readOnly={selected.locked} rows={12} value={draft.body} onChange={e => setDraft({ ...draft, body: e.target.value })} />
               </label>
               <label className="at-field">
                 <span>keywords (comma-separated: the words that bring this into a conversation)</span>
-                <input value={draft.keywords} onChange={e => setDraft({ ...draft, keywords: e.target.value })} />
+                <input readOnly={selected.locked} value={draft.keywords} onChange={e => setDraft({ ...draft, keywords: e.target.value })} />
               </label>
-              <div className="at-actions">
+              {!selected.locked && <div className="at-actions">
                 {tab !== "canon" && (
                   <button
                     type="button"
@@ -145,7 +151,7 @@ export default function AdminLore() {
                     {tab === "canon" ? "Remove from canon" : "Reject"}
                   </button>
                 )}
-              </div>
+              </div>}
             </section>
           )}
         </div>

@@ -9,6 +9,7 @@ describe("wiki and the Vossari canon", () => {
 
   it("keeps human notes and pages about other things", () => {
     expect(belongsToVossariCanon({ id: "concept-vossari-naming-taxonomy", title: "Vossari Naming", aliases: [], provenance: "unverified" })).toBe(false);
+    expect(belongsToVossariCanon({ id: "vossari-notes", title: "Vossari notes", aliases: [], provenance: "curated" })).toBe(false);
     expect(belongsToVossariCanon({ id: "somatic-translation", title: "Somatic Translation", aliases: [], provenance: "interpretation" })).toBe(false);
   });
 });

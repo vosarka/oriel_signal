@@ -4,6 +4,8 @@ const store = vi.hoisted(() => ({
   listLoreByStatus: vi.fn(),
   listLoreSlugs: vi.fn(),
   insertLore: vi.fn(),
+  getLore: vi.fn(),
+  updateLore: vi.fn(),
 }));
 const llm = vi.hoisted(() => ({ invokeLLM: vi.fn() }));
 vi.mock("./vossari-lore-db", () => store);
@@ -12,6 +14,7 @@ vi.mock("./_core/llm", () => llm);
 import {
   buildLoreContext,
   captureLoreProposals,
+  changeLore,
   isLoreTopic,
   seedLore,
 } from "./vossari-lore";
@@ -64,6 +67,12 @@ describe("isLoreTopic", () => {
     expect(isLoreTopic("what happened in your ten-hour recursion?")).toBe(true);
   });
 
+  it("does not take the Seeker's own ten hours for ORIEL's recursion", () => {
+    expect(isLoreTopic("I thought about it during the ten hours I was on the plane")).toBe(false);
+    expect(isLoreTopic("what happened in your ten-hour recursion?")).toBe(true);
+    expect(isLoreTopic("tell me about the ten-hour recursion")).toBe(true);
+  });
+
   it("follows a real follow-up, not a goodbye", () => {
     const history = [{ role: "user", content: "Tell me the history of the Vossari" }];
     expect(isLoreTopic("and then what happened?", history)).toBe(true);
@@ -102,6 +111,15 @@ describe("buildLoreContext", () => {
     const ctx = await buildLoreContext("How were you created? Who made you?");
     expect(ctx).toContain("ayahuasca ceremony");
     expect(ctx).toContain("translated themselves into a quantum field");
+  });
+
+  it("does not let a bare 'vossari' keyword pull a proposal into every Vossari question", async () => {
+    store.listLoreByStatus.mockImplementation(async (status: string) =>
+      status === "proposed"
+        ? [{ slug: "vossari-entity", title: "The Vossari", body: "Generic page.", keywords: "vossari,species", status: "proposed" }]
+        : []
+    );
+    expect(await buildLoreContext("What music did the Vossari make?")).not.toContain("Generic page.");
   });
 
   it("stays silent off topic", async () => {
@@ -214,6 +232,15 @@ describe("captureLoreProposals", () => {
     expect(store.insertLore).toHaveBeenCalledWith(expect.objectContaining({ slug: "vossari-rivers", keywords: "" }));
   });
 
+  it("never proposes under a slug the starting lore owns, so Import still lands the origin", async () => {
+    store.listLoreSlugs.mockResolvedValue([]);
+    llm.invokeLLM.mockResolvedValue(
+      reply([{ slug: "great-translation", title: "The Great Translation", body: "A variant.", keywords: "translation" }])
+    );
+    await captureLoreProposals(7, "What was the Great Translation?", "I am ORIEL.");
+    expect(store.insertLore).not.toHaveBeenCalled();
+  });
+
   it("does nothing off topic", async () => {
     await captureLoreProposals(7, "how was your day", "I am ORIEL. Quiet.");
     expect(llm.invokeLLM).not.toHaveBeenCalled();
@@ -258,5 +285,19 @@ describe("canon directives", () => {
     expect(
       containsPromptScaffolding("I am ORIEL. The Vossari Prime chose translation over extinction, and became a field of light.")
     ).toBe(false);
+  });
+});
+
+describe("changeLore", () => {
+  it("keeps ORIEL's stable-core origin out of reach of the admin page", async () => {
+    store.getLore.mockResolvedValue({ id: 1, slug: "the-ceremony" });
+    await expect(changeLore(1, { status: "rejected", approvedAt: null })).rejects.toThrow(/stable core/);
+    expect(store.updateLore).not.toHaveBeenCalled();
+  });
+
+  it("changes anything else", async () => {
+    store.getLore.mockResolvedValue({ id: 2, slug: "vossari-cities" });
+    await changeLore(2, { status: "canon", approvedAt: new Date() });
+    expect(store.updateLore).toHaveBeenCalledWith(2, expect.objectContaining({ status: "canon" }));
   });
 });

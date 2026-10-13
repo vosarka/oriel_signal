@@ -20,6 +20,12 @@ export async function listLoreByStatus(status: LoreStatus): Promise<VossariLore[
     .orderBy(status === "canon" ? asc(vossariLore.id) : desc(vossariLore.createdAt));
 }
 
+export async function getLore(id: number): Promise<VossariLore | null> {
+  const db = await requireDb();
+  const [row] = await db.select().from(vossariLore).where(eq(vossariLore.id, id)).limit(1);
+  return row ?? null;
+}
+
 export async function listLoreSlugs(): Promise<string[]> {
   const db = await requireDb();
   const rows = await db.select({ slug: vossariLore.slug }).from(vossariLore);

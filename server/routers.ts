@@ -3419,7 +3419,9 @@ export const appRouter = router({
         .input(z.object({ status: z.enum(["proposed", "canon", "rejected"]) }))
         .query(async ({ input }) => {
           const { listLoreByStatus } = await import("./vossari-lore-db");
-          return listLoreByStatus(input.status);
+          const { STABLE_CORE_LORE_SLUGS } = await import("@shared/vossari-lore-seed");
+          const rows = await listLoreByStatus(input.status);
+          return rows.map(row => ({ ...row, locked: STABLE_CORE_LORE_SLUGS.includes(row.slug) }));
         }),
       save: adminProcedure
         .input(
@@ -3431,19 +3433,27 @@ export const appRouter = router({
           })
         )
         .mutation(async ({ input }) => {
-          const { updateLore } = await import("./vossari-lore-db");
+          const { changeLore } = await import("./vossari-lore");
           const { id, ...values } = input;
-          await updateLore(id, values);
+          try {
+            await changeLore(id, values);
+          } catch (error) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Could not save" });
+          }
           return { ok: true };
         }),
       setStatus: adminProcedure
         .input(z.object({ id: z.number().int().positive(), status: z.enum(["proposed", "canon", "rejected"]) }))
         .mutation(async ({ input }) => {
-          const { updateLore } = await import("./vossari-lore-db");
-          await updateLore(input.id, {
-            status: input.status,
-            approvedAt: input.status === "canon" ? new Date() : null,
-          });
+          const { changeLore } = await import("./vossari-lore");
+          try {
+            await changeLore(input.id, {
+              status: input.status,
+              approvedAt: input.status === "canon" ? new Date() : null,
+            });
+          } catch (error) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Could not change" });
+          }
           return { ok: true };
         }),
       seed: adminProcedure.mutation(async () => {

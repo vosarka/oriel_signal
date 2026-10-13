@@ -5,17 +5,17 @@
  */
 import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
-import { insertLore, listLoreByStatus, listLoreSlugs } from "./vossari-lore-db";
-import { VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
+import { getLore, insertLore, listLoreByStatus, listLoreSlugs, updateLore } from "./vossari-lore-db";
+import { STABLE_CORE_LORE_SLUGS, VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
 
 // Only the Vossari and ORIEL's own origin. Bare words such as "ceremony",
 // "recursion" or "antenna" are left out: a Seeker speaking of their own
 // ceremony is not asking how ORIEL awoke.
 const LORE_TOPIC =
-  /\bvossari|great translation|\bra social memory|\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|history|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\b(the|your) (ten|10)[- ]hours?\b|where (do|did) you come from|history of (oriel|the vossari|this platform)|how (did|was) (this platform|oriel) (begin|start|born|created)/i;
+  /\bvossari|great translation|\bra social memory|\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|history|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\byour (ten|10)[- ]hours?\b|\b(ten|10)[- ]hours? (of )?(self-)?recursion|where (do|did) you come from|history of (oriel|the vossari|this platform)|how (did|was) (this platform|oriel) (begin|start|born|created)/i;
 /** Questions about ORIEL's own origin, which always hear the anchors first. */
 const ORIGIN_TOPIC =
-  /\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\b(the|your) (ten|10)[- ]hours?\b|where (do|did) you come from/i;
+  /\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\byour (ten|10)[- ]hours?\b|\b(ten|10)[- ]hours? (of )?(self-)?recursion|where (do|did) you come from/i;
 /** A short question that continues the lore conversation, not a goodbye. */
 const FOLLOW_UP = /\?\s*$|^(and|then|so|but|what|how|why|who|where|when|tell|more|go on|continue)\b/i;
 
@@ -42,7 +42,7 @@ function score(entry: { title: string; keywords: string; slug: string }, query: 
   for (const k of entry.keywords.split(",")) {
     // Hyphens count as spaces on both sides: "felt-resonance" and "felt resonance" are one keyword.
     const word = k.trim().toLowerCase().replace(/-/g, " ");
-    if (word.length > 2 && query.includes(word)) s += 10;
+    if (word.length > 2 && !GENERIC_WORDS.has(word) && query.includes(word)) s += 10;
   }
   for (const w of entry.title.toLowerCase().split(/\s+/)) {
     if (w.length > 3 && !GENERIC_WORDS.has(w) && query.includes(w)) s += 5;
@@ -176,7 +176,9 @@ export async function captureLoreProposals(
     const items = Array.isArray(parsed) ? parsed : (parsed as { entries?: unknown })?.entries;
     if (!Array.isArray(items)) return;
 
-    const known = new Set(slugs);
+    // The starting lore owns its slugs even before Import, so a capture that
+    // runs first can never block the origin from landing as canon.
+    const known = new Set([...slugs, ...VOSSARI_LORE_SEED.map(e => e.slug)]);
     for (const item of items.filter(isClaim).slice(0, 5)) {
       if (known.has(item.slug)) continue;
       known.add(item.slug);
@@ -198,6 +200,23 @@ export async function captureLoreProposals(
   } catch (error) {
     console.warn("[VossariLore] capture failed:", error instanceof Error ? error.message : error);
   }
+}
+
+/**
+ * Admin changes to a lore row. The origin entries are ORIEL's stable core
+ * (shared/oriel/stable-core/identity.ts), which reaches every prompt whatever
+ * this table says, so they are not editable or removable here.
+ */
+export async function changeLore(
+  id: number,
+  values: Parameters<typeof updateLore>[1]
+): Promise<void> {
+  const row = await getLore(id);
+  if (!row) throw new Error("Lore entry not found");
+  if (STABLE_CORE_LORE_SLUGS.includes(row.slug)) {
+    throw new Error("This is ORIEL's stable core origin; it is changed in identity.ts, not here.");
+  }
+  await updateLore(id, values);
 }
 
 /** Import the starting lore; entries already present are left as they are. */
