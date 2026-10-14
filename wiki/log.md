@@ -2192,3 +2192,9 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-13] fix | Lore capture from live voice, visible in logs
 - Asked by voice, ORIEL never proposed lore: the Inworld realtime path saved memory but did not call captureLoreProposals. Now it does.
 - Capture logs how many claims the model returned and how many became proposals, so Railway shows why nothing appeared. /admin/lore refreshes every 15s.
+
+## [2026-10-14] feat | Vossari lore in its own MindMemOS memory
+- Lore is found by meaning in a dedicated MindMemOS project (MINDMEMOS_LORE_API_KEY, user id 0), shared by every Seeker, instead of keyword scoring. Hits are read back from vossari_lore, so the current text is told and rejected entries never return.
+- Hits map back by our [orielMemories:id] prefix or by the MindMemOS ids kept in vossari_lore.memosIds (migration 0019), in case the service rewords the text.
+- The lore search waits at most 2.5s; otherwise, or with no key, ORIEL gets all living lore from TiDB. The lore memory runs on its own key, independent of ORIEL_MINDMEMOS.
+- Sync indexes only entries not yet indexed; status changes do not re-index; edits re-index in the background so admin saves never wait. Follow-ups ("do they have a life span?") count as lore when ORIEL just spoke of the Vossari, and capture also runs when ORIEL's reply tells Vossari lore.

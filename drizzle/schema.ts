@@ -1228,6 +1228,8 @@ export const vossariLore = mysqlTable(
     conversationId: int("conversationId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     approvedAt: timestamp("approvedAt"),
+    /** Comma-separated MindMemOS ids of this entry in the lore memory project. */
+    memosIds: text("memosIds"),
   },
   table => [
     uniqueIndex("uq_vossari_lore_slug").on(table.slug),

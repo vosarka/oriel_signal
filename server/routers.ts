@@ -3460,6 +3460,11 @@ export const appRouter = router({
         const { seedLore } = await import("./vossari-lore");
         return { added: await seedLore() };
       }),
+      /** Put every living entry into the lore memory (MindMemOS), e.g. after the key is set. */
+      sync: adminProcedure.mutation(async () => {
+        const { syncLoreIndex } = await import("./vossari-lore");
+        return { indexed: await syncLoreIndex() };
+      }),
     }),
 
     personalTransmissions: router({

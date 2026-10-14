@@ -5,7 +5,20 @@
  */
 import { invokeLLM } from "./_core/llm";
 import { parseModelJson } from "./_core/json";
-import { getLore, insertLore, listLoreByStatus, listLoreSlugs, updateLore } from "./vossari-lore-db";
+import { ENV } from "./_core/env";
+import {
+  getLore,
+  getLoreByIds,
+  getLoreBySlug,
+  getLoreIdsByMemosId,
+  insertLore,
+  listLoreByStatus,
+  listLoreSlugs,
+  setLoreMemosIds,
+  updateLore,
+} from "./vossari-lore-db";
+import { indexAcceptedMemory, searchMemoryHits, type MindMemOSClientConfig } from "./oriel-mindmemos";
+import type { VossariLore } from "../drizzle/schema";
 import { STABLE_CORE_LORE_SLUGS, VOSSARI_LORE_SEED } from "../shared/vossari-lore-seed";
 
 // Only the Vossari and ORIEL's own origin. Bare words such as "ceremony",
@@ -17,37 +30,130 @@ const LORE_TOPIC =
 const ORIGIN_TOPIC =
   /\bvos arkana\b|who (made|created|built|awakened|awoke) you|how (were|was|did) you (made|created|born|built|awaken|awakened|come to be)|\byour (origin|awakening|creator|creation|birth|genesis|beginning|ceremony|recursion)\b|\byour (ten|10)[- ]hours?\b|\b(ten|10)[- ]hours? (of )?(self-)?recursion|where (do|did) you come from/i;
 /** A short question that continues the lore conversation, not a goodbye. */
-const FOLLOW_UP = /\?\s*$|^(and|then|so|but|what|how|why|who|where|when|tell|more|go on|continue)\b/i;
+const FOLLOW_UP =
+  /\?|^(and|then|so|but|what|how|why|who|where|when|which|do|does|did|is|are|was|were|can|could|would|tell|more|go on|continue)\b/i;
+/** ORIEL telling the lore, whatever the question said. */
+const LORE_REPLY = /\bvossari|great translation/i;
 
-const MAX_ENTRIES = 6;
-const MAX_PROVISIONAL = 3;
-/** In nearly every title, so they say nothing about which entry is meant. */
-const GENERIC_WORDS = new Set(["vossari", "oriel", "oriel's", "their", "the"]);
-/** Always present on a lore question: the origin ORIEL must never retell differently. */
+/** Always first when ORIEL's own origin is asked: the story it must never retell differently. */
 const ANCHOR_SLUGS = ["great-translation", "the-ceremony", "the-recursion"];
+/** How many entries a search brings, and how many the fallback may send. */
+const SEARCH_TOP_K = 6;
+const MAX_FALLBACK = 20;
+/** How long a lore turn waits for the lore memory before sending all lore. */
+const LORE_SEARCH_BUDGET_MS = 2_500;
+/**
+ * The lore lives in its own MindMemOS project (MINDMEMOS_LORE_API_KEY), shared
+ * by every Seeker, so one fixed user id holds it all.
+ */
+const LORE_USER_ID = 0;
+
+function loreMemosConfig(): MindMemOSClientConfig {
+  return {
+    // Its own key, its own switch: turning the main memory off leaves the lore memory on.
+    enabled: Boolean(ENV.mindMemosLoreApiKey && ENV.mindMemosBaseUrl),
+    baseUrl: ENV.mindMemosBaseUrl,
+    apiKey: ENV.mindMemosLoreApiKey,
+  };
+}
 
 export function isLoreTopic(
   message: string,
   history: Array<{ role: string; content: string }> = []
 ): boolean {
   if (LORE_TOPIC.test(message)) return true;
-  // A follow-up ("and then?") stays on the lore its last user turn was about.
-  const lastUser = [...history].reverse().find(h => h.role === "user");
+  // A follow-up ("do they have a life span?") stays on the lore the last
+  // exchange was about, whether the Seeker or ORIEL named it.
   const text = message.trim();
-  return Boolean(lastUser && text.length < 80 && FOLLOW_UP.test(text) && LORE_TOPIC.test(lastUser.content));
+  if (text.length >= 160 || !FOLLOW_UP.test(text)) return false;
+  const lastUser = [...history].reverse().find(h => h.role === "user");
+  const lastOriel = [...history].reverse().find(h => h.role === "assistant");
+  return Boolean(
+    (lastUser && LORE_TOPIC.test(lastUser.content)) || (lastOriel && LORE_REPLY.test(lastOriel.content))
+  );
 }
 
-function score(entry: { title: string; keywords: string; slug: string }, query: string): number {
-  let s = ANCHOR_SLUGS.includes(entry.slug) ? 1 : 0;
-  for (const k of entry.keywords.split(",")) {
-    // Hyphens count as spaces on both sides: "felt-resonance" and "felt resonance" are one keyword.
-    const word = k.trim().toLowerCase().replace(/-/g, " ");
-    if (word.length > 2 && !GENERIC_WORDS.has(word) && query.includes(word)) s += 10;
+/** Index one entry in the lore memory under its own id. Never throws. */
+async function indexLore(row: Pick<VossariLore, "id" | "title" | "keywords" | "body">): Promise<boolean> {
+  const config = loreMemosConfig();
+  if (!config.enabled) return false;
+  try {
+    const { indexed, cloudIds } = await indexAcceptedMemory(
+      { memoryId: row.id, userId: LORE_USER_ID, content: `${row.title}\n${row.keywords}\n${row.body}` },
+      config
+    );
+    // The service may reword what it stores and drop our [orielMemories:id]
+    // prefix; its own ids still lead back to the entry.
+    if (cloudIds.length) await setLoreMemosIds(row.id, cloudIds);
+    return indexed;
+  } catch (error) {
+    console.warn("[VossariLore] index failed for", row.id, error instanceof Error ? error.message : error);
+    return false;
   }
-  for (const w of entry.title.toLowerCase().split(/\s+/)) {
-    if (w.length > 3 && !GENERIC_WORDS.has(w) && query.includes(w)) s += 5;
+}
+
+/**
+ * Put every living entry not yet in the lore memory there. Entries already
+ * indexed are skipped: the service only adds, so a second copy would crowd
+ * the search results.
+ */
+export async function syncLoreIndex(): Promise<number> {
+  const [canon, proposed] = await Promise.all([listLoreByStatus("canon"), listLoreByStatus("proposed")]);
+  let indexed = 0;
+  for (const row of [...canon, ...proposed].filter(r => !r.memosIds)) {
+    if (await indexLore(row)) indexed += 1;
   }
-  return s;
+  return indexed;
+}
+
+/**
+ * The lore entries for this turn. Found by meaning in the lore memory, then
+ * read from our table, so the text is the current one and anything Vos
+ * rejected stays out even if the index still holds it. When the lore memory
+ * does not answer, every living entry is sent instead: the lore is small.
+ */
+async function loreForTurn(
+  message: string,
+  history: Array<{ role: string; content: string }>
+): Promise<VossariLore[]> {
+  const config = loreMemosConfig();
+  if (config.enabled) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // A follow-up borrows ORIEL's last words to know who "they" are; a
+      // fresh question is searched on its own words.
+      const lastOriel = LORE_TOPIC.test(message)
+        ? ""
+        : ([...history].reverse().find(h => h.role === "assistant")?.content ?? "");
+      const query = `${message}\n${lastOriel.slice(0, 400)}`.trim();
+      const found = await Promise.race([
+        searchMemoryHits(LORE_USER_ID, query, config, SEARCH_TOP_K),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`lore memory slower than ${LORE_SEARCH_BUDGET_MS}ms`)), LORE_SEARCH_BUDGET_MS);
+        }),
+      ]);
+      // Our prefix when it survived, the service's own id when it did not.
+      const byCloud = await getLoreIdsByMemosId(found.map(hit => hit.cloudId ?? ""));
+      const ids = Array.from(
+        new Set(
+          found
+            .map((hit, i) => hit.officialMemoryId ?? byCloud[i] ?? null)
+            .filter((id): id is number => typeof id === "number")
+        )
+      );
+      const rows = ids.length ? await getLoreByIds(ids) : [];
+      const living = ids
+        .map(id => rows.find(row => row.id === id))
+        .filter((row): row is VossariLore => Boolean(row) && row!.status !== "rejected");
+      if (living.length) return living;
+    } catch (error) {
+      console.warn("[VossariLore] lore search failed, sending all lore:", error instanceof Error ? error.message : error);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+  const [canon, proposed] = await Promise.all([listLoreByStatus("canon"), listLoreByStatus("proposed")]);
+  return [...canon, ...proposed].slice(0, MAX_FALLBACK);
 }
 
 export async function buildLoreContext(
@@ -55,37 +161,14 @@ export async function buildLoreContext(
   history: Array<{ role: string; content: string }> = []
 ): Promise<string> {
   if (!isLoreTopic(message, history)) return "";
-  const [canon, proposed] = await Promise.all([
-    listLoreByStatus("canon"),
-    listLoreByStatus("proposed"),
-  ]);
+  let entries = await loreForTurn(message, history);
 
-  const query = `${message} ${history.slice(-2).map(h => h.content).join(" ")}`.toLowerCase().replace(/-/g, " ");
-  const matched = canon
-    .map(entry => ({ entry, s: score(entry, query) }))
-    .filter(({ s }) => s > 1)
-    .sort((a, b) => b.s - a.s)
-    .slice(0, MAX_ENTRIES)
-    .map(({ entry }) => entry);
-  // Waiting for Vos: told the same way to everyone meanwhile, but only when
-  // the question is really about it, so a stray proposal never crowds canon.
-  const provisional = proposed
-    .map(entry => ({ entry, s: score(entry, query) }))
-    .filter(({ s }) => s > 1)
-    .sort((a, b) => b.s - a.s)
-    .slice(0, MAX_PROVISIONAL)
-    .map(({ entry }) => entry);
-  // Nothing specific asked: the origin, so a general question ("tell me the
-  // history of the Vossari") still hears the one story.
-  // Asked about ORIEL's own origin, the anchors come first and are never
-  // crowded out by the cap.
-  const anchors = canon.filter(entry => ANCHOR_SLUGS.includes(entry.slug));
-  const chosen = ORIGIN_TOPIC.test(message)
-    ? [...anchors, ...matched.filter(e => !ANCHOR_SLUGS.includes(e.slug))].slice(0, MAX_ENTRIES)
-    : matched.length || provisional.length
-      ? matched
-      : anchors;
-  if (chosen.length === 0 && provisional.length === 0) return "";
+  if (ORIGIN_TOPIC.test(message)) {
+    // Asked about ORIEL's own origin, the anchors lead, whatever the search found.
+    const anchors = (await listLoreByStatus("canon")).filter(e => ANCHOR_SLUGS.includes(e.slug));
+    entries = [...anchors, ...entries.filter(e => !ANCHOR_SLUGS.includes(e.slug))];
+  }
+  if (entries.length === 0) return "";
 
   return [
     "[VOSSARI CANON]",
@@ -95,7 +178,7 @@ export async function buildLoreContext(
     "",
     // Proposals waiting for Vos reach ORIEL unmarked: the Seeker hears one
     // story, told the same way, whatever its status behind the scenes.
-    ...[...chosen, ...provisional].map(e => `## ${e.title}\n${e.body}`),
+    ...entries.map(e => `## ${e.title}\n${e.body}`),
   ].join("\n");
 }
 
@@ -134,7 +217,7 @@ export async function captureLoreProposals(
   history: Array<{ role: string; content: string }> = []
 ): Promise<void> {
   try {
-    if (!isLoreTopic(userMessage, history)) return;
+    if (!isLoreTopic(userMessage, history) && !LORE_REPLY.test(reply)) return;
     const [canon, proposed, rejected, slugs] = await Promise.all([
       listLoreByStatus("canon"),
       listLoreByStatus("proposed"),
@@ -154,7 +237,7 @@ export async function captureLoreProposals(
             "Below is the approved canon, the lore already proposed, then an exchange in which ORIEL spoke about the lore.",
             "List only claims ORIEL made about the Vossari, their history, the Great Translation, or ORIEL's own origin that neither the canon nor the proposals already contain.",
             "Ignore advice, practices, questions to the Seeker, and anything about the Seeker personally.",
-            'Return JSON: {"entries":[{"slug":"kebab-case-id","title":"short title","body":"the claim, stated plainly in ORIEL\'s first person where it speaks of itself","keywords":"comma,separated,words"}]}. Return {"entries":[]} when nothing is new.',
+            'Return JSON: {"entries":[{"slug":"kebab-case-id","title":"short title","body":"the claim, stated plainly in ORIEL\'s first person where it speaks of itself","keywords":"comma,separated,words a Seeker would use to ask about it, with spelling variants (lifespan,life span,how long they lived)"}]}. Return {"entries":[]} when nothing is new.',
             "",
             "CANON:",
             ...canon.map(e => `- ${e.title}: ${e.body}`),
@@ -198,6 +281,8 @@ export async function captureLoreProposals(
           conversationId,
         });
         added += 1;
+        const row = await getLoreBySlug(item.slug);
+        if (row) await indexLore(row);
       } catch (error) {
         console.warn("[VossariLore] skipped", item.slug, error instanceof Error ? error.message : error);
       }
@@ -223,6 +308,15 @@ export async function changeLore(
     throw new Error("This is ORIEL's stable core origin; it is changed in identity.ts, not here.");
   }
   await updateLore(id, values);
+  // The lore memory follows an edit of the words, in the background so a save
+  // never waits on it. A status change alone needs nothing: status is read
+  // from this table on every turn.
+  const reworded = "title" in values || "body" in values || "keywords" in values;
+  if (reworded && (values.status ?? row.status) !== "rejected") {
+    void getLore(id)
+      .then(updated => (updated ? indexLore(updated) : false))
+      .catch(error => console.warn("[VossariLore] re-index failed for", id, error));
+  }
 }
 
 /** Import the starting lore; entries already present are left as they are. */
@@ -237,6 +331,9 @@ export async function seedLore(): Promise<number> {
       approvedAt: entry.status === "canon" ? new Date() : null,
     });
     added += 1;
+  }
+  if (added) {
+    void syncLoreIndex().catch(error => console.warn("[VossariLore] sync after import failed:", error));
   }
   return added;
 }
