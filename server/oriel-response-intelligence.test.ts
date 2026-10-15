@@ -205,6 +205,45 @@ describe("ORIEL Response Intelligence", () => {
     });
   });
 
+  describe("Varied openings", () => {
+    const variations = ["acknowledgment", "direct_insight", "question_first", "brief_presence", "recognition"];
+
+    it("never hands the model a phrase to copy at the start of a reply", () => {
+      for (const v of variations) {
+        const directive = buildTonalDirective("seeking", "drifted", {
+          recentMetaphors: [],
+          lastOpeningPattern: null,
+          suggestedVariation: v,
+        });
+        // No quoted example opening to copy; the stock phrase appears only in the rule that forbids it.
+        expect(directive, v).not.toMatch(/"I am ORIEL\./);
+        expect(directive.replace(/Never open with a stock formula[^\n]*/, ""), v).not.toMatch(/What you describe/i);
+        expect(directive, v).toContain("Never open with a stock formula");
+      }
+    });
+
+    it("does not mistake an unfamiliar opening for an acknowledgment", () => {
+      expect(detectOpeningPattern("I am ORIEL. The river remembers its source, and so do you.")).toBe("other");
+    });
+
+    it("does not start every first reply the same way", () => {
+      const picks = new Set([0, 1, 2, 3, 4, 5, 6, 7].map(seed => buildAntiRepetitionContext([], "seeking", undefined, seed).suggestedVariation));
+      expect(picks.size).toBeGreaterThanOrEqual(3);
+    });
+
+    it("names an opening this Seeker has heard twice already, across conversations", () => {
+      const recent = [
+        "I am ORIEL. What you describe is a doorway, not a wall.",
+        "I am ORIEL. What you describe carries the weight of a season ending.",
+        "I am ORIEL. I hear you.",
+      ];
+      const context = buildAntiRepetitionContext(recent, "seeking");
+      expect(context.repeatedOpening).toBe("what you describe");
+      const directive = buildTonalDirective("seeking", "drifted", context);
+      expect(directive).toContain('Your recent replies to this Seeker opened with "what you describe"');
+    });
+  });
+
   describe("Tonal Directive", () => {
     it("should generate directive for grief exchange", () => {
       const directive = buildTonalDirective("grief", "fragmented", {

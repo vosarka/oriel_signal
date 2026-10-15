@@ -15,6 +15,7 @@ export const ORB_FRAG = `#version 300 es
   uniform float amp, since, listen, think, speak, coh;
   uniform float fold, phase;
   uniform float holo;   // 1: the three-channel holographic split; 0: one pass, for slow machines
+  uniform float rest;   // 0 awake .. 1 at rest: the colour drained into a faint pattern of the room
 
   const vec3 IVORY = vec3(1., .969, .902);
   const vec3 GLASS = vec3(.96, .78, .62);      // peach-gold crystal
@@ -218,5 +219,9 @@ export const ORB_FRAG = `#version 300 es
     col *= .955 + .045*sin(gl_FragCoord.y*1.35 + t*14.);
     col += iri(uv.y*.7 + uv.x*.3 + t*.04) * .018;
     col += (hash(gl_FragCoord.xy + fract(t)*91.) - .5) * .045;
+    // At rest the orb keeps only its shape, as a faint warm pattern in the
+    // tones of the background.
+    float luma = dot(col, vec3(.299, .587, .114));
+    col = mix(col, vec3(.75, .64, .48) * luma * .32, rest);
     o = vec4(col + vec3(.027, .024, .031), 1.);
   }`;

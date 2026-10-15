@@ -47,16 +47,16 @@ describe("the orb on a slow computer", () => {
     expect(nextOrbQuality(0, 16)).toBe(0);
     expect(nextOrbQuality(0, 30)).toBe(1);
     expect(nextOrbQuality(1, 30)).toBe(2);
-    expect(nextOrbQuality(2, 30)).toBe(3);
-    expect(nextOrbQuality(3, 80)).toBe(3);
+    expect(nextOrbQuality(2, 80)).toBe(2);
     expect(nextOrbQuality(2, 10)).toBe(2);
   });
 
-  it("asks less of the machine at every step down", () => {
+  it("asks less of the machine at every step down, but never moves in jerks", () => {
     for (let q = 1; q < ORB_QUALITY.length; q++) {
       expect(ORB_QUALITY[q].dprCap).toBeLessThanOrEqual(ORB_QUALITY[q - 1].dprCap);
-      expect(ORB_QUALITY[q].fps).toBeLessThanOrEqual(ORB_QUALITY[q - 1].fps);
     }
+    // 8 fps made the orb itself look broken; motion always stays fluid.
+    for (const level of ORB_QUALITY) expect(level.fps).toBe(60);
     expect(ORB_QUALITY[0].holographic).toBe(true);
     expect(ORB_QUALITY[ORB_QUALITY.length - 1].holographic).toBe(false);
   });
