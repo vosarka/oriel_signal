@@ -1,0 +1,101 @@
+/* The seal of a Seeker who holds the field. Only transform and opacity move. */
+.supporter-seal {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  vertical-align: middle;
+}
+
+.supporter-seal__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.supporter-seal__inner {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.supporter-seal__ring {
+  fill: none;
+  stroke: #d8b56d;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.85;
+}
+
+.supporter-seal__ring--dashed {
+  stroke: #e4c88c;
+  stroke-dasharray: 2 5;
+  opacity: 0.7;
+}
+
+.supporter-seal__ring--teal {
+  stroke: #5ba4a4;
+  stroke-width: 0.8;
+  opacity: 0.6;
+}
+
+.supporter-seal__ray {
+  stroke: #e4c88c;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+
+.supporter-seal__arc {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.supporter-seal__turn,
+.supporter-seal__sweep {
+  transform-origin: 0 0;
+}
+
+.supporter-seal__turn {
+  animation: supporter-seal-turn 48s linear infinite;
+}
+
+.supporter-seal__turn--reverse {
+  animation-duration: 72s;
+  animation-direction: reverse;
+}
+
+.supporter-seal__sweep {
+  animation: supporter-seal-turn 9s linear infinite;
+}
+
+.supporter-seal__halo {
+  animation: supporter-seal-breathe 6s ease-in-out infinite;
+}
+
+@keyframes supporter-seal-turn {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes supporter-seal-breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.supporter-seal--still .supporter-seal__turn,
+.supporter-seal--still .supporter-seal__sweep,
+.supporter-seal--still .supporter-seal__halo {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supporter-seal__turn,
+  .supporter-seal__sweep,
+  .supporter-seal__halo {
+    animation: none;
+  }
+}

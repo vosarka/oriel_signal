@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogIn, LogOut, User } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { SupporterSeal } from "@/components/oriel-signal/SupporterSeal";
+import { supporterStanding } from "@shared/supporter-standing";
 import { getLoginUrl } from "@/const";
 import ArcanaSignalTransition from "./ArcanaSignalTransition";
 
@@ -12,6 +14,14 @@ export default function Header() {
   const [arcanaTuning, setArcanaTuning] = useState(false);
   const tuningRef = useRef(false);
   const { user, isAuthenticated, logout } = useAuth();
+  // Those who hold the field wear their seal beside PROFILE.
+  const standing = user ? supporterStanding(user as never) : null;
+  const profileMark =
+    standing && standing.seal > 0 ? (
+      <SupporterSeal level={standing.seal} size={18} label={standing.label} />
+    ) : (
+      <User size={12} />
+    );
 
   // Tune from the current signal onto the ARKANA frequency: a brief
   // signal-loss / recalibration overlay, then route to /arcana.
@@ -180,7 +190,7 @@ export default function Header() {
                       gap: 5,
                     }}
                   >
-                    <User size={12} />
+                    {profileMark}
                     PROFILE
                   </span>
                 </Link>
@@ -314,7 +324,7 @@ export default function Header() {
                         }}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <User size={12} /> PROFILE
+                        {profileMark} PROFILE
                       </span>
                     </Link>
                     <button
