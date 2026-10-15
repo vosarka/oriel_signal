@@ -13,6 +13,26 @@ import {
 } from "lucide-react";
 import ArchitectConsole from "@/components/admin/ArchitectConsole";
 import PatronsConsole from "@/components/admin/PatronsConsole";
+import AdminTransmissions from "./AdminTransmissions";
+import AdminLore from "./AdminLore";
+import AdminSignatureLetters from "./AdminSignatureLetters";
+
+/** Every admin area, as a tab; the open one is kept in the address (?tab=). */
+const ADMIN_TABS = [
+  ["transmissions", "TX Archive"],
+  ["oracles", "Oracles"],
+  ["personal", "Personal transmissions"],
+  ["lore", "Vossari lore"],
+  ["letters", "Signature letters"],
+  ["patrons", "Patrons"],
+  ["architect", "Architect"],
+] as const;
+type AdminTab = (typeof ADMIN_TABS)[number][0];
+
+function tabFromAddress(): AdminTab {
+  const wanted = new URLSearchParams(window.location.search).get("tab");
+  return ADMIN_TABS.find(([key]) => key === wanted)?.[0] ?? "transmissions";
+}
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 
@@ -851,9 +871,11 @@ function OracleForm({
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "transmissions" | "oracles" | "patrons" | "architect"
-  >("transmissions");
+  const [activeTab, setTab] = useState<AdminTab>(tabFromAddress);
+  const setActiveTab = (tab: AdminTab) => {
+    setTab(tab);
+    window.history.replaceState(null, "", tab === "transmissions" ? "/admin" : `/admin?tab=${tab}`);
+  };
 
   // Transmission state
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
@@ -1088,35 +1110,21 @@ export default function Admin() {
   return (
     <Layout>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 16px" }}>
-        <div className="mb-4 flex justify-end">
-          <a
-            href="/admin/signature-letters"
-            style={{
-              border: `1px solid ${C.border}`,
-              color: C.gold,
-              padding: "8px 14px",
-              fontFamily: "'Red Hat Mono', monospace",
-              fontSize: 11,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-            }}
-          >
-            Signature Letters
-          </a>
-        </div>
 
         {/* Tab Switcher */}
         <div
-          className="flex gap-1 mb-6"
+          className="flex flex-wrap gap-1 mb-6"
           style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}
+          role="tablist"
         >
-          {(["transmissions", "oracles", "patrons", "architect"] as const).map(tab => (
+          {ADMIN_TABS.map(([tab, label]) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
               style={{
-                padding: "10px 24px",
+                padding: "10px 14px",
                 background: activeTab === tab ? C.surface : "transparent",
                 border: `1px solid ${activeTab === tab ? C.border : "transparent"}`,
                 borderBottom:
@@ -1135,12 +1143,12 @@ export default function Admin() {
                 cursor: "pointer",
                 fontFamily: "'Red Hat Mono', monospace",
                 fontWeight: activeTab === tab ? 700 : 400,
-                fontSize: 13,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
               }}
             >
-              {tab}
+              {label}
             </button>
           ))}
         </div>
@@ -1672,6 +1680,9 @@ export default function Admin() {
           </>
         )}
 
+        {activeTab === "personal" && <AdminTransmissions embedded />}
+        {activeTab === "lore" && <AdminLore embedded />}
+        {activeTab === "letters" && <AdminSignatureLetters embedded />}
         {activeTab === "patrons" && <PatronsConsole />}
         {activeTab === "architect" && <ArchitectConsole />}
       </div>
