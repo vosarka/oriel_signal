@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -14,7 +14,9 @@ function hoursLeft(due: Date | string) {
 }
 
 /** Vos reads each transmission, edits it if needed, and approves. */
-export default function AdminTransmissions() {
+/** `embedded`: shown as a tab inside /admin, without its own page frame. */
+export default function AdminTransmissions({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? Fragment : Layout;
   const { user, loading } = useAuth();
   const utils = trpc.useUtils();
   const list = trpc.admin.personalTransmissions.list.useQuery(undefined, {
@@ -42,16 +44,16 @@ export default function AdminTransmissions() {
     setDraft(selected?.script ? (JSON.parse(selected.script) as Script) : EMPTY);
   }, [selected?.id, selected?.script]);
 
-  if (loading) return <Layout><p className="at-wrap">Loading…</p></Layout>;
-  if (user?.role !== "admin") return <Layout><p className="at-wrap">Admin access required.</p></Layout>;
+  if (loading) return <Shell><p className="at-wrap">Loading…</p></Shell>;
+  if (user?.role !== "admin") return <Shell><p className="at-wrap">Admin access required.</p></Shell>;
 
   const words = [draft.mirror, draft.threshold, draft.gift].join(" ").trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <Layout>
+    <Shell>
       <main className="at-wrap">
         <h1 className="at-title">Transmissions to approve</h1>
-        <p className="at-count"><a href="/admin/lore">Vossari canon →</a></p>
+        <p className="at-count"><a href="/admin?tab=lore">Vossari canon →</a></p>
         <div className="at-actions at-top">
           <ReadingInputFields value={testInput} onChange={setTestInput} />
           <button type="button" className="at-btn" disabled={createTest.isPending} onClick={() => createTest.mutate(testInput)}>
@@ -149,6 +151,6 @@ export default function AdminTransmissions() {
           )}
         </div>
       </main>
-    </Layout>
+    </Shell>
   );
 }

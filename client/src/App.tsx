@@ -17,8 +17,6 @@ import Artifacts from "./pages/Artifacts";
 import Conduit from "./pages/Conduit";
 import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
-import AdminTransmissions from "./pages/AdminTransmissions";
-import AdminLore from "./pages/AdminLore";
 import TransmissionPlayer from "./pages/TransmissionPlayer";
 import FoundersReading from "./pages/FoundersReading";
 import Codex from "./pages/Codex";
@@ -41,7 +39,6 @@ import Auth from "./pages/Auth";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Admin from "./pages/Admin";
-import AdminSignatureLetters from "./pages/AdminSignatureLetters";
 import OrbPreview from "./pages/OrbPreview";
 import ResonanceBodyLab from "./pages/ResonanceBodyLab";
 import OracleDetail from "./pages/OracleDetail";
@@ -67,6 +64,12 @@ function SignatureRedirect() {
   return null;
 }
 
+function AdminTabRedirect({ tab }: { tab: string }) {
+  const [, setLoc] = useLocation();
+  useEffect(() => setLoc(`/admin?tab=${tab}`, { replace: true }), [setLoc, tab]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -74,12 +77,10 @@ function Router() {
       <Route path="/t/:token" component={TransmissionPlayer} />
       <Route path={"/orb-preview"} component={OrbPreview} />
       <Route path={"/resonance-body"} component={ResonanceBodyLab} />
-      <Route
-        path={"/admin/signature-letters"}
-        component={AdminSignatureLetters}
-      />
-      <Route path={"/admin/transmissions"} component={AdminTransmissions} />
-      <Route path={"/admin/lore"} component={AdminLore} />
+      {/* The admin areas live as tabs in /admin; the old addresses open them. */}
+      <Route path={"/admin/signature-letters"} component={() => <AdminTabRedirect tab="letters" />} />
+      <Route path={"/admin/transmissions"} component={() => <AdminTabRedirect tab="personal" />} />
+      <Route path={"/admin/lore"} component={() => <AdminTabRedirect tab="lore" />} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/auth"} component={Auth} />
       <Route path={"/complete-profile"} component={NatalProfile} />

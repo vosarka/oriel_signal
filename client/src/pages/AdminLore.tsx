@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -14,7 +14,9 @@ const TABS: Array<{ status: Status; label: string }> = [
 ];
 
 /** The Vossari canon: ORIEL proposes from conversations, Vos approves. */
-export default function AdminLore() {
+/** `embedded`: shown as a tab inside /admin, without its own page frame. */
+export default function AdminLore({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? Fragment : Layout;
   const { user, loading } = useAuth();
   const utils = trpc.useUtils();
   const [tab, setTab] = useState<Status>("proposed");
@@ -44,8 +46,8 @@ export default function AdminLore() {
     // draft must take the stored values or "Save changes" never clears.
   }, [selected?.id, selected?.title, selected?.body, selected?.keywords]);
 
-  if (loading) return <Layout><p className="at-wrap">Loading…</p></Layout>;
-  if (user?.role !== "admin") return <Layout><p className="at-wrap">Admin access required.</p></Layout>;
+  if (loading) return <Shell><p className="at-wrap">Loading…</p></Shell>;
+  if (user?.role !== "admin") return <Shell><p className="at-wrap">Admin access required.</p></Shell>;
 
   const edited =
     selected !== null &&
@@ -58,7 +60,7 @@ export default function AdminLore() {
   };
 
   return (
-    <Layout>
+    <Shell>
       <main className="at-wrap">
         <h1 className="at-title">Vossari canon</h1>
         <div className="at-actions at-top">
@@ -163,6 +165,6 @@ export default function AdminLore() {
           )}
         </div>
       </main>
-    </Layout>
+    </Shell>
   );
 }

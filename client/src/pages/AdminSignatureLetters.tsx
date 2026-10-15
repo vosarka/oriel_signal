@@ -1,10 +1,4 @@
-import {
-  ChangeEvent,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { ChangeEvent, useEffect, useMemo, useState, type ReactNode, Fragment } from "react";
 import { FileUp, MailCheck, PenLine, Sparkles } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import Layout from "@/components/Layout";
@@ -66,7 +60,9 @@ export type AdminSignatureLetterBundle = {
 
 type Bundle = AdminSignatureLetterBundle;
 
-export default function AdminSignatureLetters() {
+/** `embedded`: shown as a tab inside /admin, without its own page frame. */
+export default function AdminSignatureLetters({ embedded = false }: { embedded?: boolean } = {}) {
+  const Shell = embedded ? Fragment : Layout;
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
   const utils = trpc.useUtils();
   const list = trpc.admin.signatureLetters.listOrders.useQuery(undefined, {
@@ -164,24 +160,24 @@ export default function AdminSignatureLetters() {
 
   if (loading) {
     return (
-      <Layout>
+      <Shell>
         <div className="p-10">Loading...</div>
-      </Layout>
+      </Shell>
     );
   }
 
   if (user?.role !== "admin") {
     return (
-      <Layout>
+      <Shell>
         <div className="p-10" style={{ color: C.red }}>
           Admin access required.
         </div>
-      </Layout>
+      </Shell>
     );
   }
 
   return (
-    <Layout>
+    <Shell>
       <section
         className="min-h-screen px-5 py-10 md:px-10"
         style={{ background: C.bg }}
@@ -462,7 +458,7 @@ export default function AdminSignatureLetters() {
           </div>
         </div>
       </section>
-    </Layout>
+    </Shell>
   );
 }
 
