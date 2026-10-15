@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Trash2,
@@ -26,6 +26,8 @@ import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Spinner } from "@/components/ui/spinner";
 import OrielOrbField, { type OrbFrame } from "@/features/oriel-orb/OrielOrbField";
+import { SupporterSeal } from "@/components/oriel-signal/SupporterSeal";
+import { supporterStanding } from "@shared/supporter-standing";
 import "@/features/oriel-orb/oriel-orb.css";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
 import VoiceMode from "@/components/VoiceMode";
@@ -633,6 +635,8 @@ function logConduitDiagnostic(
 
 export default function Conduit() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  // The Seeker's seal beside their own words, for those who hold the field.
+  const standing = useMemo(() => (user ? supporterStanding(user as never) : null), [user]);
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Desktop: the conversations panel can be put away; the choice is remembered.
@@ -2511,14 +2515,17 @@ export default function Conduit() {
                           className="max-w-md px-5 py-4 rounded-lg"
                           style={{
                             background: "rgba(189,163,107,0.06)",
-                            border: "1px solid rgba(189,163,107,0.2)",
+                            border: `1px solid rgba(189,163,107,${standing?.seal ? 0.34 : 0.2})`,
                           }}
                         >
                           <p
-                            className="font-mono text-[9px] mb-2 tracking-[0.3em] uppercase"
+                            className="flex items-center gap-2 font-mono text-[9px] mb-2 tracking-[0.3em] uppercase"
                             style={{ color: "rgba(189,163,107,0.5)" }}
                           >
-                            Receiver Node
+                            {standing && standing.seal > 0 && (
+                              <SupporterSeal level={standing.seal} size={16} still={calmVisuals} />
+                            )}
+                            {standing && standing.seal > 0 ? `${standing.label} · Receiver Node` : "Receiver Node"}
                             {msg.timestamp && (
                               <span
                                 className="ml-2 normal-case tracking-normal"

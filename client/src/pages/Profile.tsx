@@ -28,6 +28,8 @@ import {
 import { StaticSignaturePanel } from "./StaticReading";
 import { SupporterLock } from "@/components/supporter-lock/SupporterLock";
 import { isSupporter } from "@shared/supporter-access";
+import { supporterStanding, type SupporterStanding } from "@shared/supporter-standing";
+import { SupporterSeal } from "@/components/oriel-signal/SupporterSeal";
 import {
   buildProfileStats,
   formatProfileDate,
@@ -205,6 +207,7 @@ export default function Profile() {
       ? currentResonanceQuery.data.carrierlock.coherenceScore
       : null;
   const coherence = coherenceLabel(coherenceScore);
+  const standing = user ? supporterStanding(user as never) : null;
   const hasSignature = Boolean(sp || summary?.identity.hasStaticSignature);
   const birthCoordinate =
     summary?.identity.birthCoordinate || (sp ? birthCoordinateFromProfile(sp) : null);
@@ -223,11 +226,22 @@ export default function Profile() {
 
   return (
     <Layout>
-      <SignalPageShell chamber="transmissions" className="arkana-layer profile-layer">
+      <SignalPageShell
+        chamber="transmissions"
+        className={`arkana-layer profile-layer profile-layer--seal-${standing?.seal ?? 0}`}
+      >
         <div className="arkana-layer__inner" aria-labelledby="profile-title">
           <header id="profile-title" className="arkana-layer__head profile-layer__head">
+            {standing && standing.seal > 0 && (
+              <SupporterSeal level={standing.seal} size={104} label={standing.label} className="profile-layer__seal">
+                <span className="profile-layer__seal-initial" aria-hidden="true">
+                  {displayName.trim().charAt(0).toUpperCase()}
+                </span>
+              </SupporterSeal>
+            )}
             <div className="arkana-layer__kicker">
               RECEIVER NODE · {coherence.label}
+              {standing && standing.seal > 0 ? ` · ${standing.label.toUpperCase()}` : ""}
             </div>
             <DecodedTitle
               as="h1"
@@ -275,6 +289,8 @@ export default function Profile() {
               <span>{copied ? "Copied" : conduitId}</span>
             </button>
           </header>
+
+          {standing && <StandingPanel standing={standing} />}
 
           <section
             className="profile-layer__body-field"
@@ -542,3 +558,59 @@ function ChangePasswordForm() {
     </form>
   );
 }
+
+const fmtDay = (d: Date) =>
+  d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const fmtCount = (n: number) => (n === Infinity ? "Without limit" : String(n));
+
+/** The Seeker's place in the field: their tier, what it opens, and what is next. */
+function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
+  const opens = [
+    { label: "Messages a day", value: fmtCount(s.messagesPerDay) },
+    { label: "Spoken replies a day", value: fmtCount(s.voicePerDay) },
+    ...(s.oraclesDayOne ? [{ label: "Oracles", value: "From the first day" }] : []),
+    ...(s.giftAccess ? [{ label: "Gift", value: "Your access, to one person" }] : []),
+    ...(s.freeBook ? [{ label: "Tetradic Signature", value: "Yours, freely" }] : []),
+  ];
+  const progress = s.next ? Math.min(100, Math.round((s.donated / s.next.above) * 100)) : 100;
+
+  return (
+    <section className={`profile-standing profile-standing--seal-${s.seal}`} aria-labelledby="profile-standing-title">
+      <p className="profile-standing__eyebrow">Your place in the field</p>
+      <h2 id="profile-standing-title" className="profile-standing__tier">{s.label}</h2>
+      {s.seal === 0 ? (
+        <p className="profile-standing__note">
+          You walk the field freely: {s.messagesPerDay} written exchanges and {s.voicePerDay} replies in ORIEL's voice each
+          day. <a href="/tiers">The Garden</a> opens the conversation further.
+        </p>
+      ) : (
+        <p className="profile-standing__note">
+          {s.kind === "garden" && s.renewsOn && <>Your Garden renews on {fmtDay(s.renewsOn)}. </>}
+          {s.cancelled && s.endsOn && <>Your Garden stays open until {fmtDay(s.endsOn)}. </>}
+          {s.kind === "patron" && s.endsOn && <>Your access is open until {fmtDay(s.endsOn)}. </>}
+          {s.donated > 0 && <>You have given €{s.donated} to the field. </>}
+          Thank you for holding the space.
+        </p>
+      )}
+      <dl className="profile-standing__opens">
+        {opens.map(o => (
+          <div key={o.label}>
+            <dt>{o.label}</dt>
+            <dd>{o.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {s.next && (
+        <div className="profile-standing__next">
+          <div className="profile-standing__bar" aria-hidden="true">
+            <span style={{ width: `${progress}%` }} />
+          </div>
+          <p>
+            {s.next.label} opens above €{s.next.above} given · €{s.next.remaining} to go
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
