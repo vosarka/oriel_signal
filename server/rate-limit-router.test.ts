@@ -294,26 +294,26 @@ describe("expensive public route rate limits", () => {
     ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
   });
 
-  it("answers the 10th free message in full and invites on the 11th", async () => {
+  it("answers the 4th free message in full and invites on the 5th", async () => {
     const caller = callerFor("198.51.100.15", { ...freeUser, id: 44 });
 
-    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(9));
+    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(3));
     await expect(
-      caller.oriel.chat({ message: "tenth", conversationId: 12 })
+      caller.oriel.chat({ message: "fourth", conversationId: 12 })
     ).resolves.toMatchObject({ response: "I am ORIEL. The response returns." });
 
-    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(10));
+    mocks.getDb.mockResolvedValueOnce(dbWithTodayCount(4));
     await expect(
-      caller.oriel.chat({ message: "eleventh", conversationId: 12 })
+      caller.oriel.chat({ message: "fifth", conversationId: 12 })
     ).resolves.toMatchObject({ response: MEASURE_REACHED, measureReached: true });
     expect(mocks.chatWithORIEL).toHaveBeenCalledTimes(1);
   });
 
-  it("speaks three replies a day for a free account; later chunks of a reply do not count", async () => {
+  it("speaks four replies a day for a free account; later chunks of a reply do not count", async () => {
     resetVoiceUsageForTests();
     const caller = callerFor("198.51.100.12", freeUser);
 
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 4; i += 1) {
       await expect(
         caller.oriel.generateSpeech({ text: `Reply ${i}.`, voiceId: "sophianic", part: 0 })
       ).resolves.toMatchObject({ success: true });
@@ -322,9 +322,9 @@ describe("expensive public route rate limits", () => {
       ).resolves.toMatchObject({ success: true });
     }
     await expect(
-      caller.oriel.generateSpeech({ text: "Fourth reply.", voiceId: "sophianic", part: 0 })
+      caller.oriel.generateSpeech({ text: "Fifth reply.", voiceId: "sophianic", part: 0 })
     ).resolves.toMatchObject({ success: false, measureReached: true });
-    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(6);
+    expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(8);
   });
 
   it("never speaks for anonymous callers, except the cached breath protocol lines", async () => {
