@@ -118,7 +118,7 @@ export function detectDuplication(
 }
 
 /** Words that open a reply, once the ritual identity line is removed. */
-function getOpeningWords(text: string, count: number): string[] {
+export function getOpeningWords(text: string, count: number): string[] {
   // "I am ORIEL." is appended to every reply by chatWithORIEL, so comparing
   // raw openings would find every pair identical and fire on every turn.
   // Both strips, not just the identity line: a reply that opens with the
