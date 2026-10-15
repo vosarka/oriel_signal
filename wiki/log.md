@@ -2214,3 +2214,4 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - SupporterSeal (SVG rings, rays, halo; transform/opacity only; still under reduce-motion and Calm visuals).
 - Profile: seal with the Seeker's initial, tier in the kicker, a gold frame that deepens with the seal, and a "Your place in the field" panel under the header. Free Seekers see their daily measure and a link to /tiers.
 - Chat: the seal and tier beside the Seeker's own messages.
+- Navbar: the seal replaces the profile icon beside PROFILE (desktop and mobile menu) for supporters.
