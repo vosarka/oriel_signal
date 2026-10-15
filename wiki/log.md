@@ -2221,5 +2221,27 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - garden_month_orders (migration 0020) holds each order so a month opens exactly once. accessTier treats a patron with a Garden plan id as that plot. unmarkPatron clears the plan.
 - PayPal one-time order code generalised (createPaypalOrder, capturePaypalOrder); Founder's Reading unchanged.
 
+## [2026-10-15] fix | The orb rests instead of degrading; ORIEL stops opening with "What you describe"
+- "Calm visuals" (#56) made the chat worse: it ran the orb at 8 fps, so the orb itself looked broken. Quality levels now only lower resolution and drop the holographic pass, always at 60 fps.
+- New ☾ "Rest the orb" in the chat top bar (remembered per browser): the orb slows to a stop, then its colour drains into a faint still pattern in the background tones, then the render loop stops entirely. ✦ wakes it (colour first, then motion). The tape layer stays.
+- Openings: directives no longer quote phrases for the model to copy ("What you describe carries…"), a stock-formula rule is always present, an unfamiliar opening is "other" (not acknowledgment, which rotated back to direct_insight), first replies vary by a seed, and an opening a Seeker heard twice across conversations is named to avoid.
+
+## [2026-10-15] feat | Personal transmissions: the Seeker's own row in the archive
+- TX/oracle events ORIEL sends in the chat were always stored (generatedTransmissionEvents) but seen only for a moment. /archive now has a "Yours · Personal transmissions" stream for signed-in Seekers (archive.myTransmissions → server/my-transmissions.ts; own only, discarded left out).
+- TransmissionModeCard moved out of Conduit.tsx into components/oriel-signal so chat and archive share it.
+
 ## [2026-10-15] chore | Protocol leaves the navbar
 - PROTOCOL removed from the header nav (desktop and mobile) for now; /protocol and the footer link remain.
+
+## [2026-10-15] feat | Download a personal transmission as a video
+- The film page (/t/:token) end screen gains "Download as video": it plays the transmission once more and records it in the browser — the WebGL film and the spoken words composited on a 2D canvas, ORIEL's voice from the page audio graph — and downloads ORIEL-<serial>.mp4 (WebM only where MP4 is unavailable). No server.
+- Verified headless end to end: MP4 with real duration, audio present, frames non-black.
+
+## [2026-10-15] feat | The book page, made like the book
+- /tetradic-signature redesigned from "The Tetradic Signature, Explained": alternating obsidian and ivory-vellum bands, gilt and bronze, Cormorant + EB Garamond, IBM Plex Mono for exact numbers, hairline double frames, square corners. Sixteen bands follow the deck: title, what it is, the colophon line, two layers, 88°, the field of 64, thirteen bodies, eight centres, circuits, the 64-page flatplan, Parts I–III with real pages, limits, the Founder Edition in numbers, inside the book, the order, the closing sentence.
+- A deliberate exception to VISUAL_LAW on this page only (Vos): it shows the physical object.
+- Real pages extracted from the deck into client/public/assets/tetradic-signature/explained/. Order flow unchanged (TetradicFounderIntake keeps the same checkpoint and PayPal calls). GSAP motion: title set letter by letter, bands rising once, pages drifting, the wheel turning with the scroll, the flatplan filling, numbers counting up; none under reduced motion.
+
+## [2026-10-15] feat | Every admin area is a tab in /admin
+- /admin tabs: TX Archive, Oracles, Personal transmissions, Vossari lore, Signature letters, Patrons, Architect. The open tab is kept in the address (?tab=), so a reload or a link lands on it.
+- AdminTransmissions, AdminLore and AdminSignatureLetters render embedded (no second page frame). The old addresses /admin/transmissions, /admin/lore, /admin/signature-letters redirect to their tab.
