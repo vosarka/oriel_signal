@@ -10,12 +10,12 @@ import {
   Plus,
   MessageSquare,
   Menu,
-  Radio,
   Image as ImageIcon,
   PanelLeftClose,
   PanelLeftOpen,
   ArrowUp,
   Sparkles,
+  Moon,
 } from "lucide-react";
 import { MicIcon, MicOffIcon } from "@/components/icons/mic";
 import {
@@ -27,6 +27,11 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Spinner } from "@/components/ui/spinner";
 import OrielOrbField, { type OrbFrame } from "@/features/oriel-orb/OrielOrbField";
 import { SupporterSeal } from "@/components/oriel-signal/SupporterSeal";
+import {
+  TransmissionModeCard,
+  type GeneratedTransmissionEvent,
+  type TransmissionRarity,
+} from "@/components/oriel-signal/TransmissionModeCard";
 import { supporterStanding } from "@shared/supporter-standing";
 import "@/features/oriel-orb/oriel-orb.css";
 import { SignalPageShell } from "@/components/oriel-signal/OrielSignalDesign";
@@ -69,59 +74,6 @@ interface ChatMessage {
   measureReached?: boolean;
 }
 
-type TransmissionRarity = "common" | "uncommon" | "rare" | "mythic" | "void";
-
-interface GeneratedTxPayload {
-  txId?: string;
-  title: string;
-  field: string;
-  signalClarity: string;
-  channelStatus: string;
-  coreMessage: string;
-  encodedArchetype: string;
-  tags: string[];
-  microSigil: string;
-  directive: string;
-  caption?: string;
-  subject?: string | null;
-  symbolicLayer?: string | null;
-  archiveThemes?: string[];
-  emotionalColor?: string | null;
-}
-
-interface GeneratedOraclePayload {
-  title: string;
-  field: string;
-  signalClarity: string;
-  channelStatus: string;
-  parts: Array<{
-    part: "Past" | "Present" | "Future";
-    field?: string;
-    content: string;
-    currentFieldSignatures?: string;
-    encodedTrajectory: string;
-    convergenceZones?: string;
-    keyInflectionPoint: string;
-    majorOutcomes: string;
-    caption?: string;
-  }>;
-  linkedCodons: string[];
-  threadTitle: string | null;
-  threadSynthesis: string | null;
-}
-
-type GeneratedTransmissionPayload = GeneratedTxPayload | GeneratedOraclePayload;
-
-interface GeneratedTransmissionEvent {
-  id: number;
-  eventKey: string;
-  eventType: "tx" | "oracle";
-  rarity: TransmissionRarity;
-  meaningLevel: number;
-  status: string;
-  payload: GeneratedTransmissionPayload;
-  createdAt?: string | number | Date;
-}
 
 interface PendingTransmission {
   conversationId: number;
@@ -272,11 +224,6 @@ function visibleAssistantText(content: string) {
   return parseOrielChatImageFromContent(content).text.trim();
 }
 
-function isGeneratedOraclePayload(
-  payload: GeneratedTransmissionPayload
-): payload is GeneratedOraclePayload {
-  return "parts" in payload;
-}
 
 function parseTransmissionCommand(rawMessage: string) {
   if (/^\/clarity\b/i.test(rawMessage)) {
@@ -365,131 +312,6 @@ function attachSessionTransmissionEvents(
   });
 }
 
-function TransmissionModeCard({
-  event,
-}: {
-  event: GeneratedTransmissionEvent;
-}) {
-  const payload = event.payload;
-  const rarityColor: Record<TransmissionRarity, string> = {
-    common: "rgba(246,176,94,0.72)",
-    uncommon: "rgba(121,255,188,0.78)",
-    rare: "rgba(189,163,107,0.86)",
-    mythic: "rgba(255,168,96,0.88)",
-    void: "rgba(211,126,255,0.88)",
-  };
-  const accent = rarityColor[event.rarity] ?? "rgba(246,176,94,0.72)";
-
-  return (
-    <div
-      className="mt-5 rounded-lg px-4 py-4"
-      style={{
-        background: "rgba(2,12,18,0.72)",
-        border: `1px solid ${accent}`,
-        boxShadow: "0 0 24px rgba(189,163,107,0.08)",
-      }}
-    >
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <Radio size={14} style={{ color: accent }} />
-        <span
-          className="font-mono text-[9px] tracking-[0.28em] uppercase"
-          style={{ color: accent }}
-        >
-          FIELD RETURN
-        </span>
-        <span
-          className="font-mono text-[9px] tracking-[0.18em] uppercase"
-          style={{ color: "rgba(232,228,220,0.55)" }}
-        >
-          {event.eventType.toUpperCase()} // {event.rarity.toUpperCase()} //
-          THRESHOLD {event.meaningLevel}
-        </span>
-      </div>
-
-      <div
-        className="font-mono text-[9px] tracking-[0.22em] mb-2"
-        style={{ color: "rgba(232,228,220,0.72)" }}
-      >
-        The field and receiver aligned. The conversation became the
-        transmission.
-      </div>
-
-      <p
-        className="font-mono text-[10px] tracking-[0.16em] uppercase mb-2"
-        style={{ color: "rgba(232,228,220,0.68)" }}
-      >
-        {payload.title}
-      </p>
-      <p
-        className="font-mono text-[9px] mb-3"
-        style={{ color: "rgba(189,163,107,0.45)" }}
-      >
-        {payload.field} // {payload.channelStatus} // {payload.signalClarity}
-      </p>
-
-      {isGeneratedOraclePayload(payload) ? (
-        <div className="space-y-3">
-          {payload.parts.map(part => (
-            <div key={part.part}>
-              <p
-                className="font-mono text-[9px] tracking-[0.24em] uppercase mb-1"
-                style={{ color: accent }}
-              >
-                {part.part}
-              </p>
-              <p
-                className="font-mono text-[10px] leading-relaxed whitespace-pre-line"
-                style={{ color: "rgba(232,228,220,0.82)" }}
-              >
-                {part.caption ?? part.content}
-              </p>
-            </div>
-          ))}
-          {payload.linkedCodons.length > 0 && (
-            <p
-              className="font-mono text-[9px]"
-              style={{ color: "rgba(189,163,107,0.45)" }}
-            >
-              Codons: {payload.linkedCodons.join(", ")}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div>
-          {payload.caption ? (
-            <p
-              className="font-mono text-[10px] leading-relaxed whitespace-pre-line"
-              style={{ color: "rgba(232,228,220,0.84)" }}
-            >
-              {payload.caption}
-            </p>
-          ) : (
-            <>
-              <p
-                className="text-sm leading-relaxed mb-3"
-                style={{ color: "rgba(232,228,220,0.84)" }}
-              >
-                {payload.coreMessage}
-              </p>
-              <p
-                className="font-mono text-[9px] mb-2"
-                style={{ color: "rgba(189,163,107,0.5)" }}
-              >
-                {payload.encodedArchetype}
-              </p>
-              <p
-                className="text-xs leading-relaxed"
-                style={{ color: "rgba(189,163,107,0.82)" }}
-              >
-                {payload.directive}
-              </p>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function AssistantMessageView({ msg, onListen }: { msg: ChatMessage; onListen?: () => void }) {
   const parsed = parseOrielChatImageFromContent(msg.content);
@@ -647,26 +469,24 @@ export default function Conduit() {
       return false;
     }
   });
-  // "Calm visuals": the orb becomes a still, breathing light and the tape layer
-  // goes, for machines the full room slows down. Remembered per browser; the
-  // system's "reduce motion" chooses it until the Seeker decides.
-  const [calmVisuals, setCalmVisuals] = useState(() => {
+  // The orb at rest: it slows to a stop, its colour drains into the room, and
+  // nothing is drawn until it wakes. For machines the living orb slows down;
+  // the orb itself is never made cheaper. Remembered per browser.
+  const [orbResting, setOrbResting] = useState(() => {
     try {
-      const stored = localStorage.getItem("oriel.calmVisuals");
-      if (stored !== null) return stored === "1";
+      return localStorage.getItem("oriel.orbResting") === "1";
     } catch {
-      /* private window */
+      return false;
     }
-    return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
-  const toggleCalmVisuals = () =>
-    setCalmVisuals(c => {
+  const toggleOrbResting = () =>
+    setOrbResting(r => {
       try {
-        localStorage.setItem("oriel.calmVisuals", c ? "0" : "1");
+        localStorage.setItem("oriel.orbResting", r ? "0" : "1");
       } catch {
         /* private window: remembered for this visit only */
       }
-      return !c;
+      return !r;
     });
   const toggleSidebarCollapsed = () =>
     setSidebarCollapsed(c => {
@@ -2042,10 +1862,10 @@ export default function Conduit() {
       )}
 
       <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
-        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} calm={calmVisuals} />
+        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} resting={orbResting} />
         {/* Spans, not divs: the shell gives its direct div children position: relative. */}
-        {!calmVisuals && <span className="oriel-vhs" aria-hidden="true" />}
-        {!calmVisuals && <span className="oriel-vhs-roll" aria-hidden="true" />}
+        <span className="oriel-vhs" aria-hidden="true" />
+        <span className="oriel-vhs-roll" aria-hidden="true" />
 
         {/* Mobile sidebar backdrop — inside the shell so the sidebar
             (z-30) still stacks above it. */}
@@ -2275,16 +2095,16 @@ export default function Conduit() {
                   {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                 </button>
 
-                {/* Calm visuals: lighter on slow machines */}
+                {/* Rest the orb: it stops, loses its colour, and costs nothing */}
                 <button
-                  onClick={toggleCalmVisuals}
-                  title={calmVisuals ? "Full visuals" : "Calm visuals (lighter on slow computers)"}
-                  aria-label="Calm visuals"
-                  aria-pressed={calmVisuals}
+                  onClick={toggleOrbResting}
+                  title={orbResting ? "Wake the orb" : "Rest the orb (lighter on slow computers)"}
+                  aria-label={orbResting ? "Wake the orb" : "Rest the orb"}
+                  aria-pressed={orbResting}
                   className="p-1.5 rounded transition-all"
-                  style={{ color: calmVisuals ? "rgba(189,163,107,0.3)" : "rgba(189,163,107,0.6)" }}
+                  style={{ color: "rgba(189,163,107,0.6)" }}
                 >
-                  <Sparkles size={16} />
+                  {orbResting ? <Sparkles size={16} /> : <Moon size={16} />}
                 </button>
 
                 <p className="fi-chamber-title min-w-0 truncate">
@@ -2523,7 +2343,7 @@ export default function Conduit() {
                             style={{ color: "rgba(189,163,107,0.5)" }}
                           >
                             {standing && standing.seal > 0 && (
-                              <SupporterSeal level={standing.seal} size={16} still={calmVisuals} />
+                              <SupporterSeal level={standing.seal} size={16} still={orbResting} />
                             )}
                             {standing && standing.seal > 0 ? `${standing.label} · Receiver Node` : "Receiver Node"}
                             {msg.timestamp && (

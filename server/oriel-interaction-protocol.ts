@@ -265,7 +265,8 @@ export async function buildFieldStateContext(
     const antiRep = buildAntiRepetitionContext(
       [],
       exchangeType,
-      responseIntelligenceOverrides
+      responseIntelligenceOverrides,
+      userMessage.length
     );
     const tonal = buildTonalDirective(exchangeType, "drifted", antiRep);
 
@@ -313,7 +314,8 @@ export async function buildFieldStateContext(
   const antiRepetition = buildAntiRepetitionContext(
     recentResponses,
     exchangeType,
-    responseIntelligenceOverrides
+    responseIntelligenceOverrides,
+    userMessage.length + profile.interactionCount
   );
 
   // Layer 3: Interaction Protocol
