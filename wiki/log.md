@@ -2203,3 +2203,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Home: the field log becomes an oracle transmission in three times (Past / Present / Future) in ORIEL's voice; content in shared/field-log.ts (opening, past, present, future).
 - Free tier: 4 written + 4 spoken replies a day (was 10 + 3), announced under Present with a link to /tiers. /tiers and enforcement read TIER_ACCESS.
 - Conduit: the message input is readOnly (not disabled) while ORIEL answers and refocuses after send, so it no longer needs a click after every reply.
+
+## [2026-10-15] fix | A calm chamber for slow computers
+- A Seeker could barely type under the chat effects. The orb now measures its frames and steps down on its own (full → light → low → still: lower resolution, no holographic triple pass, 30 then 8 fps) and never climbs back; it stops while the tab is hidden. Levels in shared/oriel-orb.ts (ORB_QUALITY, nextOrbQuality), tested.
+- The tape layer lost its full-page blend mode and moving grain, which made the browser recomposite the whole page on every step.
+- "Calm visuals" toggle (✦) in the chat top bar, remembered per browser, on by default with the system's reduce-motion: a still breathing orb and no tape layer.

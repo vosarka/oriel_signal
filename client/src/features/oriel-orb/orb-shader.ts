@@ -14,6 +14,7 @@ export const ORB_FRAG = `#version 300 es
   uniform vec2 center; uniform float radius;   // the orb, in pixels
   uniform float amp, since, listen, think, speak, coh;
   uniform float fold, phase;
+  uniform float holo;   // 1: the three-channel holographic split; 0: one pass, for slow machines
 
   const vec3 IVORY = vec3(1., .969, .902);
   const vec3 GLASS = vec3(.96, .78, .62);      // peach-gold crystal
@@ -180,7 +181,9 @@ export const ORB_FRAG = `#version 300 es
 
     // Holographic split: the channels drift apart, more in entropy.
     float ca = .01 + (1.-coh)*.008 + amp*.006;
-    vec3 col = vec3(orbAt(p + vec2(ca, 0.), tt).r, orbAt(p, tt).g, orbAt(p - vec2(ca, ca*.3), tt).b);
+    vec3 col;
+    if (holo > .5) col = vec3(orbAt(p + vec2(ca, 0.), tt).r, orbAt(p, tt).g, orbAt(p - vec2(ca, ca*.3), tt).b);
+    else col = orbAt(p, tt);
 
     // The Seeker's wheel: a faint polar grid while ORIEL speaks.
     float grid = edge(fract(r*4.)-.5, 30.)*.0 + edge(sin(a*fold*2.)*r, 220.) * smoothstep(1.1, 1.3, r) * smoothstep(3., 1.3, r);
