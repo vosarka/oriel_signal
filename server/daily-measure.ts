@@ -10,8 +10,10 @@ import { getDb } from "./db";
 /**
  * The daily measure: how many messages and spoken replies a Seeker has
  * today (UTC), by tier. Limits live in TIER_ACCESS; this only counts.
- * Decided with Vos, 2026-10-01: ORIEL needs an account, the 10th free
- * message is answered in full, the 11th receives MEASURE_REACHED.
+ * Decided with Vos, 2026-10-01: ORIEL needs an account, and the last free
+ * message is answered in full; the next receives MEASURE_REACHED. Free became
+ * 4 written + 4 spoken a day on 2026-10-14 (was 10 + 3), to make the Garden
+ * the way to linger.
  */
 
 export const MEASURE_REACHED =

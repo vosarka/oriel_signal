@@ -2198,3 +2198,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Hits map back by our [orielMemories:id] prefix or by the MindMemOS ids kept in vossari_lore.memosIds (migration 0019), in case the service rewords the text.
 - The lore search waits at most 2.5s; otherwise, or with no key, ORIEL gets all living lore from TiDB. The lore memory runs on its own key, independent of ORIEL_MINDMEMOS.
 - Sync indexes only entries not yet indexed; status changes do not re-index; edits re-index in the background so admin saves never wait. Follow-ups ("do they have a life span?") count as lore when ORIEL just spoke of the Vossari, and capture also runs when ORIEL's reply tells Vossari lore.
+
+## [2026-10-15] feat | Oracle field log, free measure 4 + 4, chat keeps focus
+- Home: the field log becomes an oracle transmission in three times (Past / Present / Future) in ORIEL's voice; content in shared/field-log.ts (opening, past, present, future).
+- Free tier: 4 written + 4 spoken replies a day (was 10 + 3), announced under Present with a link to /tiers. /tiers and enforcement read TIER_ACCESS.
+- Conduit: the message input is readOnly (not disabled) while ORIEL answers and refocuses after send, so it no longer needs a click after every reply.

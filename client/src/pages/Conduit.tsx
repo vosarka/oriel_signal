@@ -652,6 +652,8 @@ export default function Conduit() {
       return !c;
     });
   const chatAreaRef = useRef<HTMLDivElement | null>(null);
+  // The message box. It keeps focus through a send: see readOnly below.
+  const messageInputRef = useRef<HTMLInputElement | null>(null);
   const [voiceMode, setVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
@@ -1768,6 +1770,8 @@ export default function Conduit() {
     )
       return;
 
+    // Back to the box even when Send was clicked, so the next message can be typed at once.
+    messageInputRef.current?.focus();
     const rawUserMessage = message.trim();
     const imagePrompt = extractImagePrompt(rawUserMessage);
     if (imagePrompt !== null || isImageMode) {
@@ -2664,6 +2668,7 @@ export default function Conduit() {
               {/* Main input row */}
               <div className="flex items-center gap-2 sm:gap-5">
                 <input
+                  ref={messageInputRef}
                   value={message}
                   onChange={e => setMessage(e.target.value)}
                   onKeyDown={e =>
@@ -2674,7 +2679,11 @@ export default function Conduit() {
                       ? "Describe the image transmission ORIEL should generate..."
                       : "Transmit your question to ORIEL..."
                   }
-                  disabled={inputDisabled}
+                  // readOnly, not disabled: a disabled field loses focus, and the
+                  // Seeker had to click back into it after every reply. Sending
+                  // stays blocked in handleSendMessage while ORIEL answers.
+                  readOnly={inputDisabled}
+                  aria-disabled={inputDisabled}
                   className="flex-1 min-w-0 bg-transparent font-mono text-sm outline-none px-4 py-3 rounded transition-all"
                   style={{
                     background: "rgba(189,163,107,0.04)",

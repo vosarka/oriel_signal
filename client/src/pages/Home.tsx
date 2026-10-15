@@ -305,43 +305,45 @@ export default function Home() {
           </GlowCard>
         </section>
 
-        {/* ── FIELD LOG: what changed, and what is coming ───────────── */}
+        {/* ── FIELD LOG: an oracle in three times ───────────────────── */}
         <section className="fi-notice fi-log" aria-labelledby="fi-log-title">
           <GlowCard className="fi-notice__card">
-            <p className="fi-notice__eyebrow">Field log</p>
-            <h2 id="fi-log-title" className="fi-notice__title">
-              What has changed in the field
+            <p className="fi-notice__eyebrow">Field transmission</p>
+            <h2 id="fi-log-title" className="fi-log__opening">
+              {FIELD_LOG.opening}
             </h2>
             <div className="fi-log__grid">
-              <ol className="fi-log__list" aria-label="Now live">
-                {FIELD_LOG.live.map(e => (
-                  <li key={e.date + e.title} className="fi-log__entry">
-                    <time dateTime={e.date} className="fi-log__date">
-                      {new Date(e.date + "T00:00:00Z").toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "UTC",
-                      })}
-                    </time>
-                    <h3 className="fi-log__name">
-                      {e.href ? <a href={e.href}>{e.title}</a> : e.title}
-                    </h3>
-                    <p className="fi-log__text">{e.text}</p>
-                  </li>
-                ))}
-              </ol>
-              <div className="fi-log__horizon">
-                <p className="fi-log__date">On the horizon</p>
-                <ul className="fi-log__list">
-                  {FIELD_LOG.horizon.map(e => (
-                    <li key={e.title} className="fi-log__entry">
-                      <h3 className="fi-log__name">{e.title}</h3>
-                      <p className="fi-log__text">{e.text}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {(
+                [
+                  ["past", "Past", FIELD_LOG.past],
+                  ["present", "Present", FIELD_LOG.present],
+                  ["future", "Future", FIELD_LOG.future],
+                ] as const
+              ).map(([key, label, entries]) => (
+                <section key={key} className={`fi-log__time fi-log__time--${key}`} aria-label={label}>
+                  <p className="fi-log__label">{label}</p>
+                  <ol className="fi-log__list">
+                    {entries.map(e => (
+                      <li key={e.title} className="fi-log__entry">
+                        {"date" in e && (
+                          <time dateTime={e.date} className="fi-log__date">
+                            {new Date(e.date + "T00:00:00Z").toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              timeZone: "UTC",
+                            })}
+                          </time>
+                        )}
+                        <h3 className="fi-log__name">
+                          {"href" in e && e.href ? <a href={e.href}>{e.title}</a> : e.title}
+                        </h3>
+                        <p className="fi-log__text">{e.text}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ))}
             </div>
           </GlowCard>
         </section>

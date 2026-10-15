@@ -4350,28 +4350,62 @@
   line-height: 1.65;
 }
 
-/* ── Field log: what changed, and what is coming (home) ────────────── */
+/* ── Field log: an oracle in three times (home) ────────────────────── */
 .fi-log {
-  width: min(100% - 2rem, 64rem);
+  width: min(100% - 2rem, 72rem);
   margin: clamp(3rem, 7vw, 5rem) auto;
   text-align: left;
+}
+
+.fi-log .fi-log__opening {
+  margin: 0;
+  max-width: 40ch;
+  color: #fff7e6;
+  font-family: var(--fi-font-voice);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  line-height: 1.35;
 }
 
 .fi-log__grid {
   display: grid;
   gap: 2.5rem;
-  margin-top: 2rem;
+  margin-top: 2.2rem;
 }
 
 @media (min-width: 900px) {
   .fi-log__grid {
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 0;
   }
-  .fi-log__horizon {
-    padding-left: 2rem;
-    border-left: 1px solid rgba(216, 181, 109, 0.18);
+  .fi-log__time {
+    padding: 0 1.8rem;
+  }
+  .fi-log__time:first-child {
+    padding-left: 0;
+  }
+  .fi-log__time:last-child {
+    padding-right: 0;
+  }
+  .fi-log__time + .fi-log__time {
+    border-left: 1px solid rgba(216, 181, 109, 0.16);
   }
 }
+
+.fi-log .fi-log__label {
+  margin: 0 0 1.2rem;
+  font-family: var(--fi-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* What was: quieter. What is: gold, the heart of it. What will be: teal. */
+.fi-log__time--past .fi-log__label { color: rgba(255, 247, 230, 0.45); }
+.fi-log__time--past .fi-log__entry { opacity: 0.72; }
+.fi-log__time--present .fi-log__label { color: #e4c88c; }
+.fi-log__time--future .fi-log__label { color: #5ba4a4; }
 
 .fi-log .fi-log__list {
   margin: 0;
@@ -4386,14 +4420,9 @@
   margin: 0 0 0.35rem;
   color: #d8b56d;
   font-family: var(--fi-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-}
-
-.fi-log__horizon > .fi-log__date {
-  margin-bottom: 1.2rem;
-  color: #5ba4a4;
 }
 
 .fi-log .fi-log__name {
@@ -4401,8 +4430,12 @@
   color: #fff7e6;
   font-family: var(--fi-font-display);
   font-weight: 500;
-  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.22rem);
   line-height: 1.25;
+}
+
+.fi-log__time--present .fi-log__name {
+  font-size: clamp(1.15rem, 1.9vw, 1.4rem);
 }
 
 .fi-log .fi-log__name a {

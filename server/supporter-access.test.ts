@@ -48,9 +48,9 @@ describe("patron levels and limits", () => {
     expect(pillar.freeBook).toBe(true);
   });
 
-  it("limits free visitors to 10 messages and 3 spoken replies", () => {
+  it("limits free visitors to 4 written messages and 4 spoken replies", () => {
     const free = TIER_ACCESS[accessTier({ ...base, subscribed: false }, now)];
-    expect(free).toMatchObject({ messagesPerDay: 10, voicePerDay: 3 });
+    expect(free).toMatchObject({ messagesPerDay: 4, voicePerDay: 4 });
   });
 
   it("drops a lapsed key back to free whatever was donated", () => {
