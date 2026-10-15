@@ -110,3 +110,18 @@
 
 .tf-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
 .tf-close { position: fixed; top: 1rem; right: 1rem; z-index: 2; }
+
+/* Saving the film as a video: plays it once more and records it. */
+.tf-recording {
+  position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.5rem 0.9rem; background: rgba(5, 5, 5, 0.7); border: 1px solid var(--tf-line);
+  font-size: 0.66rem; color: var(--tf-gold-bright);
+}
+.tf-recording__dot {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--tf-gold);
+  animation: tf-rec 1.2s ease-in-out infinite;
+}
+@keyframes tf-rec { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .tf-recording__dot { animation: none; } }
+
