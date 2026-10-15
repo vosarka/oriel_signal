@@ -7,7 +7,7 @@ import { GlowCard, SignalButton } from "@/components/oriel-signal/OrielSignalDes
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { accessTier, GARDEN_PLANS, TIER_ACCESS } from "@shared/supporter-access";
+import { accessTier, GARDEN_PLANS, supporterKind, TIER_ACCESS } from "@shared/supporter-access";
 import "./tiers.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -71,10 +71,35 @@ function GardenAction({ plan }: { plan: GardenPlan }) {
       window.location.href = approveUrl;
     },
   });
+  // One month, paid once: for banks and countries that refuse recurring payments.
+  const buyMonth = trpc.garden.buyMonth.useMutation({
+    onSuccess: ({ approveUrl }) => {
+      window.location.href = approveUrl;
+    },
+  });
+  const monthButton = (text: string) => (
+    <button
+      type="button"
+      className="fh-plot__once"
+      disabled={buyMonth.isPending}
+      onClick={() => buyMonth.mutate({ plan })}
+    >
+      {buyMonth.isPending ? "Opening PayPal" : text}
+    </button>
+  );
 
   if (!GARDEN_PLANS[plan]) return <p className="fh-plot__soon">Opening soon</p>;
   if (user && accessTier(user as never) === plan) {
-    return <p className="fh-plot__soon">Your plot</p>;
+    // A month bought once can be followed by another; a subscription renews itself.
+    return supporterKind(user as never) === "patron" ? (
+      <div className="fh-plot__action">
+        <p className="fh-plot__soon">Your plot</p>
+        {monthButton("Add a month · paid once")}
+        {buyMonth.error && <p className="fh-plot__error">{buyMonth.error.message}</p>}
+      </div>
+    ) : (
+      <p className="fh-plot__soon">Your plot</p>
+    );
   }
   if (!isAuthenticated) {
     return <SignalButton href={getLoginUrl("/tiers")}>Sign in to join</SignalButton>;
@@ -90,7 +115,10 @@ function GardenAction({ plan }: { plan: GardenPlan }) {
         <span className="signal-button__seal" aria-hidden="true" />
         {subscribe.isPending ? "Opening PayPal" : "Join · PayPal or card"}
       </button>
-      {subscribe.error && <p className="fh-plot__error">{subscribe.error.message}</p>}
+      {monthButton("Or one month, paid once")}
+      {(subscribe.error || buyMonth.error) && (
+        <p className="fh-plot__error">{(subscribe.error ?? buyMonth.error)?.message}</p>
+      )}
     </div>
   );
 }
@@ -103,9 +131,33 @@ function useGardenReturn() {
   const [notice, setNotice] = useState<string | null>(null);
   const utils = trpc.useUtils();
   const confirm = trpc.garden.confirm.useMutation();
+  const captureMonth = trpc.garden.captureMonth.useMutation();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    // Back from paying one month once. Our key is in ?order=; PayPal's own
+    // order id arrives as ?token=. The address stays until the month opens,
+    // so a refresh after a failed confirmation tries again.
+    if (params.get("garden_month") === "return") {
+      const orderId = params.get("order") ?? params.get("token");
+      setNotice("Opening your plot.");
+      if (!orderId) return;
+      captureMonth
+        .mutateAsync({ orderId })
+        .then(({ active, pending }) => {
+          if (active) window.history.replaceState(null, "", "/tiers");
+          setNotice(
+            active
+              ? "Welcome to the Garden. Your plot is open for a month."
+              : pending
+                ? "PayPal is reviewing the payment. Your plot opens as soon as it clears."
+                : "The payment did not go through. Nothing was charged; you can try again."
+          );
+          void utils.auth.me.invalidate();
+        })
+        .catch(() => setNotice("The payment did not go through. Nothing was charged; you can try again."));
+      return;
+    }
     if (params.get("garden") !== "return") return;
     window.history.replaceState(null, "", "/tiers");
     const subscriptionId = params.get("subscription_id");
@@ -281,7 +333,9 @@ export default function Tiers() {
           </div>
           <p className="fh-note">
             Garden renews monthly through PayPal until you cancel. No PayPal
-            account needed: you can pay by card on the PayPal page. When your
+            account needed: you can pay by card on the PayPal page. Where a bank
+            refuses automatic payments, choose one month, paid once: it opens
+            the same plot for thirty days and never renews on its own. When your
             measure is reached, your conversation still completes. Nothing is
             cut mid-thought, and the field opens again at midnight (UTC).
           </p>

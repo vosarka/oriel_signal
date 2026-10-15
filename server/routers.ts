@@ -276,6 +276,39 @@ export const appRouter = router({
 
   /** The Garden's PayPal subscriptions (Etapa 2). */
   garden: router({
+    /** One month of a plot, paid once with no renewal (for banks that refuse recurring payments). */
+    buyMonth: protectedProcedure
+      .input(z.object({ plan: z.enum(["garden", "deep_garden"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const { supporterKind } = await import("@shared/supporter-access");
+        if (supporterKind(ctx.user) === "garden") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Your Garden subscription is already open; it renews through PayPal.",
+          });
+        }
+        const { buyGardenMonth } = await import("./garden-month");
+        try {
+          return { approveUrl: await buyGardenMonth(ctx.user, input.plan) };
+        } catch (error) {
+          console.error("[GardenMonth] order failed:", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "PayPal could not open the payment. Please try again shortly.",
+          });
+        }
+      }),
+    captureMonth: protectedProcedure
+      .input(z.object({ orderId: z.string().min(1).max(96) }))
+      .mutation(async ({ input, ctx }) => {
+        const { captureGardenMonth } = await import("./garden-month");
+        try {
+          return await captureGardenMonth(ctx.user, input.orderId);
+        } catch (error) {
+          console.error("[GardenMonth] capture failed:", error);
+          return { active: false };
+        }
+      }),
     subscribe: protectedProcedure
       .input(z.object({ plan: z.enum(["garden", "deep_garden"]) }))
       .mutation(async ({ input, ctx }) => {

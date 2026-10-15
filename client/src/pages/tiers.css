@@ -453,3 +453,30 @@
     min-height: 48vh;
   }
 }
+
+/* One month, paid once: a quiet second way in, under the subscription. */
+.fh-plot__once {
+  margin-top: 0.7rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(216, 181, 109, 0.35);
+  color: rgba(228, 200, 140, 0.85);
+  font-family: var(--fi-font-mono, "Red Hat Mono", monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fh-plot__once:hover,
+.fh-plot__once:focus-visible {
+  color: #e4c88c;
+  border-bottom-color: #e4c88c;
+}
+
+.fh-plot__once:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+

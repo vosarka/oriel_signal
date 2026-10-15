@@ -72,7 +72,7 @@ export async function unmarkPatron(userId: number) {
   const db = await requireDb();
   await db
     .update(users)
-    .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null })
+    .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null, paypalPlanId: null })
     .where(and(eq(users.id, userId), isNull(users.paypalSubscriptionId)));
 }
 

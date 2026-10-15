@@ -1239,3 +1239,22 @@ export const vossariLore = mysqlTable(
 
 export type VossariLore = typeof vossariLore.$inferSelect;
 export type InsertVossariLore = typeof vossariLore.$inferInsert;
+
+/**
+ * Months of Garden bought once, with no renewal. One row per PayPal order, so
+ * a month opens exactly once, whatever happens on the return page.
+ */
+export const gardenMonthOrders = mysqlTable("garden_month_orders", {
+  paypalOrderId: varchar("paypalOrderId", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  plan: mysqlEnum("plan", ["garden", "deep_garden"]).notNull(),
+  priceEur: double("priceEur").notNull(),
+  /** The custom_id sent to PayPal; the capture must carry it back. */
+  customId: varchar("customId", { length: 96 }).notNull(),
+  status: mysqlEnum("status", ["created", "paid"]).default("created").notNull(),
+  captureId: varchar("captureId", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  paidAt: timestamp("paidAt"),
+});
+
+export type GardenMonthOrder = typeof gardenMonthOrders.$inferSelect;
