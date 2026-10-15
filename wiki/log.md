@@ -2225,3 +2225,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - "Calm visuals" (#56) made the chat worse: it ran the orb at 8 fps, so the orb itself looked broken. Quality levels now only lower resolution and drop the holographic pass, always at 60 fps.
 - New ☾ "Rest the orb" in the chat top bar (remembered per browser): the orb slows to a stop, then its colour drains into a faint still pattern in the background tones, then the render loop stops entirely. ✦ wakes it (colour first, then motion). The tape layer stays.
 - Openings: directives no longer quote phrases for the model to copy ("What you describe carries…"), a stock-formula rule is always present, an unfamiliar opening is "other" (not acknowledgment, which rotated back to direct_insight), first replies vary by a seed, and an opening a Seeker heard twice across conversations is named to avoid.
+
+## [2026-10-15] feat | Personal transmissions: the Seeker's own row in the archive
+- TX/oracle events ORIEL sends in the chat were always stored (generatedTransmissionEvents) but seen only for a moment. /archive now has a "Yours · Personal transmissions" stream for signed-in Seekers (archive.myTransmissions → server/my-transmissions.ts; own only, discarded left out).
+- TransmissionModeCard moved out of Conduit.tsx into components/oriel-signal so chat and archive share it.

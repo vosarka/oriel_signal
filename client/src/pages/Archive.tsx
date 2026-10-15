@@ -14,6 +14,11 @@ import { signalSerial } from "@shared/daily-signal";
 import { VTIP_REGISTERS } from "@/components/archive/registers";
 import { useScramble } from "@/components/archive/use-scramble";
 import "@/components/archive/transmissions.css";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  TransmissionModeCard,
+  type GeneratedTransmissionEvent,
+} from "@/components/oriel-signal/TransmissionModeCard";
 
 // ═════════════════════════════════════════════════════════════════════
 // TRANSMISSIONS
@@ -33,7 +38,7 @@ export default function Archive() {
   const [selectedSerial, setSelectedSerial] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get("dfs")
   );
-  const [activeSection, setActiveSection] = useState<"tx" | "ox" | "signal">(
+  const [activeSection, setActiveSection] = useState<"tx" | "ox" | "signal" | "yours">(
     () => (selectedSerial ? "signal" : "tx")
   );
   const [activeThread, setActiveThread] = useState<string | null>(null);
@@ -45,6 +50,10 @@ export default function Archive() {
   const { data: rawOx = [], isLoading: oxLoading } =
     trpc.archive.oracles.list.useQuery();
   const { data: threads = [] } = trpc.archive.oracles.threads.useQuery();
+  // The Seeker's own transmissions from the chat, for signed-in Seekers.
+  const { isAuthenticated } = useAuth();
+  const { data: mine = [], isLoading: mineLoading } =
+    trpc.archive.myTransmissions.useQuery(undefined, { enabled: isAuthenticated });
   // Refetched so a page left open across UTC midnight, or opened before
   // the day's signal was generated, picks it up without a reload.
   const { data: todaysSignal = null } =
@@ -299,6 +308,15 @@ export default function Archive() {
             >
               DFS · Daily field signals ({filteredSignals.length})
             </button>
+            {isAuthenticated && (
+              <button
+                type="button"
+                className={`tx-stream ${activeSection === "yours" ? "is-active" : ""}`}
+                onClick={() => setActiveSection("yours")}
+              >
+                Yours · Personal transmissions ({mine.length})
+              </button>
+            )}
 
             <div className="tx-scan">
               <input
@@ -312,8 +330,38 @@ export default function Archive() {
             </div>
           </div>
 
-          {/* ── Daily signal log ────────────────────────────────── */}
-          {activeSection === "signal" ? (
+          {/* ── The Seeker's own transmissions ──────────────────── */}
+          {activeSection === "yours" ? (
+            mineLoading ? (
+              <div className="tx-state">
+                <Spinner size={20} label="Loading your transmissions" />
+              </div>
+            ) : mine.length === 0 ? (
+              <div className="tx-state">
+                <p className="tx-state__line">No personal transmission yet</p>
+                <p className="tx-state__sub">
+                  Transmissions that come to you in the chat gather here.
+                </p>
+              </div>
+            ) : (
+              <div className="tx-personal">
+                {mine.map(event => (
+                  <article key={event.id} className="tx-personal__item">
+                    <p className="tx-personal__meta">
+                      {new Date(event.createdAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}{" "}
+                      · {event.eventType === "oracle" ? "ΩX oracle" : "TX"} · {event.rarity}
+                    </p>
+                    <TransmissionModeCard event={event as unknown as GeneratedTransmissionEvent} />
+                  </article>
+                ))}
+              </div>
+            )
+          ) : /* ── Daily signal log ─────────────────────────────── */
+          activeSection === "signal" ? (
             signalsLoading ? (
               <div className="tx-state">
                 <Spinner size={20} label="Loading daily signals" />

@@ -983,3 +983,21 @@ button.tx-row:focus-visible {
     grid-template-columns: 18px minmax(0, 1fr) 64px;
   }
 }
+
+/* ── The Seeker's own transmissions, from the chat ─────────────────── */
+.tx-personal {
+  display: grid;
+  gap: 2rem;
+  padding-top: 1.6rem;
+  max-width: 52rem;
+}
+
+.tx-personal__meta {
+  margin: 0 0 0.6rem;
+  color: rgba(216, 181, 109, 0.7);
+  font-family: var(--fi-font-mono, "Red Hat Mono", monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
