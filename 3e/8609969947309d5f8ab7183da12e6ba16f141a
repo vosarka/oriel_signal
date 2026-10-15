@@ -1,0 +1,36 @@
+client/src/pages/TetradicSignatureSacredExperience.tsx
+  s_fb7a7986d66af6::t_369f1b38a46d0a 6-7,11-13,72
+wiki/log.md
+  ai_agent 2223-2227
+client/src/features/tetradic-signature/TetradicBookPage.tsx
+  s_fb7a7986d66af6::t_ad6361eef773f8 4-7,10-94,103,105,176-184,186-193,210-561,563-607
+  s_fb7a7986d66af6::t_100185556966f2 1-3,8-9,95-102,104,106-175,185,194-196,205-209,562
+  s_fb7a7986d66af6::t_a33e1b15261626 197-204
+client/src/features/tetradic-signature/tetradic-book-page.css
+  s_fb7a7986d66af6::t_100185556966f2 156-157,165-168
+  s_fb7a7986d66af6::t_eea3cb2def54c3 1-149,152-155,169-282,303-647
+  s_fb7a7986d66af6::t_9883e1ee2609d5 283-302
+  s_fb7a7986d66af6::t_a33e1b15261626 150-151,158-164
+client/public/assets/tetradic-signature/explained/codon-wheel.svg
+  s_fb7a7986d66af6::t_9c77dea3331e72 1
+client/index.html
+  s_fb7a7986d66af6::t_369f1b38a46d0a 44
+client/src/features/tetradic-signature/TetradicFounderIntake.tsx
+  s_fb7a7986d66af6::t_9ac98776e36537 1-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "3e8609969947309d5f8ab7183da12e6ba16f141a",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
