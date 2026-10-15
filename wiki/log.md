@@ -2220,3 +2220,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - A Seeker in India could not subscribe: recurring payments and donations were refused there. Garden and Deep Garden can now be bought for one month with a one-time PayPal order (same flow as the Founder's Reading), opening the plot for 30 days, adding to time already open, never renewing.
 - garden_month_orders (migration 0020) holds each order so a month opens exactly once. accessTier treats a patron with a Garden plan id as that plot. unmarkPatron clears the plan.
 - PayPal one-time order code generalised (createPaypalOrder, capturePaypalOrder); Founder's Reading unchanged.
+
+## [2026-10-15] feat | The book page, made like the book
+- /tetradic-signature redesigned from "The Tetradic Signature, Explained": alternating obsidian and ivory-vellum bands, gilt and bronze, Cormorant + EB Garamond, IBM Plex Mono for exact numbers, hairline double frames, square corners. Sixteen bands follow the deck: title, what it is, the colophon line, two layers, 88°, the field of 64, thirteen bodies, eight centres, circuits, the 64-page flatplan, Parts I–III with real pages, limits, the Founder Edition in numbers, inside the book, the order, the closing sentence.
+- A deliberate exception to VISUAL_LAW on this page only (Vos): it shows the physical object.
+- Real pages extracted from the deck into client/public/assets/tetradic-signature/explained/. Order flow unchanged (TetradicFounderIntake keeps the same checkpoint and PayPal calls). GSAP motion: title set letter by letter, bands rising once, pages drifting, the wheel turning with the scroll, the flatplan filling, numbers counting up; none under reduced motion.

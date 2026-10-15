@@ -3,20 +3,16 @@ import { useCallback, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import {
-  TetradicFounderEdition,
-  type TetradicFounderEditionIntakeValues,
-} from "@/features/tetradic-signature/TetradicFounderEdition";
-import { useTetradicViewport } from "@/features/tetradic-signature/useTetradicViewport";
+import type { TetradicFounderEditionIntakeValues } from "@/features/tetradic-signature/TetradicFounderEdition";
+import { TetradicBookPage } from "@/features/tetradic-signature/TetradicBookPage";
 import { trpc } from "@/lib/trpc";
 
 /**
- * The book page. The scroll-scrubbed film opening was removed: the book in
- * the films was not the book people receive, and five videos stood between
- * a visitor and the price. The page now opens on the real book.
+ * The book page. It is told the way the book is made (obsidian plates, ivory
+ * vellum, gilt and bronze), from "The Tetradic Signature, Explained". The
+ * order flow underneath is unchanged.
  */
 export default function TetradicSignatureSacredExperience() {
-  const { reducedMotion } = useTetradicViewport();
   const { user, isAuthenticated } = useAuth();
   const checkpointMutation =
     trpc.signature.createFounderEditionCheckpoint.useMutation();
@@ -73,10 +69,9 @@ export default function TetradicSignatureSacredExperience() {
 
   return (
     <Layout>
-    <TetradicFounderEdition
+    <TetradicBookPage
       isAuthenticated={isAuthenticated}
       user={user?.name && user.email ? { name: user.name, email: user.email } : null}
-      reducedMotion={reducedMotion}
       onRequireLogin={requireLogin}
       onCreateCheckpoint={createCheckpoint}
       onContinueToPayPal={continueToPayPal}

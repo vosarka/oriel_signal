@@ -1,0 +1,647 @@
+/*
+ * The book page, in the book's own materials ("The Tetradic Signature,
+ * Explained", slide 17): obsidian plates and ivory vellum pages, gilt ink on
+ * black and bronze ink on ivory. Garamond serifs only, mono for exact numbers,
+ * square corners and hairline double frames. A deliberate exception to the
+ * site's gold-on-void law: this page shows a physical object (Vos, 2026-10-15).
+ */
+.tbk {
+  --tbk-obsidian: #0b0b0b;
+  --tbk-obsidian-2: #12100c;
+  --tbk-ivory: #f3ecdf;
+  --tbk-vellum: #ece3d1;
+  --tbk-gilt: #d9ae5a;
+  --tbk-bronze: #9a7d45;
+  --tbk-ink: #14110d;
+  --tbk-ivory-ink: #f5eedf;
+  --tbk-line-dark: rgba(217, 174, 90, 0.32);
+  --tbk-line-light: rgba(154, 125, 69, 0.42);
+  --tbk-display: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --tbk-text: "EB Garamond", "Cormorant Garamond", Georgia, serif;
+  --tbk-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --tbk-gutter: clamp(1.25rem, 5vw, 5.5rem);
+  font-family: var(--tbk-text);
+  background: var(--tbk-obsidian);
+  overflow-x: clip;
+}
+
+/* ── Bands ─────────────────────────────────────────────────────────── */
+.tbk-band {
+  position: relative;
+  padding: clamp(4.5rem, 10vw, 8.5rem) var(--tbk-gutter);
+}
+.tbk-band > * {
+  max-width: 76rem;
+  margin-inline: auto;
+}
+.tbk-band--obsidian {
+  background: radial-gradient(120% 90% at 50% 0%, var(--tbk-obsidian-2), var(--tbk-obsidian) 70%);
+  color: var(--tbk-ivory-ink);
+  --tbk-accent: var(--tbk-gilt);
+  --tbk-line: var(--tbk-line-dark);
+  --tbk-soft: rgba(245, 238, 223, 0.72);
+}
+.tbk-band--ivory {
+  background: var(--tbk-ivory);
+  color: var(--tbk-ink);
+  --tbk-accent: var(--tbk-bronze);
+  --tbk-line: var(--tbk-line-light);
+  --tbk-soft: rgba(20, 17, 13, 0.72);
+}
+.tbk-band--seam {
+  border-top: 1px solid var(--tbk-line-light);
+}
+
+/* ── Type ──────────────────────────────────────────────────────────── */
+.tbk-eyebrow {
+  margin: 0 0 1rem;
+  color: var(--tbk-accent);
+  font-family: var(--tbk-text);
+  font-size: 0.82rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+.tbk-title {
+  margin: 0 0 1.6rem;
+  max-width: 22ch;
+  font-family: var(--tbk-display);
+  font-weight: 500;
+  font-size: clamp(2.1rem, 4.4vw, 3.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.005em;
+}
+.tbk-body {
+  margin: 0 0 1.1rem;
+  max-width: 62ch;
+  color: var(--tbk-soft);
+  font-size: clamp(1.08rem, 1.5vw, 1.24rem);
+  line-height: 1.6;
+}
+.tbk-body strong {
+  color: inherit;
+  font-weight: 600;
+}
+.tbk-band--obsidian .tbk-body strong {
+  color: var(--tbk-ivory-ink);
+}
+.tbk-note {
+  margin: 1.2rem 0 0;
+  color: var(--tbk-soft);
+  font-size: 1.02rem;
+}
+.tbk-center {
+  margin-inline: auto;
+  text-align: center;
+}
+.tbk-mono {
+  font-family: var(--tbk-mono);
+  letter-spacing: 0.02em;
+}
+.tbk-gilt {
+  color: var(--tbk-accent);
+}
+.tbk-rule {
+  display: block;
+  width: 9rem;
+  height: 1px;
+  margin: 2rem auto;
+  background: var(--tbk-accent);
+  transform-origin: center;
+}
+.tbk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Hero and closing: the title page, in a hairline double frame ──── */
+.tbk-hero {
+  min-height: min(100svh, 56rem);
+  display: grid;
+  align-items: center;
+  padding-block: clamp(3rem, 6vw, 5rem);
+}
+.tbk-frame {
+  position: relative;
+  padding: clamp(3rem, 8vw, 6.5rem) clamp(1.5rem, 6vw, 5rem);
+  text-align: center;
+  border: 1px solid rgba(217, 174, 90, 0.5);
+  outline: 1px solid rgba(217, 174, 90, 0.22);
+  outline-offset: 10px;
+}
+.tbk-hero__seal {
+  display: block;
+  width: clamp(4.5rem, 9vw, 6.5rem);
+  height: auto;
+  margin: 0 auto 2.2rem;
+  filter: drop-shadow(0 0 24px rgba(217, 174, 90, 0.25));
+}
+.tbk-hero__seal--small {
+  width: 3.6rem;
+  margin: 2.4rem auto 0;
+}
+.tbk-hero__title {
+  margin: 0;
+  font-family: var(--tbk-display);
+  font-weight: 500;
+  font-size: clamp(2.1rem, 9vw, 7.5rem);
+  line-height: 1.04;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tbk-ivory-ink);
+}
+.tbk-hero__titleline {
+  display: block;
+}
+.tbk-hero__word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.tbk-hero__word + .tbk-hero__word {
+  margin-left: 0.32em;
+}
+.tbk-hero__char {
+  display: inline-block;
+}
+.tbk-hero__line {
+  margin: 0 0 2.4rem;
+  color: rgba(245, 238, 223, 0.86);
+  font-family: var(--tbk-display);
+  font-style: italic;
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+}
+.tbk-hero--close .tbk-hero__line {
+  color: var(--tbk-gilt);
+  margin-bottom: 0;
+}
+
+/* ── The colophon line ─────────────────────────────────────────────── */
+.tbk-quote {
+  text-align: center;
+}
+.tbk-quote__line {
+  margin: 0 auto;
+  max-width: 20ch;
+  font-family: var(--tbk-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(2.6rem, 7vw, 5.4rem);
+  line-height: 1.08;
+}
+.tbk-quote__line--upright {
+  font-style: normal;
+  max-width: 26ch;
+  font-size: clamp(2rem, 4.6vw, 3.6rem);
+}
+.tbk-quote__aside {
+  margin: -0.6rem 0 1.2rem;
+  color: var(--tbk-accent);
+  font-family: var(--tbk-display);
+  font-style: italic;
+  font-size: clamp(1.3rem, 2vw, 1.6rem);
+}
+
+/* ── Layout ────────────────────────────────────────────────────────── */
+.tbk-split {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .tbk-split {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+  .tbk-split--wheel {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+}
+.tbk-pair,
+.tbk-trio {
+  display: grid;
+  gap: 1.4rem;
+  margin: 2rem 0;
+}
+@media (min-width: 760px) {
+  .tbk-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tbk-trio {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* A bordered box, square corners. */
+.tbk-box {
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  border: 1px solid var(--tbk-line);
+}
+.tbk-box h3 {
+  margin: 0 0 0.8rem;
+  font-family: var(--tbk-display);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+.tbk-box--tinted {
+  background: var(--tbk-vellum);
+}
+.tbk-box--open {
+  border-style: dashed;
+}
+
+/* Definitions with fine rules: one person, one record, one copy. */
+.tbk-defs {
+  margin: 0;
+  border-top: 1px solid var(--tbk-line);
+}
+.tbk-defs > div {
+  display: grid;
+  gap: 0.3rem 2rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--tbk-line);
+}
+@media (min-width: 640px) {
+  .tbk-defs > div {
+    grid-template-columns: 11rem 1fr;
+  }
+}
+.tbk-defs dt {
+  color: var(--tbk-accent);
+  font-size: 0.84rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  padding-top: 0.25rem;
+}
+.tbk-defs dd {
+  margin: 0;
+  font-size: 1.14rem;
+  line-height: 1.55;
+}
+
+/* The 88° calculation, in a gilt-ruled box as on the slide. */
+.tbk-calc {
+  margin: 1.6rem 0 0;
+  padding: clamp(1.2rem, 3vw, 1.8rem) clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid var(--tbk-line);
+  background: rgba(217, 174, 90, 0.04);
+}
+.tbk-calc .tbk-mono {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  line-height: 1.7;
+  color: var(--tbk-ivory-ink);
+}
+.tbk-calc .tbk-calc__result {
+  color: var(--tbk-gilt);
+}
+.tbk-calc .tbk-body {
+  margin: 0.6rem 0 0;
+}
+
+/* ── The real pages of the book ───────────────────────────────────── */
+.tbk-page {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  margin-inline: auto;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04), 0 30px 60px -20px rgba(0, 0, 0, 0.55);
+}
+.tbk-band--ivory .tbk-page {
+  box-shadow: 0 1px 0 rgba(154, 125, 69, 0.25), 0 26px 50px -24px rgba(60, 45, 20, 0.45);
+}
+.tbk-page--cover {
+  max-width: 26rem;
+}
+
+.tbk-wheel {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+  will-change: transform;
+}
+
+/* ── Tables: hairline, a quiet header ─────────────────────────────── */
+.tbk-table {
+  width: 100%;
+  margin: 1.2rem 0 1.4rem;
+  border-collapse: collapse;
+  font-size: 1.04rem;
+}
+.tbk-table th,
+.tbk-table td {
+  padding: 0.62rem 0.85rem;
+  border: 1px solid var(--tbk-line);
+  text-align: left;
+  vertical-align: top;
+}
+.tbk-table th {
+  font-weight: 600;
+  background: rgba(154, 125, 69, 0.12);
+}
+.tbk-table--dark th {
+  background: rgba(217, 174, 90, 0.08);
+  color: var(--tbk-ivory-ink);
+}
+.tbk-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 64 pages: the flatplan bar ────────────────────────────────────── */
+.tbk-flatplan {
+  display: flex;
+  height: 2.6rem;
+  gap: 2px;
+  margin: 0.4rem 0 1.4rem;
+}
+.tbk-flatplan span {
+  display: block;
+  flex-basis: 0;
+  transform-origin: left center;
+}
+
+.tbk-chapters {
+  margin: 1.4rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 1px solid var(--tbk-line);
+  list-style: none;
+  counter-reset: chapter;
+  columns: 2;
+  column-gap: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+.tbk-chapters li {
+  counter-increment: chapter;
+  break-inside: avoid;
+}
+.tbk-chapters li::before {
+  content: counter(chapter) " · ";
+}
+@media (max-width: 520px) {
+  .tbk-chapters {
+    columns: 1;
+  }
+}
+
+/* ── What the system does not say ──────────────────────────────────── */
+.tbk-limits {
+  display: grid;
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tbk-line);
+  font-size: 1.14rem;
+  line-height: 1.5;
+}
+.tbk-limits li {
+  padding: 1rem 1.2rem 1rem 0;
+  border-bottom: 1px solid var(--tbk-line);
+}
+@media (min-width: 760px) {
+  .tbk-limits {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── In numbers ───────────────────────────────────────────────────── */
+.tbk-numbers {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin: 1.6rem 0 0;
+  border-top: 1px solid var(--tbk-line);
+  border-left: 1px solid var(--tbk-line);
+}
+@media (min-width: 900px) {
+  .tbk-numbers {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.tbk-numbers > div {
+  padding: clamp(1rem, 2.4vw, 1.6rem);
+  border-right: 1px solid var(--tbk-line);
+  border-bottom: 1px solid var(--tbk-line);
+}
+.tbk-numbers dt {
+  font-family: var(--tbk-display);
+  font-weight: 500;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+  font-variant-numeric: lining-nums;
+}
+.tbk-numbers > div:nth-child(3) dt,
+.tbk-numbers > div:nth-child(6) dt {
+  color: var(--tbk-bronze);
+}
+.tbk-numbers dd {
+  margin: 0.7rem 0 0;
+  color: var(--tbk-soft);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+/* ── Inside the book ──────────────────────────────────────────────── */
+.tbk-inside {
+  display: grid;
+  gap: 1.6rem;
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 900px) {
+  .tbk-inside {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.tbk-inside .tbk-eyebrow {
+  margin: 1.2rem 0 0.4rem;
+}
+.tbk-inside .tbk-body {
+  font-size: 1.08rem;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+.tbk-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.8rem 1.9rem;
+  border: 1px solid var(--tbk-accent);
+  background: transparent;
+  color: inherit;
+  font-family: var(--tbk-text);
+  font-size: 0.92rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.tbk-button:hover,
+.tbk-button:focus-visible {
+  background: var(--tbk-accent);
+  color: var(--tbk-obsidian);
+}
+.tbk-band--ivory .tbk-button {
+  background: var(--tbk-ink);
+  border-color: var(--tbk-ink);
+  color: var(--tbk-ivory);
+}
+.tbk-band--ivory .tbk-button:hover,
+.tbk-band--ivory .tbk-button:focus-visible {
+  background: var(--tbk-bronze);
+  border-color: var(--tbk-bronze);
+}
+.tbk-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.tbk-button:focus-visible,
+.tbk-field input:focus-visible,
+.tbk-field textarea:focus-visible {
+  outline: 1px solid var(--tbk-accent);
+  outline-offset: 3px;
+}
+
+/* ── The order ─────────────────────────────────────────────────────── */
+.tbk-intake {
+  display: grid;
+  gap: clamp(2rem, 5vw, 4rem);
+}
+@media (min-width: 960px) {
+  .tbk-intake {
+    grid-template-columns: 0.8fr 1.2fr;
+    align-items: start;
+  }
+}
+.tbk-ledger {
+  margin: 1.6rem 0 0;
+  border-top: 1px solid var(--tbk-line);
+}
+.tbk-ledger > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--tbk-line);
+}
+.tbk-ledger dt {
+  color: var(--tbk-accent);
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.tbk-ledger dd {
+  margin: 0;
+  text-align: right;
+}
+.tbk-intake__panel {
+  padding: clamp(1.5rem, 4vw, 2.8rem);
+  border: 1px solid var(--tbk-line);
+  outline: 1px solid rgba(154, 125, 69, 0.18);
+  outline-offset: 6px;
+  background: var(--tbk-vellum);
+  scroll-margin-top: 6rem;
+}
+.tbk-intake__gate h3 {
+  margin: 0 0 0.8rem;
+  font-family: var(--tbk-display);
+  font-weight: 500;
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+}
+.tbk-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 1rem;
+}
+.tbk-form__heading {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.8rem 0 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--tbk-line);
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tbk-accent);
+}
+.tbk-form__heading small {
+  font-size: inherit;
+  color: var(--tbk-soft);
+}
+.tbk-form__grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 620px) {
+  .tbk-form__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.tbk-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+.tbk-field input,
+.tbk-field textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--tbk-line);
+  border-radius: 0;
+  background: var(--tbk-ivory);
+  color: var(--tbk-ink);
+  font-family: var(--tbk-text);
+  font-size: 1.05rem;
+}
+.tbk-field input[readonly] {
+  background: transparent;
+  color: var(--tbk-soft);
+}
+.tbk-consent {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--tbk-soft);
+}
+.tbk-consent input {
+  margin-top: 0.3rem;
+  accent-color: var(--tbk-bronze);
+}
+.tbk-form__action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tbk-line);
+}
+.tbk-form__action span {
+  display: block;
+  font-size: 1.4rem;
+}
+.tbk-form__action small {
+  color: var(--tbk-soft);
+}
+.tbk-error {
+  margin: 0.6rem 0 0;
+  color: #8a2f1f;
+}
+
+/* Reveal: the GSAP choreography sets the start; without it, all is shown. */
+@media (prefers-reduced-motion: reduce) {
+  .tbk * {
+    transition: none !important;
+  }
+}
