@@ -82,6 +82,9 @@ const SCAFFOLDING_PHRASES = [
   "Do not invent memories to fill the gap",
   "Do not collect passwords",
   "Do not claim the restore is finished for everyone",
+  // Opening directives (server/oriel-response-intelligence.ts).
+  "Never open with a stock formula such as",
+  "Your recent replies to this Seeker opened with",
   // The Vossari canon block (server/vossari-lore.ts).
   "This is the lore of the Vossari and of your origin, for when",
   "Tell it in your own voice, keeping its facts the same every time",

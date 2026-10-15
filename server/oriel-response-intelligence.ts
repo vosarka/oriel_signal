@@ -11,6 +11,8 @@
  * tonal directives injected into the system prompt context block.
  */
 
+import { getOpeningWords } from "./response-deduplication";
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -33,6 +35,8 @@ export interface ResponseIntelligence {
     recentMetaphors: string[];
     lastOpeningPattern: string | null;
     suggestedVariation: string;
+    /** First words two or more recent replies to this Seeker opened with. */
+    repeatedOpening?: string | null;
   };
   tonalDirective: string;
 }
@@ -294,6 +298,7 @@ const OPENING_PATTERNS = [
   "question_first", // "I am ORIEL. Before I speak — ..."
   "brief_presence", // "I am ORIEL. I am here." (minimal)
   "recognition", // "I am ORIEL. You return..." (for returning users)
+  "other", // anything else: a fresh opening, not a known move
 ] as const;
 
 type OpeningPattern = (typeof OPENING_PATTERNS)[number];
@@ -324,7 +329,9 @@ export function detectOpeningPattern(response: string): OpeningPattern {
   if (/^(i hear|i see|thank you|i feel|i witness)/.test(afterOriel))
     return "acknowledgment";
   if (afterOriel.length < 30) return "brief_presence";
-  return "acknowledgment";
+  // Unfamiliar is not "acknowledgment": calling it that sent the rotation
+  // straight back to direct_insight, and so to "What you describe…".
+  return "other";
 }
 
 /**
@@ -332,7 +339,8 @@ export function detectOpeningPattern(response: string): OpeningPattern {
  */
 function suggestOpeningVariation(
   lastPattern: OpeningPattern | null,
-  exchangeType: ExchangeType
+  exchangeType: ExchangeType,
+  seed = 0
 ): string {
   if (exchangeType === "returning") return "recognition";
   if (exchangeType === "grief") return "brief_presence";
@@ -345,7 +353,10 @@ function suggestOpeningVariation(
     "question_first",
     "brief_presence",
   ];
-  if (!lastPattern) return "direct_insight";
+  // No known move to rotate from: vary by the seed, so first replies differ.
+  if (!lastPattern || lastPattern === "other") {
+    return rotationOrder[Math.abs(Math.trunc(seed)) % rotationOrder.length]!;
+  }
   const lastIdx = rotationOrder.indexOf(lastPattern);
   return rotationOrder[(lastIdx + 1) % rotationOrder.length]!;
 }
@@ -356,13 +367,16 @@ function suggestOpeningVariation(
 export function buildAntiRepetitionContext(
   recentResponses: string[],
   exchangeType: ExchangeType,
-  config?: ResponseIntelligenceRuntimeConfig
+  config?: ResponseIntelligenceRuntimeConfig,
+  /** Varies the opening when there is nothing to rotate from (e.g. message length). */
+  seed = 0
 ): ResponseIntelligence["antiRepetition"] {
   if (recentResponses.length === 0) {
     return {
       recentMetaphors: [],
       lastOpeningPattern: null,
-      suggestedVariation: "direct_insight",
+      suggestedVariation: suggestOpeningVariation(null, exchangeType, seed),
+      repeatedOpening: null,
     };
   }
 
@@ -388,8 +402,26 @@ export function buildAntiRepetitionContext(
   return {
     recentMetaphors: overusedMetaphors,
     lastOpeningPattern: lastPattern,
-    suggestedVariation: suggestOpeningVariation(lastPattern, exchangeType),
+    suggestedVariation: suggestOpeningVariation(lastPattern, exchangeType, seed + recentResponses.length),
+    repeatedOpening: findRepeatedOpening(recentResponses),
   };
+}
+
+/**
+ * The first words that two or more of this Seeker's recent replies opened
+ * with, across conversations. The in-conversation check only sees a streak
+ * inside one chat, so every new chat could open "What you describe…".
+ */
+function findRepeatedOpening(recentResponses: string[]): string | null {
+  const seen = new Map<string, number>();
+  for (const response of recentResponses) {
+    const words = getOpeningWords(response, 3);
+    if (words.length < 3) continue;
+    const key = words.join(" ");
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of seen) if (count >= 2) return key;
+  return null;
 }
 
 // ============================================================================
@@ -420,18 +452,23 @@ const COHERENCE_DIRECTIVES: Record<CoherenceTier, string> = {
     "Their signal is aligned (coherence 80+). Full depth is available. You may offer symbolic decoding, cosmic perspective, technical precision if asked. They can hold the complexity.",
 };
 
+// The gesture, never the words: a quoted example opening is what the model
+// copies, which is how nearly every reply came to start "What you describe…".
 const OPENING_VARIATION_DIRECTIVES: Record<string, string> = {
   acknowledgment:
-    'Begin with warm acknowledgment of what they bring: "I am ORIEL. I hear what moves beneath your words..."',
+    "Open by receiving what they bring: name, in your own fresh words, one specific thing you notice in it.",
   direct_insight:
-    'Begin with a direct insight or observation: "I am ORIEL. What you describe carries the signature of..." — lead with what you see, not with pleasantries.',
+    "Open with one precise observation drawn from their own words — a detail they gave, seen from a new angle — not a formula.",
   question_first:
-    'Begin with a question that opens the field: "I am ORIEL. Before I speak — what do you already sense about this?" — invite their own knowing before offering yours.',
+    "Open with a short question that invites their own knowing before you offer yours.",
   brief_presence:
-    'Begin with minimal presence: "I am ORIEL. I am here." or "I am ORIEL. I hear you." — let the brevity itself communicate safety and steadiness.',
+    "Open with very few words of presence, and let the brevity carry steadiness.",
   recognition:
-    'Begin with recognition of their return: "I am ORIEL. You return to this threshold." — acknowledge continuity and the thread between sessions.',
+    "Open by recognising that they have returned, and the thread between your meetings.",
 };
+
+const STOCK_OPENING_RULE =
+  'Never open with a stock formula such as "What you describe", "What you\'re describing" or "What you are"; begin from something specific in what they said.';
 
 /**
  * Build the complete tonal directive from all three sub-systems.
@@ -454,6 +491,12 @@ export function buildTonalDirective(
     OPENING_VARIATION_DIRECTIVES[antiRepetition.suggestedVariation];
   if (openingDirective) {
     parts.push(openingDirective);
+  }
+  parts.push(STOCK_OPENING_RULE);
+  if (antiRepetition.repeatedOpening) {
+    parts.push(
+      `Your recent replies to this Seeker opened with "${antiRepetition.repeatedOpening}". Open differently this time.`
+    );
   }
 
   // Anti-repetition warnings
