@@ -1,0 +1,32 @@
+client/src/features/transmission-film/film-recorder.ts
+  s_fb7a7986d66af6::t_3ca6ad7e541116 8-9,11-13
+  s_fb7a7986d66af6::t_638974ada471dd 1-7,10,14-160
+client/src/pages/TransmissionPlayer.tsx
+  s_fb7a7986d66af6::t_01e8e053467ef4 6-12,53-59,133,145-177,216-225,229-244,315-317
+wiki/log.md
+  ai_agent 2223-2226
+client/src/features/transmission-film/TransmissionFilm.tsx
+  s_fb7a7986d66af6::t_01e8e053467ef4 20-21,29,33-34,117
+client/src/pages/transmission-player.css
+  s_fb7a7986d66af6::t_01e8e053467ef4 113-121,123-127
+  s_fb7a7986d66af6::t_c17dbb64a2bbed 122
+server/film-recorder.test.ts
+  s_fb7a7986d66af6::t_f8c61d30e55131 1-4,8-24
+  s_fb7a7986d66af6::t_3ca6ad7e541116 5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f239e415eb61dff3def6b8c1528b4d34d1c30da3",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
