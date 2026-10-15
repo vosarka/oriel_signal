@@ -17,6 +17,8 @@ interface Props {
   seed: { fold: number; k: number; phase: number };
   /** Called once a frame; the film reads the moment from it. */
   frame: () => FilmFrame;
+  /** Called right after each frame is drawn, while its pixels can still be read (recording). */
+  onDrawn?: (canvas: HTMLCanvasElement) => void;
 }
 
 /**
@@ -24,10 +26,12 @@ interface Props {
  * never jumps with the voice; ORIEL's voice is light: loudness makes the
  * folds and the dust glow, and each syllable sends a ring of light outward.
  */
-export default function TransmissionFilm({ seed, frame }: Props) {
+export default function TransmissionFilm({ seed, frame, onDrawn }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef(frame);
   frameRef.current = frame;
+  const drawnRef = useRef(onDrawn);
+  drawnRef.current = onDrawn;
   const seedRef = useRef(seed);
   seedRef.current = seed;
 
@@ -110,6 +114,7 @@ export default function TransmissionFilm({ seed, frame }: Props) {
       gl.uniform1f(u.speech, speech);
       gl.uniform1f(u.since, since);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      drawnRef.current?.(canvas);
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);

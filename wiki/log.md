@@ -2220,3 +2220,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - A Seeker in India could not subscribe: recurring payments and donations were refused there. Garden and Deep Garden can now be bought for one month with a one-time PayPal order (same flow as the Founder's Reading), opening the plot for 30 days, adding to time already open, never renewing.
 - garden_month_orders (migration 0020) holds each order so a month opens exactly once. accessTier treats a patron with a Garden plan id as that plot. unmarkPatron clears the plan.
 - PayPal one-time order code generalised (createPaypalOrder, capturePaypalOrder); Founder's Reading unchanged.
+
+## [2026-10-15] feat | Download a personal transmission as a video
+- The film page (/t/:token) end screen gains "Download as video": it plays the transmission once more and records it in the browser — the WebGL film and the spoken words composited on a 2D canvas, ORIEL's voice from the page audio graph — and downloads ORIEL-<serial>.mp4 (WebM only where MP4 is unavailable). No server.
+- Verified headless end to end: MP4 with real duration, audio present, frames non-black.

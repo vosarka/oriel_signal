@@ -3,6 +3,13 @@ import { useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import TransmissionFilm, { type FilmFrame } from "@/features/transmission-film/TransmissionFilm";
 import { actAt, filmSeed, flowAt, flowSentences, voiceBand } from "@shared/transmission-film";
+import {
+  canRecordFilm,
+  downloadBlob,
+  filmFileName,
+  startFilmRecording,
+  type FilmCaption,
+} from "@/features/transmission-film/film-recorder";
 import "./transmission-player.css";
 
 const MOVEMENT_LABEL = ["I · THE MIRROR", "II · THE THRESHOLD", "III · THE GIFT"] as const;
@@ -43,6 +50,13 @@ export default function TransmissionPlayer() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const analyserRef = useRef<{ node: AnalyserNode; bins: Uint8Array<ArrayBuffer>; rate: number } | null>(null);
+  // The page's audio graph, kept so a recording can take ORIEL's voice from it.
+  const graphRef = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode } | null>(null);
+  // Saving the film as a video: the recorder and what it shows.
+  const recorderRef = useRef<ReturnType<typeof startFilmRecording> | null>(null);
+  const captionRef = useRef<FilmCaption | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [recordable] = useState(canRecordFilm);
   const acquireStart = useRef(0);
   const burstUntil = useRef(0);
   const lastAct = useRef(0);
@@ -116,6 +130,7 @@ export default function TransmissionPlayer() {
       src.connect(node);
       node.connect(ctx.destination);
       analyserRef.current = { node, bins: new Uint8Array(new ArrayBuffer(node.frequencyBinCount)), rate: ctx.sampleRate };
+      graphRef.current = { ctx, src };
       void ctx.resume();
     }
     acquireStart.current = performance.now();
@@ -126,6 +141,39 @@ export default function TransmissionPlayer() {
       setPhase(a ? "playing" : "ended");
     }, ACQUIRE_MS);
   }
+
+  /** Plays the transmission again from the start and records it, voice and words. */
+  function recordVideo() {
+    const a = audioRef.current;
+    if (!a || recording) return;
+    a.currentTime = 0;
+    receive(); // builds the audio graph inside this click, then plays
+    const graph = graphRef.current;
+    if (!graph) return;
+    const dest = graph.ctx.createMediaStreamDestination();
+    graph.src.connect(dest);
+    recorderRef.current = startFilmRecording(dest.stream);
+    setRecording(true);
+  }
+
+  function cancelRecording() {
+    recorderRef.current?.cancel();
+    recorderRef.current = null;
+    setRecording(false);
+    audioRef.current?.pause();
+    setPhase("ended");
+  }
+
+  // The voice ended: the file is complete.
+  useEffect(() => {
+    if (phase !== "ended" || !recorderRef.current || !t) return;
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    void rec.stop().then(({ blob, mime }) => {
+      setRecording(false);
+      downloadBlob(blob, filmFileName(t.serial, mime));
+    });
+  }, [phase, t]);
 
   function toggle() {
     const a = audioRef.current;
@@ -165,10 +213,35 @@ export default function TransmissionPlayer() {
   const speaking = phase === "playing" || phase === "paused";
   const current = flow.index >= 0 ? sentences[flow.index] : null;
   const previous = flow.index > 0 ? sentences[flow.index - 1] : null;
+  // What a recording shows with the film: the same words as the screen.
+  captionRef.current =
+    speaking && showText && current
+      ? {
+          movement: MOVEMENT_LABEL[current.movement],
+          past: previous && previous.movement === current.movement ? previous.text : null,
+          line: current.text,
+          said: flow.words,
+        }
+      : null;
 
   return (
     <main className={`tf tf--${phase}`}>
-      <TransmissionFilm seed={seed} frame={frame} />
+      <TransmissionFilm
+        seed={seed}
+        frame={frame}
+        onDrawn={recording ? canvas => recorderRef.current?.frame(canvas, captionRef.current) : undefined}
+      />
+      {recording && (
+        <div className="tf-recording" role="status">
+          <span className="tf-recording__dot" aria-hidden="true" />
+          <span className="tf-mono">
+            RECORDING · {fmt(time)} / {duration ? fmt(duration) : "--:--"}
+          </span>
+          <button type="button" className="tf-mono tf-toggle" onClick={cancelRecording}>
+            CANCEL
+          </button>
+        </div>
+      )}
 
       <header className="tf-head">
         <p className="tf-mono tf-vls">{vls}</p>
@@ -237,6 +310,11 @@ export default function TransmissionPlayer() {
                 }}
               >
                 Receive it again
+              </button>
+            )}
+            {t.audioUrl && recordable && (
+              <button type="button" className="tf-receive" onClick={recordVideo}>
+                Download as video
               </button>
             )}
           </div>
