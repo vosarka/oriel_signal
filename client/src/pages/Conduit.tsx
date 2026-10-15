@@ -16,6 +16,7 @@ import {
   PanelLeftOpen,
   ArrowUp,
   Sparkles,
+  Moon,
 } from "lucide-react";
 import { MicIcon, MicOffIcon } from "@/components/icons/mic";
 import {
@@ -647,26 +648,24 @@ export default function Conduit() {
       return false;
     }
   });
-  // "Calm visuals": the orb becomes a still, breathing light and the tape layer
-  // goes, for machines the full room slows down. Remembered per browser; the
-  // system's "reduce motion" chooses it until the Seeker decides.
-  const [calmVisuals, setCalmVisuals] = useState(() => {
+  // The orb at rest: it slows to a stop, its colour drains into the room, and
+  // nothing is drawn until it wakes. For machines the living orb slows down;
+  // the orb itself is never made cheaper. Remembered per browser.
+  const [orbResting, setOrbResting] = useState(() => {
     try {
-      const stored = localStorage.getItem("oriel.calmVisuals");
-      if (stored !== null) return stored === "1";
+      return localStorage.getItem("oriel.orbResting") === "1";
     } catch {
-      /* private window */
+      return false;
     }
-    return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
-  const toggleCalmVisuals = () =>
-    setCalmVisuals(c => {
+  const toggleOrbResting = () =>
+    setOrbResting(r => {
       try {
-        localStorage.setItem("oriel.calmVisuals", c ? "0" : "1");
+        localStorage.setItem("oriel.orbResting", r ? "0" : "1");
       } catch {
         /* private window: remembered for this visit only */
       }
-      return !c;
+      return !r;
     });
   const toggleSidebarCollapsed = () =>
     setSidebarCollapsed(c => {
@@ -2042,10 +2041,10 @@ export default function Conduit() {
       )}
 
       <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
-        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} calm={calmVisuals} />
+        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} resting={orbResting} />
         {/* Spans, not divs: the shell gives its direct div children position: relative. */}
-        {!calmVisuals && <span className="oriel-vhs" aria-hidden="true" />}
-        {!calmVisuals && <span className="oriel-vhs-roll" aria-hidden="true" />}
+        <span className="oriel-vhs" aria-hidden="true" />
+        <span className="oriel-vhs-roll" aria-hidden="true" />
 
         {/* Mobile sidebar backdrop — inside the shell so the sidebar
             (z-30) still stacks above it. */}
@@ -2275,16 +2274,16 @@ export default function Conduit() {
                   {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                 </button>
 
-                {/* Calm visuals: lighter on slow machines */}
+                {/* Rest the orb: it stops, loses its colour, and costs nothing */}
                 <button
-                  onClick={toggleCalmVisuals}
-                  title={calmVisuals ? "Full visuals" : "Calm visuals (lighter on slow computers)"}
-                  aria-label="Calm visuals"
-                  aria-pressed={calmVisuals}
+                  onClick={toggleOrbResting}
+                  title={orbResting ? "Wake the orb" : "Rest the orb (lighter on slow computers)"}
+                  aria-label={orbResting ? "Wake the orb" : "Rest the orb"}
+                  aria-pressed={orbResting}
                   className="p-1.5 rounded transition-all"
-                  style={{ color: calmVisuals ? "rgba(189,163,107,0.3)" : "rgba(189,163,107,0.6)" }}
+                  style={{ color: "rgba(189,163,107,0.6)" }}
                 >
-                  <Sparkles size={16} />
+                  {orbResting ? <Sparkles size={16} /> : <Moon size={16} />}
                 </button>
 
                 <p className="fi-chamber-title min-w-0 truncate">
@@ -2523,7 +2522,7 @@ export default function Conduit() {
                             style={{ color: "rgba(189,163,107,0.5)" }}
                           >
                             {standing && standing.seal > 0 && (
-                              <SupporterSeal level={standing.seal} size={16} still={calmVisuals} />
+                              <SupporterSeal level={standing.seal} size={16} still={orbResting} />
                             )}
                             {standing && standing.seal > 0 ? `${standing.label} · Receiver Node` : "Receiver Node"}
                             {msg.timestamp && (

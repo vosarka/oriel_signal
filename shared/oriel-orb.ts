@@ -72,19 +72,18 @@ export function auraParams(weights: OrbWeights): AuraParams {
 }
 
 /**
- * How much the orb asks of the machine. A Seeker on a slow laptop could
- * barely type while the full orb ran, so the orb steps down on its own when
- * frames grow slow. The last level is also the "Calm visuals" choice: a still
- * light that only breathes.
+ * How much the orb asks of the machine. On a slow computer the orb steps down
+ * on its own: lower resolution, then no holographic triple pass. Motion always
+ * stays at full rate: an orb at 8 fps looked broken (Vos, 2026-10-15). To ask
+ * nothing at all, the Seeker can put the orb to rest instead.
  */
 export const ORB_QUALITY = [
   { name: "full", dprCap: 1.5, fps: 60, holographic: true },
   { name: "light", dprCap: 1, fps: 60, holographic: false },
-  { name: "low", dprCap: 0.6, fps: 30, holographic: false },
-  { name: "still", dprCap: 0.5, fps: 8, holographic: false },
+  { name: "low", dprCap: 0.6, fps: 60, holographic: false },
 ] as const;
 
-export type OrbQuality = 0 | 1 | 2 | 3;
+export type OrbQuality = 0 | 1 | 2;
 
 /** A frame slower than this, on average, means the page is struggling. */
 export const SLOW_FRAME_MS = 24;
@@ -94,6 +93,6 @@ export const SLOW_FRAME_MS = 24;
  * again on a machine that just struggled would only make it stutter twice.
  */
 export function nextOrbQuality(level: OrbQuality, avgFrameMs: number): OrbQuality {
-  if (avgFrameMs <= SLOW_FRAME_MS || level >= 3) return level;
+  if (avgFrameMs <= SLOW_FRAME_MS || level >= ORB_QUALITY.length - 1) return level;
   return (level + 1) as OrbQuality;
 }
