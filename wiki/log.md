@@ -2215,3 +2215,8 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Profile: seal with the Seeker's initial, tier in the kicker, a gold frame that deepens with the seal, and a "Your place in the field" panel under the header. Free Seekers see their daily measure and a link to /tiers.
 - Chat: the seal and tier beside the Seeker's own messages.
 - Navbar: the seal replaces the profile icon beside PROFILE (desktop and mobile menu) for supporters.
+
+## [2026-10-15] feat | One month of Garden, paid once
+- A Seeker in India could not subscribe: recurring payments and donations were refused there. Garden and Deep Garden can now be bought for one month with a one-time PayPal order (same flow as the Founder's Reading), opening the plot for 30 days, adding to time already open, never renewing.
+- garden_month_orders (migration 0020) holds each order so a month opens exactly once. accessTier treats a patron with a Garden plan id as that plot. unmarkPatron clears the plan.
+- PayPal one-time order code generalised (createPaypalOrder, capturePaypalOrder); Founder's Reading unchanged.

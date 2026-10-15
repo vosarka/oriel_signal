@@ -99,8 +99,11 @@ export function isSupporter(
 /** The tier that decides a user's limits. */
 export function accessTier(user: SupporterFields, now: Date = new Date()): AccessTier {
   const kind = supporterKind(user, now);
-  if (kind === "patron") return patronLevel(Number(user.donated ?? 0));
-  if (kind !== "garden") return "free";
+  // A patron who bought a month of Garden (paid once, no subscription) holds
+  // that plot until the month ends; without one, the donated total decides.
+  const boughtMonth = (Object.values(GARDEN_PLANS) as string[]).includes(user.paypalPlanId ?? "");
+  if (kind === "patron" && !boughtMonth) return patronLevel(Number(user.donated ?? 0));
+  if (kind === null) return "free";
   const plan: AccessTier =
     user.paypalPlanId === GARDEN_PLANS.deep_garden ? "deep_garden" : "garden";
   // A patron who also joins the Garden keeps whichever opens more.

@@ -1,0 +1,2 @@
+-- Months of Garden bought once, with no renewal (for countries whose banks refuse recurring payments).
+CREATE TABLE garden_month_orders (paypalOrderId varchar(64) NOT NULL, userId int NOT NULL, plan enum('garden','deep_garden') NOT NULL, priceEur double NOT NULL, customId varchar(96) NOT NULL, status enum('created','paid') NOT NULL DEFAULT 'created', captureId varchar(64) NULL, createdAt timestamp NOT NULL DEFAULT (now()), paidAt timestamp NULL, PRIMARY KEY (paypalOrderId));
