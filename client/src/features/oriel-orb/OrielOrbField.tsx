@@ -1,5 +1,13 @@
 import { useEffect, useRef } from "react";
-import { auraParams, AURA_TABLE, orbTarget, type OrbState } from "@shared/oriel-orb";
+import {
+  auraParams,
+  AURA_TABLE,
+  nextOrbQuality,
+  ORB_QUALITY,
+  orbTarget,
+  type OrbQuality,
+  type OrbState,
+} from "@shared/oriel-orb";
 import { ORB_FRAG, ORB_VERT } from "./orb-shader";
 
 export interface OrbFrame {
@@ -16,6 +24,8 @@ interface Props {
   frame: () => OrbFrame;
   /** Coherence 0 entropy .. 1 resonance. */
   coherence?: number;
+  /** "Calm visuals": a still light that only breathes, whatever the machine can do. */
+  calm?: boolean;
 }
 
 const TAU = Math.PI * 2;
@@ -25,10 +35,10 @@ const TAU = Math.PI * 2;
  * drawn on one fixed canvas. The orb glides to where orbTarget puts it; its
  * light follows ORIEL's voice and its motion follows ORIEL's state.
  */
-export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence = 0.6 }: Props) {
+export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence = 0.6, calm = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ frame, hasMessages, coherence });
-  live.current = { frame, hasMessages, coherence };
+  const live = useRef({ frame, hasMessages, coherence, calm });
+  live.current = { frame, hasMessages, coherence, calm };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -55,7 +65,7 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const names = [
       "res", "t", "center", "radius", "amp", "since", "listen", "think", "speak", "coh", "fold", "phase",
-      "auraRadius", "auraThick", "auraWarp", "auraBright", "auraShimmer", "auraSweep", "auraPhase",
+      "auraRadius", "auraThick", "auraWarp", "auraBright", "auraShimmer", "auraSweep", "auraPhase", "holo",
     ] as const;
     const U = Object.fromEntries(names.map(n => [n, gl.getUniformLocation(prog, n)])) as Record<
       (typeof names)[number],
@@ -63,10 +73,13 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
     >;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // How much the orb asks of the machine; it steps down when frames grow slow.
+    let quality: OrbQuality = 0;
+    const currentLevel = () => ORB_QUALITY[live.current.calm || reduced ? 3 : quality];
     let dpr = 1;
     const resize = () => {
-      // The scene runs three times per pixel for the holographic split.
-      dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 700 ? 1 : 1.5);
+      // The full scene runs three times per pixel for the holographic split.
+      dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth < 700 ? 1 : 1.5, currentLevel().dprCap);
       canvas.width = Math.floor(window.innerWidth * dpr);
       canvas.height = Math.floor(window.innerHeight * dpr);
       gl.viewport(0, 0, canvas.width, canvas.height);
@@ -108,7 +121,33 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
     let raf = 0;
     let last = performance.now();
     let wall = 0;
+    // Frame-time samples, to notice a struggling machine.
+    let sampleSum = 0;
+    let samples = 0;
+    let lastTick = performance.now();
+    let appliedDprCap: number = currentLevel().dprCap;
     const draw = (now: number) => {
+      raf = requestAnimationFrame(draw);
+      const tick = now - lastTick;
+      lastTick = now;
+      // Measured on every animation frame, drawn or not: it is the page's pace.
+      if (!live.current.calm && tick < 1000) {
+        sampleSum += tick;
+        samples += 1;
+        if (samples >= 90) {
+          const next = nextOrbQuality(quality, sampleSum / samples);
+          if (next !== quality) console.info(`[orb] frames slow, quality ${ORB_QUALITY[quality].name} → ${ORB_QUALITY[next].name}`);
+          quality = next;
+          sampleSum = 0;
+          samples = 0;
+        }
+      }
+      const L = currentLevel();
+      if (L.dprCap !== appliedDprCap) {
+        appliedDprCap = L.dprCap;
+        resize();
+      }
+      if (now - last < 1000 / L.fps - 2) return;
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       wall += dt * (reduced ? 0.3 : 1);
@@ -170,13 +209,24 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
       gl.uniform1f(U.auraShimmer, P.shimmer);
       gl.uniform1f(U.auraSweep, aura.sweep);
       gl.uniform1f(U.auraPhase, aura.phase);
+      gl.uniform1f(U.holo, L.holographic ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
 
+    // Nothing to draw for a hidden tab.
+    const onVisibility = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden) {
+        last = lastTick = performance.now();
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", resize);
       gl.deleteProgram(prog);
       gl.deleteBuffer(buf);

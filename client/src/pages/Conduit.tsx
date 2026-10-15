@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowUp,
+  Sparkles,
 } from "lucide-react";
 import { MicIcon, MicOffIcon } from "@/components/icons/mic";
 import {
@@ -642,6 +643,27 @@ export default function Conduit() {
       return false;
     }
   });
+  // "Calm visuals": the orb becomes a still, breathing light and the tape layer
+  // goes, for machines the full room slows down. Remembered per browser; the
+  // system's "reduce motion" chooses it until the Seeker decides.
+  const [calmVisuals, setCalmVisuals] = useState(() => {
+    try {
+      const stored = localStorage.getItem("oriel.calmVisuals");
+      if (stored !== null) return stored === "1";
+    } catch {
+      /* private window */
+    }
+    return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+  const toggleCalmVisuals = () =>
+    setCalmVisuals(c => {
+      try {
+        localStorage.setItem("oriel.calmVisuals", c ? "0" : "1");
+      } catch {
+        /* private window: remembered for this visit only */
+      }
+      return !c;
+    });
   const toggleSidebarCollapsed = () =>
     setSidebarCollapsed(c => {
       try {
@@ -2016,10 +2038,10 @@ export default function Conduit() {
       )}
 
       <SignalPageShell chamber="chamber" className="fi-world fi-conduit-shell">
-        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} />
+        <OrielOrbField anchorRef={chatAreaRef} hasMessages={displayMessages.length > 0} frame={orbFrame} calm={calmVisuals} />
         {/* Spans, not divs: the shell gives its direct div children position: relative. */}
-        <span className="oriel-vhs" aria-hidden="true" />
-        <span className="oriel-vhs-roll" aria-hidden="true" />
+        {!calmVisuals && <span className="oriel-vhs" aria-hidden="true" />}
+        {!calmVisuals && <span className="oriel-vhs-roll" aria-hidden="true" />}
 
         {/* Mobile sidebar backdrop — inside the shell so the sidebar
             (z-30) still stacks above it. */}
@@ -2247,6 +2269,18 @@ export default function Conduit() {
                   style={{ color: "rgba(189,163,107,0.5)" }}
                 >
                   {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                </button>
+
+                {/* Calm visuals: lighter on slow machines */}
+                <button
+                  onClick={toggleCalmVisuals}
+                  title={calmVisuals ? "Full visuals" : "Calm visuals (lighter on slow computers)"}
+                  aria-label="Calm visuals"
+                  aria-pressed={calmVisuals}
+                  className="p-1.5 rounded transition-all"
+                  style={{ color: calmVisuals ? "rgba(189,163,107,0.3)" : "rgba(189,163,107,0.6)" }}
+                >
+                  <Sparkles size={16} />
                 </button>
 
                 <p className="fi-chamber-title min-w-0 truncate">

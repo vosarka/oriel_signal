@@ -70,3 +70,30 @@ export function auraParams(weights: OrbWeights): AuraParams {
   }
   return out;
 }
+
+/**
+ * How much the orb asks of the machine. A Seeker on a slow laptop could
+ * barely type while the full orb ran, so the orb steps down on its own when
+ * frames grow slow. The last level is also the "Calm visuals" choice: a still
+ * light that only breathes.
+ */
+export const ORB_QUALITY = [
+  { name: "full", dprCap: 1.5, fps: 60, holographic: true },
+  { name: "light", dprCap: 1, fps: 60, holographic: false },
+  { name: "low", dprCap: 0.6, fps: 30, holographic: false },
+  { name: "still", dprCap: 0.5, fps: 8, holographic: false },
+] as const;
+
+export type OrbQuality = 0 | 1 | 2 | 3;
+
+/** A frame slower than this, on average, means the page is struggling. */
+export const SLOW_FRAME_MS = 24;
+
+/**
+ * One step down when the average frame is slow. Never back up: climbing
+ * again on a machine that just struggled would only make it stutter twice.
+ */
+export function nextOrbQuality(level: OrbQuality, avgFrameMs: number): OrbQuality {
+  if (avgFrameMs <= SLOW_FRAME_MS || level >= 3) return level;
+  return (level + 1) as OrbQuality;
+}
