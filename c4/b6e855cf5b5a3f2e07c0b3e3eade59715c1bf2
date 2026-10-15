@@ -1,0 +1,21 @@
+client/src/components/Header.tsx
+  s_fb7a7986d66af6::t_18dade33ca8d3d 6-7,17-24,193,327
+wiki/log.md
+  ai_agent 2217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c4b6e855cf5b5a3f2e07c0b3e3eade59715c1bf2",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
