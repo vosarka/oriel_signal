@@ -41,7 +41,7 @@ export interface TierAccess {
 }
 
 export const TIER_ACCESS: Record<AccessTier, TierAccess> = {
-  free: { label: "Free", messagesPerDay: 10, messagesPerHour: 30, voicePerDay: 3, oraclesDayOne: false, giftAccess: false, freeBook: false },
+  free: { label: "Free", messagesPerDay: 4, messagesPerHour: 30, voicePerDay: 4, oraclesDayOne: false, giftAccess: false, freeBook: false },
   seed: { label: "Seed", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
   garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
   keeper: { label: "Keeper", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
