@@ -1,0 +1,31 @@
+client/src/pages/AdminSignatureLetters.tsx
+  s_fb7a7986d66af6::t_cbed097d131c0a 1,63-65,163,165,171,175,180,461
+client/src/pages/Admin.tsx
+  s_fb7a7986d66af6::t_dcd388ae8d1940 1127,1146
+  s_fb7a7986d66af6::t_cf70a881a632a7 16-35,874-878,1116,1118,1120,1123-1124,1151,1683-1685
+wiki/log.md
+  ai_agent 2223-2226
+client/src/pages/AdminLore.tsx
+  s_fb7a7986d66af6::t_cbed097d131c0a 1,17-19,49-50,63,168
+client/src/App.tsx
+  s_fb7a7986d66af6::t_cf70a881a632a7 67-72,80-83
+client/src/pages/AdminTransmissions.tsx
+  s_fb7a7986d66af6::t_cf70a881a632a7 56
+  s_fb7a7986d66af6::t_cbed097d131c0a 1,17-19,47-48,53,154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1ec0ed9783ff9979df66bdeb4bb167418b3d7892",
+  "prompts": {},
+  "sessions": {
+    "s_fb7a7986d66af6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58677df0-024a-4d19-9753-2aaa3ad3c465",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "vosarka <silviubocsa@gmail.com>"
+    }
+  }
+}
