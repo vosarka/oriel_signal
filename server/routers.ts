@@ -2847,6 +2847,11 @@ export const appRouter = router({
 
   // Archive - Transmissions and Oracles
   archive: router({
+    /** The transmissions ORIEL sent this Seeker in the chat: their own row. */
+    myTransmissions: protectedProcedure.query(async ({ ctx }) => {
+      const { listMyTransmissions } = await import("./my-transmissions");
+      return listMyTransmissions(ctx.user.id);
+    }),
     transmissions: router({
       list: publicProcedure.query(async () => {
         return db.getAllTransmissions();

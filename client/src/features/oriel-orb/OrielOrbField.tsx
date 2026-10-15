@@ -24,9 +24,15 @@ interface Props {
   frame: () => OrbFrame;
   /** Coherence 0 entropy .. 1 resonance. */
   coherence?: number;
-  /** "Calm visuals": a still light that only breathes, whatever the machine can do. */
-  calm?: boolean;
+  /**
+   * The orb at rest: it slows to a stop, its colour drains into a faint, still
+   * pattern of the room, and then nothing is drawn at all until it wakes.
+   */
+  resting?: boolean;
 }
+
+/** Seconds the orb takes to come to rest, or to wake. */
+const REST_SECONDS = 3;
 
 const TAU = Math.PI * 2;
 
@@ -35,10 +41,15 @@ const TAU = Math.PI * 2;
  * drawn on one fixed canvas. The orb glides to where orbTarget puts it; its
  * light follows ORIEL's voice and its motion follows ORIEL's state.
  */
-export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence = 0.6, calm = false }: Props) {
+export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence = 0.6, resting = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ frame, hasMessages, coherence, calm });
-  live.current = { frame, hasMessages, coherence, calm };
+  const live = useRef({ frame, hasMessages, coherence, resting });
+  live.current = { frame, hasMessages, coherence, resting };
+  // Restarts the render loop after it stopped at rest (waking, or the orb moving).
+  const wakeRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    wakeRef.current();
+  }, [resting, hasMessages]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,7 +76,7 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const names = [
       "res", "t", "center", "radius", "amp", "since", "listen", "think", "speak", "coh", "fold", "phase",
-      "auraRadius", "auraThick", "auraWarp", "auraBright", "auraShimmer", "auraSweep", "auraPhase", "holo",
+      "auraRadius", "auraThick", "auraWarp", "auraBright", "auraShimmer", "auraSweep", "auraPhase", "holo", "rest",
     ] as const;
     const U = Object.fromEntries(names.map(n => [n, gl.getUniformLocation(prog, n)])) as Record<
       (typeof names)[number],
@@ -75,7 +86,7 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // How much the orb asks of the machine; it steps down when frames grow slow.
     let quality: OrbQuality = 0;
-    const currentLevel = () => ORB_QUALITY[live.current.calm || reduced ? 3 : quality];
+    const currentLevel = () => ORB_QUALITY[quality];
     let dpr = 1;
     const resize = () => {
       // The full scene runs three times per pixel for the holographic split.
@@ -84,8 +95,16 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
       canvas.height = Math.floor(window.innerHeight * dpr);
       gl.viewport(0, 0, canvas.width, canvas.height);
     };
+    // 0 awake .. 1 at rest. The first half stills the motion, the second
+    // drains the colour; waking runs it backwards.
+    let restProgress = live.current.resting ? 1 : 0;
+    let running = false;
+    const onResize = () => {
+      resize();
+      wake();
+    };
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", onResize);
 
     const s = { amp: 0, since: 9, listen: 0, think: 0, speak: 0, coh: live.current.coherence, prevLevel: 0 };
     const aura = { phase: 0, sweep: 0, pulse: 0, x: AURA_TABLE.idle.scale, v: 0 };
@@ -131,7 +150,7 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
       const tick = now - lastTick;
       lastTick = now;
       // Measured on every animation frame, drawn or not: it is the page's pace.
-      if (!live.current.calm && tick < 1000) {
+      if (restProgress === 0 && tick < 1000) {
         sampleSum += tick;
         samples += 1;
         if (samples >= 90) {
@@ -150,20 +169,31 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
       if (now - last < 1000 / L.fps - 2) return;
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
-      wall += dt * (reduced ? 0.3 : 1);
+
+      // Coming to rest, or waking.
+      const restTarget = live.current.resting ? 1 : 0;
+      const restStep = reduced ? 1 : dt / REST_SECONDS;
+      restProgress =
+        restTarget > restProgress ? Math.min(1, restProgress + restStep) : Math.max(0, restProgress - restStep);
+      const motion = Math.max(0, 1 - restProgress * 2);
+      const drain = Math.max(0, restProgress * 2 - 1);
+      const mdt = dt * motion;
+
+      wall += mdt * (reduced ? 0.3 : 1);
       const { frame: read, hasMessages: talking, coherence: coh } = live.current;
       const f = read();
 
       // Voice: rise fast, fall slow, like breath; a syllable sends light outward.
-      const level = f.state === "speaking" ? f.level : 0;
-      s.amp += (level - s.amp) * (level > s.amp ? 0.22 : 0.06);
-      s.since += dt;
+      // At rest the voice no longer moves it.
+      const level = f.state === "speaking" ? f.level * motion : 0;
+      s.amp += (level - s.amp) * (level > s.amp ? 0.22 : 0.06) * motion;
+      s.since += mdt;
       if (level > 0.55 && s.prevLevel <= 0.55 && s.since > 0.18) s.since = 0;
       s.prevLevel = level;
-      s.listen += ((f.state === "listening" ? 1 : 0) - s.listen) * 0.05;
-      s.think += ((f.state === "thinking" ? 1 : 0) - s.think) * 0.05;
-      s.speak += ((f.state === "speaking" ? 1 : 0) - s.speak) * 0.04;
-      s.coh += (coh - s.coh) * 0.02;
+      s.listen += ((f.state === "listening" ? 1 : 0) - s.listen) * 0.05 * motion;
+      s.think += ((f.state === "thinking" ? 1 : 0) - s.think) * 0.05 * motion;
+      s.speak += ((f.state === "speaking" ? 1 : 0) - s.speak) * 0.04 * motion;
+      s.coh += (coh - s.coh) * 0.02 * motion;
 
       // Where the orb belongs, and a smooth glide toward it.
       const box = anchorRef.current?.getBoundingClientRect();
@@ -181,11 +211,11 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
 
       // Aura Field: the state table, a spring for size, a pulse while composing.
       const P = auraParams({ idle: Math.max(0, 1 - s.listen - s.think - s.speak), listening: s.listen, thinking: s.think, speaking: s.speak });
-      if (!reduced) {
-        stepSpring(AURA_TABLE[f.state].scale, f.state === "listening" ? TAU : TAU / 0.8, f.state === "listening" ? 0.65 : 1, dt);
-        aura.phase += dt * P.speed * 0.02;
-        aura.sweep += dt * P.sweep;
-        aura.pulse += dt;
+      if (!reduced && mdt > 0) {
+        stepSpring(AURA_TABLE[f.state].scale, f.state === "listening" ? TAU : TAU / 0.8, f.state === "listening" ? 0.65 : 1, mdt);
+        aura.phase += mdt * P.speed * 0.02;
+        aura.sweep += mdt * P.sweep;
+        aura.pulse += mdt;
       }
       const pulse = reduced ? 0.5 : pingPong(aura.pulse);
       const speakLevel = s.speak * s.amp;
@@ -210,24 +240,40 @@ export default function OrielOrbField({ anchorRef, hasMessages, frame, coherence
       gl.uniform1f(U.auraSweep, aura.sweep);
       gl.uniform1f(U.auraPhase, aura.phase);
       gl.uniform1f(U.holo, L.holographic ? 1 : 0);
+      gl.uniform1f(U.rest, drain);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      // Fully at rest and settled in place: stop drawing until woken.
+      const settled = Math.abs(target.x - pos.x) < 0.5 && Math.abs(target.y - pos.y) < 0.5 && Math.abs(target.r - pos.r) < 0.5;
+      if (restProgress === 1 && restTarget === 1 && settled) {
+        cancelAnimationFrame(raf);
+        running = false;
+      }
     };
-    raf = requestAnimationFrame(draw);
+    const start = () => {
+      if (running || document.hidden) return;
+      running = true;
+      last = lastTick = performance.now();
+      raf = requestAnimationFrame(draw);
+    };
+    // Waking, a resize, or the orb having somewhere new to be.
+    const wake = () => start();
+    wakeRef.current = wake;
+    start();
 
     // Nothing to draw for a hidden tab.
     const onVisibility = () => {
       cancelAnimationFrame(raf);
-      if (!document.hidden) {
-        last = lastTick = performance.now();
-        raf = requestAnimationFrame(draw);
-      }
+      running = false;
+      if (!document.hidden) start();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
+      wakeRef.current = () => {};
       gl.deleteProgram(prog);
       gl.deleteBuffer(buf);
     };
