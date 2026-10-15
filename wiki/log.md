@@ -2220,3 +2220,6 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - A Seeker in India could not subscribe: recurring payments and donations were refused there. Garden and Deep Garden can now be bought for one month with a one-time PayPal order (same flow as the Founder's Reading), opening the plot for 30 days, adding to time already open, never renewing.
 - garden_month_orders (migration 0020) holds each order so a month opens exactly once. accessTier treats a patron with a Garden plan id as that plot. unmarkPatron clears the plan.
 - PayPal one-time order code generalised (createPaypalOrder, capturePaypalOrder); Founder's Reading unchanged.
+
+## [2026-10-15] chore | Protocol leaves the navbar
+- PROTOCOL removed from the header nav (desktop and mobile) for now; /protocol and the footer link remain.
