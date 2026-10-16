@@ -73,8 +73,9 @@ AWS_S3_BUCKET=...
 The Tetradic Signature Founder Edition uses the PayPal Orders v2 flow. Register
 `https://yourdomain.com/api/paypal/tetradic-signature/webhook` in the matching
 PayPal app and subscribe it to `CHECKOUT.ORDER.APPROVED` and
-`PAYMENT.CAPTURE.COMPLETED`. Keep `PAYPAL_ENVIRONMENT=sandbox` until the
-return-page capture and verified webhook fallback have both been tested.
+`PAYMENT.CAPTURE.COMPLETED`. Production runs with `PAYPAL_ENVIRONMENT=live`
+(checkout verified with real payments); use `sandbox` with sandbox credentials
+for local development.
 
 For Google OAuth to work locally, add this redirect URI in Google Cloud Console:
 
