@@ -2756,6 +2756,22 @@ export async function getCredentialAccountForUser(baUserId: string) {
   return result[0] || null;
 }
 
+/** A Better Auth user for an account that predates Better Auth (no login yet). */
+export async function createBetterAuthUser(email: string, name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const normalizedEmail = email.toLowerCase().trim();
+  await db.insert(baUser).values({
+    id: randomUUID(),
+    name,
+    email: normalizedEmail,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  return getBetterAuthUserByEmail(normalizedEmail);
+}
+
 export async function createCredentialAccount(
   baUserId: string,
   email: string,

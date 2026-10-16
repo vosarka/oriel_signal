@@ -2251,3 +2251,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Back in the site's law: gold on void, ivory text, teal only on the frame counter, with the chat's tape (.oriel-vhs scanlines, grain, roll) over the page. The obsidian/ivory exception of 2026-10-15 is dropped.
 - Every trace of the Founder Edition's Receiver removed: her cover, pages 30/34/58/63, her 88° figures and "in numbers" grid; the explained/ assets folder deleted. New generic assets in client/public/assets/tetradic-signature/book/. Guarded by server/tetradic-book-page-privacy.test.ts.
 - README: PayPal is live in production; sandbox is for local development.
+
+## [2026-10-16] fix | Accounts from before Better Auth can recover again
+- 134 accounts lived only in the legacy `users` table, with no `ba_user` login, so sign-in said "Invalid email or password" and "Forgot password" silently sent nothing. The reset request now gives such an account a Better Auth user first, then sends the code (server/auth-legacy-reset.test.ts).
+- server/scripts/migrate-users-to-better-auth.ts stores and compares emails in lower case. Running it once against production moves every remaining legacy account into Better Auth, with old passwords and Google links intact.

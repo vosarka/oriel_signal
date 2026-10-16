@@ -384,7 +384,14 @@ export const appRouter = router({
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
         const email = normalizeEmail(input.email);
-        const baUser = await db.getBetterAuthUserByEmail(email);
+        let baUser = await db.getBetterAuthUserByEmail(email);
+
+        // An account from before Better Auth lives only in `users`: give it a
+        // Better Auth user, so the code below can set its password.
+        if (!baUser) {
+          const legacyUser = await db.getUserByEmail(email);
+          if (legacyUser) baUser = await db.createBetterAuthUser(email, legacyUser.name || "Seeker");
+        }
 
         if (!baUser) {
           // No account, but don't leak existence
