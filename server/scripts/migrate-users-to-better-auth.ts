@@ -55,11 +55,14 @@ async function migrate() {
         continue;
       }
 
+      // Better Auth looks emails up in lower case; store and compare them so.
+      const email = user.email.toLowerCase().trim();
+
       // Check if already migrated
       const existing = await db
         .select()
         .from(baUser)
-        .where(eq(baUser.email, user.email))
+        .where(eq(baUser.email, email))
         .limit(1);
 
       if (existing.length > 0) {
@@ -75,7 +78,7 @@ async function migrate() {
       await db.insert(baUser).values({
         id: baUserId,
         name: user.name || "Seeker",
-        email: user.email,
+        email,
         emailVerified: true, // Existing users are considered verified
         image: null,
         createdAt: user.createdAt,
@@ -86,7 +89,7 @@ async function migrate() {
       if (user.passwordHash) {
         await db.insert(baAccount).values({
           id: nanoid(21),
-          accountId: user.email,
+          accountId: email,
           providerId: "credential",
           userId: baUserId,
           password: user.passwordHash,
