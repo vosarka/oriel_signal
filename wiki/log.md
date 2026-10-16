@@ -2245,3 +2245,9 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-15] feat | Every admin area is a tab in /admin
 - /admin tabs: TX Archive, Oracles, Personal transmissions, Vossari lore, Signature letters, Patrons, Architect. The open tab is kept in the address (?tab=), so a reload or a link lands on it.
 - AdminTransmissions, AdminLore and AdminSignatureLetters render embedded (no second page frame). The old addresses /admin/transmissions, /admin/lore, /admin/signature-letters redirect to their tab.
+
+## [2026-10-16] feat | The book page, shorter, as a transmission
+- /tetradic-signature rebuilt in five moments instead of sixteen bands: the title with the cover leaning toward the pointer; "How it is calculated" as a film of five Part I plates (Two moments, 88°, Thirteen bodies, 64 codons and four facets, Eight centres), pinned and passing sideways on wide screens with snap, symbols (planets, facets, centres) arriving one by one; four questions only an edition answers, each sealed; page 30 with the reader's own name set live into the slot ("[your name]" by default, display only, nothing saved); then the order (logic unchanged).
+- Back in the site's law: gold on void, ivory text, teal only on the frame counter, with the chat's tape (.oriel-vhs scanlines, grain, roll) over the page. The obsidian/ivory exception of 2026-10-15 is dropped.
+- Every trace of the Founder Edition's Receiver removed: her cover, pages 30/34/58/63, her 88° figures and "in numbers" grid; the explained/ assets folder deleted. New generic assets in client/public/assets/tetradic-signature/book/. Guarded by server/tetradic-book-page-privacy.test.ts.
+- README: PayPal is live in production; sandbox is for local development.
