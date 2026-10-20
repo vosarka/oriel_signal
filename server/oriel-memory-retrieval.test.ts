@@ -134,6 +134,22 @@ describe("rankMemoriesByRelevance", () => {
     expect(ranked.map(row => row.id)).toEqual([2, 1]);
   });
 
+  it("lets only a couple of unrelated memories into a turn, however many slots are free", () => {
+    const old = [1, 2, 3, 4, 5].map(id => ({
+      id,
+      content: `june ritual note ${id}`,
+    }));
+    const hiking = { id: 6, content: "planning a weekend hiking trip" };
+    expect(
+      rankMemoriesByRelevance([...old, hiking], "the weekend hiking trip", 8).map(
+        row => row.id
+      )
+    ).toEqual([6, 1, 2]);
+    expect(
+      rankMemoriesByRelevance(old, "completely unrelated topic zzzz", 8)
+    ).toHaveLength(2);
+  });
+
   it("matches on a keyword past the first twelve in a long message", () => {
     const ranked = rankMemoriesByRelevance(
       [
