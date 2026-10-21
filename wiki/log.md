@@ -2264,3 +2264,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-21] feat | What ORIEL remembers, and forgetting it
 - /profile section 06 lists the Seeker's active memories (ORIEL's own working views marked "ORIEL's reading") with Forget on each and a two-step Forget everything.
 - oriel.memory.forget / forgetAll only set isActive = false (undoable by hand). forgetAll also clears summary, interests, communicationStyle and journeyState in orielUserProfiles; the known name stays. Deleting conversations still never touched memories; this is the way.
+
+## [2026-10-21] fix | The Collapse Threshold reads the real coherence score
+- The Coherence Threshold Frame was built in the working session layer with coherenceScore null, role seeker and no readings, while the Field State beside it had the real Carrierlock score. A Seeker in Entropy (<40) was framed "drifted", so field_holder grounding never came from coherence.
+- Signed-in turns now get the frame from buildFieldStateContext with the real score, role and readings; the unmeasured frame stays only for turns without a field state. Guarded by server/oriel-field-state-threshold.test.ts.

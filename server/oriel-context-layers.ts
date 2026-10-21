@@ -177,7 +177,28 @@ export async function buildWorkingSessionLayer({
   parts.push(buildLiveMindDirective());
   parts.push(buildResponseLanguageDirective(userMessage, conversationHistory));
 
-  if (userMessage?.trim()) {
+  // Signed-in turns get the threshold frame from the field state, with the
+  // real Carrierlock score; this unmeasured one is only for turns without it.
+  let fieldState = "";
+  if (includeFieldState && userMessage?.trim()) {
+    try {
+      const { buildFieldStateContext } = await import(
+        "./oriel-interaction-protocol"
+      );
+      fieldState = await buildFieldStateContext(
+        userId,
+        userMessage,
+        conversationHistory
+      );
+    } catch (error) {
+      console.warn(
+        "[buildWorkingSessionLayer] Failed to build field state:",
+        error
+      );
+    }
+  }
+
+  if ((!userId || !fieldState) && userMessage?.trim()) {
     const thresholdFrame = buildCoherenceThresholdFrame({
       userMessage,
       exchangeType: classifyExchangeType(userMessage, null),
@@ -191,24 +212,7 @@ export async function buildWorkingSessionLayer({
     parts.push(formatCoherenceThresholdContext(thresholdFrame));
   }
 
-  if (includeFieldState && userMessage?.trim()) {
-    try {
-      const { buildFieldStateContext } = await import(
-        "./oriel-interaction-protocol"
-      );
-      const fieldState = await buildFieldStateContext(
-        userId,
-        userMessage,
-        conversationHistory
-      );
-      if (fieldState) parts.push(fieldState);
-    } catch (error) {
-      console.warn(
-        "[buildWorkingSessionLayer] Failed to build field state:",
-        error
-      );
-    }
-  }
+  if (fieldState) parts.push(fieldState);
 
   if (parts.length === 0) return "";
 
