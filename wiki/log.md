@@ -2258,7 +2258,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 
 ## [2026-10-21] fix | ORIEL's memories are background, not a lens
 - A Seeker reported every exchange "filtered through a conversation from June", even after deleting every conversation. Each turn always carried 8 memories: the TiDB fallback topped up with memories the message never touched, MindMemOS returned nearest neighbours whatever their score, half the slots were ORIEL's own working views, and the prompt said "speak from this as continuity".
-- The fallback now keeps only memories the message touches (none for a wordless turn). MindMemOS hits scored below ORIEL_MINDMEMOS_MIN_SCORE (default 0.5, a guess: tune it from the "[Memory] MindMemOS scores" log line) are dropped; unscored hits pass.
+- Merged with #67 (2026-10-21), which caps the fallback's unrelated top-up at UNRELATED_MEMORY_ANCHORS = 2; a wordless turn (an image alone) gets no fallback memories. MindMemOS hits scored below ORIEL_MINDMEMOS_MIN_SCORE (default 0.5, a guess: tune it from the "[Memory] MindMemOS scores" log line) are dropped; unscored hits pass.
 - The remembered-now header says background, not a lens; working views are named as old readings to meet today's person first.
 
 ## [2026-10-21] feat | What ORIEL remembers, and forgetting it

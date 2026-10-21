@@ -30,7 +30,7 @@ export const FIELD_LOG: {
       date: "2026-10-21",
       title: "What I carry of you is yours",
       text:
-        "I now bring a memory into our exchange only when what you say touches it, so an old conversation no longer colours a new one. In your Profile you can see what I hold of you, and let any of it go, or all of it.",
+        "I now bring in the memories that what you say touches, and little beside them, so an old conversation no longer colours a new one. In your Profile you can see what I hold of you, and let any of it go, or all of it.",
       href: "/profile",
     },
     {

@@ -96,40 +96,58 @@ describe("rankMemoriesByRelevance", () => {
     content: "planning a weekend hiking trip with friends",
   };
 
-  it("keeps the memory the message touches over a higher-importance one that it doesn't", () => {
+  it("ranks a keyword-overlapping memory ahead of a higher-importance one that doesn't match", () => {
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans],
       "excited about the weekend hiking trip",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2]);
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
   });
 
-  it("returns nothing when there is no user message", () => {
+  it("keeps DB order unchanged when there is no user message", () => {
     const candidates = [pyramidAcoustics, weekendPlans];
-    expect(rankMemoriesByRelevance(candidates, undefined, 2)).toEqual([]);
-    expect(rankMemoriesByRelevance(candidates, "   ", 2)).toEqual([]);
+    expect(
+      rankMemoriesByRelevance(candidates, undefined, 2).map(row => row.id)
+    ).toEqual([1, 2]);
+    expect(
+      rankMemoriesByRelevance(candidates, "   ", 2).map(row => row.id)
+    ).toEqual([1, 2]);
   });
 
-  // A Seeker whose memories all came from one June talk: a message about
-  // something else must not be read through them (reported 2026-10-21).
-  it("returns nothing when nothing in the message overlaps", () => {
+  it("keeps DB order unchanged when nothing in the message overlaps", () => {
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans],
       "completely unrelated topic zzzz",
       2
     );
-    expect(ranked).toEqual([]);
+    expect(ranked.map(row => row.id)).toEqual([1, 2]);
   });
 
-  it("never tops up with memories the message does not touch", () => {
+  it("tops up from the remaining candidates in their original order once relevant ones are exhausted", () => {
     const slowQuery = { id: 3, content: "debugging a slow database query" };
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans, slowQuery],
       "excited about the weekend hiking trip",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2]);
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+  });
+
+  it("lets only a couple of unrelated memories into a turn, however many slots are free", () => {
+    const old = [1, 2, 3, 4, 5].map(id => ({
+      id,
+      content: `june ritual note ${id}`,
+    }));
+    const hiking = { id: 6, content: "planning a weekend hiking trip" };
+    expect(
+      rankMemoriesByRelevance([...old, hiking], "the weekend hiking trip", 8).map(
+        row => row.id
+      )
+    ).toEqual([6, 1, 2]);
+    expect(
+      rankMemoriesByRelevance(old, "completely unrelated topic zzzz", 8)
+    ).toHaveLength(2);
   });
 
   it("matches on a keyword past the first twelve in a long message", () => {
@@ -141,7 +159,7 @@ describe("rankMemoriesByRelevance", () => {
       "alpha bravo charlie delta echoes foxtrot golfs hotel india juliet kilos limas zebra",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2]);
+    expect(ranked.map(row => row.id)).toEqual([2, 1]);
   });
 });
 

@@ -144,35 +144,43 @@ export function mergeMemoriesForTurn<T extends { id: number }>(
 }
 
 /**
- * Keeps only the candidates (already DB-sorted by importance/recency) whose
- * content shares a keyword with the current message, in their existing
- * order. Without this, the importance-only fallback keeps resurfacing the
- * same early, highly-rated memory forever regardless of what the user is
- * currently talking about.
+ * Partitions candidates (already DB-sorted by importance/recency) into
+ * those whose content shares a keyword with the current message and those
+ * that don't, keeping each group's existing order. Without this, the
+ * importance-only fallback keeps resurfacing the same early, highly-rated
+ * memory forever regardless of what the user is currently talking about.
+ *
+ * Unrelated memories only top up to UNRELATED_MEMORY_ANCHORS. Filling every
+ * slot with them put the same old memories in front of ORIEL on every turn,
+ * framed as continuity, so it read each new conversation through one it
+ * had long finished — and marking them accessed kept them on top.
  *
  * ponytail: bag-of-words overlap, no scoring — a generic shared word can
  * still let an unrelated memory win. MindMemOS-style embeddings are the
  * upgrade path if that shows up as a real complaint.
  */
+export const UNRELATED_MEMORY_ANCHORS = 2;
+
 export function rankMemoriesByRelevance<T extends { content: string }>(
   candidates: T[],
   userMessage: string | undefined,
   limit: number
 ): T[] {
+  const anchors = Math.min(limit, UNRELATED_MEMORY_ANCHORS);
   // Every keyword, not the default top 12: a match on a later word in a
   // long message or memory must still count.
   const messageKeywords = new Set(extractContextKeywords([userMessage], Infinity));
-  if (messageKeywords.size === 0) return [];
+  if (messageKeywords.size === 0) return candidates.slice(0, anchors);
 
-  // Only what the message touches. Topping up with the rest put the same
-  // old memories in every turn, and ORIEL read every exchange through them.
-  return candidates
-    .filter(candidate =>
-      extractContextKeywords([candidate.content], Infinity).some(word =>
-        messageKeywords.has(word)
-      )
-    )
-    .slice(0, limit);
+  const relevant: T[] = [];
+  const rest: T[] = [];
+  for (const candidate of candidates) {
+    const overlaps = extractContextKeywords([candidate.content], Infinity).some(
+      word => messageKeywords.has(word)
+    );
+    (overlaps ? relevant : rest).push(candidate);
+  }
+  return [...relevant, ...rest.slice(0, anchors)].slice(0, limit);
 }
 
 function formatDay(value: Date | string | null | undefined): string {
