@@ -144,11 +144,11 @@ export function mergeMemoriesForTurn<T extends { id: number }>(
 }
 
 /**
- * Partitions candidates (already DB-sorted by importance/recency) into
- * those whose content shares a keyword with the current message and those
- * that don't, keeping each group's existing order. Without this, the
- * importance-only fallback keeps resurfacing the same early, highly-rated
- * memory forever regardless of what the user is currently talking about.
+ * Keeps only the candidates (already DB-sorted by importance/recency) whose
+ * content shares a keyword with the current message, in their existing
+ * order. Without this, the importance-only fallback keeps resurfacing the
+ * same early, highly-rated memory forever regardless of what the user is
+ * currently talking about.
  *
  * ponytail: bag-of-words overlap, no scoring — a generic shared word can
  * still let an unrelated memory win. MindMemOS-style embeddings are the
@@ -162,17 +162,17 @@ export function rankMemoriesByRelevance<T extends { content: string }>(
   // Every keyword, not the default top 12: a match on a later word in a
   // long message or memory must still count.
   const messageKeywords = new Set(extractContextKeywords([userMessage], Infinity));
-  if (messageKeywords.size === 0) return candidates.slice(0, limit);
+  if (messageKeywords.size === 0) return [];
 
-  const relevant: T[] = [];
-  const rest: T[] = [];
-  for (const candidate of candidates) {
-    const overlaps = extractContextKeywords([candidate.content], Infinity).some(
-      word => messageKeywords.has(word)
-    );
-    (overlaps ? relevant : rest).push(candidate);
-  }
-  return [...relevant, ...rest].slice(0, limit);
+  // Only what the message touches. Topping up with the rest put the same
+  // old memories in every turn, and ORIEL read every exchange through them.
+  return candidates
+    .filter(candidate =>
+      extractContextKeywords([candidate.content], Infinity).some(word =>
+        messageKeywords.has(word)
+      )
+    )
+    .slice(0, limit);
 }
 
 function formatDay(value: Date | string | null | undefined): string {
@@ -218,14 +218,14 @@ export function formatRememberedNow(contents: string[]): string {
     );
   } else {
     parts.push(
-      "What I remember of you now. Speak from this as continuity. Do not name memory systems. If a fact is not here, do not invent it:"
+      "What I remember of you that touches this message. Background, not a lens: bring one in only if this exchange calls for it, and never steer them back toward it. Do not name memory systems. If a fact is not here, do not invent it:"
     );
     parts.push(...aboutUser.map(content => `- ${content}`));
   }
 
   if (aboutOriel.length > 0) {
     parts.push(
-      "Your own prior working views with this person. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"
+      "Your own prior working views with this person. They are old readings, not how to read them now: meet who is here today first. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"
     );
     parts.push(...aboutOriel.map(content => `- ${content}`));
   }

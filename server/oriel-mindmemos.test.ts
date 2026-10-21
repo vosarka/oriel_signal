@@ -164,11 +164,13 @@ describe("searchMemoryIds", () => {
         cloudId: "cloud-10",
         content: "[orielMemories:91] prefers short replies",
         officialMemoryId: 91,
+        score: null,
       },
       {
         cloudId: "cloud-11",
         content: "no official prefix",
         officialMemoryId: null,
+        score: null,
       },
     ]);
   });

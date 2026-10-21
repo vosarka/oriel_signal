@@ -28,6 +28,8 @@ export type MindMemOSClientConfig = {
   enabled: boolean;
   baseUrl: string;
   apiKey: string;
+  /** Hits scored below this are not about this turn; unscored hits pass. */
+  minScore?: number;
   fetchImpl?: typeof fetch;
 };
 
@@ -36,6 +38,7 @@ export function mindMemOSConfigFromEnv(): MindMemOSClientConfig {
     enabled: ENV.enableOrielMindMemos,
     baseUrl: ENV.mindMemosBaseUrl,
     apiKey: ENV.mindMemosApiKey,
+    minScore: ENV.mindMemosMinScore,
   };
 }
 
@@ -319,6 +322,7 @@ export type MindMemOSSearchHit = {
   cloudId: string | null;
   content: string;
   officialMemoryId: number | null;
+  score: number | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -344,6 +348,7 @@ function hitFromRaw(raw: unknown): MindMemOSSearchHit | null {
       cloudId: null,
       content: raw,
       officialMemoryId: parseOfficialMemoryId(raw),
+      score: null,
     };
   }
   const record = asRecord(raw);
@@ -359,6 +364,7 @@ function hitFromRaw(raw: unknown): MindMemOSSearchHit | null {
     cloudId,
     content,
     officialMemoryId: parseOfficialMemoryId(content),
+    score: typeof record.score === "number" ? record.score : null,
   };
 }
 

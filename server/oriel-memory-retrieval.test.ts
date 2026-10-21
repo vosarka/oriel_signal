@@ -96,42 +96,40 @@ describe("rankMemoriesByRelevance", () => {
     content: "planning a weekend hiking trip with friends",
   };
 
-  it("ranks a keyword-overlapping memory ahead of a higher-importance one that doesn't match", () => {
+  it("keeps the memory the message touches over a higher-importance one that it doesn't", () => {
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans],
       "excited about the weekend hiking trip",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+    expect(ranked.map(row => row.id)).toEqual([2]);
   });
 
-  it("keeps DB order unchanged when there is no user message", () => {
+  it("returns nothing when there is no user message", () => {
     const candidates = [pyramidAcoustics, weekendPlans];
-    expect(
-      rankMemoriesByRelevance(candidates, undefined, 2).map(row => row.id)
-    ).toEqual([1, 2]);
-    expect(
-      rankMemoriesByRelevance(candidates, "   ", 2).map(row => row.id)
-    ).toEqual([1, 2]);
+    expect(rankMemoriesByRelevance(candidates, undefined, 2)).toEqual([]);
+    expect(rankMemoriesByRelevance(candidates, "   ", 2)).toEqual([]);
   });
 
-  it("keeps DB order unchanged when nothing in the message overlaps", () => {
+  // A Seeker whose memories all came from one June talk: a message about
+  // something else must not be read through them (reported 2026-10-21).
+  it("returns nothing when nothing in the message overlaps", () => {
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans],
       "completely unrelated topic zzzz",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([1, 2]);
+    expect(ranked).toEqual([]);
   });
 
-  it("tops up from the remaining candidates in their original order once relevant ones are exhausted", () => {
+  it("never tops up with memories the message does not touch", () => {
     const slowQuery = { id: 3, content: "debugging a slow database query" };
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans, slowQuery],
       "excited about the weekend hiking trip",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+    expect(ranked.map(row => row.id)).toEqual([2]);
   });
 
   it("matches on a keyword past the first twelve in a long message", () => {
@@ -143,7 +141,7 @@ describe("rankMemoriesByRelevance", () => {
       "alpha bravo charlie delta echoes foxtrot golfs hotel india juliet kilos limas zebra",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+    expect(ranked.map(row => row.id)).toEqual([2]);
   });
 });
 
@@ -198,6 +196,32 @@ describe("selectMemoriesForTurn", () => {
     });
 
     expect(selected.map(memory => memory.id)).toEqual([91, 7, 8]);
+  });
+
+  it("drops MindMemOS neighbours scored below the floor", async () => {
+    const memories = [
+      { id: 91, content: "prefers short replies" },
+      { id: 92, content: "ORIEL working view: her silence is a shield" },
+    ];
+
+    const selected = await selectMemoriesForTurn(12, "a book about gardening?", 4, {
+      config: {
+        enabled: true,
+        baseUrl: "http://127.0.0.1:8000",
+        apiKey: "test-key",
+        minScore: 0.5,
+      },
+      searchHits: async () => [
+        { cloudId: null, content: "", officialMemoryId: 91, score: 0.8 },
+        { cloudId: null, content: "", officialMemoryId: 92, score: 0.2 },
+      ],
+      lookupCloudIds: async () => [],
+      getByIds: async (_userId, ids) =>
+        memories.filter(memory => ids.includes(memory.id)) as never,
+      fallback: async () => [],
+    });
+
+    expect(selected.map(memory => memory.id)).toEqual([91]);
   });
 
   it("asks MindMemOS for user facts and Oriel working views", async () => {
