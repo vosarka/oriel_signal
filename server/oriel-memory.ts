@@ -483,7 +483,14 @@ export async function selectMemoriesForTurn(
           perCategory
         ),
       ]);
-      const hits = [...userHits, ...viewHits];
+      // Nearest neighbours always come back, even for a message about
+      // nothing she ever said: below the floor they are not about this turn.
+      const minScore = config.minScore ?? 0;
+      const allHits = [...userHits, ...viewHits];
+      const hits = allHits.filter(hit => hit.score == null || hit.score >= minScore);
+      console.log(
+        `[Memory] MindMemOS scores ${allHits.map(hit => hit.score ?? "?").join(",") || "none"}; kept ${hits.length} at >= ${minScore}`
+      );
       const fromPrefix = hits
         .map(hit => hit.officialMemoryId)
         .filter((id): id is number => id != null);
@@ -583,10 +590,11 @@ export async function getRelevantMemories(
       .orderBy(desc(orielMemories.importance), desc(orielMemories.lastAccessed))
       .limit(fetchLimit);
 
+    // A turn gets only what its message touches; a wordless turn, nothing.
     if (forTurn) {
       return hasMessage
         ? rankMemoriesByRelevance(candidates, userMessage, limit)
-        : candidates;
+        : [];
     }
 
     await markMemoriesAccessed(candidates.map(m => m.id));
@@ -811,8 +819,12 @@ export async function processConversationMemory(
       logToFile(`[Memory] No new memories to store`);
     }
 
-    // Update profile if we have enough memories
-    if (existingMemories.length + newMemories.length >= 3) {
+    // The profile is drawn from memories, so it only needs redrawing when this
+    // turn brought new ones; redrawing it every turn was a paid call for nothing.
+    if (
+      newMemories.length > 0 &&
+      existingMemories.length + newMemories.length >= 3
+    ) {
       logToFile(`[Memory] Updating user profile...`);
       const allMemories = await getRelevantMemories(userId, 30);
       const profileUpdates = await generateProfileSummary(userId, allMemories);

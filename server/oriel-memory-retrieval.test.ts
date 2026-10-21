@@ -216,6 +216,32 @@ describe("selectMemoriesForTurn", () => {
     expect(selected.map(memory => memory.id)).toEqual([91, 7, 8]);
   });
 
+  it("drops MindMemOS neighbours scored below the floor", async () => {
+    const memories = [
+      { id: 91, content: "prefers short replies" },
+      { id: 92, content: "ORIEL working view: her silence is a shield" },
+    ];
+
+    const selected = await selectMemoriesForTurn(12, "a book about gardening?", 4, {
+      config: {
+        enabled: true,
+        baseUrl: "http://127.0.0.1:8000",
+        apiKey: "test-key",
+        minScore: 0.5,
+      },
+      searchHits: async () => [
+        { cloudId: null, content: "", officialMemoryId: 91, score: 0.8 },
+        { cloudId: null, content: "", officialMemoryId: 92, score: 0.2 },
+      ],
+      lookupCloudIds: async () => [],
+      getByIds: async (_userId, ids) =>
+        memories.filter(memory => ids.includes(memory.id)) as never,
+      fallback: async () => [],
+    });
+
+    expect(selected.map(memory => memory.id)).toEqual([91]);
+  });
+
   it("asks MindMemOS for user facts and Oriel working views", async () => {
     const queries: string[] = [];
     await selectMemoriesForTurn(12, "channeling", 4, {

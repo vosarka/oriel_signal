@@ -19,6 +19,10 @@ import {
 } from "../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 import {
+  buildCoherenceThresholdFrame,
+  formatCoherenceThresholdContext,
+} from "./oriel-coherence-threshold";
+import {
   classifyExchangeType,
   getCoherenceTier,
   buildAntiRepetitionContext,
@@ -329,18 +333,33 @@ export async function buildFieldStateContext(
     antiRepetition
   );
 
-  return formatFieldState({
-    role,
-    interactionCount: profile.interactionCount,
-    hasReadings: hasReads,
+  // The Collapse Threshold reads the same Carrierlock score as the field
+  // state. Built apart, it always saw null, so low coherence never grounded it.
+  const thresholdFrame = buildCoherenceThresholdFrame({
+    userMessage,
     exchangeType,
     coherenceTier,
     coherenceScore,
-    interactionType,
-    daysSinceLastInteraction,
-    antiRepetition: antiRepetition,
-    tonalDirective,
+    operatorRole: role,
+    hasReadings: hasReads,
+    routeSurface: "text_chat",
   });
+
+  return [
+    formatCoherenceThresholdContext(thresholdFrame),
+    formatFieldState({
+      role,
+      interactionCount: profile.interactionCount,
+      hasReadings: hasReads,
+      exchangeType,
+      coherenceTier,
+      coherenceScore,
+      interactionType,
+      daysSinceLastInteraction,
+      antiRepetition: antiRepetition,
+      tonalDirective,
+    }),
+  ].join("\n\n");
 }
 
 /**

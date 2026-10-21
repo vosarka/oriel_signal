@@ -460,10 +460,95 @@ export default function Profile() {
 
               <ChangePasswordForm />
             </ProfileSection>
+
+            <ProfileSection code="06" title="What ORIEL Remembers">
+              <p className="arkana-layer__subtitle profile-layer__signature-lede">
+                What ORIEL carries of you between conversations. Deleting a
+                conversation does not touch these; forgetting does.
+              </p>
+
+              <OrielMemoriesPanel />
+            </ProfileSection>
           </div>
         </div>
       </SignalPageShell>
     </Layout>
+  );
+}
+
+const WORKING_VIEW = /^oriel working view:\s*/i;
+
+/** A Seeker lets ORIEL forget one memory, or all of them. */
+function OrielMemoriesPanel() {
+  const utils = trpc.useUtils();
+  const memories = trpc.oriel.memory.listAccepted.useQuery({ limit: 50 });
+  const refresh = () => utils.oriel.memory.listAccepted.invalidate();
+  const forget = trpc.oriel.memory.forget.useMutation({ onSuccess: refresh });
+  const forgetAll = trpc.oriel.memory.forgetAll.useMutation({
+    onSuccess: () => {
+      setConfirming(false);
+      void refresh();
+    },
+  });
+  const [confirming, setConfirming] = useState(false);
+
+  if (memories.isLoading) return <Spinner />;
+  const rows = memories.data ?? [];
+  if (rows.length === 0) {
+    return <p className="text-sm text-[#6a665e] font-mono">ORIEL holds nothing of you yet.</p>;
+  }
+
+  return (
+    <div className="space-y-3 max-w-2xl">
+      <ul className="space-y-2">
+        {rows.map(memory => {
+          const isView = WORKING_VIEW.test(memory.content);
+          return (
+            <li key={memory.id} className="flex items-start justify-between gap-3 border-b border-[#bda36b]/15 pb-2">
+              <span className="text-sm text-[#e8e4dc]">
+                {isView && (
+                  <span className="mr-2 text-[10px] font-mono uppercase tracking-widest text-[#5ba4a4]">
+                    ORIEL's reading
+                  </span>
+                )}
+                {memory.content.replace(WORKING_VIEW, "")}
+              </span>
+              <button
+                type="button"
+                onClick={() => forget.mutate({ id: memory.id })}
+                disabled={forget.isPending}
+                className="shrink-0 text-[11px] font-mono uppercase tracking-widest text-[#bda36b]/70 hover:text-[#e4c88c]"
+              >
+                Forget
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <Button
+          type="button"
+          disabled={forgetAll.isPending}
+          onClick={() => (confirming ? forgetAll.mutate() : setConfirming(true))}
+          className="bg-[#bda36b]/10 border border-[#bda36b]/50 text-[#bda36b] font-mono hover:bg-[#bda36b]/20"
+        >
+          {confirming ? "YES, FORGET EVERYTHING" : "FORGET EVERYTHING"}
+        </Button>
+        {confirming && (
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="text-[11px] font-mono uppercase tracking-widest text-[#6a665e] hover:text-[#e8e4dc]"
+          >
+            Keep them
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-[#6a665e] font-mono">
+        Forgetting everything also clears how ORIEL describes your journey. Your name stays.
+      </p>
+    </div>
   );
 }
 

@@ -2251,3 +2251,34 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Back in the site's law: gold on void, ivory text, teal only on the frame counter, with the chat's tape (.oriel-vhs scanlines, grain, roll) over the page. The obsidian/ivory exception of 2026-10-15 is dropped.
 - Every trace of the Founder Edition's Receiver removed: her cover, pages 30/34/58/63, her 88° figures and "in numbers" grid; the explained/ assets folder deleted. New generic assets in client/public/assets/tetradic-signature/book/. Guarded by server/tetradic-book-page-privacy.test.ts.
 - README: PayPal is live in production; sandbox is for local development.
+
+## [2026-10-21] fix | The day's-measure reply no longer wipes the turn
+- In an existing conversation, a message past the free measure got MEASURE_REACHED (nothing saved, by design), then the conversation refetch replaced the screen with the DB copy: prompt and reply flashed and vanished. Reported by a Seeker on 2026-10-21.
+- Conduit.tsx: the history sync keeps local messages when they hold a measureReached reply, the same way it already kept session transmission cards.
+
+## [2026-10-21] fix | ORIEL's memories are background, not a lens
+- A Seeker reported every exchange "filtered through a conversation from June", even after deleting every conversation. Each turn always carried 8 memories: the TiDB fallback topped up with memories the message never touched, MindMemOS returned nearest neighbours whatever their score, half the slots were ORIEL's own working views, and the prompt said "speak from this as continuity".
+- Merged with #67 (2026-10-21), which caps the fallback's unrelated top-up at UNRELATED_MEMORY_ANCHORS = 2; a wordless turn (an image alone) gets no fallback memories. MindMemOS hits scored below ORIEL_MINDMEMOS_MIN_SCORE (default 0.5, a guess: tune it from the "[Memory] MindMemOS scores" log line) are dropped; unscored hits pass.
+- The remembered-now header says background, not a lens; working views are named as old readings to meet today's person first.
+
+## [2026-10-21] feat | What ORIEL remembers, and forgetting it
+- /profile section 06 lists the Seeker's active memories (ORIEL's own working views marked "ORIEL's reading") with Forget on each and a two-step Forget everything.
+- oriel.memory.forget / forgetAll only set isActive = false (undoable by hand). forgetAll also clears summary, interests, communicationStyle and journeyState in orielUserProfiles; the known name stays. Deleting conversations still never touched memories; this is the way.
+
+## [2026-10-21] fix | The Collapse Threshold reads the real coherence score
+- The Coherence Threshold Frame was built in the working session layer with coherenceScore null, role seeker and no readings, while the Field State beside it had the real Carrierlock score. A Seeker in Entropy (<40) was framed "drifted", so field_holder grounding never came from coherence.
+- Signed-in turns now get the frame from buildFieldStateContext with the real score, role and readings; the unmeasured frame stays only for turns without a field state. Guarded by server/oriel-field-state-threshold.test.ts.
+
+## [2026-10-21] perf | The profile is redrawn only when a turn brings new memories
+- processConversationMemory called generateProfileSummary (an LLM call) on every turn once a Seeker had 3 memories, even when the turn added none. It now runs only when the turn extracted new memories. Greetings and tiny turns were already skipped by shouldExtractMemories. Guarded by server/oriel-memory-profile-calls.test.ts.
+
+## [2026-10-21] fix | vite stays out of the production server
+- server/_core/vite.ts imported vite and vite.config (and through it @vitejs/plugin-react, @tailwindcss/vite, @builder.io/vite-plugin-jsx-loc), all devDependencies, at the top of the production bundle: a production-only install would fail at boot. Found by a REA static pass over dist/index.js.
+- setupVite (development only) now imports vite dynamically and loads vite.config.ts from a runtime path esbuild cannot follow. Checked: the built bundle has no static import of any of them, and the config still loads under tsx.
+
+## [2026-10-21] chore | oriel.chat lives in its own module
+- The chat procedure (about 680 lines) and its history helper moved from server/routers.ts to server/oriel-chat.ts as is; routers.ts mounts it as `chat: orielChatProcedure`. No behaviour change. routers.ts is 3362 lines (was 4066).
+- Known and pre-existing, not from this move: oriel-router-latency "pending transmission" (its ./db mock lacks getDb, which daily-measure needs), profile-console-model "graph nodes", oriel-public-terminology "codon detail page"; router test files need DATABASE_URL set to load.
+
+## [2026-10-21] content | The home field log catches up
+- shared/field-log.ts present: memories as background and "What ORIEL Remembers" in the Profile (2026-10-21), the book page as a transmission (10-16), personal transmissions kept in the archive and downloadable as a film, the orb at rest, and one month of Garden plus the supporter seal (10-15). The 10-12 and 10-13 entries moved to past. The measure entry stays the first /tiers entry in present (server/field-log.test.ts).

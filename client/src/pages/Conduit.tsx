@@ -857,8 +857,12 @@ export default function Conduit() {
           sessionTransmissionAttachments,
           activeConversationId
         );
-        const hasSessionCard = prev.some(msg => Boolean(msg.transmissionEvent));
-        return hasSessionCard && prev.length > merged.length ? prev : merged;
+        // Session cards and the day's-measure reply live only here, never in
+        // the DB: a refetch must not wipe them (or the turn that led to them).
+        const hasLocalOnly = prev.some(
+          msg => Boolean(msg.transmissionEvent) || msg.measureReached
+        );
+        return hasLocalOnly && prev.length > merged.length ? prev : merged;
       });
     } else if (
       isAuthenticated &&
@@ -883,8 +887,12 @@ export default function Conduit() {
           sessionTransmissionAttachments,
           null
         );
-        const hasSessionCard = prev.some(msg => Boolean(msg.transmissionEvent));
-        return hasSessionCard && prev.length > merged.length ? prev : merged;
+        // Session cards and the day's-measure reply live only here, never in
+        // the DB: a refetch must not wipe them (or the turn that led to them).
+        const hasLocalOnly = prev.some(
+          msg => Boolean(msg.transmissionEvent) || msg.measureReached
+        );
+        return hasLocalOnly && prev.length > merged.length ? prev : merged;
       });
     }
   }, [

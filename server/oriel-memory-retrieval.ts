@@ -226,14 +226,14 @@ export function formatRememberedNow(contents: string[]): string {
     );
   } else {
     parts.push(
-      "What I remember of you now. Speak from this as continuity. Do not name memory systems. If a fact is not here, do not invent it:"
+      "What I remember of you that touches this message. Background, not a lens: bring one in only if this exchange calls for it, and never steer them back toward it. Do not name memory systems. If a fact is not here, do not invent it:"
     );
     parts.push(...aboutUser.map(content => `- ${content}`));
   }
 
   if (aboutOriel.length > 0) {
     parts.push(
-      "Your own prior working views with this person. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"
+      "Your own prior working views with this person. They are old readings, not how to read them now: meet who is here today first. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"
     );
     parts.push(...aboutOriel.map(content => `- ${content}`));
   }
