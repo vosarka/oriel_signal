@@ -3,10 +3,15 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
+import { pathToFileURL } from "url";
 
 export async function setupVite(app: Express, server: Server) {
+  // Development only. vite, its plugins and vite.config are devDependencies,
+  // so they stay out of the production bundle: the config path is computed at
+  // runtime, where esbuild cannot follow it.
+  const { createServer: createViteServer } = await import("vite");
+  const configPath = path.resolve(import.meta.dirname, "../..", "vite.config.ts");
+  const { default: viteConfig } = await import(pathToFileURL(configPath).href);
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },

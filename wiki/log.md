@@ -2271,3 +2271,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 
 ## [2026-10-21] perf | The profile is redrawn only when a turn brings new memories
 - processConversationMemory called generateProfileSummary (an LLM call) on every turn once a Seeker had 3 memories, even when the turn added none. It now runs only when the turn extracted new memories. Greetings and tiny turns were already skipped by shouldExtractMemories. Guarded by server/oriel-memory-profile-calls.test.ts.
+
+## [2026-10-21] fix | vite stays out of the production server
+- server/_core/vite.ts imported vite and vite.config (and through it @vitejs/plugin-react, @tailwindcss/vite, @builder.io/vite-plugin-jsx-loc), all devDependencies, at the top of the production bundle: a production-only install would fail at boot. Found by a REA static pass over dist/index.js.
+- setupVite (development only) now imports vite dynamically and loads vite.config.ts from a runtime path esbuild cannot follow. Checked: the built bundle has no static import of any of them, and the config still loads under tsx.
