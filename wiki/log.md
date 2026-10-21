@@ -2251,3 +2251,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - Back in the site's law: gold on void, ivory text, teal only on the frame counter, with the chat's tape (.oriel-vhs scanlines, grain, roll) over the page. The obsidian/ivory exception of 2026-10-15 is dropped.
 - Every trace of the Founder Edition's Receiver removed: her cover, pages 30/34/58/63, her 88° figures and "in numbers" grid; the explained/ assets folder deleted. New generic assets in client/public/assets/tetradic-signature/book/. Guarded by server/tetradic-book-page-privacy.test.ts.
 - README: PayPal is live in production; sandbox is for local development.
+
+## [2026-10-21] fix | The day's-measure reply no longer wipes the turn
+- In an existing conversation, a message past the free measure got MEASURE_REACHED (nothing saved, by design), then the conversation refetch replaced the screen with the DB copy: prompt and reply flashed and vanished. Reported by a Seeker on 2026-10-21.
+- Conduit.tsx: the history sync keeps local messages when they hold a measureReached reply, the same way it already kept session transmission cards.
