@@ -2275,3 +2275,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-21] fix | vite stays out of the production server
 - server/_core/vite.ts imported vite and vite.config (and through it @vitejs/plugin-react, @tailwindcss/vite, @builder.io/vite-plugin-jsx-loc), all devDependencies, at the top of the production bundle: a production-only install would fail at boot. Found by a REA static pass over dist/index.js.
 - setupVite (development only) now imports vite dynamically and loads vite.config.ts from a runtime path esbuild cannot follow. Checked: the built bundle has no static import of any of them, and the config still loads under tsx.
+
+## [2026-10-21] chore | oriel.chat lives in its own module
+- The chat procedure (about 680 lines) and its history helper moved from server/routers.ts to server/oriel-chat.ts as is; routers.ts mounts it as `chat: orielChatProcedure`. No behaviour change. routers.ts is 3362 lines (was 4066).
+- Known and pre-existing, not from this move: oriel-router-latency "pending transmission" (its ./db mock lacks getDb, which daily-measure needs), profile-console-model "graph nodes", oriel-public-terminology "codon detail page"; router test files need DATABASE_URL set to load.
