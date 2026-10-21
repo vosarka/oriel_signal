@@ -1541,6 +1541,41 @@ export async function listAcceptedMemories(userId: number, limit: number = 25) {
     .limit(limit);
 }
 
+/**
+ * A Seeker lets ORIEL forget. Rows are only deactivated, so a mistaken
+ * forget can be undone by hand; every read path filters on isActive, and
+ * MindMemOS hits are hydrated through that same filter.
+ */
+export async function forgetMemory(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(orielMemories)
+    .set({ isActive: false })
+    .where(and(eq(orielMemories.id, id), eq(orielMemories.userId, userId)));
+}
+
+/** Everything ORIEL holds of them, and the profile drawn from it. The name stays. */
+export async function forgetAllMemories(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.transaction(async tx => {
+    await tx
+      .update(orielMemories)
+      .set({ isActive: false })
+      .where(eq(orielMemories.userId, userId));
+    await tx
+      .update(orielUserProfiles)
+      .set({
+        summary: null,
+        interests: null,
+        communicationStyle: null,
+        journeyState: null,
+      })
+      .where(eq(orielUserProfiles.userId, userId));
+  });
+}
+
 export async function linkOrielMindMemosMemory(input: {
   mindMemosMemoryId: string;
   orielMemoryId: number;

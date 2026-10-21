@@ -2260,3 +2260,7 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 - A Seeker reported every exchange "filtered through a conversation from June", even after deleting every conversation. Each turn always carried 8 memories: the TiDB fallback topped up with memories the message never touched, MindMemOS returned nearest neighbours whatever their score, half the slots were ORIEL's own working views, and the prompt said "speak from this as continuity".
 - The fallback now keeps only memories the message touches (none for a wordless turn). MindMemOS hits scored below ORIEL_MINDMEMOS_MIN_SCORE (default 0.5, a guess: tune it from the "[Memory] MindMemOS scores" log line) are dropped; unscored hits pass.
 - The remembered-now header says background, not a lens; working views are named as old readings to meet today's person first.
+
+## [2026-10-21] feat | What ORIEL remembers, and forgetting it
+- /profile section 06 lists the Seeker's active memories (ORIEL's own working views marked "ORIEL's reading") with Forget on each and a two-step Forget everything.
+- oriel.memory.forget / forgetAll only set isActive = false (undoable by hand). forgetAll also clears summary, interests, communicationStyle and journeyState in orielUserProfiles; the known name stays. Deleting conversations still never touched memories; this is the way.

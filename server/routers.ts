@@ -703,8 +703,8 @@ export const appRouter = router({
     // The chat consent tray was removed 2026-08-29 and nothing in the live
     // extraction path creates pending candidates anymore (see
     // persistClassifiedMemoryCandidate in server/oriel-memory.ts) — these
-    // endpoints are dormant infra for a possible future consent-gate phase,
-    // not a currently reachable flow.
+    // candidate endpoints are dormant infra for a possible future consent-gate
+    // phase. listAccepted, forget and forgetAll serve the profile (2026-10-21).
     memory: router({
       listPendingCandidates: protectedProcedure
         .input(
@@ -734,6 +734,19 @@ export const appRouter = router({
           if (!ctx.user) throw new Error("Authentication required");
           return db.listAcceptedMemories(ctx.user.id, input?.limit ?? 25);
         }),
+
+      // The profile's "What ORIEL remembers": a Seeker lets ORIEL forget.
+      forget: protectedProcedure
+        .input(z.object({ id: z.number() }))
+        .mutation(async ({ input, ctx }) => {
+          await db.forgetMemory(input.id, ctx.user.id);
+          return { success: true };
+        }),
+
+      forgetAll: protectedProcedure.mutation(async ({ ctx }) => {
+        await db.forgetAllMemories(ctx.user.id);
+        return { success: true };
+      }),
 
       acceptCandidate: protectedProcedure
         .input(z.object({ id: z.number() }))
