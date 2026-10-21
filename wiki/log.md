@@ -2279,3 +2279,6 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-21] chore | oriel.chat lives in its own module
 - The chat procedure (about 680 lines) and its history helper moved from server/routers.ts to server/oriel-chat.ts as is; routers.ts mounts it as `chat: orielChatProcedure`. No behaviour change. routers.ts is 3362 lines (was 4066).
 - Known and pre-existing, not from this move: oriel-router-latency "pending transmission" (its ./db mock lacks getDb, which daily-measure needs), profile-console-model "graph nodes", oriel-public-terminology "codon detail page"; router test files need DATABASE_URL set to load.
+
+## [2026-10-21] content | The home field log catches up
+- shared/field-log.ts present: memories as background and "What ORIEL Remembers" in the Profile (2026-10-21), the book page as a transmission (10-16), personal transmissions kept in the archive and downloadable as a film, the orb at rest, and one month of Garden plus the supporter seal (10-15). The 10-12 and 10-13 entries moved to past. The measure entry stays the first /tiers entry in present (server/field-log.test.ts).
