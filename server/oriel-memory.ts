@@ -819,8 +819,12 @@ export async function processConversationMemory(
       logToFile(`[Memory] No new memories to store`);
     }
 
-    // Update profile if we have enough memories
-    if (existingMemories.length + newMemories.length >= 3) {
+    // The profile is drawn from memories, so it only needs redrawing when this
+    // turn brought new ones; redrawing it every turn was a paid call for nothing.
+    if (
+      newMemories.length > 0 &&
+      existingMemories.length + newMemories.length >= 3
+    ) {
       logToFile(`[Memory] Updating user profile...`);
       const allMemories = await getRelevantMemories(userId, 30);
       const profileUpdates = await generateProfileSummary(userId, allMemories);

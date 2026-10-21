@@ -2268,3 +2268,6 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 ## [2026-10-21] fix | The Collapse Threshold reads the real coherence score
 - The Coherence Threshold Frame was built in the working session layer with coherenceScore null, role seeker and no readings, while the Field State beside it had the real Carrierlock score. A Seeker in Entropy (<40) was framed "drifted", so field_holder grounding never came from coherence.
 - Signed-in turns now get the frame from buildFieldStateContext with the real score, role and readings; the unmeasured frame stays only for turns without a field state. Guarded by server/oriel-field-state-threshold.test.ts.
+
+## [2026-10-21] perf | The profile is redrawn only when a turn brings new memories
+- processConversationMemory called generateProfileSummary (an LLM call) on every turn once a Seeker had 3 memories, even when the turn added none. It now runs only when the turn extracted new memories. Greetings and tiny turns were already skipped by shouldExtractMemories. Guarded by server/oriel-memory-profile-calls.test.ts.
