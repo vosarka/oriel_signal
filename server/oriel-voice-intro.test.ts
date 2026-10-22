@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildOrielVoiceIntroRuntimeDirective,
   containsOrielVoiceOpening,
+  speakableOrielName,
   stripOrielVoiceGreeting,
   stripOrielVoiceOpening,
 } from "../shared/oriel/voice-intro";
@@ -46,6 +47,15 @@ describe("ORIEL voice intro handling", () => {
     );
     expect(buildOrielVoiceIntroRuntimeDirective(true)).toContain(
       'Do not say "I am ORIEL."'
+    );
+  });
+
+  it("speaks ORIEL as one word, not as letters", () => {
+    expect(speakableOrielName("I am ORIEL. ORIEL hears you.")).toBe(
+      "I am Oriel. Oriel hears you."
+    );
+    expect(speakableOrielName("ORIELS and oriel stay")).toBe(
+      "ORIELS and oriel stay"
     );
   });
 

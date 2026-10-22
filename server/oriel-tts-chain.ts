@@ -25,6 +25,7 @@ import {
 } from "./elevenlabs-tts";
 import { joinMp3 } from "./mp3-join";
 import { generateMistralSpeech, mistralTtsVoiceFor } from "./mistral-tts";
+import { speakableOrielName } from "../shared/oriel/voice-intro";
 
 /**
  * ORIEL's own voice names. Vendor-neutral on purpose: each client maps these
@@ -70,6 +71,7 @@ export async function generateSpeechWithFallback(
   synthesizeElevenLabs = generateElevenLabsSpeech,
   synthesizeMistral = generateMistralSpeech
 ): Promise<string> {
+  text = speakableOrielName(text);
   const chain = [
     {
       name: "Mistral",

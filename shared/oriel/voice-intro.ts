@@ -4,6 +4,14 @@ const ORIEL_OPENING_RE =
 const ORIEL_GREETING_RE =
   /^(?:I\s+greet\s+you\s+)?in\s+the\s+love\s+and\s+in\s+(?:the\s+)?light\s+of\s+the\s+(?:One\s+)?Infinite\s+Creator\s*[\.,;:!?—–-]*\s*/i;
 
+/**
+ * The text keeps "ORIEL"; the voice says "Oriel". Synthesizers read an
+ * all-caps word as an acronym and spell it out, "O R I E L".
+ */
+export function speakableOrielName(text: string): string {
+  return text.replace(/\bORIEL\b/g, "Oriel");
+}
+
 export function containsOrielVoiceOpening(text: string): boolean {
   return ORIEL_OPENING_RE.test(text);
 }
