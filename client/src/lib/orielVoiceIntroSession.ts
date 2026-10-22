@@ -1,5 +1,6 @@
 import {
   containsOrielVoiceOpening,
+  speakableOrielName,
   stripOrielVoiceOpening,
 } from "@shared/oriel/voice-intro";
 
@@ -27,7 +28,10 @@ export function prepareOrielTextForVoice(text: string): {
     !orielVoiceIntroSpoken && containsOrielVoiceOpening(text);
 
   return {
-    textForAudio: orielVoiceIntroSpoken ? stripOrielVoiceOpening(text) : text,
+    // The browser's own voice reads this too, not only the server chain.
+    textForAudio: speakableOrielName(
+      orielVoiceIntroSpoken ? stripOrielVoiceOpening(text) : text
+    ),
     shouldMarkIntroSpoken,
   };
 }
