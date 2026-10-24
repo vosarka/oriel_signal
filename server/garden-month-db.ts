@@ -2,7 +2,7 @@
 import { and, eq, or } from "drizzle-orm";
 import { getDb } from "./db";
 import { gardenMonthOrders, users, type GardenMonthOrder } from "../drizzle/schema";
-import { GARDEN_PLANS } from "../shared/supporter-access";
+import { GARDEN_PLANS, supporterKind } from "../shared/supporter-access";
 import type { GardenMonthPlan } from "../shared/garden-month";
 
 async function requireDb() {
@@ -46,19 +46,32 @@ export async function markMonthOrderPaid(paypalOrderId: string, captureId: strin
 /**
  * Open the plot: a patron holding that Garden plan until the date given (or
  * open-ended, for a patron who already had no end). A running PayPal
- * subscription is left to PayPal.
+ * subscription is left to PayPal. One that was cancelled and has closed is
+ * not running: its id is cleared, or the month would never open (nothing
+ * else ever clears it).
  */
 export async function grantGardenMonth(userId: number, plan: GardenMonthPlan, until: Date | null): Promise<void> {
   const db = await requireDb();
   const planId = GARDEN_PLANS[plan];
   const [user] = await db
-    .select({ paypalSubscriptionId: users.paypalSubscriptionId })
+    .select({
+      subscribed: users.subscribed,
+      paypalSubscriptionId: users.paypalSubscriptionId,
+      subscriptionStatus: users.subscriptionStatus,
+      subscriptionRenewalDate: users.subscriptionRenewalDate,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
-  if (!user || user.paypalSubscriptionId) return;
+  if (!user || (user.paypalSubscriptionId && supporterKind(user) === "garden")) return;
   await db
     .update(users)
-    .set({ subscribed: true, subscriptionStatus: "active", paypalPlanId: planId, subscriptionRenewalDate: until })
+    .set({
+      subscribed: true,
+      subscriptionStatus: "active",
+      paypalSubscriptionId: null,
+      paypalPlanId: planId,
+      subscriptionRenewalDate: until,
+    })
     .where(eq(users.id, userId));
 }

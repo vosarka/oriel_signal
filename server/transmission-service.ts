@@ -173,6 +173,24 @@ export async function createTestTransmission(admin: { id: number }, input: Readi
   return { id: row.id };
 }
 
+/**
+ * A Founder's Reading received as a ring gift (server/ring-gifts.ts): the
+ * same path as a paid one after payment. No price and no paidAt, so it never
+ * counts as a sale or takes a launch seat. The caller has checked the
+ * signature exists.
+ */
+export async function startGiftReading(userId: number): Promise<{ id: number }> {
+  const row = await tdb.insertTransmission({
+    userId,
+    kind: "mirror",
+    source: "purchase",
+    status: "requested",
+    accessToken: newToken(),
+  });
+  void generateScript(row.id).catch(error => console.error("[transmissions] gift generate failed:", error));
+  return { id: row.id };
+}
+
 /** Admin: re-check a payment that is stuck at pending_payment. */
 export async function recheckPayment(transmissionId: number) {
   const row = await tdb.getTransmission(transmissionId);

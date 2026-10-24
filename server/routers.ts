@@ -239,6 +239,32 @@ export const appRouter = router({
       }),
   }),
 
+  /** The rings of the field: the gift each new ring brings, kept or given by link. */
+  rings: router({
+    myGifts: protectedProcedure.query(async ({ ctx }) => {
+      const { myGifts } = await import("./ring-gifts");
+      return myGifts(ctx.user.id);
+    }),
+    claim: protectedProcedure
+      .input(z.object({ giftId: z.number().int().positive(), kind: z.enum(["founders_reading", "garden_month"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const { claimGift } = await import("./ring-gifts");
+        return claimGift(ctx.user.id, input.giftId, input.kind);
+      }),
+    gift: publicProcedure
+      .input(z.object({ token: z.string().regex(/^[0-9a-f]{32}$/) }))
+      .query(async ({ input }) => {
+        const { giftByToken } = await import("./ring-gifts");
+        return giftByToken(input.token);
+      }),
+    redeem: protectedProcedure
+      .input(z.object({ token: z.string().regex(/^[0-9a-f]{32}$/) }))
+      .mutation(async ({ ctx, input }) => {
+        const { redeemGift } = await import("./ring-gifts");
+        return redeemGift(ctx.user, input.token);
+      }),
+  }),
+
   /** The Garden's PayPal subscriptions (Etapa 2). */
   garden: router({
     /** One month of a plot, paid once with no renewal (for banks that refuse recurring payments). */

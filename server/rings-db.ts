@@ -5,9 +5,9 @@
  * off unless someone turns it on, and a column added to users instead would
  * break every read of users on a deploy that had not migrated.
  */
-import { eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "./db";
-import { ringContributions, ringGifts, ringStanding, users } from "../drizzle/schema";
+import { ringContributions, ringGifts, ringStanding, users, type RingGift } from "../drizzle/schema";
 import type { DrizzleDb } from "./_core/mysql";
 
 let tablesReady: Promise<unknown> | null = null;
@@ -123,4 +123,57 @@ export async function addContribution(row: {
 }): Promise<boolean> {
   const db = await ringDb();
   return affectedRows(await db.insert(ringContributions).ignore().values(row)) === 1;
+}
+
+// ─── Gifts ───────────────────────────────────────────────────────────────
+
+export type GiftKind = "founders_reading" | "garden_month";
+
+export async function getGift(id: number): Promise<RingGift | null> {
+  const db = await ringDb();
+  const [row] = await db.select().from(ringGifts).where(eq(ringGifts.id, id)).limit(1);
+  return row ?? null;
+}
+
+export async function getGiftByToken(token: string): Promise<RingGift | null> {
+  const db = await ringDb();
+  const [row] = await db.select().from(ringGifts).where(eq(ringGifts.token, token)).limit(1);
+  return row ?? null;
+}
+
+/** True only for the request that chose this gift's kind and link. */
+export async function claimGiftRow(id: number, userId: number, kind: GiftKind, token: string): Promise<boolean> {
+  const db = await ringDb();
+  const result = await db
+    .update(ringGifts)
+    .set({ kind, token })
+    .where(and(eq(ringGifts.id, id), eq(ringGifts.userId, userId), isNull(ringGifts.token)));
+  return affectedRows(result) === 1;
+}
+
+/** True only for the one receiver who opened it first. */
+export async function markGiftRedeemed(token: string, userId: number): Promise<boolean> {
+  const db = await ringDb();
+  const result = await db
+    .update(ringGifts)
+    .set({ redeemedBy: userId, redeemedAt: new Date() })
+    .where(and(eq(ringGifts.token, token), isNull(ringGifts.redeemedAt)));
+  return affectedRows(result) === 1;
+}
+
+/** Hands the gift back to its link when granting it failed. */
+export async function clearGiftRedeemed(token: string): Promise<void> {
+  const db = await ringDb();
+  await db.update(ringGifts).set({ redeemedBy: null, redeemedAt: null }).where(eq(ringGifts.token, token));
+}
+
+export async function listGifts(userId: number): Promise<RingGift[]> {
+  const db = await ringDb();
+  return db.select().from(ringGifts).where(eq(ringGifts.userId, userId)).orderBy(desc(ringGifts.createdAt));
+}
+
+export async function nameOf(userId: number): Promise<string | null> {
+  const db = await ringDb();
+  const [row] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+  return row?.name ?? null;
 }
