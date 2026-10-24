@@ -11,7 +11,7 @@
  * Served by YouTube, not by us: a 35 MB file per first visit would have been
  * paid for on Railway, visitor by visitor. Empty means the film is off.
  */
-export const INTRO_FILM_YOUTUBE_URL = "";
+export const INTRO_FILM_YOUTUBE_URL = "https://youtu.be/QQEXqxhllg8";
 
 const STORAGE_KEY = "oriel_intro_film_seen";
 

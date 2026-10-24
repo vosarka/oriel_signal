@@ -96,7 +96,9 @@ export default function IntroFilm() {
           title="ORIEL Signal: The Paradox of Fear"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
-          className="h-full w-full border-0"
+          // A strip above the player keeps the close button off YouTube's
+          // own controls, which sit in the same corner.
+          className="absolute inset-x-0 bottom-0 top-14 h-[calc(100%-3.5rem)] w-full border-0"
         />
       ) : (
         <>
