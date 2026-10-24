@@ -1258,3 +1258,12 @@ export const gardenMonthOrders = mysqlTable("garden_month_orders", {
 });
 
 export type GardenMonthOrder = typeof gardenMonthOrders.$inferSelect;
+
+/**
+ * The intro film, played once per Seeker. A row means it has been seen.
+ * Created at runtime by server/db.ts, so it needs no migration to exist.
+ */
+export const introFilmViews = mysqlTable("intro_film_views", {
+  userId: int("userId").primaryKey(),
+  seenAt: timestamp("seenAt").defaultNow().notNull(),
+});
