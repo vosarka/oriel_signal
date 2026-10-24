@@ -50,6 +50,7 @@ import {
   InsertOperatorMessage,
   operatorReplies,
   InsertOperatorReply,
+  introFilmViews,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { createDrizzleFromDatabaseUrl, type DrizzleDb } from "./_core/mysql";
@@ -2644,6 +2645,60 @@ export async function updateUserVoicePreference(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ voicePreference }).where(eq(users.id, userId));
+}
+
+// ─── Intro film: played once per Seeker ──────────────────────────────────────
+//
+// Its own table rather than a column on users. Every read of users names
+// every column, so a column the deploy had not yet created would have broken
+// sign-in for everyone; a missing table here only costs the film. The table
+// creates itself, because RUN_MIGRATIONS is off unless someone turns it on.
+
+let introFilmTableReady: Promise<unknown> | null = null;
+
+function ensureIntroFilmTable(db: DrizzleDb) {
+  introFilmTableReady ??= db
+    .execute(
+      sql`CREATE TABLE IF NOT EXISTS \`intro_film_views\` (
+        \`userId\` int NOT NULL,
+        \`seenAt\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(\`userId\`)
+      )`
+    )
+    .catch(error => {
+      introFilmTableReady = null;
+      throw error;
+    });
+  return introFilmTableReady;
+}
+
+/**
+ * Unknown counts as seen. A film that replays on every visit because the
+ * database blinked is worse than one that is missed.
+ */
+export async function hasSeenIntroFilm(userId: number): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return true;
+    await ensureIntroFilmTable(db);
+    const rows = await db
+      .select({ userId: introFilmViews.userId })
+      .from(introFilmViews)
+      .where(eq(introFilmViews.userId, userId))
+      .limit(1);
+    return rows.length > 0;
+  } catch (error) {
+    console.error("[IntroFilm] Could not read whether the film was seen:", error);
+    return true;
+  }
+}
+
+/** The first time only: a second call keeps the original moment. */
+export async function markIntroFilmSeen(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await ensureIntroFilmTable(db);
+  await db.insert(introFilmViews).ignore().values({ userId });
 }
 
 // Bookmark queries

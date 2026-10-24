@@ -330,11 +330,20 @@ export const appRouter = router({
       if (!u) return null;
       // Strip sensitive fields before sending to client
       const { passwordHash: _ph, googleId: _gid, ...safe } = u as any;
-      const hasNatalProfile = await db.hasUserStaticProfile(u.id);
+      const [hasNatalProfile, introFilmSeen] = await Promise.all([
+        db.hasUserStaticProfile(u.id),
+        db.hasSeenIntroFilm(u.id),
+      ]);
       return {
         ...safe,
         hasNatalProfile,
+        introFilmSeen,
       };
+    }),
+    /** The intro film plays once per Seeker; this records that it has. */
+    markIntroFilmSeen: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.markIntroFilmSeen(ctx.user.id);
+      return { success: true };
     }),
     /**
      * Logout is now handled by Better Auth at POST /api/auth/sign-out.

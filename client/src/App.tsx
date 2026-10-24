@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import { useEffect, useRef } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import IntroFilm from "./components/IntroFilm";
 import { OrielRouteGuard } from "./components/ReceiverRouteGuards";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -264,6 +265,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <IntroFilm />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

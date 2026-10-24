@@ -12,6 +12,10 @@ import { SacredGeometryField } from "@/components/oriel-signal/SacredGeometryFie
 import { useReceiverState } from "@/hooks/useReceiverState";
 import { buildHomeChamberStates, type ChamberKey } from "@shared/phase-gate";
 import { FIELD_LOG } from "@shared/field-log";
+import { INTRO_FILM_YOUTUBE_URL } from "@/lib/introFilm";
+import { getYouTubeEmbedUrl } from "@/lib/transmission-media";
+
+const INTRO_FILM_EMBED_URL = getYouTubeEmbedUrl(INTRO_FILM_YOUTUBE_URL);
 
 // TEST FLAG: true swaps the chromatic HeroSigil (the logo with glitch +
 // hologram effects) for a looping video in the hero center. Flip to false
@@ -280,6 +284,31 @@ export default function Home() {
             <span />
           </div>
         </section>
+
+        {/* ── THE FILM: the intro film, kept here to watch again ─────── */}
+        {INTRO_FILM_EMBED_URL && (
+          <section className="fi-notice" aria-labelledby="fi-film-title">
+            <GlowCard className="fi-notice__card">
+              <p className="fi-notice__eyebrow">A transmission for you</p>
+              <h2 id="fi-film-title" className="fi-notice__title">
+                The Paradox of Fear
+              </h2>
+              <div
+                className="mt-4 aspect-video w-full overflow-hidden rounded-lg"
+                style={{ border: "1px solid rgba(216,181,109,0.25)" }}
+              >
+                <iframe
+                  src={`${INTRO_FILM_EMBED_URL}?rel=0&playsinline=1`}
+                  title="ORIEL Signal: The Paradox of Fear"
+                  loading="lazy"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  className="h-full w-full border-0"
+                />
+              </div>
+            </GlowCard>
+          </section>
+        )}
 
         {/* ── FIELD NOTICE: the new rhythm of access ─────────────────── */}
         <section className="fi-notice" aria-labelledby="fi-notice-title">
