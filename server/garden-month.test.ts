@@ -7,7 +7,10 @@ const store = vi.hoisted(() => ({
   grantGardenMonth: vi.fn(),
 }));
 const paypal = vi.hoisted(() => ({ createPaypalOrder: vi.fn(), capturePaypalOrder: vi.fn() }));
+const rings = vi.hoisted(() => ({ addContribution: vi.fn(), settleRing: vi.fn() }));
 vi.mock("./garden-month-db", () => store);
+vi.mock("./rings-db", () => ({ addContribution: rings.addContribution }));
+vi.mock("./rings-service", () => ({ settleRing: rings.settleRing }));
 vi.mock("./founders-reading-paypal", () => paypal);
 vi.mock("./_core/env", () => ({ ENV: { appBaseUrl: "https://orielsignal.space" } }));
 
@@ -66,6 +69,24 @@ describe("a month of Garden, paid once", () => {
     store.markMonthOrderPaid.mockResolvedValue(false);
     expect(await captureGardenMonth(seeker, "ORDER1", now)).toEqual({ active: true });
     expect(store.grantGardenMonth).not.toHaveBeenCalled();
+    expect(rings.addContribution).not.toHaveBeenCalled();
+    expect(rings.settleRing).not.toHaveBeenCalled();
+  });
+
+  it("counts the paid month toward the Seeker's ring, once", async () => {
+    store.getMonthOrder.mockResolvedValue({ paypalOrderId: "ORDER1", userId: 7, plan: "garden", status: "created", priceEur: 9.99 });
+    rings.addContribution.mockResolvedValue(true);
+    await captureGardenMonth(seeker, "ORDER1", now);
+    expect(rings.addContribution).toHaveBeenCalledWith({ paypalPaymentId: "CAP1", userId: 7, amountEur: 9.99, source: "garden_month" });
+    expect(rings.settleRing).toHaveBeenCalledTimes(1);
+    expect(rings.settleRing).toHaveBeenCalledWith(7);
+  });
+
+  it("still opens the month when the ring cannot be counted", async () => {
+    store.getMonthOrder.mockResolvedValue({ paypalOrderId: "ORDER1", userId: 7, plan: "garden", status: "created", priceEur: 9.99 });
+    rings.addContribution.mockRejectedValue(new Error("ring tables down"));
+    expect(await captureGardenMonth(seeker, "ORDER1", now)).toEqual({ active: true });
+    expect(store.grantGardenMonth).toHaveBeenCalled();
   });
 
   it("refuses an order that belongs to someone else", async () => {

@@ -393,6 +393,9 @@ async function handlePaymentCompleted(
   console.log(
     `[PayPal Webhook] Recorded $${amount} donation for user ${userId}`
   );
+
+  const { settleRing } = await import("./rings-service");
+  await settleRing(userId);
 }
 
 /**

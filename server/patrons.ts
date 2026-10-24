@@ -84,4 +84,12 @@ export async function unmarkPatron(userId: number) {
 export async function setDonated(userId: number, amount: number) {
   const db = await requireDb();
   await db.update(users).set({ donated: amount }).where(eq(users.id, userId));
+  // A higher total may cross a ring (and bring its gift); a lower one never
+  // takes a ring back. The total is saved either way.
+  try {
+    const { settleRing } = await import("./rings-service");
+    await settleRing(userId);
+  } catch (error) {
+    console.error(`[Patrons] could not settle the ring of user ${userId}:`, error);
+  }
 }
