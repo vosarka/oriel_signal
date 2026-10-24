@@ -6,6 +6,8 @@
 import { ENV } from "./_core/env";
 import { capturePaypalOrder, createPaypalOrder } from "./founders-reading-paypal";
 import { getMonthOrder, grantGardenMonth, insertMonthOrder, markMonthOrderPaid } from "./garden-month-db";
+import { addContribution } from "./rings-db";
+import { settleRing } from "./rings-service";
 import { supporterKind, type SupporterFields } from "../shared/supporter-access";
 import { GARDEN_MONTH_DAYS, GARDEN_MONTH_PRICE_EUR, type GardenMonthPlan } from "../shared/garden-month";
 
@@ -71,6 +73,17 @@ export async function captureGardenMonth(
   }
   if (await markMonthOrderPaid(paypalOrderId, captureId)) {
     await grantGardenMonth(user.id, order.plan, monthUntil(user, now));
+    await countTowardRing(user.id, captureId, order.priceEur);
   }
   return { active: true };
+}
+
+/** A paid month climbs the rings. Never at the cost of the month itself. */
+async function countTowardRing(userId: number, captureId: string, priceEur: number): Promise<void> {
+  try {
+    await addContribution({ paypalPaymentId: captureId, userId, amountEur: priceEur, source: "garden_month" });
+    await settleRing(userId);
+  } catch (error) {
+    console.error(`[GardenMonth] could not count capture ${captureId} toward the ring:`, error);
+  }
 }

@@ -69,6 +69,18 @@ export async function createContext(
     user = null;
   }
 
+  // The stored ring and total ride on the user, so every limit check and
+  // auth.me see them (shared/supporter-access reads ringRank/ringTotal).
+  // Outside the try above: a ring that cannot be read must never sign anyone out.
+  if (user) {
+    try {
+      const { ringForContext } = await import("../rings-service");
+      Object.assign(user, (await ringForContext(user.id)) ?? {});
+    } catch (error) {
+      console.error("[Rings] Context could not attach the ring:", error);
+    }
+  }
+
   return {
     req: opts.req,
     res: opts.res,

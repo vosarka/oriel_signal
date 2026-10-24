@@ -13,7 +13,9 @@ export type PayPalWebhookEvent =
   | "BILLING.SUBSCRIPTION.EXPIRED"
   | "BILLING.SUBSCRIPTION.SUSPENDED"
   | "PAYMENT.CAPTURE.COMPLETED"
-  | "PAYMENT.CAPTURE.REFUNDED";
+  | "PAYMENT.CAPTURE.REFUNDED"
+  /** Each payment of a Garden subscription. Must be ticked in PayPal's dashboard. */
+  | "PAYMENT.SALE.COMPLETED";
 
 /**
  * PayPal webhook event payload
@@ -35,10 +37,17 @@ export interface PayPalWebhookPayload {
       next_billing_time?: string;
       last_payment?: { time?: string };
     };
-    /** Amount on PAYMENT.CAPTURE.COMPLETED events */
+    /** The subscription a PAYMENT.SALE.COMPLETED belongs to. */
+    billing_agreement_id?: string;
+    /**
+     * Captures carry value/currency_code; sales (the older API that
+     * subscription payments still use) carry total/currency.
+     */
     amount?: {
-      value: string;
-      currency_code: string;
+      value?: string;
+      currency_code?: string;
+      total?: string;
+      currency?: string;
     };
     billing_cycles?: Array<{
       pricing_scheme?: {
@@ -103,6 +112,9 @@ export async function handlePayPalWebhook(
 
       case "PAYMENT.CAPTURE.REFUNDED":
         await handlePaymentRefunded(db, payload);
+        break;
+      case "PAYMENT.SALE.COMPLETED":
+        await handleSaleCompleted(payload);
         break;
 
       default:
@@ -393,6 +405,58 @@ async function handlePaymentCompleted(
   console.log(
     `[PayPal Webhook] Recorded $${amount} donation for user ${userId}`
   );
+
+  // The donation is already counted. A ring that cannot be settled now must
+  // not fail the webhook: PayPal would send it again and the increment above
+  // would count it twice. The Seeker's next visit settles the ring.
+  try {
+    const { settleRing } = await import("./rings-service");
+    await settleRing(userId);
+  } catch (error) {
+    console.error(`[PayPal Webhook] Could not settle the ring of user ${userId}:`, error);
+  }
+}
+
+/** A Garden payment, read off a PAYMENT.SALE.COMPLETED; null for anything else. */
+export function saleContribution(
+  payload: PayPalWebhookPayload
+): { paymentId: string; subscriptionId: string; amountEur: number } | null {
+  const { id, billing_agreement_id: subscriptionId, amount } = payload.resource;
+  const amountEur = parseFloat(amount?.total ?? "");
+  // The rings are counted in euros; a sale in any other currency is left out
+  // rather than counted at the wrong value.
+  if (!id || !subscriptionId || !(amountEur > 0) || amount?.currency !== "EUR") return null;
+  return { paymentId: id, subscriptionId, amountEur };
+}
+
+/**
+ * Every Garden payment climbs the Seeker's ring. Keyed by PayPal's payment
+ * id, so a webhook PayPal sends again is counted once.
+ */
+export async function handleSaleCompleted(payload: PayPalWebhookPayload): Promise<void> {
+  const sale = saleContribution(payload);
+  if (!sale) {
+    console.log(`[PayPal Webhook] Sale ${payload.resource.id} is not a Garden payment in EUR; not counted`);
+    return;
+  }
+  const { addContribution, userIdForSubscription } = await import("./rings-db");
+  const userId = await userIdForSubscription(sale.subscriptionId);
+  if (!userId) {
+    // PayPal can send the first payment before the subscription is linked to
+    // an account. Failing makes PayPal send it again (for up to three days)
+    // instead of dropping it for good.
+    throw new Error(`Sale ${sale.paymentId}: subscription ${sale.subscriptionId} is not linked to an account yet`);
+  }
+  const fresh = await addContribution({
+    paypalPaymentId: sale.paymentId,
+    userId,
+    amountEur: sale.amountEur,
+    source: "subscription",
+  });
+  if (!fresh) return;
+  const { settleRing } = await import("./rings-service");
+  await settleRing(userId);
+  console.log(`[PayPal Webhook] Counted €${sale.amountEur} toward the ring of user ${userId}`);
 }
 
 /**

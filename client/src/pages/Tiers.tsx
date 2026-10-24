@@ -14,8 +14,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 /**
  * How the field is held — the rhythm of access, told as balance rather than
- * price. Four keeper rings draw themselves as the reader moves through the
- * levels; the fourth closes the circle. Limits come from TIER_ACCESS, the
+ * price. Five keeper rings draw themselves as the reader moves through the
+ * levels; Keystone's closes the circle. Limits come from TIER_ACCESS, the
  * same table the server gates on, so the page cannot drift from the rules.
  */
 
@@ -25,34 +25,43 @@ const KEEPERS = [
   {
     key: "seed" as const,
     name: "Seed",
-    range: "€1-100",
+    range: "€1–30",
     line: "The first ring. You gave, and the field remembers.",
     extra: null,
   },
   {
     key: "keeper" as const,
     name: "Keeper",
-    range: "€101-400",
+    range: "€31–100",
     line: "You tend what others will walk through.",
     extra: "Every oracle whole, from the day it opens.",
   },
   {
     key: "steward" as const,
     name: "Steward",
-    range: "€401-1,000",
-    line: "You hold the door, and may open it for someone who cannot.",
-    extra: "Gift your access to one person.",
+    range: "€101–250",
+    line: "You hold the door for others.",
+    extra: "More room with ORIEL, every day.",
   },
   {
     key: "pillar" as const,
     name: "Pillar",
-    range: "over €1,000",
-    line: "The circle closes. Nothing here is measured for you.",
-    extra: "Everything that opens, opens for you, including your own Tetradic Signature.",
+    range: "€251–500",
+    line: "You hold the weight of the field.",
+    extra: "Your own Tetradic Signature.",
+  },
+  {
+    key: "keystone" as const,
+    name: "Keystone",
+    range: "over €500",
+    line: "The stone that holds the arch. Nothing here is measured for you.",
+    extra: null,
   },
 ];
 
-const RINGS = [64, 100, 136, 172];
+/** Five rings inside the 400-wide drawing; Keystone's is the outermost. */
+const RINGS = [56, 88, 120, 152, 184];
+const LAST_RING = RINGS.length - 1;
 
 type GardenPlan = keyof typeof GARDEN_PLANS;
 
@@ -213,7 +222,7 @@ export default function Tiers() {
       });
 
       // Each keeper card draws its ring as it crosses the middle of the
-      // screen; scrolling back undraws it. Pillar's ring closes the circle.
+      // screen; scrolling back undraws it. Keystone's ring closes the circle.
       gsap.utils.toArray<HTMLElement>("[data-keeper]").forEach((card, i) => {
         const ring = root.querySelector<SVGCircleElement>(`[data-ring="${i}"]`);
         if (!ring) return;
@@ -237,7 +246,7 @@ export default function Tiers() {
         scale: 1,
         ease: "none",
         scrollTrigger: {
-          trigger: "[data-keeper='3']",
+          trigger: `[data-keeper='${LAST_RING}']`,
           start: "top 60%",
           end: "top 35%",
           scrub: 0.6,
@@ -374,8 +383,13 @@ export default function Tiers() {
             <p>
               Those who give are not customers. They are keepers of the field,
               and their ring grows with everything they have given over time.
-              The level follows your total; each gift opens its 30 days at
-              that level.
+            </p>
+            <p>
+              Everything you give counts: your Garden months and every gift.
+              Each new ring brings a gift to keep or pass on: a Founder's
+              Reading or a month of Garden. Your rings never go back. Their
+              daily room with ORIEL opens while you're in the Garden, or for
+              30 days after a gift.
             </p>
           </div>
 

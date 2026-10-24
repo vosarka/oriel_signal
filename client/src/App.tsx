@@ -20,6 +20,7 @@ import Protocol from "./pages/Protocol";
 import Tiers from "./pages/Tiers";
 import TransmissionPlayer from "./pages/TransmissionPlayer";
 import FoundersReading from "./pages/FoundersReading";
+import GiftRedeem from "./pages/GiftRedeem";
 import Codex from "./pages/Codex";
 import Knowledge from "./pages/Knowledge";
 import Arcana from "./pages/Arcana";
@@ -75,6 +76,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/founders-reading" component={FoundersReading} />
+      <Route path="/gift/:token" component={GiftRedeem} />
       <Route path="/t/:token" component={TransmissionPlayer} />
       <Route path={"/orb-preview"} component={OrbPreview} />
       <Route path={"/resonance-body"} component={ResonanceBodyLab} />

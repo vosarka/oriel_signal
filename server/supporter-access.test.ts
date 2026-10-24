@@ -30,22 +30,24 @@ describe("supporterKind", () => {
 });
 
 describe("patron levels and limits", () => {
-  it("follows Vos's bands: Seed to 100, Keeper to 400, Steward to 1000, Pillar above", () => {
+  it("follows Vos's bands (2026-10-25): Seed to 30, Keeper to 100, Steward to 250, Pillar to 500, Keystone above", () => {
     expect(patronLevel(0)).toBe("seed");
-    expect(patronLevel(100)).toBe("seed");
-    expect(patronLevel(101)).toBe("keeper");
-    expect(patronLevel(400)).toBe("keeper");
-    expect(patronLevel(401)).toBe("steward");
-    expect(patronLevel(1000)).toBe("steward");
-    expect(patronLevel(1000.01)).toBe("pillar");
-    expect(patronLevel(6000)).toBe("pillar");
+    expect(patronLevel(30)).toBe("seed");
+    expect(patronLevel(30.01)).toBe("keeper");
+    expect(patronLevel(100)).toBe("keeper");
+    expect(patronLevel(101)).toBe("steward");
+    expect(patronLevel(250)).toBe("steward");
+    expect(patronLevel(251)).toBe("pillar");
+    expect(patronLevel(500)).toBe("pillar");
+    expect(patronLevel(500.01)).toBe("keystone");
+    expect(patronLevel(6000)).toBe("keystone");
   });
 
-  it("gives a Pillar no limit anywhere, and the book", () => {
-    const pillar = TIER_ACCESS[accessTier({ ...base, donated: 6000 }, now)];
-    expect(pillar.messagesPerDay).toBe(Infinity);
-    expect(pillar.voicePerDay).toBe(Infinity);
-    expect(pillar.freeBook).toBe(true);
+  it("gives a Keystone no limit anywhere, and the book", () => {
+    const keystone = TIER_ACCESS[accessTier({ ...base, donated: 6000 }, now)];
+    expect(keystone.messagesPerDay).toBe(Infinity);
+    expect(keystone.voicePerDay).toBe(Infinity);
+    expect(keystone.freeBook).toBe(true);
   });
 
   it("limits free visitors to 4 written messages and 4 spoken replies", () => {
@@ -79,7 +81,7 @@ describe("the Garden plans", () => {
   });
 
   it("lets a patron who joins the Garden keep the larger of the two", () => {
-    expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("pillar");
+    expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("keystone");
     expect(accessTier({ ...garden, donated: 50, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
   });
 });

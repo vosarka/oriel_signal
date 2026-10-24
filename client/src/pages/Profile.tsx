@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { ringTierForRank } from "@shared/rings";
 import { useLocation } from "wouter";
 import {
   CheckCircle,
@@ -291,6 +292,7 @@ export default function Profile() {
           </header>
 
           {standing && <StandingPanel standing={standing} />}
+          {standing && <RingGifts />}
 
           <section
             className="profile-layer__body-field"
@@ -647,6 +649,8 @@ function ChangePasswordForm() {
 const fmtDay = (d: Date) =>
   d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const fmtCount = (n: number) => (n === Infinity ? "Without limit" : String(n));
+const fmtEur = (n: number) => `€${Number.isInteger(n) ? n : n.toFixed(2)}`;
+const RING_NAMES: Record<string, string> = { seed: "Seed", keeper: "Keeper", steward: "Steward", pillar: "Pillar", keystone: "Keystone" };
 
 /** The Seeker's place in the field: their tier, what it opens, and what is next. */
 function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
@@ -654,7 +658,6 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
     { label: "Messages a day", value: fmtCount(s.messagesPerDay) },
     { label: "Spoken replies a day", value: fmtCount(s.voicePerDay) },
     ...(s.oraclesDayOne ? [{ label: "Oracles", value: "From the first day" }] : []),
-    ...(s.giftAccess ? [{ label: "Gift", value: "Your access, to one person" }] : []),
     ...(s.freeBook ? [{ label: "Tetradic Signature", value: "Yours, freely" }] : []),
   ];
   const progress = s.next ? Math.min(100, Math.round((s.donated / s.next.above) * 100)) : 100;
@@ -663,6 +666,9 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
     <section className={`profile-standing profile-standing--seal-${s.seal}`} aria-labelledby="profile-standing-title">
       <p className="profile-standing__eyebrow">Your place in the field</p>
       <h2 id="profile-standing-title" className="profile-standing__tier">{s.label}</h2>
+      {s.ring && RING_NAMES[s.ring] !== s.label && (
+        <p className="profile-standing__note">Your ring: {RING_NAMES[s.ring]}. It never goes back.</p>
+      )}
       {s.seal === 0 ? (
         <p className="profile-standing__note">
           You walk the field freely: {s.messagesPerDay} written exchanges and {s.voicePerDay} replies in ORIEL's voice each
@@ -673,7 +679,7 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
           {s.kind === "garden" && s.renewsOn && <>Your Garden renews on {fmtDay(s.renewsOn)}. </>}
           {s.cancelled && s.endsOn && <>Your Garden stays open until {fmtDay(s.endsOn)}. </>}
           {s.kind === "patron" && s.endsOn && <>Your access is open until {fmtDay(s.endsOn)}. </>}
-          {s.donated > 0 && <>You have given €{s.donated} to the field. </>}
+          {s.donated > 0 && <>You have given {fmtEur(s.donated)} to the field. </>}
           Thank you for holding the space.
         </p>
       )}
@@ -691,10 +697,73 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
             <span style={{ width: `${progress}%` }} />
           </div>
           <p>
-            {s.next.label} opens above €{s.next.above} given · €{s.next.remaining} to go
+            {s.next.label} opens above €{s.next.above} given · {fmtEur(s.next.remaining)} to go
           </p>
         </div>
       )}
+    </section>
+  );
+}
+
+const GIFT_NAMES = { founders_reading: "A Founder's Reading", garden_month: "A month of Garden" } as const;
+
+/** One gift per new ring: choose it, then keep the link or send it on. */
+function RingGifts() {
+  const utils = trpc.useUtils();
+  const gifts = trpc.rings.myGifts.useQuery(undefined, { retry: false });
+  const claim = trpc.rings.claim.useMutation({ onSuccess: () => utils.rings.myGifts.invalidate() });
+  const [copied, setCopied] = useState<number | null>(null);
+  if (!gifts.data?.length) return null;
+
+  const copy = async (id: number, url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(id);
+    } catch {
+      setCopied(null);
+    }
+  };
+
+  return (
+    <section className="profile-standing" aria-labelledby="profile-gifts-title">
+      <p className="profile-standing__eyebrow">A gift for every ring</p>
+      <h2 id="profile-gifts-title" className="profile-standing__tier">Your gifts</h2>
+      <p className="profile-standing__note">Keep one for yourself, or send the link to someone you choose.</p>
+      <ul className="mt-3 space-y-3">
+        {gifts.data.map(g => (
+          <li key={g.id} className="font-mono text-xs">
+            <p className="mb-1 uppercase tracking-[0.2em] text-[#d8b56d]">
+              {RING_NAMES[ringTierForRank(g.ringRank) ?? ""] ?? "A ring"}
+              {g.kind ? ` · ${GIFT_NAMES[g.kind]}` : ""}
+            </p>
+            {!g.kind ? (
+              <div className="flex flex-wrap gap-2">
+                {(["founders_reading", "garden_month"] as const).map(kind => (
+                  <Button
+                    key={kind}
+                    variant="outline"
+                    size="sm"
+                    disabled={claim.isPending}
+                    onClick={() => claim.mutate({ giftId: g.id, kind })}
+                  >
+                    {GIFT_NAMES[kind]}
+                  </Button>
+                ))}
+              </div>
+            ) : g.redeemed ? (
+              <p className="text-[#a39f95]">Received.</p>
+            ) : g.url ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <a href={g.url} className="break-all text-[#fff7e6] underline">{g.url}</a>
+                <Button variant="outline" size="sm" onClick={() => copy(g.id, g.url!)}>
+                  {copied === g.id ? "Copied" : "Copy link"}
+                </Button>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {claim.error && <p className="mt-2 text-xs text-[#e4c88c]">{claim.error.message}</p>}
     </section>
   );
 }

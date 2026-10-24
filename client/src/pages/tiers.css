@@ -325,7 +325,7 @@
   filter: drop-shadow(0 0 6px rgba(216, 181, 109, 0.45));
 }
 
-.fh-rings__lit[data-ring="3"] {
+.fh-rings__lit[data-ring="4"] {
   stroke: var(--fh-gold-bright);
   stroke-width: 2.6;
 }

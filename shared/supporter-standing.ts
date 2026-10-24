@@ -6,11 +6,13 @@
  */
 import {
   accessTier,
+  ringOf,
   supporterKind,
   TIER_ACCESS,
   type AccessTier,
   type SupporterFields,
 } from "./supporter-access";
+import { RING_LADDER, type RingTier } from "./rings";
 
 /** 0 none · 1 one ring · 2 two rings · 3 three rings and rays · 4 full halo. */
 export type SealLevel = 0 | 1 | 2 | 3 | 4;
@@ -23,14 +25,8 @@ const SEAL: Record<AccessTier, SealLevel> = {
   deep_garden: 3,
   steward: 3,
   pillar: 4,
+  keystone: 4,
 };
-
-/** The patron ladder: each level opens above the given total, in euros. */
-const LADDER: Array<{ tier: AccessTier; above: number }> = [
-  { tier: "keeper", above: 100 },
-  { tier: "steward", above: 400 },
-  { tier: "pillar", above: 1000 },
-];
 
 export interface SupporterStanding {
   tier: AccessTier;
@@ -40,10 +36,13 @@ export interface SupporterStanding {
   messagesPerDay: number;
   voicePerDay: number;
   oraclesDayOne: boolean;
-  giftAccess: boolean;
+  /** The book, once Pillar is reached: permanent, like the ring. */
   freeBook: boolean;
+  /** Everything given: donations plus Garden payments, in euros. */
   donated: number;
-  /** The next patron level, for those on the patron ladder. */
+  /** The permanent ring, shown even while it opens nothing. */
+  ring: RingTier | null;
+  /** The next ring and how far it is; null before the first gift and at Keystone. */
   next: { label: string; above: number; remaining: number } | null;
   /** A Garden that renews on its own. */
   renewsOn: Date | null;
@@ -59,12 +58,12 @@ export function supporterStanding(
   const kind = supporterKind(user, now) ?? "free";
   const tier = accessTier(user, now);
   const limits = TIER_ACCESS[tier];
-  const donated = Number(user.donated ?? 0);
+  const donated = Number(user.ringTotal ?? user.donated ?? 0);
+  const ring = ringOf(user);
   const until = user.subscriptionRenewalDate ? new Date(user.subscriptionRenewalDate) : null;
   const cancelled = kind === "garden" && user.subscriptionStatus === "cancelled";
 
-  const onLadder = ["seed", "keeper", "steward"].includes(tier);
-  const step = onLadder ? LADDER.find(l => donated <= l.above) : undefined;
+  const step = donated > 0 ? RING_LADDER.find(l => donated <= l.above) : undefined;
 
   const standing: SupporterStanding = {
     tier,
@@ -74,11 +73,11 @@ export function supporterStanding(
     messagesPerDay: limits.messagesPerDay,
     voicePerDay: limits.voicePerDay,
     oraclesDayOne: limits.oraclesDayOne,
-    giftAccess: limits.giftAccess,
-    freeBook: limits.freeBook,
+    freeBook: limits.freeBook || Boolean(ring && TIER_ACCESS[ring].freeBook),
     donated,
+    ring,
     next: step
-      ? { label: TIER_ACCESS[step.tier].label, above: step.above, remaining: Math.max(0, step.above - donated) }
+      ? { label: step.label, above: step.above, remaining: Math.max(0, step.above - donated) }
       : null,
     renewsOn: kind === "garden" && !cancelled ? until : null,
     endsOn: (kind === "patron" || cancelled) && until ? until : null,
@@ -87,8 +86,8 @@ export function supporterStanding(
 
   // The architect stands outside the ladder, with every door open.
   if (user.role === "admin") {
-    const pillar = TIER_ACCESS.pillar;
-    return { ...standing, label: "Architect", seal: 4, next: null, messagesPerDay: pillar.messagesPerDay, voicePerDay: pillar.voicePerDay };
+    const keystone = TIER_ACCESS.keystone;
+    return { ...standing, label: "Architect", seal: 4, next: null, messagesPerDay: keystone.messagesPerDay, voicePerDay: keystone.voicePerDay };
   }
   return standing;
 }

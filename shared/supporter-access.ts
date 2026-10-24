@@ -11,18 +11,17 @@
  *   before accounts were wired to PayPal.
  *
  * The limits below are the single place to change what each tier gets.
- * Decided with Vos, 2026-09-30.
+ * Decided with Vos, 2026-09-30; the rings lowered and Keystone added,
+ * 2026-10-25 (shared/rings.ts).
+ *
+ * A ring is permanent, but what it opens here applies only while the Seeker
+ * is active: a Garden, a month bought, or a donation's key still open.
  */
+import { ringRankForTotal, ringTierForRank, type RingTier } from "./rings";
+
 export type SupporterKind = "garden" | "patron" | null;
 
-export type AccessTier =
-  | "free"
-  | "seed"
-  | "keeper"
-  | "steward"
-  | "pillar"
-  | "garden"
-  | "deep_garden";
+export type AccessTier = "free" | RingTier | "garden" | "deep_garden";
 
 export interface TierAccess {
   label: string;
@@ -34,28 +33,24 @@ export interface TierAccess {
   voicePerDay: number;
   /** Whole ΩX oracles from the day they are published. */
   oraclesDayOne: boolean;
-  /** May gift their access to one person. */
-  giftAccess: boolean;
   /** May request a Tetradic Signature from the site without paying. */
   freeBook: boolean;
 }
 
 export const TIER_ACCESS: Record<AccessTier, TierAccess> = {
-  free: { label: "Free", messagesPerDay: 4, messagesPerHour: 30, voicePerDay: 4, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  seed: { label: "Seed", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, giftAccess: false, freeBook: false },
-  keeper: { label: "Keeper", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
-  deep_garden: { label: "Deep Garden", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, giftAccess: false, freeBook: false },
-  steward: { label: "Steward", messagesPerDay: 500, messagesPerHour: 120, voicePerDay: 120, oraclesDayOne: true, giftAccess: true, freeBook: false },
-  pillar: { label: "Pillar", messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity, oraclesDayOne: true, giftAccess: true, freeBook: true },
+  free: { label: "Free", messagesPerDay: 4, messagesPerHour: 30, voicePerDay: 4, oraclesDayOne: false, freeBook: false },
+  seed: { label: "Seed", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, freeBook: false },
+  garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, freeBook: false },
+  keeper: { label: "Keeper", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, freeBook: false },
+  deep_garden: { label: "Deep Garden", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, freeBook: false },
+  steward: { label: "Steward", messagesPerDay: 500, messagesPerHour: 120, voicePerDay: 120, oraclesDayOne: true, freeBook: false },
+  pillar: { label: "Pillar", messagesPerDay: 1000, messagesPerHour: 120, voicePerDay: 250, oraclesDayOne: true, freeBook: true },
+  keystone: { label: "Keystone", messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity, oraclesDayOne: true, freeBook: true },
 };
 
-/** Patron level from the total donated, in euros. */
-export function patronLevel(donated: number): "seed" | "keeper" | "steward" | "pillar" {
-  if (donated > 1000) return "pillar";
-  if (donated > 400) return "steward";
-  if (donated > 100) return "keeper";
-  return "seed";
+/** Ring from a total, in euros. An active patron with no total is a Seed. */
+export function patronLevel(total: number): RingTier {
+  return ringTierForRank(ringRankForTotal(total)) ?? "seed";
 }
 
 /** The two PayPal plans of the Garden (Vos, 2026-10-01). Public ids. */
@@ -71,6 +66,16 @@ export interface SupporterFields {
   subscriptionStatus?: string | null;
   subscriptionRenewalDate: Date | string | null;
   donated?: number | null;
+  /** The stored ring (server/rings-service.ts); absent when it could not be read. */
+  ringRank?: number | null;
+  /** Everything given: donations plus Garden payments. */
+  ringTotal?: number | null;
+}
+
+/** The permanent ring: the stored one, or the ring of the donated total. */
+export function ringOf(user: SupporterFields): RingTier | null {
+  if (typeof user.ringRank === "number") return ringTierForRank(user.ringRank);
+  return ringTierForRank(ringRankForTotal(Number(user.donated ?? 0)));
 }
 
 export function supporterKind(user: SupporterFields, now: Date = new Date()): SupporterKind {
@@ -99,16 +104,15 @@ export function isSupporter(
 /** The tier that decides a user's limits. */
 export function accessTier(user: SupporterFields, now: Date = new Date()): AccessTier {
   const kind = supporterKind(user, now);
-  // A patron who bought a month of Garden (paid once, no subscription) holds
-  // that plot until the month ends; without one, the donated total decides.
-  const boughtMonth = (Object.values(GARDEN_PLANS) as string[]).includes(user.paypalPlanId ?? "");
-  if (kind === "patron" && !boughtMonth) return patronLevel(Number(user.donated ?? 0));
   if (kind === null) return "free";
+  const ring = ringOf(user);
+  // A patron who bought a month of Garden (paid once, no subscription) holds
+  // that plot until the month ends; without one, the ring decides.
+  const boughtMonth = (Object.values(GARDEN_PLANS) as string[]).includes(user.paypalPlanId ?? "");
+  if (kind === "patron" && !boughtMonth) return ring ?? "seed";
   const plan: AccessTier =
     user.paypalPlanId === GARDEN_PLANS.deep_garden ? "deep_garden" : "garden";
-  // A patron who also joins the Garden keeps whichever opens more.
-  const donated = Number(user.donated ?? 0);
-  if (donated <= 0) return plan;
-  const level = patronLevel(donated);
-  return TIER_ACCESS[level].messagesPerDay > TIER_ACCESS[plan].messagesPerDay ? level : plan;
+  // A Garden member keeps whichever opens more: the plan or their ring.
+  if (!ring) return plan;
+  return TIER_ACCESS[ring].messagesPerDay > TIER_ACCESS[plan].messagesPerDay ? ring : plan;
 }
