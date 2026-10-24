@@ -31,6 +31,8 @@ const ACCOUNT_EVENTS = new Set([
   "BILLING.SUBSCRIPTION.SUSPENDED",
   "PAYMENT.CAPTURE.COMPLETED",
   "PAYMENT.CAPTURE.REFUNDED",
+  // Each Garden payment, counted toward the Seeker's ring.
+  "PAYMENT.SALE.COMPLETED",
 ]);
 
 type TetradicSignaturePayPalWebhookDependencies = Readonly<{

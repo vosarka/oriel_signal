@@ -103,6 +103,17 @@ export async function insertGift(userId: number, ringRank: number): Promise<void
   await db.insert(ringGifts).values({ userId, ringRank });
 }
 
+/** The Seeker a PayPal subscription belongs to, or null. */
+export async function userIdForSubscription(subscriptionId: string): Promise<number | null> {
+  const db = await ringDb();
+  const [row] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.paypalSubscriptionId, subscriptionId))
+    .limit(1);
+  return row?.id ?? null;
+}
+
 /** True only the first time PayPal tells us of this payment. */
 export async function addContribution(row: {
   paypalPaymentId: string;

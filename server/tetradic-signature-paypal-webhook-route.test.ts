@@ -125,6 +125,18 @@ describe("Tetradic Signature PayPal webhook route", () => {
     expect(recordCapture).not.toHaveBeenCalled();
   });
 
+  it("hands a verified Garden payment to the account handler, so it counts toward a ring", async () => {
+    const salePayment = {
+      id: "WH-SALE-1",
+      event_type: "PAYMENT.SALE.COMPLETED",
+      resource: { id: "S1", billing_agreement_id: "I-BW452GLLEP1G", amount: { total: "9.99", currency: "EUR" } },
+    };
+    const response = await postWebhook(salePayment);
+
+    expect(response.status).toBe(200);
+    expect(handleAccountEvent).toHaveBeenCalledWith(salePayment);
+  });
+
   it("never lets an unsigned subscription event change an account", async () => {
     verifyWebhook.mockResolvedValue(false);
 
