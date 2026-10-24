@@ -10,9 +10,10 @@ vi.mock("./rings-db", () => ({
   userIdForSubscription: rings.userIdForSubscription,
 }));
 vi.mock("./rings-service", () => ({ settleRing: rings.settleRing }));
-vi.mock("./db", () => ({ getDb: vi.fn() }));
+const fakeDb = vi.hoisted(() => ({ update: vi.fn(() => ({ set: () => ({ where: async () => undefined }) })) }));
+vi.mock("./db", () => ({ getDb: vi.fn(async () => fakeDb) }));
 
-import { handleSaleCompleted, saleContribution, type PayPalWebhookPayload } from "./paypal-webhook";
+import { handlePayPalWebhook, handleSaleCompleted, saleContribution, type PayPalWebhookPayload } from "./paypal-webhook";
 
 const sale = (resource: Record<string, unknown>) =>
   ({ id: "WH-1", event_type: "PAYMENT.SALE.COMPLETED", create_time: "2026-10-25T00:00:00Z", resource }) as unknown as PayPalWebhookPayload;
@@ -49,9 +50,23 @@ describe("handleSaleCompleted", () => {
     expect(rings.settleRing).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves a payment for an unknown subscription alone", async () => {
+  it("asks PayPal to send again a payment that arrived before its subscription was linked", async () => {
     rings.userIdForSubscription.mockResolvedValue(null);
-    await handleSaleCompleted(good);
+    await expect(handleSaleCompleted(good)).rejects.toThrow(/not linked/);
     expect(rings.addContribution).not.toHaveBeenCalled();
+  });
+});
+
+describe("a donation whose ring cannot be settled", () => {
+  it("is still answered as received, so PayPal does not send it again and count it twice", async () => {
+    rings.settleRing.mockRejectedValue(new Error("ring tables down"));
+    const donation = {
+      id: "WH-2",
+      event_type: "PAYMENT.CAPTURE.COMPLETED",
+      create_time: "2026-10-25T00:00:00Z",
+      resource: { id: "C1", status: "COMPLETED", custom_id: "user-7", amount: { value: "20.00", currency_code: "EUR" } },
+    } as unknown as PayPalWebhookPayload;
+    await expect(handlePayPalWebhook(donation)).resolves.toBeUndefined();
+    expect(fakeDb.update).toHaveBeenCalledTimes(1);
   });
 });

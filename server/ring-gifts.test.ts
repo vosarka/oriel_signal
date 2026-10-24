@@ -74,6 +74,33 @@ describe("redeemGift", () => {
     expect(grants.grantGardenMonth).toHaveBeenCalledWith(9, "garden", new Date("2026-11-24T00:00:00Z"));
   });
 
+  it("keeps a bought Deep Garden month deep when a Garden month is added to it", async () => {
+    store.getGiftByToken.mockResolvedValue(giftRow("garden_month"));
+    const deepMonth = {
+      ...nobody,
+      subscribed: true,
+      subscriptionStatus: "active",
+      paypalPlanId: "P-6SY7118000596284YNK7HTLI",
+      subscriptionRenewalDate: "2026-11-10T00:00:00Z",
+    };
+    await redeemGift(deepMonth, token);
+    expect(grants.grantGardenMonth).toHaveBeenCalledWith(9, "deep_garden", expect.any(Date));
+  });
+
+  it("keeps it deep even when the receiver's ring opens more than Deep Garden", async () => {
+    store.getGiftByToken.mockResolvedValue(giftRow("garden_month"));
+    const deepStewardMonth = {
+      ...nobody,
+      subscribed: true,
+      subscriptionStatus: "active",
+      paypalPlanId: "P-6SY7118000596284YNK7HTLI",
+      subscriptionRenewalDate: "2026-11-10T00:00:00Z",
+      ringRank: 3,
+    };
+    await redeemGift(deepStewardMonth, token);
+    expect(grants.grantGardenMonth).toHaveBeenCalledWith(9, "deep_garden", expect.any(Date));
+  });
+
   it("refuses a second receiver, without granting anything", async () => {
     store.getGiftByToken.mockResolvedValue(giftRow("garden_month"));
     store.markGiftRedeemed.mockResolvedValue(false);

@@ -30,7 +30,7 @@ export function utcDayStart(now: Date = new Date()): Date {
 }
 
 export function limitsFor(user: MeasuredUser, now: Date = new Date()) {
-  if (user.role === "admin") return TIER_ACCESS.pillar;
+  if (user.role === "admin") return TIER_ACCESS.keystone;
   return TIER_ACCESS[accessTier(user, now)];
 }
 

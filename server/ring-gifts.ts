@@ -6,7 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./_core/env";
-import { supporterKind, type SupporterFields } from "../shared/supporter-access";
+import { GARDEN_PLANS, supporterKind, type SupporterFields } from "../shared/supporter-access";
 import {
   claimGiftRow,
   clearGiftRedeemed,
@@ -81,7 +81,10 @@ export async function redeemGift(
   }
   try {
     if (kind === "garden_month") {
-      await grantGardenMonth(user.id, "garden", monthUntil(user));
+      // A bought Deep Garden month still open stays deep; the gift adds to it.
+      const deepOpen = supporterKind(user) !== null && user.paypalPlanId === GARDEN_PLANS.deep_garden;
+      const plan = deepOpen ? "deep_garden" : "garden";
+      await grantGardenMonth(user.id, plan, monthUntil(user));
       return { kind };
     }
     const reading = await startGiftReading(user.id);

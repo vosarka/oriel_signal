@@ -406,8 +406,15 @@ async function handlePaymentCompleted(
     `[PayPal Webhook] Recorded $${amount} donation for user ${userId}`
   );
 
-  const { settleRing } = await import("./rings-service");
-  await settleRing(userId);
+  // The donation is already counted. A ring that cannot be settled now must
+  // not fail the webhook: PayPal would send it again and the increment above
+  // would count it twice. The Seeker's next visit settles the ring.
+  try {
+    const { settleRing } = await import("./rings-service");
+    await settleRing(userId);
+  } catch (error) {
+    console.error(`[PayPal Webhook] Could not settle the ring of user ${userId}:`, error);
+  }
 }
 
 /** A Garden payment, read off a PAYMENT.SALE.COMPLETED; null for anything else. */
@@ -435,8 +442,10 @@ export async function handleSaleCompleted(payload: PayPalWebhookPayload): Promis
   const { addContribution, userIdForSubscription } = await import("./rings-db");
   const userId = await userIdForSubscription(sale.subscriptionId);
   if (!userId) {
-    console.warn(`[PayPal Webhook] Sale ${sale.paymentId} for unknown subscription ${sale.subscriptionId}`);
-    return;
+    // PayPal can send the first payment before the subscription is linked to
+    // an account. Failing makes PayPal send it again (for up to three days)
+    // instead of dropping it for good.
+    throw new Error(`Sale ${sale.paymentId}: subscription ${sale.subscriptionId} is not linked to an account yet`);
   }
   const fresh = await addContribution({
     paypalPaymentId: sale.paymentId,

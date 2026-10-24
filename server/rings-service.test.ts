@@ -9,7 +9,7 @@ const store = vi.hoisted(() => ({
 }));
 vi.mock("./rings-db", () => store);
 
-import { ringDecision, settleRing } from "./rings-service";
+import { ringDecision, ringForContext, settleRing } from "./rings-service";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -65,6 +65,14 @@ describe("settleRing", () => {
     store.insertRingIfAbsent.mockResolvedValue(true);
     await settleRing(7);
     expect(store.insertGift).toHaveBeenCalledWith(7, 4);
+  });
+
+  it("does not retry a failing settle on every request", async () => {
+    store.storedRing.mockRejectedValue(new Error("no DDL privilege"));
+    store.ringTotalOf.mockResolvedValue(0);
+    await expect(ringForContext(41)).resolves.toBeNull();
+    await expect(ringForContext(41)).resolves.toBeNull();
+    expect(store.storedRing).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the ring and gives nothing when Vos lowers the total", async () => {

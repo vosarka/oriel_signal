@@ -19,7 +19,9 @@ export function ringDecision(
 const CONTEXT_TTL_MS = 60_000;
 // ponytail: per-process cache, fine on one Railway instance; a second
 // instance would show a fresh ring up to a minute late, nothing worse.
-const contextCache = new Map<number, { at: number; value: { ringRank: number; ringTotal: number } }>();
+// A failure is cached too: tables that cannot be created would otherwise be
+// tried again, and logged, on every request.
+const contextCache = new Map<number, { at: number; value: { ringRank: number; ringTotal: number } | null }>();
 
 export async function settleRing(userId: number): Promise<{ ringRank: number; ringTotal: number }> {
   contextCache.delete(userId);
@@ -50,6 +52,7 @@ export async function ringForContext(userId: number): Promise<{ ringRank: number
     return value;
   } catch (error) {
     console.error("[Rings] Could not settle the ring:", error);
+    contextCache.set(userId, { at: Date.now(), value: null });
     return null;
   }
 }
