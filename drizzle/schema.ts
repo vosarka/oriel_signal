@@ -1267,3 +1267,39 @@ export const introFilmViews = mysqlTable("intro_film_views", {
   userId: int("userId").primaryKey(),
   seenAt: timestamp("seenAt").defaultNow().notNull(),
 });
+
+/*
+ * The rings of the field (docs/superpowers/specs/2026-10-24-rings-and-gifts-design.md).
+ * All three tables are created at runtime by server/rings-db.ts.
+ */
+
+/** A Seeker's ring, stored so it never falls when a total does. */
+export const ringStanding = mysqlTable("ring_standing", {
+  userId: int("userId").primaryKey(),
+  /** 0 none · 1 Seed · 2 Keeper · 3 Steward · 4 Pillar · 5 Keystone. */
+  ringRank: int("ringRank").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/** Every Garden payment that counts toward a ring, once per PayPal payment. */
+export const ringContributions = mysqlTable("ring_contributions", {
+  paypalPaymentId: varchar("paypalPaymentId", { length: 64 }).primaryKey(),
+  userId: int("userId").notNull(),
+  amountEur: double("amountEur").notNull(),
+  source: mysqlEnum("source", ["subscription", "garden_month"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** One gift per rise of a ring: unclaimed, then a link, then received. */
+export const ringGifts = mysqlTable("ring_gifts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  ringRank: int("ringRank").notNull(),
+  kind: mysqlEnum("kind", ["founders_reading", "garden_month"]),
+  token: varchar("token", { length: 48 }).unique(),
+  redeemedBy: int("redeemedBy"),
+  redeemedAt: timestamp("redeemedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RingGift = typeof ringGifts.$inferSelect;
