@@ -224,6 +224,33 @@
   font-size: 1.12rem;
 }
 
+.fh .fh-plot .fh-plot__benefits {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--fh-ivory);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.fh .fh-plot .fh-plot__benefits li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.fh .fh-plot .fh-plot__benefits li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--fh-gold);
+}
+
 .fh-plot__figures,
 .fh-level__figures {
   display: flex;

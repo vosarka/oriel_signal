@@ -657,7 +657,6 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
   const opens = [
     { label: "Messages a day", value: fmtCount(s.messagesPerDay) },
     { label: "Spoken replies a day", value: fmtCount(s.voicePerDay) },
-    ...(s.oraclesDayOne ? [{ label: "Oracles", value: "From the first day" }] : []),
     ...(s.freeBook ? [{ label: "Tetradic Signature", value: "Yours, freely" }] : []),
   ];
   const progress = s.next ? Math.min(100, Math.round((s.donated / s.next.above) * 100)) : 100;

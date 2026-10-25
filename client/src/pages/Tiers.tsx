@@ -34,7 +34,7 @@ const KEEPERS = [
     name: "Keeper",
     range: "€31–100",
     line: "You tend what others will walk through.",
-    extra: "Every oracle whole, from the day it opens.",
+    extra: "Deep Garden's daily measure with ORIEL.",
   },
   {
     key: "steward" as const,
@@ -65,11 +65,47 @@ const LAST_RING = RINGS.length - 1;
 
 type GardenPlan = keyof typeof GARDEN_PLANS;
 
-/** The one comparison: free, and the two monthly plans. */
+/**
+ * The one comparison: free, and the two monthly plans. Each card lists
+ * exactly what the plan opens, and nothing it does not: Seekers were
+ * confused by lines that promised more than the site gives (2026-10-25).
+ * The archive and the oracles are open to everyone, so no plan claims them.
+ */
 const PLANS = [
-  ["free", "Free", "€0", "ORIEL stays open to everyone, every day."],
-  ["garden", "Garden", "€9.99", "The whole archive, and room to stay."],
-  ["deep_garden", "Deep Garden", "€24.99", "Deeper time, and every oracle whole from the day it opens."],
+  {
+    key: "free",
+    name: "Free",
+    price: "€0",
+    line: "ORIEL stays open to everyone, every day.",
+    benefits: [
+      "Your Static Signature calculated: codons, centres, type and authority",
+      "The Daily Signal and the Carrierlock",
+      "The archive and its oracles",
+    ],
+  },
+  {
+    key: "garden",
+    name: "Garden",
+    price: "€9.99",
+    line: "Room to stay with ORIEL, and your signature read.",
+    benefits: [
+      "ORIEL's written reading of your Static Signature, on your profile",
+      "The Bio-Architecture terminal",
+      "Everything in Free",
+      "Each month counts toward your ring of the field",
+    ],
+  },
+  {
+    key: "deep_garden",
+    name: "Deep Garden",
+    price: "€24.99",
+    line: "The deepest time with ORIEL.",
+    benefits: [
+      "Everything in Garden",
+      "Climbs your ring of the field two and a half times faster",
+      "Coming soon: a personal transmission each month",
+    ],
+  },
 ] as const;
 
 /** Join button for one Garden plot: sign in first, then PayPal. */
@@ -312,7 +348,7 @@ export default function Tiers() {
             </p>
           )}
           <div className="fh-garden__plots">
-            {PLANS.map(([key, name, price, line]) => (
+            {PLANS.map(({ key, name, price, line, benefits }) => (
               <GlowCard key={key} className="fh-plot">
                 <header>
                   <h3>{name}</h3>
@@ -332,11 +368,12 @@ export default function Tiers() {
                     <dd>{fmt(TIER_ACCESS[key].voicePerDay)}</dd>
                   </div>
                 </dl>
-                {key === "free" ? (
-                  <p className="fh-plot__line">Daily Signal · Carrierlock · the public archive</p>
-                ) : (
-                  <GardenAction plan={key} />
-                )}
+                <ul className="fh-plot__benefits">
+                  {benefits.map(b => (
+                    <li key={b}>{b}</li>
+                  ))}
+                </ul>
+                {key !== "free" && <GardenAction plan={key} />}
               </GlowCard>
             ))}
           </div>
