@@ -462,6 +462,9 @@ export default function Tiers() {
                       <dd>+{ringBonusOf(k.key)} messages</dd>
                     </div>
                   </dl>
+                  <p className="fh-level__extra">
+                    Your gift on reaching it: a Founder's Reading or a month of Garden, to keep or to give.
+                  </p>
                   {k.extra && <p className="fh-level__extra">{k.extra}</p>}
                 </li>
               ))}
