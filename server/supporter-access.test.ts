@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessTier, GARDEN_PLANS, isSupporter, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
+import { accessTier, dailyMeasure, freeBook, GARDEN_PLANS, isSupporter, patronLevel, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const base = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
@@ -43,15 +43,15 @@ describe("patron levels and limits", () => {
     expect(patronLevel(6000)).toBe("keystone");
   });
 
-  it("gives a Keystone no limit anywhere, and the book", () => {
-    const keystone = TIER_ACCESS[accessTier({ ...base, donated: 6000 }, now)];
-    expect(keystone.messagesPerDay).toBe(Infinity);
-    expect(keystone.voicePerDay).toBe(Infinity);
-    expect(keystone.freeBook).toBe(true);
+  it("gives a Keystone donor the Garden base, its bonus, and the book", () => {
+    const keystone = { ...base, donated: 6000 };
+    expect(dailyMeasure(keystone, now).messagesPerDay).toBe(200);
+    expect(dailyMeasure(keystone, now).voicePerDay).toBe(200);
+    expect(freeBook(keystone)).toBe(true);
   });
 
   it("limits free visitors to 4 written messages and 4 spoken replies", () => {
-    const free = TIER_ACCESS[accessTier({ ...base, subscribed: false }, now)];
+    const free = dailyMeasure({ ...base, subscribed: false }, now);
     expect(free).toMatchObject({ messagesPerDay: 4, voicePerDay: 4 });
   });
 
@@ -81,7 +81,7 @@ describe("the Garden plans", () => {
   });
 
   it("lets a patron who joins the Garden keep the larger of the two", () => {
-    expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("keystone");
+    expect(accessTier({ ...garden, donated: 2000 }, now)).toBe("garden");
     expect(accessTier({ ...garden, donated: 50, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
   });
 });

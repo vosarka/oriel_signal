@@ -1,15 +1,12 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { chatMessages } from "../drizzle/schema";
-import {
-  accessTier,
-  TIER_ACCESS,
-  type SupporterFields,
-} from "../shared/supporter-access";
+import { dailyMeasure, type SupporterFields } from "../shared/supporter-access";
 import { getDb } from "./db";
 
 /**
  * The daily measure: how many messages and spoken replies a Seeker has
- * today (UTC), by tier. Limits live in TIER_ACCESS; this only counts.
+ * today (UTC). The measure itself is dailyMeasure (the plan's base plus the
+ * ring's bonus, voice equal to messages, 2026-10-25); this only counts.
  * Decided with Vos, 2026-10-01: ORIEL needs an account, and the last free
  * message is answered in full; the next receives MEASURE_REACHED. Free became
  * 4 written + 4 spoken a day on 2026-10-14 (was 10 + 3), to make the Garden
@@ -30,8 +27,7 @@ export function utcDayStart(now: Date = new Date()): Date {
 }
 
 export function limitsFor(user: MeasuredUser, now: Date = new Date()) {
-  if (user.role === "admin") return TIER_ACCESS.keystone;
-  return TIER_ACCESS[accessTier(user, now)];
+  return dailyMeasure(user, now);
 }
 
 /** True when this message would go past today's measure. */

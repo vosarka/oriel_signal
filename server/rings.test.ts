@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ringRankForTotal, ringTierForRank } from "../shared/rings";
-import { accessTier, GARDEN_PLANS, TIER_ACCESS } from "../shared/supporter-access";
-import { supporterStanding } from "../shared/supporter-standing";
+import { accessTier, dailyMeasure, freeBook, GARDEN_PLANS } from "../shared/supporter-access";
+import { holdsPlan, supporterLabel, supporterStanding } from "../shared/supporter-standing";
 
 const now = new Date("2026-10-25T12:00:00Z");
 
@@ -27,15 +27,8 @@ describe("the ladder of rings", () => {
   });
 });
 
-describe("what each ring opens", () => {
-  it("gives the book at Pillar, not before, and no limit at Keystone", () => {
-    expect(TIER_ACCESS.steward.freeBook).toBe(false);
-    expect(TIER_ACCESS.pillar.freeBook).toBe(true);
-    expect(TIER_ACCESS.keystone.messagesPerDay).toBe(Infinity);
-  });
-});
-
-describe("a stored ring decides the tier while the Seeker is active", () => {
+describe("the measure: the plan's base, and the ring's bonus on top", () => {
+  const free = { subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null };
   const garden = {
     subscribed: true,
     paypalSubscriptionId: "I-ABC",
@@ -45,20 +38,37 @@ describe("a stored ring decides the tier while the Seeker is active", () => {
   };
   const patron = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
 
-  it("lifts a Garden member to their ring when it opens more", () => {
-    expect(accessTier({ ...garden, ringRank: 3 }, now)).toBe("steward");
+  it("gives a free Seeker their ring's bonus, voice equal to messages", () => {
+    expect(dailyMeasure({ ...free, ringRank: 2 }, now)).toEqual({ messagesPerDay: 14, voicePerDay: 14, messagesPerHour: 30 });
   });
 
-  it("opens nothing for an inactive Seeker, whatever their ring", () => {
-    expect(accessTier({ ...garden, subscribed: false, ringRank: 3 }, now)).toBe("free");
+  it("adds the ring to a Garden", () => {
+    expect(dailyMeasure({ ...garden, ringRank: 3 }, now)).toMatchObject({ messagesPerDay: 170, voicePerDay: 170 });
   });
 
-  it("prefers the stored ring over the donated total", () => {
-    expect(accessTier({ ...patron, ringRank: 2, donated: 0 }, now)).toBe("keeper");
+  it("adds the ring to a Deep Garden, which keeps its hourly room", () => {
+    expect(dailyMeasure({ ...garden, paypalPlanId: GARDEN_PLANS.deep_garden, ringRank: 5 }, now)).toMatchObject({ messagesPerDay: 300, messagesPerHour: 120 });
   });
 
-  it("falls back to the donated total when the ring could not be read", () => {
-    expect(accessTier({ ...patron, donated: 120 }, now)).toBe("steward");
+  it("opens a Garden base for a donation's key, plus the ring of its total", () => {
+    expect(dailyMeasure({ ...patron, donated: 120 }, now).messagesPerDay).toBe(170);
+  });
+
+  it("drops a lapsed Garden to the free base, keeping the ring's bonus", () => {
+    expect(dailyMeasure({ ...garden, subscribed: false, ringRank: 2 }, now).messagesPerDay).toBe(14);
+  });
+
+  it("measures nothing for the architect", () => {
+    expect(dailyMeasure({ ...free, role: "admin" }, now)).toEqual({ messagesPerDay: Infinity, voicePerDay: Infinity, messagesPerHour: Infinity });
+  });
+
+  it("leaves the plan as the tier, whatever the ring", () => {
+    expect(accessTier({ ...garden, ringRank: 5 }, now)).toBe("garden");
+  });
+
+  it("gives the book at Pillar, not before, with or without a plan", () => {
+    expect(freeBook({ ...free, ringRank: 4 })).toBe(true);
+    expect(freeBook({ ...free, ringRank: 3 })).toBe(false);
   });
 });
 
@@ -90,6 +100,22 @@ describe("the seal: a ring for the level, a mark for the plan", () => {
   it("gives the architect the Keystone ring", () => {
     const admin = { subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null, role: "admin" };
     expect(supporterStanding(admin, now).ringRank).toBe(5);
+  });
+});
+
+describe("which plan is open, and what to call it", () => {
+  const donorKey = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: "2026-11-20T00:00:00Z", donated: 120 };
+  const deepMonth = { ...donorKey, paypalPlanId: GARDEN_PLANS.deep_garden };
+
+  it("does not tell a donor's key they already hold a Garden plot", () => {
+    expect(holdsPlan(donorKey, "garden", now)).toBe(false);
+    expect(holdsPlan(deepMonth, "deep_garden", now)).toBe(true);
+  });
+
+  it("calls a donor's key a Supporter and a bought Deep month Deep Garden, in /admin as on the profile", () => {
+    expect(supporterLabel(donorKey, now)).toBe("Supporter");
+    expect(supporterLabel(deepMonth, now)).toBe("Deep Garden");
+    expect(supporterLabel({ ...donorKey, subscribed: false }, now)).toBe("Free");
   });
 });
 
