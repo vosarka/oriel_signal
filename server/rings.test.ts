@@ -62,6 +62,37 @@ describe("a stored ring decides the tier while the Seeker is active", () => {
   });
 });
 
+describe("the seal: a ring for the level, a mark for the plan", () => {
+  const garden = {
+    subscribed: true,
+    paypalSubscriptionId: "I-ABC",
+    paypalPlanId: GARDEN_PLANS.garden,
+    subscriptionStatus: "active",
+    subscriptionRenewalDate: "2026-11-20T00:00:00Z",
+  };
+
+  it("shows the plan only while it is open", () => {
+    expect(supporterStanding({ ...garden, ringRank: 2 }, now)).toMatchObject({ ringRank: 2, plan: "garden" });
+    expect(supporterStanding({ ...garden, paypalPlanId: GARDEN_PLANS.deep_garden, ringRank: 0 }, now).plan).toBe("deep_garden");
+    expect(supporterStanding({ ...garden, subscribed: false, ringRank: 4 }, now)).toMatchObject({ ringRank: 4, plan: null });
+  });
+
+  it("shows a bought Garden month as its plan", () => {
+    const month = { subscribed: true, paypalSubscriptionId: null, paypalPlanId: GARDEN_PLANS.deep_garden, subscriptionRenewalDate: "2026-11-20T00:00:00Z" };
+    expect(supporterStanding(month, now).plan).toBe("deep_garden");
+  });
+
+  it("gives a patron without a plan their ring and no plan mark", () => {
+    const patron = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null, donated: 120 };
+    expect(supporterStanding(patron, now)).toMatchObject({ ringRank: 3, plan: null });
+  });
+
+  it("gives the architect the Keystone ring", () => {
+    const admin = { subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null, role: "admin" };
+    expect(supporterStanding(admin, now).ringRank).toBe(5);
+  });
+});
+
 describe("a ring is shown even when it opens nothing", () => {
   it("keeps an inactive Pillar's ring, total and next step", () => {
     const s = supporterStanding(

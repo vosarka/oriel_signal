@@ -17,8 +17,8 @@ export default function Header() {
   // Those who hold the field wear their seal beside PROFILE.
   const standing = user ? supporterStanding(user as never) : null;
   const profileMark =
-    standing && standing.seal > 0 ? (
-      <SupporterSeal level={standing.seal} size={18} label={standing.label} />
+    standing && (standing.ringRank > 0 || standing.plan) ? (
+      <SupporterSeal ring={standing.ringRank} plan={standing.plan} size={18} label={standing.label} />
     ) : (
       <User size={12} />
     );
