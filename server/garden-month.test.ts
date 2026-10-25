@@ -34,7 +34,7 @@ describe("a month of Garden, paid once", () => {
     const month = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: "2026-11-14T12:00:00Z" };
     expect(accessTier({ ...month, paypalPlanId: GARDEN_PLANS.garden }, now)).toBe("garden");
     expect(accessTier({ ...month, paypalPlanId: GARDEN_PLANS.deep_garden }, now)).toBe("deep_garden");
-    expect(accessTier({ ...month, paypalPlanId: GARDEN_PLANS.garden, donated: 500 }, now)).toBe("pillar");
+    expect(accessTier({ ...month, paypalPlanId: GARDEN_PLANS.garden, donated: 500 }, now)).toBe("garden");
   });
 
   it("adds thirty days to what is already open, or starts them today", () => {

@@ -10,42 +10,31 @@
  *   follows `donated`, which Vos enters in /admin for donations made
  *   before accounts were wired to PayPal.
  *
- * The limits below are the single place to change what each tier gets.
- * Decided with Vos, 2026-09-30; the rings lowered and Keystone added,
- * 2026-10-25 (shared/rings.ts).
- *
- * A ring is permanent, but what it opens here applies only while the Seeker
- * is active: a Garden, a month bought, or a donation's key still open.
+ * The plan sets the daily measure; the ring adds a bonus on top of it, with
+ * or without a plan, because a ring is never lost (Vos, 2026-10-25). Every
+ * spoken reply is one of the day's messages heard aloud, so the two
+ * measures are the same number. Only an admin is unmeasured.
  */
-import { ringRankForTotal, ringTierForRank, type RingTier } from "./rings";
+import { RING_LADDER, ringRankForTotal, ringTierForRank, type RingTier } from "./rings";
 
 export type SupporterKind = "garden" | "patron" | null;
 
-export type AccessTier = "free" | RingTier | "garden" | "deep_garden";
+export type PlanTier = "free" | "garden" | "deep_garden";
+/** The tier that decides a Seeker's base: their plan, never their ring. */
+export type AccessTier = PlanTier;
 
 export interface TierAccess {
   label: string;
-  /** Messages to ORIEL per UTC day. Infinity = no limit. */
+  /** Messages to ORIEL per UTC day, before the ring's bonus. */
   messagesPerDay: number;
-  /** Safety cap on ORIEL messages per rolling hour. Infinity = none. */
+  /** Safety cap on ORIEL messages per rolling hour. */
   messagesPerHour: number;
-  /** Spoken ORIEL replies per UTC day — each is paid for separately. */
-  voicePerDay: number;
-  /** Whole ΩX oracles from the day they are published. */
-  oraclesDayOne: boolean;
-  /** May request a Tetradic Signature from the site without paying. */
-  freeBook: boolean;
 }
 
-export const TIER_ACCESS: Record<AccessTier, TierAccess> = {
-  free: { label: "Free", messagesPerDay: 4, messagesPerHour: 30, voicePerDay: 4, oraclesDayOne: false, freeBook: false },
-  seed: { label: "Seed", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, freeBook: false },
-  garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30, voicePerDay: 20, oraclesDayOne: false, freeBook: false },
-  keeper: { label: "Keeper", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, freeBook: false },
-  deep_garden: { label: "Deep Garden", messagesPerDay: 250, messagesPerHour: 120, voicePerDay: 50, oraclesDayOne: true, freeBook: false },
-  steward: { label: "Steward", messagesPerDay: 500, messagesPerHour: 120, voicePerDay: 120, oraclesDayOne: true, freeBook: false },
-  pillar: { label: "Pillar", messagesPerDay: 1000, messagesPerHour: 120, voicePerDay: 250, oraclesDayOne: true, freeBook: true },
-  keystone: { label: "Keystone", messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity, oraclesDayOne: true, freeBook: true },
+export const TIER_ACCESS: Record<PlanTier, TierAccess> = {
+  free: { label: "Free", messagesPerDay: 4, messagesPerHour: 30 },
+  garden: { label: "Garden", messagesPerDay: 150, messagesPerHour: 30 },
+  deep_garden: { label: "Deep Garden", messagesPerDay: 250, messagesPerHour: 120 },
 };
 
 /** Ring from a total, in euros. An active patron with no total is a Seed. */
@@ -91,28 +80,45 @@ export function supporterKind(user: SupporterFields, now: Date = new Date()): Su
 
 /**
  * Supporter features (the profile reading, the Bio-Architecture wheel):
- * every tier above free, and admins. Decided with Vos, 2026-10-02.
+ * everyone with an open plan or key, and admins. Decided with Vos, 2026-10-02.
  */
 export function isSupporter(
   user: (SupporterFields & { role?: string | null }) | null | undefined,
   now: Date = new Date()
 ): boolean {
   if (!user) return false;
-  return user.role === "admin" || accessTier(user, now) !== "free";
+  return user.role === "admin" || supporterKind(user, now) !== null;
 }
 
-/** The tier that decides a user's limits. */
+/**
+ * The plan open now. A Garden subscription or a month bought gives its plan;
+ * a donation's key gives the Garden base, the room a donor had before the
+ * rings carried a bonus instead of limits.
+ */
 export function accessTier(user: SupporterFields, now: Date = new Date()): AccessTier {
-  const kind = supporterKind(user, now);
-  if (kind === null) return "free";
+  if (supporterKind(user, now) === null) return "free";
+  return user.paypalPlanId === GARDEN_PLANS.deep_garden ? "deep_garden" : "garden";
+}
+
+/** Messages a day the ring adds, 0 without one. */
+export function ringBonus(user: SupporterFields): number {
   const ring = ringOf(user);
-  // A patron who bought a month of Garden (paid once, no subscription) holds
-  // that plot until the month ends; without one, the ring decides.
-  const boughtMonth = (Object.values(GARDEN_PLANS) as string[]).includes(user.paypalPlanId ?? "");
-  if (kind === "patron" && !boughtMonth) return ring ?? "seed";
-  const plan: AccessTier =
-    user.paypalPlanId === GARDEN_PLANS.deep_garden ? "deep_garden" : "garden";
-  // A Garden member keeps whichever opens more: the plan or their ring.
-  if (!ring) return plan;
-  return TIER_ACCESS[ring].messagesPerDay > TIER_ACCESS[plan].messagesPerDay ? ring : plan;
+  return RING_LADDER.find(l => l.tier === ring)?.bonus ?? 0;
+}
+
+/** The book opens at Pillar and stays, like the ring. */
+export function freeBook(user: SupporterFields): boolean {
+  const ring = ringOf(user);
+  return ring === "pillar" || ring === "keystone";
+}
+
+/** The day's measure: the plan's base plus the ring's bonus; voice equals messages. */
+export function dailyMeasure(
+  user: SupporterFields & { role?: string | null },
+  now: Date = new Date()
+): { messagesPerDay: number; messagesPerHour: number; voicePerDay: number } {
+  if (user.role === "admin") return { messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity };
+  const plan = TIER_ACCESS[accessTier(user, now)];
+  const messagesPerDay = plan.messagesPerDay + ringBonus(user);
+  return { messagesPerDay, messagesPerHour: plan.messagesPerHour, voicePerDay: messagesPerDay };
 }

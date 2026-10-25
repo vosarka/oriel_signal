@@ -14,19 +14,19 @@ describe("supporterStanding", () => {
 
   it("gives a patron their level, what it opens, and how far the next one is", () => {
     const s = supporterStanding({ ...patron, donated: 80 }, now);
-    expect(s).toMatchObject({ tier: "keeper", label: "Keeper", kind: "patron", donated: 80, seal: 2 });
+    expect(s).toMatchObject({ tier: "garden", label: "Supporter", kind: "patron", donated: 80, ring: "keeper", ringBonus: 10, messagesPerDay: 160 });
     expect(s.next).toEqual({ label: "Steward", above: 100, remaining: 20 });
   });
 
   it("starts a small gift at Seed, with Keeper ahead", () => {
     const s = supporterStanding({ ...patron, donated: 20 }, now);
-    expect(s).toMatchObject({ tier: "seed", seal: 1 });
+    expect(s).toMatchObject({ tier: "garden", ring: "seed", ringBonus: 5 });
     expect(s.next).toEqual({ label: "Keeper", above: 30, remaining: 10 });
   });
 
-  it("crowns a Keystone with the full seal and nothing further", () => {
+  it("crowns a Keystone with the top ring and nothing further", () => {
     const s = supporterStanding({ ...patron, donated: 1500 }, now);
-    expect(s).toMatchObject({ tier: "keystone", seal: 4, next: null, messagesPerDay: Infinity });
+    expect(s).toMatchObject({ tier: "garden", ring: "keystone", ringRank: 5, next: null, messagesPerDay: 200 });
   });
 
   it("tells a 30-day key when it ends", () => {
