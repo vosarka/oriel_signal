@@ -233,8 +233,14 @@ export default function Profile() {
       >
         <div className="arkana-layer__inner" aria-labelledby="profile-title">
           <header id="profile-title" className="arkana-layer__head profile-layer__head">
-            {standing && standing.seal > 0 && (
-              <SupporterSeal level={standing.seal} size={104} label={standing.label} className="profile-layer__seal">
+            {standing && (standing.ringRank > 0 || standing.plan) && (
+              <SupporterSeal
+                ring={standing.ringRank}
+                plan={standing.plan}
+                size={104}
+                label={standing.label}
+                className="profile-layer__seal"
+              >
                 <span className="profile-layer__seal-initial" aria-hidden="true">
                   {displayName.trim().charAt(0).toUpperCase()}
                 </span>

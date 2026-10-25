@@ -29,16 +29,38 @@
   opacity: 0.85;
 }
 
-.supporter-seal__ring--dashed {
+.supporter-seal__ring--fine {
   stroke: #e4c88c;
-  stroke-dasharray: 2 5;
-  opacity: 0.7;
+  stroke-width: 0.7;
+  opacity: 0.6;
 }
 
 .supporter-seal__ring--teal {
   stroke: #5ba4a4;
-  stroke-width: 0.8;
-  opacity: 0.6;
+  stroke-width: 0.9;
+  opacity: 0.75;
+}
+
+.supporter-seal__ring--dashed-teal {
+  stroke-dasharray: 2 4;
+  opacity: 0.65;
+}
+
+.supporter-seal__pillar {
+  stroke: #e4c88c;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.supporter-seal__keystone {
+  fill: #e4c88c;
+  filter: drop-shadow(0 0 2px rgba(228, 200, 140, 0.8));
+}
+
+.supporter-seal__leaf {
+  fill: #5ba4a4;
+  opacity: 0.85;
 }
 
 .supporter-seal__ray {
@@ -65,12 +87,21 @@
 }
 
 .supporter-seal__turn--reverse {
-  animation-duration: 72s;
+  animation-duration: 36s;
   animation-direction: reverse;
+}
+
+.supporter-seal__turn--slow {
+  animation-duration: 120s;
 }
 
 .supporter-seal__sweep {
   animation: supporter-seal-turn 9s linear infinite;
+}
+
+.supporter-seal__sweep--deep {
+  animation-duration: 6s;
+  animation-direction: reverse;
 }
 
 .supporter-seal__halo {
