@@ -496,6 +496,9 @@ function EnginePerspective() {
     <>
       <div className="cz-pane__visual">
         <Canvas dpr={[1, 1.5]} camera={{ position: [0, 1.2, 5.0], fov: 45 }}>
+          {/* The grid fades into the horizon through the scene's fog. A dark
+              plane did this before, and showed as a black trapezoid. */}
+          <fog attach="fog" args={["#050505", 4, 24]} />
           <Suspense fallback={null}>
             <PerspectiveNeonGrid />
           </Suspense>
@@ -567,17 +570,6 @@ function PerspectiveNeonGrid() {
       <mesh position={[2.5, -0.65, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.008, 0.008, 100, 4]} />
         <meshBasicMaterial color="#5fd0d8" transparent opacity={0.3} />
-      </mesh>
-
-      {/* Horizon glow */}
-      <mesh position={[0, 1.3, -4.5]}>
-        <planeGeometry args={[14, 5]} />
-        <meshBasicMaterial
-          color="#050508"
-          transparent
-          opacity={0.88}
-          depthWrite={false}
-        />
       </mesh>
     </group>
   );
