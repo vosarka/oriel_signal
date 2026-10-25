@@ -8,6 +8,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { accessTier, GARDEN_PLANS, supporterKind, TIER_ACCESS } from "@shared/supporter-access";
+import { RING_LADDER } from "@shared/rings";
 import "./tiers.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -19,7 +20,7 @@ gsap.registerPlugin(ScrollTrigger);
  * same table the server gates on, so the page cannot drift from the rules.
  */
 
-const fmt = (n: number) => (n === Infinity ? "No limit" : String(n));
+const ringBonusOf = (key: string) => RING_LADDER.find(l => l.tier === key)?.bonus ?? 0;
 
 const KEEPERS = [
   {
@@ -34,14 +35,14 @@ const KEEPERS = [
     name: "Keeper",
     range: "€31–100",
     line: "You tend what others will walk through.",
-    extra: "Deep Garden's daily measure with ORIEL.",
+    extra: null,
   },
   {
     key: "steward" as const,
     name: "Steward",
     range: "€101–250",
     line: "You hold the door for others.",
-    extra: "More room with ORIEL, every day.",
+    extra: null,
   },
   {
     key: "pillar" as const,
@@ -54,7 +55,7 @@ const KEEPERS = [
     key: "keystone" as const,
     name: "Keystone",
     range: "over €500",
-    line: "The stone that holds the arch. Nothing here is measured for you.",
+    line: "The stone that holds the arch.",
     extra: null,
   },
 ];
@@ -361,13 +362,10 @@ export default function Tiers() {
                 <dl className="fh-plot__figures">
                   <div>
                     <dt>Messages a day</dt>
-                    <dd>{fmt(TIER_ACCESS[key].messagesPerDay)}</dd>
-                  </div>
-                  <div>
-                    <dt>Spoken replies a day</dt>
-                    <dd>{fmt(TIER_ACCESS[key].voicePerDay)}</dd>
+                    <dd>{TIER_ACCESS[key].messagesPerDay}</dd>
                   </div>
                 </dl>
+                <p className="fh-plot__line">Every reply can also be heard in ORIEL's voice.</p>
                 <ul className="fh-plot__benefits">
                   {benefits.map(b => (
                     <li key={b}>{b}</li>
@@ -401,9 +399,10 @@ export default function Tiers() {
           <h2 id="fh-give-title" className="fh-h2">Support ORIEL</h2>
           <p>
             A gift is one-time, never recurring. Give with the same email as
-            your account and it opens 30 days of access at the level your
-            total has reached. Gifts are matched to accounts by hand, within a
-            few days. For access that continues on its own, choose the Garden.
+            your account and it opens 30 days of the Garden's measure, and it
+            counts toward your ring. Gifts are matched to accounts by hand,
+            within a few days. For access that continues on its own, choose the
+            Garden.
           </p>
           <div className="fh-give__action">
             <DonateButton />
@@ -424,9 +423,8 @@ export default function Tiers() {
             <p>
               Everything you give counts: your Garden months and every gift.
               Each new ring brings a gift to keep or pass on: a Founder's
-              Reading or a month of Garden. Your rings never go back. Their
-              daily room with ORIEL opens while you're in the Garden, or for
-              30 days after a gift.
+              Reading or a month of Garden. Each ring adds to your daily
+              measure, with or without a plan, and it never goes back.
             </p>
           </div>
 
@@ -459,12 +457,8 @@ export default function Tiers() {
                   <p className="fh-level__line">{k.line}</p>
                   <dl className="fh-level__figures">
                     <div>
-                      <dt>Messages a day</dt>
-                      <dd>{fmt(TIER_ACCESS[k.key].messagesPerDay)}</dd>
-                    </div>
-                    <div>
-                      <dt>Spoken replies a day</dt>
-                      <dd>{fmt(TIER_ACCESS[k.key].voicePerDay)}</dd>
+                      <dt>Added to your day</dt>
+                      <dd>+{ringBonusOf(k.key)} messages</dd>
                     </div>
                   </dl>
                   {k.extra && <p className="fh-level__extra">{k.extra}</p>}

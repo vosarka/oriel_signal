@@ -662,7 +662,7 @@ const RING_NAMES: Record<string, string> = { seed: "Seed", keeper: "Keeper", ste
 function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
   const opens = [
     { label: "Messages a day", value: fmtCount(s.messagesPerDay) },
-    { label: "Spoken replies a day", value: fmtCount(s.voicePerDay) },
+    ...(s.ringBonus > 0 ? [{ label: "From your ring", value: `+${s.ringBonus} a day` }] : []),
     ...(s.freeBook ? [{ label: "Tetradic Signature", value: "Yours, freely" }] : []),
   ];
   const progress = s.next ? Math.min(100, Math.round((s.donated / s.next.above) * 100)) : 100;
@@ -676,8 +676,8 @@ function StandingPanel({ standing: s }: { standing: SupporterStanding }) {
       )}
       {s.seal === 0 ? (
         <p className="profile-standing__note">
-          You walk the field freely: {s.messagesPerDay} written exchanges and {s.voicePerDay} replies in ORIEL's voice each
-          day. <a href="/tiers">The Garden</a> opens the conversation further.
+          You walk the field freely: {s.messagesPerDay} exchanges with ORIEL each day, each one in ORIEL's voice if you
+          wish. <a href="/tiers">The Garden</a> opens the conversation further.
         </p>
       ) : (
         <p className="profile-standing__note">
