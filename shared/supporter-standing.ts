@@ -6,6 +6,7 @@
  */
 import {
   accessTier,
+  GARDEN_PLANS,
   ringOf,
   supporterKind,
   TIER_ACCESS,
@@ -42,6 +43,10 @@ export interface SupporterStanding {
   donated: number;
   /** The permanent ring, shown even while it opens nothing. */
   ring: RingTier | null;
+  /** The ring as a rank for the seal: 0 none … 5 Keystone. */
+  ringRank: number;
+  /** The Garden plan open right now, drawn as its own mark inside the ring. */
+  plan: "garden" | "deep_garden" | null;
   /** The next ring and how far it is; null before the first gift and at Keystone. */
   next: { label: string; above: number; remaining: number } | null;
   /** A Garden that renews on its own. */
@@ -64,6 +69,15 @@ export function supporterStanding(
   const cancelled = kind === "garden" && user.subscriptionStatus === "cancelled";
 
   const step = donated > 0 ? RING_LADDER.find(l => donated <= l.above) : undefined;
+  // A subscription or a month bought; a patron's key alone is no plan.
+  const plan =
+    kind === "free"
+      ? null
+      : user.paypalPlanId === GARDEN_PLANS.deep_garden
+        ? "deep_garden"
+        : kind === "garden" || user.paypalPlanId === GARDEN_PLANS.garden
+          ? "garden"
+          : null;
 
   const standing: SupporterStanding = {
     tier,
@@ -76,6 +90,8 @@ export function supporterStanding(
     freeBook: limits.freeBook || Boolean(ring && TIER_ACCESS[ring].freeBook),
     donated,
     ring,
+    ringRank: RING_LADDER.find(l => l.tier === ring)?.rank ?? 0,
+    plan,
     next: step
       ? { label: step.label, above: step.above, remaining: Math.max(0, step.above - donated) }
       : null,
@@ -87,7 +103,7 @@ export function supporterStanding(
   // The architect stands outside the ladder, with every door open.
   if (user.role === "admin") {
     const keystone = TIER_ACCESS.keystone;
-    return { ...standing, label: "Architect", seal: 4, next: null, messagesPerDay: keystone.messagesPerDay, voicePerDay: keystone.voicePerDay };
+    return { ...standing, label: "Architect", seal: 4, ringRank: 5, next: null, messagesPerDay: keystone.messagesPerDay, voicePerDay: keystone.voicePerDay };
   }
   return standing;
 }

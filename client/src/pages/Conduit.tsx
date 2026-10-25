@@ -2350,8 +2350,8 @@ export default function Conduit() {
                             className="flex items-center gap-2 font-mono text-[9px] mb-2 tracking-[0.3em] uppercase"
                             style={{ color: "rgba(189,163,107,0.5)" }}
                           >
-                            {standing && standing.seal > 0 && (
-                              <SupporterSeal level={standing.seal} size={16} still={orbResting} />
+                            {standing && (standing.ringRank > 0 || standing.plan) && (
+                              <SupporterSeal ring={standing.ringRank} plan={standing.plan} size={16} still={orbResting} />
                             )}
                             {standing && standing.seal > 0 ? `${standing.label} · Receiver Node` : "Receiver Node"}
                             {msg.timestamp && (
