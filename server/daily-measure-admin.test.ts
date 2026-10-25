@@ -11,3 +11,22 @@ describe("the architect's measure", () => {
     expect(limitsFor(admin).voicePerDay).toBe(Infinity);
   });
 });
+
+describe("spoken replies follow the messages", () => {
+  it("gives a free Seeker with a Keeper ring as many spoken replies as messages", () => {
+    const free = { id: 2, subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null, ringRank: 2 };
+    expect(limitsFor(free)).toMatchObject({ messagesPerDay: 14, voicePerDay: 14 });
+  });
+
+  it("gives a Garden member 150 spoken replies, not 20", () => {
+    const garden = {
+      id: 3,
+      subscribed: true,
+      paypalSubscriptionId: "I-ABC",
+      subscriptionStatus: "active",
+      subscriptionRenewalDate: "2099-01-01T00:00:00Z",
+      ringRank: 0,
+    };
+    expect(limitsFor(garden).voicePerDay).toBe(150);
+  });
+});

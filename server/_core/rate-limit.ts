@@ -1,5 +1,5 @@
 import type { TrpcContext } from "./context";
-import { accessTier, TIER_ACCESS } from "../../shared/supporter-access";
+import { dailyMeasure } from "../../shared/supporter-access";
 
 export type RateLimitBucket =
   | "oriel.chat"
@@ -108,7 +108,7 @@ function limitFor(
     return RATE_LIMITS[bucket][tier];
   }
   if (user.role === "admin") return Infinity;
-  return TIER_ACCESS[accessTier(user)].messagesPerHour;
+  return dailyMeasure(user).messagesPerHour;
 }
 
 export type RateLimitResult = {
