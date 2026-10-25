@@ -7,7 +7,8 @@ import { GlowCard, SignalButton } from "@/components/oriel-signal/OrielSignalDes
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { accessTier, GARDEN_PLANS, supporterKind, TIER_ACCESS } from "@shared/supporter-access";
+import { GARDEN_PLANS, supporterKind, TIER_ACCESS } from "@shared/supporter-access";
+import { holdsPlan } from "@shared/supporter-standing";
 import { RING_LADDER } from "@shared/rings";
 import "./tiers.css";
 
@@ -135,7 +136,7 @@ function GardenAction({ plan }: { plan: GardenPlan }) {
   );
 
   if (!GARDEN_PLANS[plan]) return <p className="fh-plot__soon">Opening soon</p>;
-  if (user && accessTier(user as never) === plan) {
+  if (user && holdsPlan(user as never, plan)) {
     // A month bought once can be followed by another; a subscription renews itself.
     return supporterKind(user as never) === "patron" ? (
       <div className="fh-plot__action">

@@ -6,7 +6,8 @@
 import { and, desc, eq, isNull, like, or } from "drizzle-orm";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
-import { accessTier, supporterKind, TIER_ACCESS } from "../shared/supporter-access";
+import { supporterKind } from "../shared/supporter-access";
+import { supporterLabel } from "../shared/supporter-standing";
 
 const FIELDS = {
   id: users.id,
@@ -14,6 +15,8 @@ const FIELDS = {
   email: users.email,
   subscribed: users.subscribed,
   paypalSubscriptionId: users.paypalSubscriptionId,
+  paypalPlanId: users.paypalPlanId,
+  subscriptionStatus: users.subscriptionStatus,
   subscriptionRenewalDate: users.subscriptionRenewalDate,
   donated: users.donated,
 };
@@ -24,7 +27,8 @@ function withKind<T extends Parameters<typeof supporterKind>[0]>(row: T) {
     ...row,
     kind,
     lapsed: Boolean(row.subscribed && !kind),
-    tier: TIER_ACCESS[accessTier(row)].label,
+    // The same name the Seeker sees on their profile: Supporter for a key.
+    tier: supporterLabel(row),
   };
 }
 

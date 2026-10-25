@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ringRankForTotal, ringTierForRank } from "../shared/rings";
 import { accessTier, dailyMeasure, freeBook, GARDEN_PLANS } from "../shared/supporter-access";
-import { supporterStanding } from "../shared/supporter-standing";
+import { holdsPlan, supporterLabel, supporterStanding } from "../shared/supporter-standing";
 
 const now = new Date("2026-10-25T12:00:00Z");
 
@@ -100,6 +100,22 @@ describe("the seal: a ring for the level, a mark for the plan", () => {
   it("gives the architect the Keystone ring", () => {
     const admin = { subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null, role: "admin" };
     expect(supporterStanding(admin, now).ringRank).toBe(5);
+  });
+});
+
+describe("which plan is open, and what to call it", () => {
+  const donorKey = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: "2026-11-20T00:00:00Z", donated: 120 };
+  const deepMonth = { ...donorKey, paypalPlanId: GARDEN_PLANS.deep_garden };
+
+  it("does not tell a donor's key they already hold a Garden plot", () => {
+    expect(holdsPlan(donorKey, "garden", now)).toBe(false);
+    expect(holdsPlan(deepMonth, "deep_garden", now)).toBe(true);
+  });
+
+  it("calls a donor's key a Supporter and a bought Deep month Deep Garden, in /admin as on the profile", () => {
+    expect(supporterLabel(donorKey, now)).toBe("Supporter");
+    expect(supporterLabel(deepMonth, now)).toBe("Deep Garden");
+    expect(supporterLabel({ ...donorKey, subscribed: false }, now)).toBe("Free");
   });
 });
 

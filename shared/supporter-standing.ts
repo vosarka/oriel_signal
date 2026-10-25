@@ -55,6 +55,27 @@ export interface SupporterStanding {
   cancelled: boolean;
 }
 
+/** The Garden plan open now: a subscription or a month bought. A donation's key alone is none. */
+export function openPlan(user: SupporterFields, now: Date = new Date()): "garden" | "deep_garden" | null {
+  const kind = supporterKind(user, now);
+  if (kind === null) return null;
+  if (user.paypalPlanId === GARDEN_PLANS.deep_garden) return "deep_garden";
+  if (kind === "garden" || user.paypalPlanId === GARDEN_PLANS.garden) return "garden";
+  return null;
+}
+
+export function holdsPlan(user: SupporterFields, plan: "garden" | "deep_garden", now: Date = new Date()): boolean {
+  return openPlan(user, now) === plan;
+}
+
+/** What to call a Seeker's standing, the same on their profile and in /admin. */
+export function supporterLabel(user: SupporterFields, now: Date = new Date()): string {
+  const kind = supporterKind(user, now);
+  // A donation's key opens the Garden base but is no Garden of its own.
+  if (kind === "patron" && !openPlan(user, now)) return "Supporter";
+  return TIER_ACCESS[accessTier(user, now)].label;
+}
+
 export function supporterStanding(
   user: SupporterFields & { role?: string | null },
   now: Date = new Date()
@@ -69,20 +90,11 @@ export function supporterStanding(
   const cancelled = kind === "garden" && user.subscriptionStatus === "cancelled";
 
   const step = donated > 0 ? RING_LADDER.find(l => donated <= l.above) : undefined;
-  // A subscription or a month bought; a patron's key alone is no plan.
-  const plan =
-    kind === "free"
-      ? null
-      : user.paypalPlanId === GARDEN_PLANS.deep_garden
-        ? "deep_garden"
-        : kind === "garden" || user.paypalPlanId === GARDEN_PLANS.garden
-          ? "garden"
-          : null;
+  const plan = openPlan(user, now);
 
   const standing: SupporterStanding = {
     tier,
-    // A donation's key opens the Garden base but is no Garden of its own.
-    label: kind === "patron" && !plan ? "Supporter" : TIER_ACCESS[tier].label,
+    label: supporterLabel(user, now),
     kind,
     seal: Math.max(PLAN_SEAL[tier], ringSeal(ringRank)) as SealLevel,
     messagesPerDay: measure.messagesPerDay,
