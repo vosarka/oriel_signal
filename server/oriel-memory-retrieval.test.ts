@@ -31,19 +31,18 @@ describe("memory retrieval helpers", () => {
     ).toBe(true);
   });
 
-  it("keeps two user facts and two Oriel working views", () => {
-    const mixed = composeTurnMemories(
-      [
-        { id: 1, content: "prefers short replies" },
-        { id: 2, content: "lives with two cats" },
-        { id: 3, content: "working on a book" },
-        { id: 4, content: "ORIEL working view: channeling is permission" },
-        { id: 5, content: "ORIEL working view: body before technique" },
-        { id: 6, content: "ORIEL working view: older take" },
-      ],
-      4
-    );
-    expect(mixed.map(row => row.id)).toEqual([1, 2, 4, 5]);
+  it("gives ORIEL's own working views a quarter of the turn, never more", () => {
+    const rows = [
+      { id: 1, content: "prefers short replies" },
+      { id: 2, content: "lives with two cats" },
+      { id: 3, content: "working on a book" },
+      { id: 4, content: "ORIEL working view: channeling is permission" },
+      { id: 5, content: "ORIEL working view: body before technique" },
+      { id: 6, content: "ORIEL working view: older take" },
+    ];
+    expect(composeTurnMemories(rows, 4).map(row => row.id)).toEqual([1, 2, 3, 4]);
+    // With few facts the empty slots stay empty rather than filling with views.
+    expect(composeTurnMemories(rows.slice(2), 8).map(row => row.id)).toEqual([3, 4, 5]);
   });
 
   it("keeps search hits first and caps at three", () => {
@@ -102,39 +101,25 @@ describe("rankMemoriesByRelevance", () => {
       "excited about the weekend hiking trip",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+    expect(ranked.map(row => row.id)).toEqual([2]);
   });
 
-  it("keeps DB order unchanged when there is no user message", () => {
+  it("brings no memory when there is no message to match", () => {
     const candidates = [pyramidAcoustics, weekendPlans];
-    expect(
-      rankMemoriesByRelevance(candidates, undefined, 2).map(row => row.id)
-    ).toEqual([1, 2]);
-    expect(
-      rankMemoriesByRelevance(candidates, "   ", 2).map(row => row.id)
-    ).toEqual([1, 2]);
+    expect(rankMemoriesByRelevance(candidates, undefined, 2)).toEqual([]);
+    expect(rankMemoriesByRelevance(candidates, "   ", 2)).toEqual([]);
   });
 
-  it("keeps DB order unchanged when nothing in the message overlaps", () => {
+  it("brings no memory when nothing in the message overlaps", () => {
     const ranked = rankMemoriesByRelevance(
       [pyramidAcoustics, weekendPlans],
       "completely unrelated topic zzzz",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([1, 2]);
+    expect(ranked).toEqual([]);
   });
 
-  it("tops up from the remaining candidates in their original order once relevant ones are exhausted", () => {
-    const slowQuery = { id: 3, content: "debugging a slow database query" };
-    const ranked = rankMemoriesByRelevance(
-      [pyramidAcoustics, weekendPlans, slowQuery],
-      "excited about the weekend hiking trip",
-      2
-    );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
-  });
-
-  it("lets only a couple of unrelated memories into a turn, however many slots are free", () => {
+  it("never tops a turn up with unrelated memories, however many slots are free", () => {
     const old = [1, 2, 3, 4, 5].map(id => ({
       id,
       content: `june ritual note ${id}`,
@@ -144,10 +129,25 @@ describe("rankMemoriesByRelevance", () => {
       rankMemoriesByRelevance([...old, hiking], "the weekend hiking trip", 8).map(
         row => row.id
       )
-    ).toEqual([6, 1, 2]);
-    expect(
-      rankMemoriesByRelevance(old, "completely unrelated topic zzzz", 8)
-    ).toHaveLength(2);
+    ).toEqual([6]);
+  });
+
+  it("does not let ORIEL's everyday words make an old memory look relevant", () => {
+    const oldFieldTalk = { id: 1, content: "in June spoke of the field, the signal and love" };
+    const ranked = rankMemoriesByRelevance(
+      [oldFieldTalk],
+      "I feel the field and the signal today, and so much love",
+      8
+    );
+    expect(ranked).toEqual([]);
+  });
+
+  it("ranks the closer match first, and the newer one when they match alike", () => {
+    const older = { id: 1, content: "sings opera", createdAt: "2026-06-01T00:00:00Z" };
+    const newer = { id: 2, content: "sings opera on stage", createdAt: "2026-10-20T00:00:00Z" };
+    const closer = { id: 3, content: "sings opera, Pavarotti, Una furtiva lagrima", createdAt: "2026-05-01T00:00:00Z" };
+    const ranked = rankMemoriesByRelevance([older, newer, closer], "I sing opera, Pavarotti tonight", 8);
+    expect(ranked.map(row => row.id)).toEqual([3, 2, 1]);
   });
 
   it("matches on a keyword past the first twelve in a long message", () => {
@@ -159,7 +159,7 @@ describe("rankMemoriesByRelevance", () => {
       "alpha bravo charlie delta echoes foxtrot golfs hotel india juliet kilos limas zebra",
       2
     );
-    expect(ranked.map(row => row.id)).toEqual([2, 1]);
+    expect(ranked.map(row => row.id)).toEqual([2]);
   });
 });
 
