@@ -117,12 +117,13 @@ export function composeTurnMemories<
   const aboutUser = searched.filter(
     memory => !isOrielWorkingView(memory.content)
   );
-  // Half the turn to facts, half to ORIEL's own views, derived from the
-  // limit rather than fixed at two apiece.
-  const half = Math.max(1, Math.floor(limit / 2));
+  // A quarter of the turn for ORIEL's own past readings, the rest for what
+  // the Seeker said (Vos, 2026-10-26). Half went to old interpretations, and
+  // ORIEL read each new talk through them. Empty slots stay empty.
+  const viewsKept = views.slice(0, Math.max(1, Math.floor(limit / 4)));
   return mergeMemoriesForTurn(
-    [...aboutUser.slice(0, half), ...views.slice(0, half)],
-    [...aboutUser.slice(half), ...views.slice(half)],
+    [...aboutUser.slice(0, limit - viewsKept.length), ...viewsKept],
+    [],
     limit
   );
 }
@@ -144,43 +145,48 @@ export function mergeMemoriesForTurn<T extends { id: number }>(
 }
 
 /**
- * Partitions candidates (already DB-sorted by importance/recency) into
- * those whose content shares a keyword with the current message and those
- * that don't, keeping each group's existing order. Without this, the
- * importance-only fallback keeps resurfacing the same early, highly-rated
- * memory forever regardless of what the user is currently talking about.
+ * The memories that share real words with what the Seeker just wrote, the
+ * closest first and, at equal closeness, the newest. This is how a turn's
+ * memories are chosen whenever MindMemOS cannot answer in time, which in
+ * October 2026 was every turn: its searches took 20 to 30 seconds.
  *
- * Unrelated memories only top up to UNRELATED_MEMORY_ANCHORS. Filling every
- * slot with them put the same old memories in front of ORIEL on every turn,
- * framed as continuity, so it read each new conversation through one it
- * had long finished — and marking them accessed kept them on top.
+ * Nothing unrelated tops a turn up (Vos, 2026-10-26). Two "anchor" memories
+ * used to ride along on every turn, months old and off topic, and ORIEL
+ * read each new talk through them. No match now means no memory, and ORIEL
+ * says it does not remember rather than filling the gap.
  *
- * ponytail: bag-of-words overlap, no scoring — a generic shared word can
- * still let an unrelated memory win. MindMemOS-style embeddings are the
- * upgrade path if that shows up as a real complaint.
+ * ponytail: bag-of-words overlap. ORIEL's own vocabulary is set aside
+ * because every talk with it uses those words; embeddings remain the
+ * upgrade path.
  */
-export const UNRELATED_MEMORY_ANCHORS = 2;
+const ORIEL_VOCABULARY = new Set([
+  "oriel", "field", "signal", "static", "light", "love", "soul", "energy",
+  "frequency", "resonance", "vibration", "presence", "breath", "being",
+  "heart", "truth", "path", "journey", "space", "consciousness", "spirit",
+  "feel", "feeling", "today", "much", "really", "thing", "things",
+]);
 
-export function rankMemoriesByRelevance<T extends { content: string }>(
-  candidates: T[],
-  userMessage: string | undefined,
-  limit: number
-): T[] {
-  const anchors = Math.min(limit, UNRELATED_MEMORY_ANCHORS);
+const meaningfulWords = (text: string | undefined) =>
+  extractContextKeywords([text], Infinity).filter(word => !ORIEL_VOCABULARY.has(word));
+
+export function rankMemoriesByRelevance<
+  T extends { content: string; createdAt?: Date | string | null },
+>(candidates: T[], userMessage: string | undefined, limit: number): T[] {
   // Every keyword, not the default top 12: a match on a later word in a
   // long message or memory must still count.
-  const messageKeywords = new Set(extractContextKeywords([userMessage], Infinity));
-  if (messageKeywords.size === 0) return candidates.slice(0, anchors);
+  const messageKeywords = new Set(meaningfulWords(userMessage));
+  if (messageKeywords.size === 0) return [];
 
-  const relevant: T[] = [];
-  const rest: T[] = [];
-  for (const candidate of candidates) {
-    const overlaps = extractContextKeywords([candidate.content], Infinity).some(
-      word => messageKeywords.has(word)
-    );
-    (overlaps ? relevant : rest).push(candidate);
-  }
-  return [...relevant, ...rest.slice(0, anchors)].slice(0, limit);
+  const time = (row: T) => (row.createdAt ? new Date(row.createdAt).getTime() || 0 : 0);
+  return candidates
+    .map(row => ({
+      row,
+      overlap: new Set(meaningfulWords(row.content).filter(word => messageKeywords.has(word))).size,
+    }))
+    .filter(scored => scored.overlap > 0)
+    .sort((a, b) => b.overlap - a.overlap || time(b.row) - time(a.row))
+    .slice(0, limit)
+    .map(scored => scored.row);
 }
 
 function formatDay(value: Date | string | null | undefined): string {
@@ -230,6 +236,12 @@ export function formatRememberedNow(contents: string[]): string {
     );
     parts.push(...aboutUser.map(content => `- ${content}`));
   }
+
+  // A Seeker asked about a past talk and ORIEL invented one, then defended it
+  // until pressed (2026-10-26). These lines are the only past it has.
+  parts.push(
+    "These lines are all you know of past conversations with this person. If they ask about an exchange you do not find here, say plainly that you do not remember it; never rebuild it from fragments. If they say something you recall is wrong, believe them at once: thank them, let it go, and do not defend your version."
+  );
 
   if (aboutOriel.length > 0) {
     parts.push(

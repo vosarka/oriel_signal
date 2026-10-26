@@ -19,11 +19,11 @@ const view = (id: number) => ({
 });
 
 describe("per-turn memory budget", () => {
-  it("splits the turn between facts and ORIEL's own views, derived from the limit", () => {
-    // The split used to be hardcoded at two apiece, so raising the limit only
-    // widened the fallback and the person still got two facts every turn.
+  it("gives ORIEL's own views a quarter of the turn and the Seeker the rest, derived from the limit", () => {
+    // Half the turn once went to ORIEL's old readings (Vos, 2026-10-26: a
+    // quarter now). Slots the Seeker's facts cannot fill stay empty.
     const searched = [
-      fact(1), fact(2), fact(3), fact(4), fact(5),
+      fact(1), fact(2), fact(3), fact(4), fact(5), fact(6), fact(7),
       view(1), view(2), view(3), view(4), view(5),
     ];
     const chosen = composeTurnMemories(searched, MEMORY_TURN_LIMIT);
@@ -31,8 +31,8 @@ describe("per-turn memory budget", () => {
     const views = chosen.filter(m => m.content.startsWith("ORIEL working view:"));
 
     expect(chosen).toHaveLength(MEMORY_TURN_LIMIT);
-    expect(facts.length).toBe(MEMORY_TURN_LIMIT / 2);
-    expect(views.length).toBe(MEMORY_TURN_LIMIT / 2);
+    expect(views.length).toBe(MEMORY_TURN_LIMIT / 4);
+    expect(facts.length).toBe(MEMORY_TURN_LIMIT - MEMORY_TURN_LIMIT / 4);
   });
 
   it("never returns fewer than one of each when the limit is small", () => {

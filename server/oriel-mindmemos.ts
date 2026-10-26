@@ -122,6 +122,8 @@ async function describeFailure(
 // This search runs synchronously before every LLM call (see selectMemoriesForTurn),
 // so a slow-but-not-erroring endpoint must not be allowed to hang a whole chat turn.
 const MINDMEMOS_TIMEOUT_MS = 5_000;
+/** Off the reply's path: the service took 20 to 30 s in October 2026. */
+const MINDMEMOS_INDEX_TIMEOUT_MS = 30_000;
 
 /**
  * Every call, its outcome, and how long it took.
@@ -272,7 +274,9 @@ export async function indexAcceptedMemory(
         mode: "sync",
       }),
     },
-    MINDMEMOS_TIMEOUT_MS,
+    // Indexing runs after the reply has gone, so it can wait as long as the
+    // service needs: at 5 s every write timed out and nothing new was indexed.
+    MINDMEMOS_INDEX_TIMEOUT_MS,
     "add"
   );
 
@@ -372,7 +376,8 @@ export async function searchMemoryHits(
   userId: number,
   query: string,
   config: MindMemOSClientConfig,
-  topK = 3
+  topK = 3,
+  timeoutMs = MINDMEMOS_TIMEOUT_MS
 ): Promise<MindMemOSSearchHit[]> {
   if (!config.enabled || !config.baseUrl || !config.apiKey) return [];
 
@@ -395,7 +400,7 @@ export async function searchMemoryHits(
         top_k: topK,
       }),
     },
-    MINDMEMOS_TIMEOUT_MS,
+    timeoutMs,
     searchLabel,
     query.length
   );

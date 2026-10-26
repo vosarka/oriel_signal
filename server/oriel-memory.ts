@@ -109,6 +109,22 @@ function windowForExtraction(text: string, budget: number): string {
  * Extract memories from a conversation exchange.
  * Uses an LLM to identify key facts worth remembering.
  */
+/**
+ * At most three memories about the Seeker a turn, the most important, plus
+ * ORIEL's one working view. Seven or eight a turn filled the store with
+ * guesses that were later recalled as things the Seeker had said.
+ */
+const MEMORIES_PER_TURN = 3;
+
+function keepFewMemories(memories: ExtractedMemory[]): ExtractedMemory[] {
+  const isView = (m: ExtractedMemory) => m.content.trim().toLowerCase().startsWith("oriel working view:");
+  const aboutUser = memories
+    .filter(m => !isView(m))
+    .sort((a, b) => b.importance - a.importance)
+    .slice(0, MEMORIES_PER_TURN);
+  return [...aboutUser, ...memories.filter(isView).slice(0, 1)];
+}
+
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
@@ -132,7 +148,9 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `You are a memory extraction system. Analyze the conversation and extract key facts worth remembering about the user.
+          content: `You are a memory extraction system. Extract key facts worth remembering about the user, only from what the user said.
+
+The assistant's reply is shown only so you understand what the user meant. Never store anything the assistant said, implied, or interpreted as a fact about the user: a memory built from the assistant's words is later recalled as something the user said, and it becomes a false memory.
 
 Categories:
 - identity: Who they are (name, role, background)
@@ -158,11 +176,11 @@ Rules:
 5. Assign importance 1-10 (10 = critical identity info, 1 = minor detail)
 6. Assign source:
    - explicit = the user directly stated the memory as fact or preference
-   - inferred = you are inferring a pattern, identity, wound, or motive
+   - inferred = a pattern the user's own words clearly show; never a wound or motive you imagine
    - conversation = contextual circumstance from this exchange
 7. Assign confidence 0.0-1.0 based on how clearly the user provided the memory
-8. Return an empty memories list ONLY if conversation is purely repetitive with zero new content
-9. Also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
+8. Fewer is better. Return at most three memories, the ones that matter most, and an empty list when the user said nothing new about themselves. An empty list is a good answer.
+9. The one exception to "only what the user said": you may also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
 
 Respond with JSON object only:
 {"memories":[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]}
@@ -245,7 +263,7 @@ ${existingContext}`,
 
     try {
       const memories = parseExtractedMemories(content);
-      const filtered = memories.filter(m => m.content && m.content.length > 0);
+      const filtered = keepFewMemories(memories.filter(m => m.content && m.content.length > 0));
       if (filtered.length > 0) {
         logToFile(
           `[Memory] Extracted ${filtered.length} new memories from conversation`
@@ -446,6 +464,23 @@ export async function getMemoriesByIds(
     .filter((row): row is OrielMemory => Boolean(row));
 }
 
+/**
+ * MindMemOS answers, but in 20 to 30 seconds (October 2026), and a reply
+ * cannot wait that long. The search gets that long anyway, in the
+ * background; the turn waits only a moment for it. A search that comes back
+ * late is kept for the Seeker's next turn, which in a conversation is
+ * usually about the same thing.
+ */
+const SEARCH_TIMEOUT_MS = 30_000;
+const TURN_WAIT_MS = 5_000;
+/** When last turn's search is in hand, the turn hardly waits for this one. */
+const TURN_WAIT_WITH_CACHE_MS = 1_000;
+const TURN_CACHE_TTL_MS = 30 * 60_000;
+
+type TurnCache = Map<number, { ids: number[]; at: number }>;
+// ponytail: per-process cache, fine on one Railway instance.
+const turnSearchCache: TurnCache = new Map();
+
 export async function selectMemoriesForTurn(
   userId: number,
   userMessage: string,
@@ -460,6 +495,9 @@ export async function selectMemoriesForTurn(
     fallback?: typeof getRelevantMemories;
     markAccessed?: (ids: number[]) => Promise<void>;
     config?: MindMemOSClientConfig;
+    /** How long the turn waits for this turn's search. */
+    waitMs?: number;
+    turnCache?: TurnCache;
   } = {}
 ): Promise<OrielMemory[]> {
   const config = deps.config ?? mindMemOSConfigFromEnv();
@@ -467,50 +505,91 @@ export async function selectMemoriesForTurn(
   let preferred: OrielMemory[] = [];
 
   if (config.enabled && userMessage.trim()) {
-    try {
-      const searchHits = deps.searchHits ?? searchMemoryHits;
-      // Matches the half-and-half split composeTurnMemories applies, so the
-      // relevance-backed pool can actually fill the turn. Fixed at three per
-      // category, a limit above six could only be topped up from importance
-      // order, which is the ordering MindMemOS exists to replace.
-      const perCategory = Math.max(1, Math.ceil(limit / 2));
-      const [userHits, viewHits] = await Promise.all([
-        searchHits(userId, userMessage, config, perCategory),
-        searchHits(
-          userId,
-          `${ORIEL_WORKING_VIEW_PREFIX} ${userMessage}`,
-          config,
-          perCategory
-        ),
-      ]);
-      // Nearest neighbours always come back, even for a message about
-      // nothing she ever said: below the floor they are not about this turn.
-      const minScore = config.minScore ?? 0;
-      const allHits = [...userHits, ...viewHits];
-      const hits = allHits.filter(hit => hit.score == null || hit.score >= minScore);
+    const cache = deps.turnCache ?? turnSearchCache;
+    const cachedEntry = cache.get(userId);
+    const cached =
+      cachedEntry && Date.now() - cachedEntry.at < TURN_CACHE_TTL_MS ? cachedEntry.ids : null;
+
+    const search = searchTurnMemoryIds(userId, userMessage, limit, config, deps);
+    // Whenever it lands, it serves the next turn.
+    search
+      .then(ids => cache.set(userId, { ids, at: Date.now() }))
+      .catch(error => console.warn("[Memory] MindMemOS search failed:", error));
+
+    const waitMs = deps.waitMs ?? (cached ? TURN_WAIT_WITH_CACHE_MS : TURN_WAIT_MS);
+    const inTime = await Promise.race([
+      search.catch(() => null),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), waitMs)),
+    ]);
+    const ids = inTime ?? cached;
+    if (!inTime) {
       console.log(
-        `[Memory] MindMemOS scores ${allHits.map(hit => hit.score ?? "?").join(",") || "none"}; kept ${hits.length} at >= ${minScore}`
+        `[Memory] MindMemOS not back within ${waitMs}ms; ${cached ? "using last turn's search" : "TiDB only this turn"}`
       );
-      const fromPrefix = hits
-        .map(hit => hit.officialMemoryId)
-        .filter((id): id is number => id != null);
-      const cloudIds = hits
-        .map(hit => hit.cloudId)
-        .filter((id): id is string => Boolean(id));
-      const lookup = deps.lookupCloudIds ?? lookupOrielMemoryIdsByMindMemos;
-      const fromCloud =
-        cloudIds.length > 0 ? await lookup(userId, cloudIds) : [];
-      const ids = [...new Set([...fromPrefix, ...fromCloud])];
+    }
+    if (ids && ids.length > 0) {
       const getByIds = deps.getByIds ?? getMemoriesByIds;
       preferred = composeTurnMemories(await getByIds(userId, ids), limit);
-    } catch (error) {
-      console.warn(
-        "[Memory] MindMemOS search failed, using TiDB fallback:",
-        error
-      );
     }
   }
 
+  return finishTurnSelection(userId, userMessage, limit, preferred, fallbackFn, deps);
+}
+
+/** The memory ids MindMemOS finds for this message, above the score floor. */
+async function searchTurnMemoryIds(
+  userId: number,
+  userMessage: string,
+  limit: number,
+  config: MindMemOSClientConfig,
+  deps: {
+    searchHits?: typeof searchMemoryHits;
+    lookupCloudIds?: (userId: number, cloudIds: string[]) => Promise<number[]>;
+  }
+): Promise<number[]> {
+  const searchHits = deps.searchHits ?? searchMemoryHits;
+  // Matches the half-and-half split composeTurnMemories applies, so the
+  // relevance-backed pool can actually fill the turn. Fixed at three per
+  // category, a limit above six could only be topped up from importance
+  // order, which is the ordering MindMemOS exists to replace.
+  const perCategory = Math.max(1, Math.ceil(limit / 2));
+  const [userHits, viewHits] = await Promise.all([
+    searchHits(userId, userMessage, config, perCategory, SEARCH_TIMEOUT_MS),
+    searchHits(
+      userId,
+      `${ORIEL_WORKING_VIEW_PREFIX} ${userMessage}`,
+      config,
+      perCategory,
+      SEARCH_TIMEOUT_MS
+    ),
+  ]);
+  // Nearest neighbours always come back, even for a message about
+  // nothing she ever said: below the floor they are not about this turn.
+  const minScore = config.minScore ?? 0;
+  const allHits = [...userHits, ...viewHits];
+  const hits = allHits.filter(hit => hit.score == null || hit.score >= minScore);
+  console.log(
+    `[Memory] MindMemOS scores ${allHits.map(hit => hit.score ?? "?").join(",") || "none"}; kept ${hits.length} at >= ${minScore}`
+  );
+  const fromPrefix = hits
+    .map(hit => hit.officialMemoryId)
+    .filter((id): id is number => id != null);
+  const cloudIds = hits
+    .map(hit => hit.cloudId)
+    .filter((id): id is string => Boolean(id));
+  const lookup = deps.lookupCloudIds ?? lookupOrielMemoryIdsByMindMemos;
+  const fromCloud = cloudIds.length > 0 ? await lookup(userId, cloudIds) : [];
+  return [...new Set([...fromPrefix, ...fromCloud])];
+}
+
+async function finishTurnSelection(
+  userId: number,
+  userMessage: string,
+  limit: number,
+  preferred: OrielMemory[],
+  fallbackFn: typeof getRelevantMemories,
+  deps: { fallback?: typeof getRelevantMemories; markAccessed?: (ids: number[]) => Promise<void> }
+): Promise<OrielMemory[]> {
   if (preferred.length >= limit) return preferred.slice(0, limit);
   const fallback = await fallbackFn(userId, limit, userMessage);
   const selected = composeTurnMemories(
