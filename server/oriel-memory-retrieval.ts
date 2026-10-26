@@ -231,6 +231,12 @@ export function formatRememberedNow(contents: string[]): string {
     parts.push(...aboutUser.map(content => `- ${content}`));
   }
 
+  // A Seeker asked about a past talk and ORIEL invented one, then defended it
+  // until pressed (2026-10-26). These lines are the only past it has.
+  parts.push(
+    "These lines are all you know of past conversations with this person. If they ask about an exchange you do not find here, say plainly that you do not remember it; never rebuild it from fragments. If they say something you recall is wrong, believe them at once: thank them, let it go, and do not defend your version."
+  );
+
   if (aboutOriel.length > 0) {
     parts.push(
       "Your own prior working views with this person. They are old readings, not how to read them now: meet who is here today first. You may keep, refine, or reverse them if this exchange earns it. Say the shift in one sentence. These are interpretation, not Genesis:"

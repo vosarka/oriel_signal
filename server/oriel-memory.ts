@@ -109,6 +109,22 @@ function windowForExtraction(text: string, budget: number): string {
  * Extract memories from a conversation exchange.
  * Uses an LLM to identify key facts worth remembering.
  */
+/**
+ * At most three memories about the Seeker a turn, the most important, plus
+ * ORIEL's one working view. Seven or eight a turn filled the store with
+ * guesses that were later recalled as things the Seeker had said.
+ */
+const MEMORIES_PER_TURN = 3;
+
+function keepFewMemories(memories: ExtractedMemory[]): ExtractedMemory[] {
+  const isView = (m: ExtractedMemory) => m.content.trim().toLowerCase().startsWith("oriel working view:");
+  const aboutUser = memories
+    .filter(m => !isView(m))
+    .sort((a, b) => b.importance - a.importance)
+    .slice(0, MEMORIES_PER_TURN);
+  return [...aboutUser, ...memories.filter(isView).slice(0, 1)];
+}
+
 export async function extractMemoriesFromConversation(
   userMessage: string,
   assistantResponse: string,
@@ -132,7 +148,9 @@ export async function extractMemoriesFromConversation(
       messages: [
         {
           role: "system",
-          content: `You are a memory extraction system. Analyze the conversation and extract key facts worth remembering about the user.
+          content: `You are a memory extraction system. Extract key facts worth remembering about the user, only from what the user said.
+
+The assistant's reply is shown only so you understand what the user meant. Never store anything the assistant said, implied, or interpreted as a fact about the user: a memory built from the assistant's words is later recalled as something the user said, and it becomes a false memory.
 
 Categories:
 - identity: Who they are (name, role, background)
@@ -158,11 +176,11 @@ Rules:
 5. Assign importance 1-10 (10 = critical identity info, 1 = minor detail)
 6. Assign source:
    - explicit = the user directly stated the memory as fact or preference
-   - inferred = you are inferring a pattern, identity, wound, or motive
+   - inferred = a pattern the user's own words clearly show; never a wound or motive you imagine
    - conversation = contextual circumstance from this exchange
 7. Assign confidence 0.0-1.0 based on how clearly the user provided the memory
-8. Return an empty memories list ONLY if conversation is purely repetitive with zero new content
-9. Also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
+8. Fewer is better. Return at most three memories, the ones that matter most, and an empty list when the user said nothing new about themselves. An empty list is a good answer.
+9. The one exception to "only what the user said": you may also include at most ONE "ORIEL working view:" memory when ORIEL committed to a stance, conclusion, or revision this turn (not a recap of doctrine). Prefix content with "ORIEL working view:" and set source to conversation. This is how ORIEL's own mind evolves with this person.
 
 Respond with JSON object only:
 {"memories":[{"category": "identity", "content": "User's name is X", "importance": 9, "source": "explicit", "confidence": 0.98}]}
@@ -245,7 +263,7 @@ ${existingContext}`,
 
     try {
       const memories = parseExtractedMemories(content);
-      const filtered = memories.filter(m => m.content && m.content.length > 0);
+      const filtered = keepFewMemories(memories.filter(m => m.content && m.content.length > 0));
       if (filtered.length > 0) {
         logToFile(
           `[Memory] Extracted ${filtered.length} new memories from conversation`
