@@ -1,0 +1,26 @@
+# Kept out of Railway's build context. The repository holds ~890 MB, and every
+# build uploaded all of it to BuildKit; builds began failing with BuildKit
+# dropping its connection (2026-10-26). Nothing here is read by the build
+# (vite builds client/, esbuild bundles server/ with shared/ and drizzle/) or
+# at runtime (the server reads wiki/ and uploads/, which stay).
+
+# Books, research and specs: ~460 MB.
+codex/
+docs/
+
+# Agent and tooling state.
+.agents/
+.claude/
+.superpowers/
+graft/
+stories/
+
+# Media kept beside the shared code, which only ever names them in text.
+shared/**/*.mp4
+shared/**/*.pdf
+shared/**/*.docx
+shared/**/*.png
+
+# Installed and built on the builder itself.
+node_modules/
+dist/
