@@ -358,7 +358,7 @@ function resolveProviderTimeoutMs(provider: {
   let preferred = cap;
   // The deadline stays armed through the body read and the call is not
   // streamed, so this budgets the entire generation, not just connect time.
-  if (provider.name === "Mistral") preferred = 30_000;
+  if (provider.name === "Mistral") preferred = 120_000;
   else if (provider.url.includes("api.groq.com")) preferred = 20_000;
   else if (provider.name === "Gemini") preferred = 12_000;
   return Math.min(cap, preferred);
