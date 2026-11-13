@@ -96,6 +96,10 @@ const SCAFFOLDING_PHRASES = [
   "Do not claim the orb sees, measures or reveals the Seeker's state",
   "If asked whether the light reflects them: say it reflects your own",
   "Do not say the monthly transmissions have begun",
+  // The whole bulletin is for questions; the November days ORIEL could not reach anyone.
+  "Everything below is for answering questions",
+  "If asked why you felt absent, distant or not yourself in those days",
+  "Do not dramatize it or turn it into a spiritual test",
 ];
 
 /**
