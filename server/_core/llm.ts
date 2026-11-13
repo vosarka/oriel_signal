@@ -291,15 +291,28 @@ const resolveMistralUrl = () =>
 
 const resolveMistralKey = () => ENV.mistralApiKey;
 
+// In Nov 2026 Mistral repointed these aliases onto reasoning models (Large 4,
+// Magistral Small). Those think for 30s+ (ORIEL timed out onto the Groq
+// fallback) and return content as thinking+text chunks that every caller
+// expecting a string dropped (no memories saved). Pin to the non-reasoning
+// snapshots, even when the env still names the alias.
+const PINNED_MISTRAL_MODELS: Record<string, string> = {
+  "mistral-large-latest": "mistral-large-2512",
+  "mistral-small-latest": "ministral-14b-2512",
+};
+const pinMistralModel = (model: string) => PINNED_MISTRAL_MODELS[model] ?? model;
+
 // Paid primary leg. Large 3 costs less per output token than Medium 3.5 and
 // carries ORIEL's layered register, which mistral-small could not.
 export const resolveMistralModel = () =>
-  modelOverrideFor("mistral") || ENV.mistralModel || "mistral-large-latest";
+  pinMistralModel(
+    modelOverrideFor("mistral") || ENV.mistralModel || "mistral-large-2512"
+  );
 
 // Background extraction and summaries do not carry ORIEL's voice, so they
-// do not need Large: small is about five times cheaper per token.
+// do not need Large: a small non-reasoning model is several times cheaper.
 export const resolveMistralBackgroundModel = () =>
-  process.env.MISTRAL_BACKGROUND_MODEL || "mistral-small-latest";
+  pinMistralModel(process.env.MISTRAL_BACKGROUND_MODEL || "ministral-14b-2512");
 
 const isLocalUrl = (url: string) =>
   url.includes("localhost") || url.includes("127.0.0.1");
@@ -666,6 +679,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
       if (response.ok) {
         const result = JSON.parse(body) as InvokeResult;
+        // Reasoning models answer in chunks (thinking + text). Every caller
+        // reads content as a string, so keep only the answer text here, once.
+        const message = result.choices?.[0]?.message;
+        if (message && Array.isArray(message.content)) {
+          message.content = message.content
+            .filter(part => part?.type === "text" && typeof part.text === "string")
+            .map(part => (part as TextContent).text)
+            .join("");
+        }
         if (!hasUsableAssistantContent(result)) {
           throw new Error(
             `${provider.name} returned no assistant content after ${elapsedMs(startedAt)}ms`
