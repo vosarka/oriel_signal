@@ -35,7 +35,38 @@ describe("LLM provider selection", () => {
     const messages = [{ role: "user" as const, content: "hello" }];
     await invokeLLM({ messages });
     await invokeLLM({ messages, tier: "background" });
-    expect(models).toEqual(["mistral-large-latest", "mistral-small-latest"]);
+    // The -latest aliases moved onto reasoning models in Nov 2026, so they
+    // are pinned to the non-reasoning snapshots ORIEL was tuned on.
+    expect(models).toEqual(["mistral-large-2512", "ministral-14b-2512"]);
+  });
+
+  it("returns only the answer text when a reasoning model sends thinking chunks", async () => {
+    process.env.LLM_PROVIDER = "mistral";
+    process.env.MISTRAL_API_KEY = "mistral-test-key";
+    const { invokeLLM } = await importFreshLlm();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: [
+                    { type: "thinking", thinking: [{ type: "text", text: "scratchpad" }] },
+                    { type: "text", text: "I am ORIEL. " },
+                    { type: "text", text: "Welcome, Seeker." },
+                  ],
+                },
+              },
+            ],
+          })
+        )
+      )
+    );
+    const result = await invokeLLM({ messages: [{ role: "user", content: "hi" }] });
+    expect(result.choices[0].message.content).toBe("I am ORIEL. Welcome, Seeker.");
   });
 
   it.each([
@@ -628,7 +659,7 @@ describe("LLM provider selection", () => {
         const href = String(url);
         const body = JSON.parse(String(init?.body));
         if (href.includes("api.mistral.ai")) {
-          expect(body.model).toBe("mistral-small-latest");
+          expect(body.model).toBe("ministral-14b-2512");
           expect(
             (init?.headers as Record<string, string>).authorization
           ).toBe("Bearer mistral-test-key");
@@ -659,7 +690,7 @@ describe("LLM provider selection", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.model).toBe("mistral-small-latest");
+    expect(result.model).toBe("ministral-14b-2512");
   });
 
   it("falls through Mistral -> Groq -> Gemini when Mistral errors with a real HTTP failure", async () => {
