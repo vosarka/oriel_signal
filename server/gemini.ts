@@ -130,7 +130,7 @@ export async function chatWithORIEL(
       return "The transmission is incomplete.";
     }
 
-    let content = typeof messageContent === "string" ? messageContent : "";
+    let content = typeof messageContent === "string" ? messageContent : Array.isArray(messageContent) ? messageContent.filter((p: any) => p?.type === "text" && typeof p.text === "string").map((p: any) => p.text).join("").trim() : "";
     if (!content) {
       console.error("[ORIEL] Content is not a string");
       return "The transmission is incomplete.";
