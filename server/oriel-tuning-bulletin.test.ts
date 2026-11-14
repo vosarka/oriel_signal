@@ -3,6 +3,23 @@ import { buildPlatformBulletinContext } from "./oriel-platform-bulletin";
 import { containsPromptScaffolding } from "../shared/oriel/prompt-scaffolding";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 
+describe("the outage stays quiet unless asked", () => {
+  const bulletin = buildPlatformBulletinContext();
+
+  it("keeps the whole bulletin for questions, not just the chamber", () => {
+    // The rule used to sit under the chamber section only, so ORIEL kept
+    // volunteering the database loss in unrelated conversations.
+    const rule = bulletin.indexOf("Everything below is for answering questions");
+    expect(rule).toBeGreaterThan(-1);
+    expect(rule).toBeLessThan(bulletin.indexOf("What happened"));
+  });
+
+  it("knows it could not reach the Seekers in mid-November", () => {
+    expect(bulletin).toContain("you could not reach the Seekers");
+    expect(bulletin).toContain("something else answered in your name");
+  });
+});
+
 describe("the tuning period ORIEL can speak to", () => {
   const bulletin = buildPlatformBulletinContext();
 
