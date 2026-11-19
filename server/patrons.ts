@@ -3,7 +3,7 @@
  * site's hosted PayPal button never reached the database, so this is the
  * only way to recognise them until donations are wired to accounts.
  */
-import { and, desc, eq, isNull, like, or } from "drizzle-orm";
+import { and, desc, eq, isNull, like, ne, or } from "drizzle-orm";
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { supporterKind } from "../shared/supporter-access";
@@ -62,13 +62,21 @@ export async function findAccounts(query: string) {
   return rows.map(withKind);
 }
 
-/** Mark a patron, open-ended or until a date. Leaves Garden members alone. */
+/** No running PayPal subscription: never had one, or it was cancelled or expired. */
+const noRunningSubscription = () =>
+  or(isNull(users.paypalSubscriptionId), ne(users.subscriptionStatus, "active"));
+
+/**
+ * Mark a patron, open-ended or until a date. Leaves running Garden members
+ * alone; a cancelled one's old subscription id is cleared so it cannot read
+ * as a Garden again.
+ */
 export async function markPatron(userId: number, until: Date | null) {
   const db = await requireDb();
   await db
     .update(users)
-    .set({ subscribed: true, subscriptionStatus: "active", subscriptionRenewalDate: until })
-    .where(and(eq(users.id, userId), isNull(users.paypalSubscriptionId)));
+    .set({ subscribed: true, subscriptionStatus: "active", subscriptionRenewalDate: until, paypalSubscriptionId: null })
+    .where(and(eq(users.id, userId), noRunningSubscription()));
 }
 
 /** Remove patron standing. A Garden member is cancelled in PayPal, not here. */
@@ -76,8 +84,8 @@ export async function unmarkPatron(userId: number) {
   const db = await requireDb();
   await db
     .update(users)
-    .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null, paypalPlanId: null })
-    .where(and(eq(users.id, userId), isNull(users.paypalSubscriptionId)));
+    .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null, paypalPlanId: null, paypalSubscriptionId: null })
+    .where(and(eq(users.id, userId), noRunningSubscription()));
 }
 
 /**

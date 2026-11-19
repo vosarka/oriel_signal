@@ -81,7 +81,7 @@ describe("redeemGift", () => {
       subscribed: true,
       subscriptionStatus: "active",
       paypalPlanId: "P-6SY7118000596284YNK7HTLI",
-      subscriptionRenewalDate: "2026-11-10T00:00:00Z",
+      subscriptionRenewalDate: new Date(Date.now() + 10 * 86_400_000).toISOString(), // still open, whenever this runs
     };
     await redeemGift(deepMonth, token);
     expect(grants.grantGardenMonth).toHaveBeenCalledWith(9, "deep_garden", expect.any(Date));
@@ -94,7 +94,7 @@ describe("redeemGift", () => {
       subscribed: true,
       subscriptionStatus: "active",
       paypalPlanId: "P-6SY7118000596284YNK7HTLI",
-      subscriptionRenewalDate: "2026-11-10T00:00:00Z",
+      subscriptionRenewalDate: new Date(Date.now() + 10 * 86_400_000).toISOString(), // still open, whenever this runs
       ringRank: 3,
     };
     await redeemGift(deepStewardMonth, token);

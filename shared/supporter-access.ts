@@ -2,8 +2,9 @@
  * Who is past the free threshold, and how far — read from columns `users`
  * already has, no schema change:
  *
- * - Garden member: `subscribed` with a PayPal subscription id. The signed
- *   webhook sets and clears it; renewal dates are PayPal's business.
+ * - Garden member: `subscribed` with an active PayPal subscription. The
+ *   signed webhook sets and clears it; renewal dates are PayPal's business.
+ *   Once cancelled, it lasts until the month already paid for ends.
  * - Patron: `subscribed` without one, marked by Vos in /admin. Open-ended,
  *   or with an end date in `subscriptionRenewalDate` (the 30-day key a
  *   one-time donation opens) after which it lapses on its own. The level
@@ -71,11 +72,13 @@ export function supporterKind(user: SupporterFields, now: Date = new Date()): Su
   if (!user.subscribed) return null;
   const until = user.subscriptionRenewalDate ? new Date(user.subscriptionRenewalDate) : null;
   const lapsed = Boolean(until && until <= now);
+  // Only a running PayPal subscription is open-ended; every other standing
+  // ends with its date.
+  if (user.paypalSubscriptionId && user.subscriptionStatus === "active") return "garden";
+  if (lapsed) return null;
   // A cancelled Garden stays open until the month already paid for ends.
-  if (user.paypalSubscriptionId) {
-    return user.subscriptionStatus === "cancelled" && lapsed ? null : "garden";
-  }
-  return lapsed ? null : "patron";
+  if (user.paypalSubscriptionId && user.subscriptionStatus === "cancelled") return until ? "garden" : null;
+  return "patron";
 }
 
 /**

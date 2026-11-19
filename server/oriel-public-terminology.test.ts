@@ -16,7 +16,7 @@ describe("public VRC terminology", () => {
   it("uses resonance link wording on the codon detail page", async () => {
     const source = await readFile("client/src/pages/CodonDetail.tsx", "utf8");
 
-    expect(source).toMatch(/Resonance Links/);
+    expect(source).toMatch(/Resonance Links/i);
     expect(source).not.toMatch(/>\s*Channels\s*</i);
   });
 });

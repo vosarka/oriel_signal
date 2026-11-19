@@ -391,7 +391,10 @@ export const orielChatProcedure = rateLimitedProcedure("oriel.chat")
         if (ctx.user) {
           const storedProfile = await db.getUserStaticProfile(ctx.user.id);
           if (storedProfile) {
-            rgpSummary = summarizeStoredStaticProfile(storedProfile);
+            // ponytail: stored lattice JSON is parsed as unknown; the summary only reads it defensively. Type parseLatticeFields if it ever drives logic.
+            rgpSummary = summarizeStoredStaticProfile(
+              storedProfile as Parameters<typeof summarizeStoredStaticProfile>[0]
+            );
             console.log(
               "[ORIEL] Injecting stored canonical natal blueprint"
             );
