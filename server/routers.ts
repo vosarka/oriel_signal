@@ -2766,7 +2766,12 @@ export const appRouter = router({
       unmark: adminProcedure
         .input(z.object({ userId: z.number().int().positive() }))
         .mutation(async ({ input }) => {
-          await unmarkPatron(input.userId);
+          if ((await unmarkPatron(input.userId)) === "still_billing") {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "This Garden is still active and billing in PayPal. Cancel it there first, then remove.",
+            });
+          }
           return { success: true };
         }),
       setDonated: adminProcedure

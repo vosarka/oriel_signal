@@ -5,6 +5,7 @@
  */
 import { and, desc, eq, isNull, like, ne, or } from "drizzle-orm";
 import { getDb } from "./db";
+import { paypalSubscriptionStatus } from "./garden-paypal";
 import { users } from "../drizzle/schema";
 import { supporterKind } from "../shared/supporter-access";
 import { supporterLabel } from "../shared/supporter-standing";
@@ -79,13 +80,31 @@ export async function markPatron(userId: number, until: Date | null) {
     .where(and(eq(users.id, userId), noRunningSubscription()));
 }
 
-/** Remove patron standing. A Garden member is cancelled in PayPal, not here. */
-export async function unmarkPatron(userId: number) {
+/**
+ * Remove patron or Garden standing. A Garden our database still calls active
+ * is checked with PayPal first: if PayPal is still billing it, nothing
+ * changes (cancel it in PayPal); anything else — cancelled, expired, an
+ * abandoned checkout, unknown — means the cancellation never reached us, so
+ * the Garden closes now.
+ */
+export async function unmarkPatron(
+  userId: number,
+  readStatus: (subscriptionId: string) => Promise<string | null> = paypalSubscriptionStatus
+): Promise<"removed" | "still_billing"> {
   const db = await requireDb();
+  const [row] = await db
+    .select({ subscriptionId: users.paypalSubscriptionId, status: users.subscriptionStatus })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (row?.subscriptionId && row.status === "active" && (await readStatus(row.subscriptionId)) === "ACTIVE") {
+    return "still_billing";
+  }
   await db
     .update(users)
     .set({ subscribed: false, subscriptionStatus: "free", subscriptionRenewalDate: null, paypalPlanId: null, paypalSubscriptionId: null })
-    .where(and(eq(users.id, userId), noRunningSubscription()));
+    .where(eq(users.id, userId));
+  return "removed";
 }
 
 /**
