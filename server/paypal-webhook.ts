@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { users } from "../drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 /**
  * PayPal webhook event types
@@ -155,16 +155,11 @@ async function handleSubscriptionCreated(
 
   const userId = parseInt(userIdMatch[1], 10);
 
-  // Update user subscription in database
-  await db
-    .update(users)
-    .set({
-      paypalSubscriptionId: subscriptionId,
-      subscriptionStatus: "free", // Will be activated on BILLING.SUBSCRIPTION.ACTIVATED
-    })
-    .where(eq(users.id, userId));
-
-  console.log(`[PayPal Webhook] Subscription created for user ${userId}`);
+  // CREATED fires on every Subscribe click, approved or abandoned. Writing
+  // here once turned a cancelled member's status back to "free" with a fresh
+  // subscription id, which read as an open-ended Garden. ACTIVATED is the
+  // only event that opens anything.
+  console.log(`[PayPal Webhook] Subscription created for user ${userId} (awaiting approval)`);
 }
 
 /**
@@ -238,20 +233,19 @@ async function handleSubscriptionUpdated(
 
   const userId = parseInt(userIdMatch[1], 10);
 
-  // Map PayPal status to our subscription status
-  let subscriptionStatus = "active";
-  if (status === "SUSPENDED") {
-    subscriptionStatus = "cancelled";
-  } else if (status === "EXPIRED") {
-    subscriptionStatus = "expired";
-  }
+  // Anything but ACTIVE closes through its own handler; mapping every other
+  // status to "active" reopened cancelled subscriptions.
+  if (status === "CANCELLED") return handleSubscriptionCancelled(db, payload);
+  if (status === "SUSPENDED") return handleSubscriptionSuspended(db, payload);
+  if (status === "EXPIRED") return handleSubscriptionExpired(db, payload);
+  if (status !== "ACTIVE") return;
+  const subscriptionStatus = "active";
 
+  // Only the subscription this account holds; an old one cannot reopen it.
   await db
     .update(users)
-    .set({
-      subscriptionStatus,
-    })
-    .where(eq(users.id, userId));
+    .set({ subscriptionStatus })
+    .where(and(eq(users.id, userId), eq(users.paypalSubscriptionId, subscriptionId)));
 
   console.log(
     `[PayPal Webhook] Subscription updated for user ${userId}, status: ${subscriptionStatus}`

@@ -67,7 +67,7 @@ describe("profile-console-model", () => {
       { id: "memory", label: "Memory", value: "2", tone: "silver" },
       {
         id: "signature",
-        label: "Static Signature",
+        label: "Static Signature Reading",
         value: "Linked",
         tone: "gold",
       },

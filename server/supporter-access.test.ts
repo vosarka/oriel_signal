@@ -23,9 +23,34 @@ describe("supporterKind", () => {
     const garden = {
       ...base,
       paypalSubscriptionId: "I-BW452GLLEP1G",
+      subscriptionStatus: "active",
       subscriptionRenewalDate: "2026-09-01T00:00:00Z",
     };
     expect(supporterKind(garden, now)).toBe("garden");
+  });
+
+  it("keeps a cancelled Garden open only until the month already paid for ends", () => {
+    const cancelled = {
+      ...base,
+      paypalSubscriptionId: "I-BW452GLLEP1G",
+      subscriptionStatus: "cancelled",
+      subscriptionRenewalDate: "2026-10-10T00:00:00Z",
+    };
+    expect(supporterKind(cancelled, now)).toBe("garden");
+    expect(supporterKind(cancelled, new Date("2026-10-10T00:00:01Z"))).toBeNull();
+    expect(supporterKind({ ...cancelled, subscriptionRenewalDate: null }, now)).toBeNull();
+  });
+
+  it("never reads a subscription that is not active as an open-ended Garden", () => {
+    // A cancelled member who clicked Subscribe again and left: status "free", fresh id.
+    const abandoned = {
+      ...base,
+      paypalSubscriptionId: "I-NEWCHECKOUT1",
+      subscriptionStatus: "free",
+      subscriptionRenewalDate: "2026-09-20T00:00:00Z",
+    };
+    expect(supporterKind(abandoned, now)).toBeNull();
+    expect(accessTier(abandoned, now)).toBe("free");
   });
 });
 
