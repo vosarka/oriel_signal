@@ -89,7 +89,7 @@ export default function PatronsConsole() {
     utils.admin.patrons.find.invalidate();
   };
   const mark = trpc.admin.patrons.mark.useMutation({ onSuccess: refresh });
-  const unmark = trpc.admin.patrons.unmark.useMutation({ onSuccess: refresh });
+  const unmark = trpc.admin.patrons.unmark.useMutation({ onSuccess: refresh, onError: e => alert(e.message) });
   const setDonated = trpc.admin.patrons.setDonated.useMutation({ onSuccess: refresh });
 
   const markPatron = (userId: number) =>
@@ -129,10 +129,11 @@ export default function PatronsConsole() {
               MARK PATRON
             </button>
           )}
-          {r.kind !== "garden" && (r.kind === "patron" || r.lapsed) && (
+          {(r.kind !== null || r.lapsed) && (
             <button
               onClick={() => {
-                if (confirm(`Remove patron standing from ${r.email}?`)) {
+                const what = r.kind === "garden" ? "the Garden (PayPal is checked first)" : "patron standing";
+                if (confirm(`Remove ${what} from ${r.email}?`)) {
                   unmark.mutate({ userId: r.id });
                 }
               }}

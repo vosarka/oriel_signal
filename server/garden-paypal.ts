@@ -61,6 +61,21 @@ export async function startGardenSubscription(
   return approve;
 }
 
+/** PayPal's own status for a subscription (ACTIVE, CANCELLED, …); null when PayPal does not know it. */
+export async function paypalSubscriptionStatus(
+  subscriptionId: string,
+  fetchImpl: Fetch = fetch
+): Promise<string | null> {
+  const token = await accessToken(fetchImpl);
+  const res = await fetchImpl(
+    `${ENV.paypalApiBaseUrl}/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`PayPal subscription lookup failed (${res.status})`);
+  return ((await res.json()) as { status?: string }).status ?? null;
+}
+
 /**
  * Reads the subscription PayPal returned the Seeker with and, when it is
  * active, belongs to this account and is one of the Garden plans, opens the
