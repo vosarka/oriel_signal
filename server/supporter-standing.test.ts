@@ -9,7 +9,7 @@ const patron = { subscribed: true, paypalSubscriptionId: null, subscriptionRenew
 describe("supporterStanding", () => {
   it("shows a free Seeker their daily measure, with no seal", () => {
     const s = supporterStanding(free, now);
-    expect(s).toMatchObject({ tier: "free", label: "Free", seal: 0, messagesPerDay: 4, voicePerDay: 4, next: null });
+    expect(s).toMatchObject({ tier: "free", label: "Free", seal: 0, messagesPerDay: 4, voicePerDay: 0, next: null });
   });
 
   it("gives a patron their level, what it opens, and how far the next one is", () => {

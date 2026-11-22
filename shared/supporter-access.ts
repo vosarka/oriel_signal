@@ -115,13 +115,18 @@ export function freeBook(user: SupporterFields): boolean {
   return ring === "pillar" || ring === "keystone";
 }
 
-/** The day's measure: the plan's base plus the ring's bonus; voice equals messages. */
+/**
+ * The day's measure: the plan's base plus the ring's bonus. ORIEL's voice
+ * belongs to the plans: on a plan every message can be heard; Free reads
+ * (Vos, 2026-11-21 — the voice was most of the Mistral bill).
+ */
 export function dailyMeasure(
   user: SupporterFields & { role?: string | null },
   now: Date = new Date()
 ): { messagesPerDay: number; messagesPerHour: number; voicePerDay: number } {
   if (user.role === "admin") return { messagesPerDay: Infinity, messagesPerHour: Infinity, voicePerDay: Infinity };
-  const plan = TIER_ACCESS[accessTier(user, now)];
+  const tier = accessTier(user, now);
+  const plan = TIER_ACCESS[tier];
   const messagesPerDay = plan.messagesPerDay + ringBonus(user);
-  return { messagesPerDay, messagesPerHour: plan.messagesPerHour, voicePerDay: messagesPerDay };
+  return { messagesPerDay, messagesPerHour: plan.messagesPerHour, voicePerDay: tier === "free" ? 0 : messagesPerDay };
 }

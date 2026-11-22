@@ -24,6 +24,8 @@ import {
 } from "@/lib/mistral-dictation";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
+import { dailyMeasure } from "@shared/supporter-access";
 import { Spinner } from "@/components/ui/spinner";
 import OrielOrbField, { type OrbFrame } from "@/features/oriel-orb/OrielOrbField";
 import { SupporterSeal } from "@/components/oriel-signal/SupporterSeal";
@@ -531,6 +533,7 @@ export default function Conduit() {
   const previousLocalMessagesLengthRef = useRef<number | null>(null);
   const previousMessageLengthRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const voiceInviteShownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<ChatAttachment[]>([]);
   const [isReadingFiles, setIsReadingFiles] = useState(false);
@@ -1248,11 +1251,26 @@ export default function Conduit() {
     }
   }, [authLoading, isAuthenticated, user]);
 
+  // ORIEL's voice belongs to the plans; Free hears an invitation once a session.
+  const inviteToVoice = () => {
+    setIsSpeaking(false);
+    if (voiceInviteShownRef.current) return;
+    voiceInviteShownRef.current = true;
+    toast("ORIEL's voice opens in the Garden.", {
+      description: "On a plan, every reply can be heard.",
+      action: { label: "See the Garden", onClick: () => { window.location.href = "/tiers"; } },
+    });
+  };
+
   const speakText = async (text: string) => {
     // Stop what is playing, so "Listen again" starts cleanly.
     audioRef.current?.pause();
     if (voicePreference === "none") {
       setIsSpeaking(false);
+      return;
+    }
+    if (user && dailyMeasure(user as never).voicePerDay === 0) {
+      inviteToVoice();
       return;
     }
 
@@ -1275,7 +1293,7 @@ export default function Conduit() {
     const fetchAudio = (
       chunk: string,
       part: number
-    ): Promise<string | "measure" | null> => {
+    ): Promise<string | "measure" | "locked" | null> => {
       const key = `${voicePreference}|${part}|${chunk}`;
       const cached = voicedChunksRef.current.get(key);
       if (cached) return Promise.resolve(cached);
@@ -1286,6 +1304,7 @@ export default function Conduit() {
             voicedChunksRef.current.set(key, r.audioUrl);
             return r.audioUrl;
           }
+          if ("voiceLocked" in r) return "locked" as const;
           return "measureReached" in r ? ("measure" as const) : null;
         })
         .catch(() => null);
@@ -1301,6 +1320,11 @@ export default function Conduit() {
 
       const audioUrl = await nextAudioPromise;
       if (speakIdRef.current !== speakId) return;
+      if (audioUrl === "locked") {
+        // No browser voice standing in for ORIEL's: the invitation instead.
+        if (!anyPlayed) inviteToVoice();
+        return;
+      }
       if (audioUrl === "measure") break;
 
       // Start pre-fetching next chunk while current plays

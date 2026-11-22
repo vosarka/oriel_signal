@@ -13,9 +13,9 @@ describe("the architect's measure", () => {
 });
 
 describe("spoken replies follow the messages", () => {
-  it("gives a free Seeker with a Keeper ring as many spoken replies as messages", () => {
+  it("gives a free Seeker with a Keeper ring the ring's messages but no voice", () => {
     const free = { id: 2, subscribed: false, paypalSubscriptionId: null, subscriptionRenewalDate: null, ringRank: 2 };
-    expect(limitsFor(free)).toMatchObject({ messagesPerDay: 14, voicePerDay: 14 });
+    expect(limitsFor(free)).toMatchObject({ messagesPerDay: 14, voicePerDay: 0 });
   });
 
   it("gives a Garden member 150 spoken replies, not 20", () => {

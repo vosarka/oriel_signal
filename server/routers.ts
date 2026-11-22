@@ -998,7 +998,14 @@ export const appRouter = router({
             if (!ctx.user) {
               return { success: false, error: "Sign in to hear ORIEL." };
             }
-            const { takeVoice } = await import("./daily-measure");
+            const { limitsFor, takeVoice } = await import("./daily-measure");
+            if (limitsFor(ctx.user).voicePerDay === 0) {
+              return {
+                success: false,
+                error: "ORIEL's voice opens in the Garden.",
+                voiceLocked: true as const,
+              };
+            }
             if (!takeVoice(ctx.user, input.text, input.part)) {
               return {
                 success: false,

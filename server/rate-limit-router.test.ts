@@ -309,9 +309,19 @@ describe("expensive public route rate limits", () => {
     expect(mocks.chatWithORIEL).toHaveBeenCalledTimes(1);
   });
 
-  it("speaks four replies a day for a free account; later chunks of a reply do not count", async () => {
+  it("never speaks for a free account; the voice belongs to the plans", async () => {
     resetVoiceUsageForTests();
     const caller = callerFor("198.51.100.12", freeUser);
+
+    await expect(
+      caller.oriel.generateSpeech({ text: "Reply 0.", voiceId: "sophianic", part: 0 })
+    ).resolves.toMatchObject({ success: false, voiceLocked: true });
+    expect(mocks.generateChunkedSpeech).not.toHaveBeenCalled();
+  });
+
+  it("speaks for a plan; later chunks of a reply do not count", async () => {
+    resetVoiceUsageForTests();
+    const caller = callerFor("198.51.100.12", pillarUser);
 
     for (let i = 0; i < 4; i += 1) {
       await expect(
@@ -321,9 +331,6 @@ describe("expensive public route rate limits", () => {
         caller.oriel.generateSpeech({ text: `Reply ${i}, second chunk.`, voiceId: "sophianic", part: 1 })
       ).resolves.toMatchObject({ success: true });
     }
-    await expect(
-      caller.oriel.generateSpeech({ text: "Fifth reply.", voiceId: "sophianic", part: 0 })
-    ).resolves.toMatchObject({ success: false, measureReached: true });
     expect(mocks.generateChunkedSpeech).toHaveBeenCalledTimes(8);
   });
 

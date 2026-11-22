@@ -366,7 +366,11 @@ export default function Tiers() {
                     <dd>{TIER_ACCESS[key].messagesPerDay}</dd>
                   </div>
                 </dl>
-                <p className="fh-plot__line">Every reply can also be heard in ORIEL's voice.</p>
+                <p className="fh-plot__line">
+                  {key === "free"
+                    ? "ORIEL's replies are read on screen."
+                    : "Every reply can also be heard in ORIEL's voice."}
+                </p>
                 <ul className="fh-plot__benefits">
                   {benefits.map(b => (
                     <li key={b}>{b}</li>

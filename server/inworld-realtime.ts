@@ -16,6 +16,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
 import { resolveWebSocketUser } from "./_core/ws-auth";
 import { ENV } from "./_core/env";
+import { dailyMeasure } from "../shared/supporter-access";
 import * as db from "./db";
 import { buildOrielPromptContext } from "./oriel-prompt-context";
 import {
@@ -163,6 +164,12 @@ export function setupRealtimeWebSocket(server: HttpServer): void {
       if (!user) {
         console.warn("[Realtime] Unauthorized — closing");
         clientWs.close(4001, "Unauthorized");
+        return;
+      }
+      // The live voice belongs to the plans, like every spoken reply.
+      const fullUser = await db.getUserById(user.id);
+      if (!fullUser || dailyMeasure(fullUser).voicePerDay === 0) {
+        clientWs.close(4003, "ORIEL's voice opens in the Garden");
         return;
       }
 

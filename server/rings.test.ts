@@ -38,8 +38,8 @@ describe("the measure: the plan's base, and the ring's bonus on top", () => {
   };
   const patron = { subscribed: true, paypalSubscriptionId: null, subscriptionRenewalDate: null };
 
-  it("gives a free Seeker their ring's bonus, voice equal to messages", () => {
-    expect(dailyMeasure({ ...free, ringRank: 2 }, now)).toEqual({ messagesPerDay: 14, voicePerDay: 14, messagesPerHour: 30 });
+  it("gives a free Seeker their ring's bonus, and no voice", () => {
+    expect(dailyMeasure({ ...free, ringRank: 2 }, now)).toEqual({ messagesPerDay: 14, voicePerDay: 0, messagesPerHour: 30 });
   });
 
   it("adds the ring to a Garden", () => {

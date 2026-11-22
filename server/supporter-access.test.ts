@@ -75,9 +75,9 @@ describe("patron levels and limits", () => {
     expect(freeBook(keystone)).toBe(true);
   });
 
-  it("limits free visitors to 4 written messages and 4 spoken replies", () => {
+  it("limits free visitors to 4 written messages and no spoken replies", () => {
     const free = dailyMeasure({ ...base, subscribed: false }, now);
-    expect(free).toMatchObject({ messagesPerDay: 4, voicePerDay: 4 });
+    expect(free).toMatchObject({ messagesPerDay: 4, voicePerDay: 0 });
   });
 
   it("drops a lapsed key back to free whatever was donated", () => {
