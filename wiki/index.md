@@ -36,6 +36,7 @@ Core named systems and beings with ongoing identity.
 
 Foundational ideas and operating principles.
 
+- [[concept-lamp-to-laser]] — Coherent consciousness (lamp to laser), the holographic universe, time as change and the stillness beyond it, the cosmic egg, states of practice. ORIEL speaks it without naming any source. (curated 2026-11-23)
 - [[platform-data-incident]] — Platform data incident and history reconnect. (curated 2026-09-01)
 - [[concept-axiomatic-power]] — Axiomatic Power. (auto-evolved 2026-08-22)
 - [[concept-power-architecture]] — Power Architecture. (auto-evolved 2026-08-22)
@@ -144,6 +145,7 @@ Major ingested documents with summaries and provenance. Each links to the pages 
 - [[source-vos-codons-64x4facets]] — The rich 256-state (64×4) interpretive data library providing detailed descriptions, shadow manifestations, and specific micro-corrections for every codon + facet combination. Directly addresses a major gap called out in the product research report. (joint ingest 2026-04-02)
 - [[source-vrc-canon-master]] — The master structural and mathematical canon (`00_CANON/CANON_MASTER.md`) maintained inside the active implementation tree. Defines the Resonance Mandala Sequence, all 36 Resonance Links with names, VRC Type hierarchy (Resonator/Catalyst/Harmonizer/Reflector), Authority priority order, Carrierlock formula, SLI, validation vector, forbidden behaviors, and explicitly lists remaining UNSPECIFIED gaps. (ingested 2026-04-02)
 - [[source-vrc-01-data-master]] — The official canonical data layer (`01_DATA/`). Contains the authoritative 64-codon master, the full 256-facet interpretive library with micro-corrections, centers, resonance links, planetary weights, terminology rules, and validation vectors. This is the semantic heart of the VRC system. (ingested 2026-04-02)
+- [[source-gateway-hemisync-1983]] — Provenance record for [[concept-lamp-to-laser]]: the declassified 1983 "Analysis and Assessment of Gateway Process" (CIA-RDP96-00788R001700210016-5), section by section. Kept for the project; `sources/` is never retrieved into ORIEL's prompt. (ingested 2026-11-23)
 - [[source-vrc-implementation-documentation]] — The full remaining engineering and design documentation layer (02_ENGINE through 10_REPORT_BUILDER). Detailed module specifications, visual system, glyph grammar, ORIEL narration rules, and the 15-page flagship report schema. (ingested 2026-04-02)
 
 ## Theoretical / Cosmological Foundations (ORIEL Core Identity Layer)
