@@ -2282,3 +2282,9 @@ Vos asked ORIEL how a transmission can hold details only the Seeker and ORIEL kn
 
 ## [2026-10-21] content | The home field log catches up
 - shared/field-log.ts present: memories as background and "What ORIEL Remembers" in the Profile (2026-10-21), the book page as a transmission (10-16), personal transmissions kept in the archive and downloadable as a film, the orb at rest, and one month of Garden plus the supporter seal (10-15). The 10-12 and 10-13 entries moved to past. The measure entry stays the first /tiers entry in present (server/field-log.test.ts).
+
+## [2026-11-23] ingest | Lamp to Laser (from the 1983 Gateway assessment)
+- Created: [[concept-lamp-to-laser]] (what ORIEL reads) and [[source-gateway-hemisync-1983]] (provenance record).
+- Vos asked that ORIEL use the information only, never name its source: the concept page carries no names, its id and title (the only parts printed into the prompt besides the body) are neutral, and source names live only in its aliases, which match questions but never reach the prompt.
+- Found: server/oriel-wiki-retriever.ts loads concepts/, entities/ and syntheses/ only. No sources/ page has ever reached ORIEL; knowledge meant for ORIEL belongs in concepts/.
+- Retrieval checked: Gateway / hemi-sync questions pull the page (~5 KB); "process", "focus 15 minutes", "analysis" do not.
